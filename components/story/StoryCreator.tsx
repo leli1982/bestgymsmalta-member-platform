@@ -783,8 +783,8 @@ export default function StoryCreator() {
       ) : null}
 
       {openCategory ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/70 p-4 backdrop-blur-sm">
-          <div className="max-h-[78vh] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950">
+        <div className="fixed inset-0 z-[100] flex items-end bg-black/70 px-4 pb-28 pt-4 backdrop-blur-sm">
+          <div className="max-h-[72vh] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 p-5">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
@@ -810,7 +810,7 @@ export default function StoryCreator() {
               </button>
             </div>
 
-            <div className="max-h-[58vh] overflow-y-auto p-5">
+            <div className="max-h-[52vh] overflow-y-auto p-5 pb-8">
               {openCategory === "brands" ? (
                 <div className="grid gap-3">
                   {brandStickerOptions.map((brand) => (
