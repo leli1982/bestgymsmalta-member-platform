@@ -201,27 +201,27 @@ export default function StoryCreator() {
 
         {photoUrl ? (
           <button
-            type="button"
-            onPointerDown={(event) => {
-              setDragging(true);
-              updateWatermarkPosition(event.clientX, event.clientY);
-            }}
-            className="absolute z-10 touch-none rounded-2xl border border-orange-500/40 bg-black/20 p-1 backdrop-blur"
-            style={{
-              left: `${watermark.x}%`,
-              top: `${watermark.y}%`,
-              width: `${watermark.size}%`,
-              transform: "translate(-50%, -50%)",
-            }}
-            aria-label="Move BGM watermark"
-          >
-            <img
-              src={WATERMARK_SRC}
-              alt="BGM watermark"
-              draggable={false}
-              className="w-full select-none"
-            />
-          </button>
+  type="button"
+  onPointerDown={(event) => {
+    setDragging(true);
+    updateWatermarkPosition(event.clientX, event.clientY);
+  }}
+  className="absolute z-10 touch-none bg-transparent p-0"
+  style={{
+    left: `${watermark.x}%`,
+    top: `${watermark.y}%`,
+    width: `${watermark.size}%`,
+    transform: "translate(-50%, -50%)",
+  }}
+  aria-label="Move BGM watermark"
+>
+  <img
+    src={WATERMARK_SRC}
+    alt="BGM watermark"
+    draggable={false}
+    className="w-full select-none drop-shadow-[0_0_12px_rgba(0,0,0,0.65)]"
+  />
+</button>
         ) : null}
 
         {photoUrl ? (
