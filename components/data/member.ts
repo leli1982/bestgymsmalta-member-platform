@@ -1,5 +1,16 @@
 export type MemberTier = "standard" | "premium" | "vip" | "lifetime";
 
+export type MemberStatus = "active" | "paused" | "expired";
+
+export type NfcCardStatus = "active" | "inactive" | "needs_attention";
+
+export type FitnessGoalType =
+  | "build_strength"
+  | "lose_weight"
+  | "improve_fitness"
+  | "build_muscle"
+  | "stay_consistent";
+
 export type Member = {
   id: string;
   firstName: string;
@@ -7,23 +18,42 @@ export type Member = {
   fullName: string;
 
   tier: MemberTier;
-  status: "active" | "paused" | "expired";
+  status: MemberStatus;
 
   memberSince: string;
+  membershipNumber: string;
+  membershipLabel: string;
+  membershipExpiry: string;
   homeGymId: string;
 
   nfcCard: {
     linked: boolean;
     cardId: string;
-    status: "active" | "inactive" | "needs_attention";
+    status: NfcCardStatus;
   };
 
-  fitnessScore: number;
-  points: number;
-  streak: number;
-  gymsVisited: number;
-  totalGyms: number;
-  totalWorkouts: number;
+  passport: {
+    gymsVisited: number;
+    totalGyms: number;
+    visitedGymIds: string[];
+    nextGymId: string;
+  };
+
+  fitness: {
+    score: number;
+    streak: number;
+    totalWorkouts: number;
+    currentGoal: {
+      type: FitnessGoalType;
+      label: string;
+      progress: number;
+    };
+  };
+
+  social: {
+    storiesShared: number;
+    preferredTags: string[];
+  };
 };
 
 export const currentMember: Member = {
@@ -36,6 +66,9 @@ export const currentMember: Member = {
   status: "active",
 
   memberSince: "2024",
+  membershipNumber: "BGM-20491",
+  membershipLabel: "Premium Member",
+  membershipExpiry: "Active Membership",
   homeGymId: "bgm-pembroke",
 
   nfcCard: {
@@ -44,10 +77,33 @@ export const currentMember: Member = {
     status: "active",
   },
 
-  fitnessScore: 86,
-  points: 1450,
-  streak: 12,
-  gymsVisited: 6,
-  totalGyms: 11,
-  totalWorkouts: 245,
+  passport: {
+    gymsVisited: 6,
+    totalGyms: 10,
+    visitedGymIds: [
+      "bgm-pembroke",
+      "bgm-marsa",
+      "bgm-birkirkara",
+      "bgm-sliema",
+      "bgm-neptunes",
+      "bgm-tal-qroqq",
+    ],
+    nextGymId: "bgm-marsascala",
+  },
+
+  fitness: {
+    score: 86,
+    streak: 12,
+    totalWorkouts: 245,
+    currentGoal: {
+      type: "build_strength",
+      label: "Build strength and stay consistent",
+      progress: 68,
+    },
+  },
+
+  social: {
+    storiesShared: 18,
+    preferredTags: ["#BestGymsMalta", "#beyourbestbeattherest"],
+  },
 };

@@ -5,17 +5,27 @@ import { useEffect, useState } from "react";
 import styles from "./SplashScreen.module.css";
 
 export default function SplashScreen() {
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
+    const alreadyShown = sessionStorage.getItem("bgmSplashShown");
+
+    if (alreadyShown === "true") {
+      setVisible(false);
+      return;
+    }
+
+    setVisible(true);
+    sessionStorage.setItem("bgmSplashShown", "true");
+
     const fadeTimer = setTimeout(() => {
       setLeaving(true);
-    }, 1900);
+    }, 1700);
 
     const removeTimer = setTimeout(() => {
       setVisible(false);
-    }, 2400);
+    }, 2200);
 
     return () => {
       clearTimeout(fadeTimer);

@@ -1,26 +1,31 @@
-export const memberStats = [
+import { currentMember } from "@/components/data/member";
+
+export const stats = [
+  {
+    id: "passport",
+    icon: "📍",
+    value: `${currentMember.passport.gymsVisited}/${currentMember.passport.totalGyms}`,
+    label: "Gyms Visited",
+  },
   {
     id: "streak",
     icon: "🔥",
-    value: "12",
+    value: currentMember.fitness.streak.toString(),
     label: "Day Streak",
-  },
-  {
-    id: "points",
-    icon: "⭐",
-    value: "1,450",
-    label: "Points",
   },
   {
     id: "workouts",
     icon: "🏋️",
-    value: "245",
+    value: currentMember.fitness.totalWorkouts.toString(),
     label: "Workouts",
   },
   {
-    id: "gyms",
-    icon: "📍",
-    value: "6 / 11",
-    label: "Gyms Visited",
+    id: "stories",
+    icon: "📸",
+    value: currentMember.social.storiesShared.toString(),
+    label: "Stories Shared",
   },
 ];
+
+// Backwards-compatible export for older components
+export const memberStats = stats;

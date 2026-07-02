@@ -1,45 +1,73 @@
-import { Gift, MapPinned, Share2 } from "lucide-react";
-import ChallengeCard from "@/components/ui/ChallengeCard";
+import {
+  Camera,
+  CreditCard,
+  Dumbbell,
+  MapPinned,
+  QrCode,
+  Sparkles,
+} from "lucide-react";
 import QuickActionCard from "@/components/ui/QuickActionCard";
-import RewardPreview from "@/components/ui/RewardPreview";
+import DashboardStats from "@/components/home/DashboardStats";
+import PassportPreview from "@/components/home/PassportPreview";
+import StoryPreview from "@/components/home/StoryPreview";
 
 export default function HomeDashboard() {
   return (
-    <>
-      <div className="mt-5">
-        <ChallengeCard
-          title="Complete a Workout"
-          description="Check in today and keep your streak alive."
-          points="+20 points"
-        />
+    <div className="space-y-6">
+      <DashboardStats />
+
+      <div>
+        <p className="mb-3 text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+          Quick Actions
+        </p>
+
+        <div className="grid grid-cols-2 gap-3">
+          <QuickActionCard
+            href="/card"
+            icon={<CreditCard size={24} />}
+            title="Member Card"
+            subtitle="NFC-ready"
+          />
+
+          <QuickActionCard
+            href="/check-in"
+            icon={<QrCode size={24} />}
+            title="Check-In"
+            subtitle="Confirm visit"
+          />
+
+          <QuickActionCard
+            href="/passport"
+            icon={<MapPinned size={24} />}
+            title="Passport"
+            subtitle="Visited gyms"
+          />
+
+          <QuickActionCard
+            href="/gyms"
+            icon={<Dumbbell size={24} />}
+            title="Gym Finder"
+            subtitle="Directions"
+          />
+
+          <QuickActionCard
+            href="/trainer"
+            icon={<Sparkles size={24} />}
+            title="Trainer"
+            subtitle="Workout help"
+          />
+
+          <QuickActionCard
+            href="/story"
+            icon={<Camera size={24} />}
+            title="Story"
+            subtitle="Share"
+          />
+        </div>
       </div>
 
-      <section className="mt-5 grid grid-cols-3 gap-3">
-        <QuickActionCard
-          href="/check-in"
-          icon={<Share2 size={22} />}
-          title="Story"
-          subtitle="Share"
-        />
-
-        <QuickActionCard
-          href="/passport"
-          icon={<MapPinned size={22} />}
-          title="Passport"
-          subtitle="Unlock"
-        />
-
-        <QuickActionCard
-          href="/rewards"
-          icon={<Gift size={22} />}
-          title="Rewards"
-          subtitle="Redeem"
-        />
-      </section>
-
-      <div className="mt-5">
-        <RewardPreview title="Free Protein Shake" current={1450} target={2000} />
-      </div>
-    </>
+      <PassportPreview />
+      <StoryPreview />
+    </div>
   );
 }

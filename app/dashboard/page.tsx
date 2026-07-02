@@ -1,52 +1,83 @@
-import { Flame, QrCode, Share2 } from "lucide-react";
-import { AppShell, PrimaryButton, SecondaryButton, StatCard } from "@/components/AppShell";
-import { activity } from "@/components/data";
+import AppShell from "@/components/ui/AppShell";
+import { currentMember } from "@/components/data/member";
+
+function StatCard({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+      <p className="text-[10px] font-black uppercase tracking-[.22em] text-white/35">
+        {label}
+      </p>
+      <p className="mt-3 text-3xl font-black text-white">{value}</p>
+      <p className="mt-1 text-sm font-bold text-white/45">{detail}</p>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   return (
     <AppShell>
-      <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="space-y-6">
         <div>
-          <p className="text-sm font-black uppercase tracking-[.25em] text-acid">Good evening, Leli</p>
-          <h1 className="mt-3 text-5xl font-black uppercase leading-none tracking-tighter sm:text-6xl">
-            Ready to beat the rest?
+          <p className="text-sm font-black uppercase tracking-[.25em] text-orange-500">
+            Dashboard
+          </p>
+          <h1 className="mt-2 text-3xl font-black text-white">
+            Your member overview
           </h1>
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <StatCard label="Streak" value="12 days" detail="Keep the fire going" />
-            <StatCard label="Points" value="1,450" detail="350 to next reward" />
-            <StatCard label="Home Gym" value="Pembroke" detail="Current location" />
-          </div>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <PrimaryButton href="/check-in"><QrCode size={20} /> Check In</PrimaryButton>
-            <SecondaryButton href="/check-in"><Share2 size={20} /> Create Story</SecondaryButton>
-          </div>
-          <div className="mt-6 rounded-3xl border border-white/10 bg-white/[.06] p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[.25em] text-white/40">Next reward</p>
-                <h2 className="mt-2 text-2xl font-black">Top Supplements Voucher</h2>
-              </div>
-              <Flame className="text-acid" />
-            </div>
-            <div className="mt-5 h-4 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full w-[72%] rounded-full bg-acid shadow-glow" />
-            </div>
-            <p className="mt-3 text-sm font-bold text-white/50">350 points to unlock</p>
-          </div>
+          <p className="mt-2 text-sm font-bold text-white/50">
+            Membership, passport, goals and social activity in one place.
+          </p>
         </div>
 
-        <aside className="rounded-[2rem] border border-white/10 bg-panel p-5">
-          <p className="text-xs font-black uppercase tracking-[.25em] text-acid">Recent activity</p>
-          <div className="mt-5 space-y-3">
-            {activity.map((item) => (
-              <div key={item.label} className="flex items-center justify-between rounded-2xl bg-white/[.06] p-4">
-                <p className="text-sm font-bold text-white/75">{item.label}</p>
-                <p className="font-black text-acid">{item.points}</p>
-              </div>
-            ))}
+        <div className="grid grid-cols-2 gap-3">
+          <StatCard
+            label="Membership"
+            value="Active"
+            detail={currentMember.membershipLabel}
+          />
+          <StatCard
+            label="Passport"
+            value={`${currentMember.passport.gymsVisited}/${currentMember.passport.totalGyms}`}
+            detail="BGM gyms visited"
+          />
+          <StatCard
+            label="Streak"
+            value={`${currentMember.fitness.streak} days`}
+            detail="Training consistency"
+          />
+          <StatCard
+            label="Stories"
+            value={currentMember.social.storiesShared.toString()}
+            detail="Shared with BGM style"
+          />
+        </div>
+
+        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+            Current Goal
+          </p>
+          <h2 className="mt-2 text-2xl font-black text-white">
+            {currentMember.fitness.currentGoal.label}
+          </h2>
+          <div className="mt-5 h-3 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-orange-500"
+              style={{ width: `${currentMember.fitness.currentGoal.progress}%` }}
+            />
           </div>
-        </aside>
-      </section>
+          <p className="mt-2 text-sm font-bold text-white/45">
+            {currentMember.fitness.currentGoal.progress}% progress
+          </p>
+        </section>
+      </div>
     </AppShell>
   );
 }

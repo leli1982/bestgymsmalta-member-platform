@@ -31,31 +31,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: logoAreaIn 0.6s ease-out both;
+  animation: logoAreaIn 0.55s ease-out both;
 }
 
 .logo {
-  position: relative;.logo {
   position: relative;
   z-index: 5;
   width: 76%;
   height: 76%;
   object-fit: contain;
-  transform: translateY(14px) scale(1.08);
+  transform: translateY(6px) scale(1.08);
   filter:
     drop-shadow(0 0 8px rgba(255, 255, 255, 0.35))
     drop-shadow(0 0 24px rgba(249, 115, 22, 0.32));
-  animation: logoPulse 1.5s ease-in-out infinite;
-}
-  z-index: 5;
-  width: 76%;
-  height: 76%;
-  object-fit: contain;
-  transform: translateY(-10px) scale(1.08);
-  filter:
-    drop-shadow(0 0 8px rgba(255, 255, 255, 0.35))
-    drop-shadow(0 0 24px rgba(249, 115, 22, 0.32));
-  animation: logoPulse 1.5s ease-in-out infinite;
+  animation: logoGlowOnce 1.4s ease-out both;
 }
 
 .orangeGlow {
@@ -67,7 +56,7 @@
     0 0 28px rgba(249, 115, 22, 0.45),
     0 0 70px rgba(249, 115, 22, 0.3),
     inset 0 0 34px rgba(249, 115, 22, 0.18);
-  animation: glowPulse 1.4s ease-in-out infinite;
+  animation: glowOnce 1.4s ease-out both;
 }
 
 .animatedCircle {
@@ -84,6 +73,8 @@
   fill: none;
   stroke: rgba(249, 115, 22, 0.22);
   stroke-width: 3;
+  opacity: 0;
+  animation: trackIn 0.35s ease-out forwards;
 }
 
 .circleLine {
@@ -97,9 +88,7 @@
     drop-shadow(0 0 6px rgba(249, 115, 22, 1))
     drop-shadow(0 0 18px rgba(249, 115, 22, 0.9))
     drop-shadow(0 0 32px rgba(249, 115, 22, 0.7));
-  animation:
-    drawCircle 0.9s ease-out forwards,
-    rotateCircle 1.5s linear 0.9s infinite;
+  animation: drawCircleOnce 1.05s ease-out forwards;
   transform-origin: 150px 150px;
 }
 
@@ -117,10 +106,8 @@
     0 0 12px #fff,
     0 0 26px rgba(249, 115, 22, 1),
     0 0 56px rgba(249, 115, 22, 0.95);
-  transform-origin: 11px calc(min(82vw, 390px) / 2 - 31px);
-  animation:
-    dotAppear 0.35s ease-out forwards,
-    dotOrbit 1.5s linear 0.9s infinite;
+  opacity: 0;
+  animation: dotFlashOnce 1.05s ease-out forwards;
 }
 
 .tagline {
@@ -134,7 +121,7 @@
   text-shadow: 0 0 18px rgba(249, 115, 22, 0.35);
   opacity: 0;
   transform: translateY(12px);
-  animation: taglineIn 0.55s ease-out 0.55s forwards;
+  animation: taglineIn 0.5s ease-out 0.55s forwards;
 }
 
 .tagline span {
@@ -164,7 +151,7 @@
     transparent
   );
   transform: translateX(-100%);
-  animation: loadingSweep 1.15s ease-out 0.75s forwards;
+  animation: loadingSweep 1.05s ease-out 0.75s forwards;
 }
 
 @keyframes logoAreaIn {
@@ -179,73 +166,84 @@
   }
 }
 
-@keyframes drawCircle {
-  from {
-    stroke-dashoffset: 830;
-  }
-
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes rotateCircle {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes dotAppear {
-  from {
-    opacity: 0;
-    transform: scale(0.4);
-  }
-
+@keyframes trackIn {
   to {
     opacity: 1;
-    transform: scale(1);
   }
 }
 
-@keyframes dotOrbit {
-  from {
+@keyframes drawCircleOnce {
+  0% {
+    stroke-dashoffset: 830;
     transform: rotate(0deg);
   }
 
-  to {
-    transform: rotate(360deg);
+  80% {
+    stroke-dashoffset: 0;
+    transform: rotate(280deg);
+  }
+
+  100% {
+    stroke-dashoffset: 0;
+    transform: rotate(330deg);
   }
 }
 
-@keyframes logoPulse {
-  0%,
+@keyframes dotFlashOnce {
+  0% {
+    opacity: 0;
+    transform: rotate(0deg) translateY(-132px) scale(0.4);
+  }
+
+  25% {
+    opacity: 1;
+  }
+
+  80% {
+    opacity: 1;
+    transform: rotate(280deg) translateY(-132px) scale(1.15);
+  }
+
+  100% {
+    opacity: 0;
+    transform: rotate(330deg) translateY(-132px) scale(0.7);
+  }
+}
+
+@keyframes logoGlowOnce {
+  0% {
+    filter:
+      drop-shadow(0 0 4px rgba(255, 255, 255, 0.25))
+      drop-shadow(0 0 12px rgba(249, 115, 22, 0.2));
+  }
+
+  55% {
+    filter:
+      drop-shadow(0 0 14px rgba(255, 255, 255, 0.5))
+      drop-shadow(0 0 40px rgba(249, 115, 22, 0.65));
+  }
+
   100% {
     filter:
       drop-shadow(0 0 8px rgba(255, 255, 255, 0.35))
       drop-shadow(0 0 24px rgba(249, 115, 22, 0.32));
   }
-
-  50% {
-    filter:
-      drop-shadow(0 0 14px rgba(255, 255, 255, 0.5))
-      drop-shadow(0 0 38px rgba(249, 115, 22, 0.55));
-  }
 }
 
-@keyframes glowPulse {
-  0%,
-  100% {
-    opacity: 0.75;
-    transform: scale(0.98);
+@keyframes glowOnce {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
   }
 
-  50% {
+  45% {
     opacity: 1;
-    transform: scale(1.04);
+    transform: scale(1.05);
+  }
+
+  100% {
+    opacity: 0.85;
+    transform: scale(1);
   }
 }
 
@@ -270,6 +268,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .logoArea,
+  .circleTrack,
   .circleLine,
   .orbitDot,
   .logo,
@@ -278,6 +277,10 @@
   .loadingLine,
   .loadingLine div {
     animation: none;
+  }
+
+  .circleTrack {
+    opacity: 1;
   }
 
   .circleLine {

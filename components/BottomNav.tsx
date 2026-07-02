@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Gift, Home, QrCode, User, MapPinned } from "lucide-react";
+import { Camera, CreditCard, Dumbbell, Home, MapPinned } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/check-in", label: "Check In", icon: QrCode },
-  { href: "/passport", label: "Explore", icon: MapPinned },
-  { href: "/rewards", label: "Earn", icon: Gift },
-  { href: "/profile", label: "You", icon: User },
+  { href: "/card", label: "Card", icon: CreditCard },
+  { href: "/passport", label: "Passport", icon: MapPinned },
+  { href: "/gyms", label: "Gyms", icon: Dumbbell },
+  { href: "/story", label: "Story", icon: Camera },
 ];
 
 export default function BottomNav() {
@@ -19,7 +19,11 @@ export default function BottomNav() {
     <nav className="fixed bottom-4 left-1/2 z-50 flex w-[92%] max-w-md -translate-x-1/2 justify-around rounded-[2rem] border border-border bg-card/95 px-3 py-3 shadow-nav backdrop-blur">
       {navItems.map((item) => {
         const Icon = item.icon;
-        const active = pathname === item.href;
+
+        const active =
+          item.href === "/"
+            ? pathname === "/"
+            : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
         return (
           <Link

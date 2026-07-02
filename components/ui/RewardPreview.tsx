@@ -1,33 +1,42 @@
-import ProgressBar from "@/components/ui/ProgressBar";
+import { MapPinned } from "lucide-react";
 
-type RewardPreviewProps = {
-  title: string;
-  current: number;
-  target: number;
+type PassportProgressPreviewProps = {
+  title?: string;
+  current?: number;
+  target?: number;
 };
 
-export default function RewardPreview({
-  title,
-  current,
-  target,
-}: RewardPreviewProps) {
-  const percent = Math.min(Math.round((current / target) * 100), 100);
+export default function PassportProgressPreview({
+  title = "Passport Progress",
+  current = 6,
+  target = 10,
+}: PassportProgressPreviewProps) {
+  const progress = Math.min(100, Math.round((current / target) * 100));
 
   return (
-    <div className="rounded-[1.75rem] border border-white/10 bg-zinc-950 p-5">
-      <p className="text-xs font-black uppercase tracking-[0.3em] text-orange-500">
-        Next Reward
-      </p>
-
-      <h3 className="mt-2 text-2xl font-black uppercase">{title}</h3>
-
-      <p className="mt-2 text-sm text-zinc-400">
-        {current} / {target} points
-      </p>
-
-      <div className="mt-4">
-        <ProgressBar value={percent} />
+    <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+      <div className="flex items-center gap-3">
+        <div className="rounded-2xl bg-orange-500/10 p-3 text-orange-500">
+          <MapPinned size={22} strokeWidth={3} />
+        </div>
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+            Passport
+          </p>
+          <h2 className="mt-1 text-xl font-black text-white">{title}</h2>
+        </div>
       </div>
-    </div>
+
+      <div className="mt-5 h-3 overflow-hidden rounded-full bg-white/10">
+        <div
+          className="h-full rounded-full bg-orange-500"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
+      <p className="mt-2 text-sm font-bold text-white/45">
+        {current} / {target} gyms visited
+      </p>
+    </section>
   );
 }
