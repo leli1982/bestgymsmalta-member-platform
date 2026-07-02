@@ -1,10 +1,10 @@
 import AppShell from "@/components/ui/AppShell";
-import PremiumHome from "@/components/home/PremiumHome";
+import SocialHome from "@/components/home/SocialHome";
 
-export default function Home() {
+export default function HomePage() {
   return (
     <AppShell>
-      <PremiumHome />
+      <SocialHome />
     </AppShell>
   );
 }

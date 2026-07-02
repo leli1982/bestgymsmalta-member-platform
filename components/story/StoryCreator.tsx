@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
   Move,
   Plus,
+  RotateCcw,
   Share2,
   Smile,
   Sticker,
@@ -90,6 +91,21 @@ const brandStickerOptions = [
   },
 ];
 
+function getDefaultStickers(): StorySticker[] {
+  return [
+    {
+      id: "default-bgm-logo",
+      kind: "image",
+      label: "BGM Logo",
+      value: "/bgm-watermark.png",
+      x: 50,
+      y: 82,
+      size: 150,
+      rotation: 0,
+    },
+  ];
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
@@ -144,18 +160,9 @@ export default function StoryCreator() {
   const gestureRef = useRef<GestureState | null>(null);
 
   const [photoSrc, setPhotoSrc] = useState("");
-  const [stickers, setStickers] = useState<StorySticker[]>([
-    {
-      id: "default-bgm-logo",
-      kind: "image",
-      label: "BGM Logo",
-      value: "/bgm-watermark.png",
-      x: 50,
-      y: 82,
-      size: 150,
-      rotation: 0,
-    },
-  ]);
+  const [stickers, setStickers] = useState<StorySticker[]>(() =>
+    getDefaultStickers()
+  );
   const [activeStickerId, setActiveStickerId] = useState("default-bgm-logo");
   const [openCategory, setOpenCategory] = useState<StickerCategory>(null);
   const [customCaption, setCustomCaption] = useState("");
@@ -202,6 +209,21 @@ export default function StoryCreator() {
     };
 
     reader.readAsDataURL(file);
+  }
+
+  function resetStory() {
+    activePointersRef.current.clear();
+    gestureRef.current = null;
+
+    setPhotoSrc("");
+    setStickers(getDefaultStickers());
+    setActiveStickerId("default-bgm-logo");
+    setOpenCategory(null);
+    setCustomCaption("");
+    setStatus("Story reset.");
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
   }
 
   function addImageSticker(label: string, value: string) {
@@ -777,6 +799,16 @@ export default function StoryCreator() {
           Save
         </button>
       </section>
+
+
+      <button
+        type="button"
+        onClick={resetStory}
+        className="flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-black/25 px-5 py-4 text-sm font-black text-white"
+      >
+        <RotateCcw size={18} strokeWidth={3} />
+        Reset Story
+      </button>
 
       {status ? (
         <p className="text-center text-sm font-bold text-white/45">{status}</p>
