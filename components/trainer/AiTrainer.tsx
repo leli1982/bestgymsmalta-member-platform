@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import {
   Brain,
@@ -434,15 +435,29 @@ export default function AiTrainer() {
   return (
     <div className="space-y-6">
       <section className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-orange-500/20 via-white/[0.04] to-black p-6">
-        <div className="inline-flex rounded-full border border-orange-500/30 bg-orange-500/10 px-4 py-2">
-          <p className="text-xs font-black uppercase tracking-[.2em] text-orange-500">
-            AI Trainer
-          </p>
-        </div>
+        <div className="flex items-center gap-4">
+          <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full border-2 border-orange-500/60 bg-black shadow-[0_0_30px_rgba(249,115,22,0.25)]">
+            <Image
+              src="/bgm-trainer-icon.png"
+              alt="BGM AI Trainer"
+              fill
+              priority
+              className="object-cover"
+            />
+          </div>
 
-        <h1 className="mt-5 text-4xl font-black leading-tight text-white">
-          Build your next workout
-        </h1>
+          <div>
+            <div className="inline-flex rounded-full border border-orange-500/30 bg-orange-500/10 px-4 py-2">
+              <p className="text-xs font-black uppercase tracking-[.2em] text-orange-500">
+                AI Trainer
+              </p>
+            </div>
+
+            <h1 className="mt-4 text-4xl font-black leading-tight text-white">
+              Build your next workout
+            </h1>
+          </div>
+        </div>
 
         <p className="mt-4 text-sm leading-6 text-white/55">
           Choose your goal, level and training style. Your BGM trainer will
@@ -708,8 +723,13 @@ export default function AiTrainer() {
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
         <div className="mb-5 flex items-center gap-3">
-          <div className="rounded-2xl bg-orange-500 p-3 text-black">
-            <MessageCircle size={24} strokeWidth={3} />
+          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-orange-500/50 bg-black">
+            <Image
+              src="/bgm-trainer-icon.png"
+              alt="BGM Chat Trainer"
+              fill
+              className="object-cover"
+            />
           </div>
           <div>
             <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
