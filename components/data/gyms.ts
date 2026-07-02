@@ -43,6 +43,7 @@ export const gyms: Gym[] = [
     openingHours:
       "Mon–Fri: 05:00–23:00 • Sat: 07:00–20:00 • Sun & Public Holidays: 07:00–20:00",
     phone: "+356 21233351",
+    logo: "/gym-logos/bgm-birkirkara.png",
     accentColor: "#F97316",
     qrCodeId: "BGM-BIRKIRKARA",
     facilities: [
@@ -72,6 +73,7 @@ export const gyms: Gym[] = [
     openingHours:
       "Mon–Fri: 06:00–22:00 • Sat: 07:30–16:30 • Sun & Public Holidays: 07:30–12:30",
     phone: "+356 21654118",
+    logo: "/gym-logos/bgm-birzebbuga.png",
     accentColor: "#F97316",
     qrCodeId: "BGM-BIRZEBBUGA",
     facilities: [
@@ -100,6 +102,7 @@ export const gyms: Gym[] = [
     openingHours:
       "Mon–Fri: 05:00–23:00 • Sat: 06:00–18:00 • Sun & Public Holidays: 07:00–13:00",
     phone: "+356 21484090",
+    logo: "/gym-logos/bgm-build.png",
     accentColor: "#F97316",
     qrCodeId: "BGM-BUILD",
     facilities: [
@@ -128,6 +131,7 @@ export const gyms: Gym[] = [
     openingHours:
       "Mon–Fri: 05:00–23:00 • Sat: 07:00–18:00 • Sun & Public Holidays: 07:00–13:00",
     phone: "+356 21681331",
+    logo: "/gym-logos/bgm-kirkop.png",
     accentColor: "#F97316",
     qrCodeId: "BGM-KIRKOP",
     facilities: [
@@ -155,6 +159,7 @@ export const gyms: Gym[] = [
     openingHours:
       "Mon–Fri: 04:30–23:00 • Sat: 06:00–20:00 • Sun & Public Holidays: 06:00–20:00",
     phone: "+356 21334327",
+    logo: "/gym-logos/bgm-marsa.png",
     accentColor: "#F97316",
     qrCodeId: "BGM-MARSA",
     facilities: [
@@ -193,6 +198,7 @@ export const gyms: Gym[] = [
     openingHours:
       "Mon–Fri: 05:00–23:00 • Sat: 07:00–18:30 • Sun & Public Holidays: 07:00–13:00",
     phone: "+356 21250775",
+    logo: "/gym-logos/bgm-neptunes.png",
     accentColor: "#F97316",
     qrCodeId: "BGM-NEPTUNES",
     facilities: [
@@ -219,6 +225,7 @@ export const gyms: Gym[] = [
     openingHours:
       "Mon–Fri: 05:00–23:00 • Sat: 07:00–20:00 • Sun & Public Holidays: 07:00–20:00",
     phone: "+356 21250945",
+    logo: "/gym-logos/bgm-pembroke.png",
     accentColor: "#F97316",
     qrCodeId: "BGM-PEMBROKE",
     facilities: [
@@ -245,6 +252,7 @@ export const gyms: Gym[] = [
     openingHours:
       "Mon–Fri: 05:00–23:00 • Sat: 07:00–20:00 • Sun & Public Holidays: 07:00–20:00",
     phone: "+356 21334328",
+    logo: "/gym-logos/bgm-sliema.png",
     accentColor: "#F97316",
     qrCodeId: "BGM-SLIEMA",
     facilities: [
@@ -274,6 +282,7 @@ export const gyms: Gym[] = [
     openingHours:
       "Mon–Fri: 05:00–23:00 • Sat: 07:00–20:00 • Sun & Public Holidays: 07:00–20:00",
     phone: "+356 27511511",
+    logo: "/gym-logos/bgm-talqroqq.png",
     accentColor: "#F97316",
     qrCodeId: "BGM-TALQROQQ",
     facilities: [
@@ -309,6 +318,7 @@ export const gyms: Gym[] = [
     openingHours:
       "Coming soon • Planned hours: Mon–Fri: 05:00–23:00 • Sat: 07:00–18:30 • Sun & Public Holidays: 07:00–13:00",
     phone: "+356 21435856",
+    logo: "/gym-logos/bgm-birgu.png",
     accentColor: "#F97316",
     qrCodeId: "BGM-BIRGU",
     facilities: [
@@ -331,6 +341,7 @@ export const gyms: Gym[] = [
     city: "Marsascala",
     address: "Marsascala Fitness, Marsascala, Malta",
     openingHours: "Coming soon",
+    logo: "/gym-logos/bgm-marsascala.png",
     accentColor: "#F97316",
     qrCodeId: "BGM-MARSASCALA",
     facilities: [],

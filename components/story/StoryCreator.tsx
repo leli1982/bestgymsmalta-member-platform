@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { comingSoonGyms, activeGyms } from "@/components/data/gyms";
+import { useMemo, useRef, useState, type PointerEvent } from "react";
+import { activeGyms, comingSoonGyms, type Gym } from "@/components/data/gyms";
 import {
   Camera,
   Download,
@@ -13,7 +13,7 @@ import {
   Trash2,
 } from "lucide-react";
 
-type StickerKind = "logo" | "emoji" | "gym";
+type StickerKind = "image" | "emoji" | "gym";
 
 type StorySticker = {
   id: string;
@@ -23,12 +23,20 @@ type StorySticker = {
   x: number;
   y: number;
   size: number;
+  rotation: number;
 };
 
-type DragState = {
+type Point = {
+  x: number;
+  y: number;
+};
+
+type GestureState = {
   id: string;
-  offsetX: number;
-  offsetY: number;
+  startSticker: StorySticker;
+  startCenter: Point;
+  startDistance: number;
+  startAngle: number;
 };
 
 const emojiOptions = [
@@ -46,6 +54,21 @@ const emojiOptions = [
   "🎯",
 ];
 
+const brandStickerOptions = [
+  {
+    label: "BGM Logo",
+    value: "/bgm-watermark.png",
+  },
+  {
+    label: "Top Supplements Malta",
+    value: "/brand-logos/tsm.png",
+  },
+];
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
 function loadImage(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
@@ -55,46 +78,60 @@ function loadImage(src: string) {
   });
 }
 
-function drawRoundedRect(
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number
-) {
-  context.beginPath();
-  context.moveTo(x + radius, y);
-  context.lineTo(x + width - radius, y);
-  context.quadraticCurveTo(x + width, y, x + width, y + radius);
-  context.lineTo(x + width, y + height - radius);
-  context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  context.lineTo(x + radius, y + height);
-  context.quadraticCurveTo(x, y + height, x, y + height - radius);
-  context.lineTo(x, y + radius);
-  context.quadraticCurveTo(x, y, x + radius, y);
-  context.closePath();
+function getCenter(points: Point[]) {
+  const total = points.reduce(
+    (sum, point) => ({
+      x: sum.x + point.x,
+      y: sum.y + point.y,
+    }),
+    { x: 0, y: 0 }
+  );
+
+  return {
+    x: total.x / points.length,
+    y: total.y / points.length,
+  };
+}
+
+function getDistance(points: Point[]) {
+  if (points.length < 2) return 1;
+
+  const [a, b] = points;
+  return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+function getAngle(points: Point[]) {
+  if (points.length < 2) return 0;
+
+  const [a, b] = points;
+  return Math.atan2(b.y - a.y, b.x - a.x);
+}
+
+function radiansToDegrees(value: number) {
+  return (value * 180) / Math.PI;
 }
 
 export default function StoryCreator() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
+  const activePointersRef = useRef<Map<number, Point>>(new Map());
+  const gestureRef = useRef<GestureState | null>(null);
 
   const [photoSrc, setPhotoSrc] = useState("");
   const [stickers, setStickers] = useState<StorySticker[]>([
     {
       id: "default-bgm-logo",
-      kind: "logo",
+      kind: "image",
       label: "BGM Logo",
       value: "/bgm-watermark.png",
       x: 50,
       y: 82,
       size: 150,
+      rotation: 0,
     },
   ]);
   const [activeStickerId, setActiveStickerId] = useState("default-bgm-logo");
-  const [dragState, setDragState] = useState<DragState | null>(null);
   const [status, setStatus] = useState("");
 
   const gymStickerOptions = useMemo(
@@ -102,7 +139,29 @@ export default function StoryCreator() {
     []
   );
 
-  const activeSticker = stickers.find((sticker) => sticker.id === activeStickerId);
+  const activeSticker = stickers.find(
+    (sticker) => sticker.id === activeStickerId
+  );
+
+  function getPointerList() {
+    return Array.from(activePointersRef.current.values());
+  }
+
+  function resetGesture(sticker: StorySticker) {
+    const points = getPointerList();
+    if (!points.length) {
+      gestureRef.current = null;
+      return;
+    }
+
+    gestureRef.current = {
+      id: sticker.id,
+      startSticker: { ...sticker },
+      startCenter: getCenter(points),
+      startDistance: Math.max(1, getDistance(points)),
+      startAngle: getAngle(points),
+    };
+  }
 
   function handlePhoto(file?: File) {
     if (!file) return;
@@ -117,19 +176,40 @@ export default function StoryCreator() {
     reader.readAsDataURL(file);
   }
 
-  function addLogoSticker() {
-    const id = `logo-${Date.now()}`;
+  function addImageSticker(label: string, value: string) {
+    const id = `image-${Date.now()}`;
 
     setStickers((current) => [
       ...current,
       {
         id,
-        kind: "logo",
-        label: "BGM Logo",
-        value: "/bgm-watermark.png",
+        kind: "image",
+        label,
+        value,
         x: 50,
-        y: 75,
+        y: 70,
         size: 150,
+        rotation: 0,
+      },
+    ]);
+
+    setActiveStickerId(id);
+  }
+
+  function addGymSticker(gym: Gym) {
+    const id = `gym-${Date.now()}`;
+
+    setStickers((current) => [
+      ...current,
+      {
+        id,
+        kind: "gym",
+        label: gym.name,
+        value: gym.logo || "/bgm-watermark.png",
+        x: 50,
+        y: 70,
+        size: 170,
+        rotation: 0,
       },
     ]);
 
@@ -149,39 +229,11 @@ export default function StoryCreator() {
         x: 50,
         y: 50,
         size: 80,
+        rotation: 0,
       },
     ]);
 
     setActiveStickerId(id);
-  }
-
-  function addGymSticker(name: string) {
-    const id = `gym-${Date.now()}`;
-
-    setStickers((current) => [
-      ...current,
-      {
-        id,
-        kind: "gym",
-        label: name,
-        value: "/bgm-watermark.png",
-        x: 50,
-        y: 70,
-        size: 170,
-      },
-    ]);
-
-    setActiveStickerId(id);
-  }
-
-  function updateActiveStickerSize(size: number) {
-    if (!activeStickerId) return;
-
-    setStickers((current) =>
-      current.map((sticker) =>
-        sticker.id === activeStickerId ? { ...sticker, size } : sticker
-      )
-    );
   }
 
   function removeActiveSticker() {
@@ -193,62 +245,117 @@ export default function StoryCreator() {
     setActiveStickerId("");
   }
 
-  function pointerToPercent(event: React.PointerEvent, sticker: StorySticker) {
-    const preview = previewRef.current;
-    if (!preview) return null;
+  function resetActiveStickerRotation() {
+    if (!activeStickerId) return;
 
-    const rect = preview.getBoundingClientRect();
-
-    const x =
-      ((event.clientX - rect.left - dragState!.offsetX) / rect.width) * 100;
-    const y =
-      ((event.clientY - rect.top - dragState!.offsetY) / rect.height) * 100;
-
-    return {
-      x: Math.min(95, Math.max(5, x)),
-      y: Math.min(95, Math.max(5, y)),
-    };
+    setStickers((current) =>
+      current.map((sticker) =>
+        sticker.id === activeStickerId ? { ...sticker, rotation: 0 } : sticker
+      )
+    );
   }
 
-  function startDragging(event: React.PointerEvent, sticker: StorySticker) {
-    const preview = previewRef.current;
-    if (!preview) return;
+  function startGesture(
+    event: PointerEvent<HTMLButtonElement>,
+    sticker: StorySticker
+  ) {
+    event.preventDefault();
 
-    const rect = preview.getBoundingClientRect();
-    const stickerX = (sticker.x / 100) * rect.width;
-    const stickerY = (sticker.y / 100) * rect.height;
+    if (gestureRef.current?.id && gestureRef.current.id !== sticker.id) {
+      activePointersRef.current.clear();
+    }
 
-    setActiveStickerId(sticker.id);
-    setDragState({
-      id: sticker.id,
-      offsetX: event.clientX - rect.left - stickerX,
-      offsetY: event.clientY - rect.top - stickerY,
+    activePointersRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
     });
 
-    event.currentTarget.setPointerCapture(event.pointerId);
+    setActiveStickerId(sticker.id);
+
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Some browsers may already have capture.
+    }
+
+    const latestSticker =
+      stickers.find((item) => item.id === sticker.id) || sticker;
+
+    resetGesture(latestSticker);
   }
 
-  function dragSticker(event: React.PointerEvent, sticker: StorySticker) {
-    if (!dragState || dragState.id !== sticker.id) return;
+  function moveGesture(
+    event: PointerEvent<HTMLButtonElement>,
+    sticker: StorySticker
+  ) {
+    event.preventDefault();
 
-    const position = pointerToPercent(event, sticker);
-    if (!position) return;
+    if (!activePointersRef.current.has(event.pointerId)) return;
+
+    activePointersRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    const preview = previewRef.current;
+    const gesture = gestureRef.current;
+    const points = getPointerList();
+
+    if (!preview || !gesture || gesture.id !== sticker.id || !points.length) {
+      return;
+    }
+
+    const rect = preview.getBoundingClientRect();
+    const center = getCenter(points);
+
+    const deltaX = ((center.x - gesture.startCenter.x) / rect.width) * 100;
+    const deltaY = ((center.y - gesture.startCenter.y) / rect.height) * 100;
+
+    let nextSize = gesture.startSticker.size;
+    let nextRotation = gesture.startSticker.rotation;
+
+    if (points.length >= 2) {
+      const distance = Math.max(1, getDistance(points));
+      const scale = distance / gesture.startDistance;
+      const angle = getAngle(points);
+      const angleChange = radiansToDegrees(angle - gesture.startAngle);
+
+      nextSize = clamp(gesture.startSticker.size * scale, 40, 360);
+      nextRotation = gesture.startSticker.rotation + angleChange;
+    }
 
     setStickers((current) =>
       current.map((item) =>
         item.id === sticker.id
           ? {
               ...item,
-              x: position.x,
-              y: position.y,
+              x: clamp(gesture.startSticker.x + deltaX, 5, 95),
+              y: clamp(gesture.startSticker.y + deltaY, 5, 95),
+              size: nextSize,
+              rotation: nextRotation,
             }
           : item
       )
     );
   }
 
-  function stopDragging() {
-    setDragState(null);
+  function endGesture(
+    event: PointerEvent<HTMLButtonElement>,
+    sticker: StorySticker
+  ) {
+    activePointersRef.current.delete(event.pointerId);
+
+    const remainingPointers = getPointerList();
+
+    if (!remainingPointers.length) {
+      gestureRef.current = null;
+      return;
+    }
+
+    const latestSticker =
+      stickers.find((item) => item.id === sticker.id) || sticker;
+
+    resetGesture(latestSticker);
   }
 
   async function renderStoryBlob() {
@@ -261,6 +368,7 @@ export default function StoryCreator() {
     if (!preview) return null;
 
     const previewRect = preview.getBoundingClientRect();
+
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
     canvas.height = 1920;
@@ -270,7 +378,10 @@ export default function StoryCreator() {
 
     const photo = await loadImage(photoSrc);
 
-    const scale = Math.max(canvas.width / photo.width, canvas.height / photo.height);
+    const scale = Math.max(
+      canvas.width / photo.width,
+      canvas.height / photo.height
+    );
     const width = photo.width * scale;
     const height = photo.height * scale;
     const x = (canvas.width - width) / 2;
@@ -282,88 +393,45 @@ export default function StoryCreator() {
       const stickerX = (sticker.x / 100) * canvas.width;
       const stickerY = (sticker.y / 100) * canvas.height;
       const stickerSize = (sticker.size / previewRect.width) * canvas.width;
+      const rotation = (sticker.rotation * Math.PI) / 180;
 
       if (sticker.kind === "emoji") {
         context.save();
+        context.translate(stickerX, stickerY);
+        context.rotate(rotation);
         context.font = `${stickerSize}px Apple Color Emoji, Segoe UI Emoji, sans-serif`;
         context.textAlign = "center";
         context.textBaseline = "middle";
-        context.shadowColor = "rgba(0,0,0,0.45)";
+        context.shadowColor = "rgba(0,0,0,0.5)";
         context.shadowBlur = 18;
-        context.fillText(sticker.value, stickerX, stickerY);
+        context.fillText(sticker.value, 0, 0);
         context.restore();
       }
 
-      if (sticker.kind === "logo") {
+      if (sticker.kind === "image" || sticker.kind === "gym") {
         try {
-          const logo = await loadImage(sticker.value);
+          const image = await loadImage(sticker.value);
+
+          const ratio = image.width / image.height;
+          const drawWidth = stickerSize;
+          const drawHeight = stickerSize / ratio;
+
           context.save();
-          context.shadowColor = "rgba(0,0,0,0.5)";
+          context.translate(stickerX, stickerY);
+          context.rotate(rotation);
+          context.shadowColor = "rgba(0,0,0,0.55)";
           context.shadowBlur = 18;
           context.drawImage(
-            logo,
-            stickerX - stickerSize / 2,
-            stickerY - stickerSize / 2,
-            stickerSize,
-            stickerSize
+            image,
+            -drawWidth / 2,
+            -drawHeight / 2,
+            drawWidth,
+            drawHeight
           );
           context.restore();
         } catch {
-          // Ignore missing logo image.
+          // Ignore missing sticker image.
         }
-      }
-
-      if (sticker.kind === "gym") {
-        const badgeWidth = stickerSize * 1.9;
-        const badgeHeight = stickerSize * 0.58;
-        const badgeX = stickerX - badgeWidth / 2;
-        const badgeY = stickerY - badgeHeight / 2;
-
-        context.save();
-        context.shadowColor = "rgba(0,0,0,0.5)";
-        context.shadowBlur = 18;
-
-        drawRoundedRect(
-          context,
-          badgeX,
-          badgeY,
-          badgeWidth,
-          badgeHeight,
-          badgeHeight / 2
-        );
-        context.fillStyle = "rgba(0,0,0,0.72)";
-        context.fill();
-
-        context.lineWidth = Math.max(4, stickerSize * 0.035);
-        context.strokeStyle = "#f97316";
-        context.stroke();
-
-        try {
-          const logo = await loadImage(sticker.value);
-          const logoSize = badgeHeight * 0.7;
-          context.drawImage(
-            logo,
-            badgeX + badgeHeight * 0.18,
-            badgeY + (badgeHeight - logoSize) / 2,
-            logoSize,
-            logoSize
-          );
-        } catch {
-          // Continue without logo image.
-        }
-
-        context.fillStyle = "#ffffff";
-        context.font = `900 ${Math.max(24, stickerSize * 0.18)}px Arial, sans-serif`;
-        context.textAlign = "left";
-        context.textBaseline = "middle";
-        context.fillText(
-          sticker.label,
-          badgeX + badgeHeight * 0.95,
-          stickerY,
-          badgeWidth - badgeHeight * 1.15
-        );
-
-        context.restore();
       }
     }
 
@@ -424,7 +492,7 @@ export default function StoryCreator() {
         </h1>
 
         <p className="mt-4 text-sm leading-6 text-white/55">
-          Add the BGM watermark, gym badges and emojis. Move, resize and share
+          Add BGM, TSM, gym logos and emojis. Move, pinch, rotate and share
           your story to Instagram, Facebook or TikTok.
         </p>
       </section>
@@ -475,7 +543,8 @@ export default function StoryCreator() {
             <img
               src={photoSrc}
               alt="Story preview"
-              className="h-full w-full object-cover"
+              draggable={false}
+              className="h-full w-full select-none object-cover"
             />
           ) : (
             <div className="flex h-full flex-col items-center justify-center p-8 text-center">
@@ -490,11 +559,11 @@ export default function StoryCreator() {
             <button
               key={sticker.id}
               type="button"
-              onPointerDown={(event) => startDragging(event, sticker)}
-              onPointerMove={(event) => dragSticker(event, sticker)}
-              onPointerUp={stopDragging}
-              onPointerCancel={stopDragging}
-              className={`absolute z-10 touch-none bg-transparent p-0 ${
+              onPointerDown={(event) => startGesture(event, sticker)}
+              onPointerMove={(event) => moveGesture(event, sticker)}
+              onPointerUp={(event) => endGesture(event, sticker)}
+              onPointerCancel={(event) => endGesture(event, sticker)}
+              className={`absolute z-10 cursor-grab touch-none select-none bg-transparent p-0 active:cursor-grabbing ${
                 activeStickerId === sticker.id
                   ? "outline outline-2 outline-orange-500"
                   : ""
@@ -502,44 +571,29 @@ export default function StoryCreator() {
               style={{
                 left: `${sticker.x}%`,
                 top: `${sticker.y}%`,
-                transform: "translate(-50%, -50%)",
+                transform: `translate(-50%, -50%) rotate(${sticker.rotation}deg)`,
               }}
             >
               {sticker.kind === "emoji" ? (
                 <span
-                  className="block select-none drop-shadow-[0_0_12px_rgba(0,0,0,0.75)]"
+                  className="pointer-events-none block select-none drop-shadow-[0_0_12px_rgba(0,0,0,0.75)]"
                   style={{ fontSize: sticker.size }}
                 >
                   {sticker.value}
                 </span>
-              ) : sticker.kind === "logo" ? (
+              ) : (
                 <img
                   src={sticker.value}
                   alt={sticker.label}
-                  className="select-none drop-shadow-[0_0_12px_rgba(0,0,0,0.75)]"
+                  draggable={false}
+                  onDragStart={(event) => event.preventDefault()}
+                  className="pointer-events-none select-none drop-shadow-[0_0_12px_rgba(0,0,0,0.75)]"
                   style={{
                     width: sticker.size,
-                    height: sticker.size,
+                    height: "auto",
                     objectFit: "contain",
                   }}
                 />
-              ) : (
-                <span
-                  className="flex select-none items-center gap-2 rounded-full border-2 border-orange-500 bg-black/75 px-3 py-2 text-white shadow-[0_0_18px_rgba(0,0,0,0.5)]"
-                  style={{
-                    width: sticker.size * 1.9,
-                    minHeight: sticker.size * 0.58,
-                  }}
-                >
-                  <img
-                    src={sticker.value}
-                    alt=""
-                    className="h-8 w-8 shrink-0 object-contain"
-                  />
-                  <span className="truncate text-sm font-black">
-                    {sticker.label}
-                  </span>
-                </span>
               )}
             </button>
           ))}
@@ -547,7 +601,7 @@ export default function StoryCreator() {
 
         <div className="mt-4 flex items-center justify-center gap-2 text-xs font-black uppercase tracking-[.2em] text-white/35">
           <Move size={15} strokeWidth={3} />
-          Tap sticker, drag to move
+          1 finger move · 2 finger pinch and rotate
         </div>
       </section>
 
@@ -557,18 +611,34 @@ export default function StoryCreator() {
             Add Stickers
           </p>
           <h2 className="mt-2 text-2xl font-black text-white">
-            Logos, emojis and gyms
+            Brands, gyms and emojis
           </h2>
         </div>
 
-        <button
-          type="button"
-          onClick={addLogoSticker}
-          className="flex w-full items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
-        >
-          <Sticker size={18} strokeWidth={3} />
-          Add BGM Logo
-        </button>
+        <div>
+          <p className="mb-3 text-xs font-black uppercase tracking-[.18em] text-white/40">
+            Brand Logos
+          </p>
+
+          <div className="grid gap-2">
+            {brandStickerOptions.map((brand) => (
+              <button
+                key={brand.label}
+                type="button"
+                onClick={() => addImageSticker(brand.label, brand.value)}
+                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-left text-sm font-black text-white/65"
+              >
+                <img
+                  src={brand.value}
+                  alt=""
+                  draggable={false}
+                  className="h-9 w-9 object-contain"
+                />
+                {brand.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div>
           <p className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-[.18em] text-white/40">
@@ -592,7 +662,7 @@ export default function StoryCreator() {
 
         <div>
           <p className="mb-3 text-xs font-black uppercase tracking-[.18em] text-white/40">
-            Gym Badges
+            Gym Logos
           </p>
 
           <div className="grid gap-2">
@@ -600,9 +670,15 @@ export default function StoryCreator() {
               <button
                 key={gym.id}
                 type="button"
-                onClick={() => addGymSticker(gym.name)}
-                className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-left text-sm font-black text-white/65"
+                onClick={() => addGymSticker(gym)}
+                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-left text-sm font-black text-white/65"
               >
+                <img
+                  src={gym.logo || "/bgm-watermark.png"}
+                  alt=""
+                  draggable={false}
+                  className="h-9 w-9 object-contain"
+                />
                 {gym.name}
               </button>
             ))}
@@ -612,26 +688,31 @@ export default function StoryCreator() {
         {activeSticker ? (
           <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
             <p className="text-xs font-black uppercase tracking-[.18em] text-white/40">
-              Resize selected sticker
+              Selected sticker
             </p>
 
-            <input
-              type="range"
-              min="50"
-              max="280"
-              value={activeSticker.size}
-              onChange={(event) => updateActiveStickerSize(Number(event.target.value))}
-              className="mt-4 w-full accent-orange-500"
-            />
+            <p className="mt-2 text-sm font-bold text-white/60">
+              {activeSticker.label}
+            </p>
 
-            <button
-              type="button"
-              onClick={removeActiveSticker}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-black text-white"
-            >
-              <Trash2 size={16} strokeWidth={3} />
-              Remove Selected Sticker
-            </button>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={resetActiveStickerRotation}
+                className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-black text-white"
+              >
+                Reset Rotate
+              </button>
+
+              <button
+                type="button"
+                onClick={removeActiveSticker}
+                className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-black text-white"
+              >
+                <Trash2 size={16} strokeWidth={3} />
+                Remove
+              </button>
+            </div>
           </div>
         ) : null}
       </section>
