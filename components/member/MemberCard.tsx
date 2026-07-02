@@ -27,11 +27,11 @@ function CardDetail({
   value: string | number;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+    <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
       <p className="text-[10px] font-black uppercase tracking-[.22em] text-white/35">
         {label}
       </p>
-      <p className="mt-2 text-lg font-black text-white">{value}</p>
+      <p className="mt-1 text-base font-black text-white">{value}</p>
     </div>
   );
 }
@@ -45,11 +45,11 @@ export default function MemberCard() {
       <button
         type="button"
         onClick={() => setFlipped((current) => !current)}
-        className="group block w-full text-left [perspective:1200px]"
+        className="group mb-2 block w-full text-left [perspective:1200px]"
         aria-label="Flip membership card"
       >
         <div
-          className="relative aspect-[16/10] w-full transition-transform duration-700 [transform-style:preserve-3d]"
+          className="relative min-h-[440px] w-full transition-transform duration-700 [transform-style:preserve-3d] sm:min-h-[390px]"
           style={{
             transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
           }}
@@ -148,7 +148,7 @@ export default function MemberCard() {
                 />
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+              <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
                 <p className="text-[10px] font-black uppercase tracking-[.22em] text-white/35">
                   Be the best.... Beat the rest
                 </p>
