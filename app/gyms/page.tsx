@@ -1,28 +1,100 @@
 import AppShell from "@/components/ui/AppShell";
-import { gyms } from "@/components/data/gyms";
-import { MapPinned } from "lucide-react";
+import { activeGyms, comingSoonGyms, type Gym } from "@/components/data/gyms";
+import { ArrowRight, Clock, MapPinned, Navigation } from "lucide-react";
 
-type GymRecord = {
-  id?: string;
-  name?: string;
-  title?: string;
-  location?: unknown;
-  area?: unknown;
-  address?: unknown;
-  description?: unknown;
-  facilities?: unknown;
-};
+function getMapsUrl(gym: Gym) {
+  const mapsQuery =
+    typeof gym.latitude === "number" && typeof gym.longitude === "number"
+      ? `${gym.latitude},${gym.longitude}`
+      : `${gym.name} ${gym.address}`;
 
-function toText(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (typeof value === "number") return value.toString();
-  if (Array.isArray(value)) return value.map(toText).filter(Boolean).join(", ");
-  return "";
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    mapsQuery
+  )}`;
+}
+
+function GymCard({ gym }: { gym: Gym }) {
+  const mapsUrl = getMapsUrl(gym);
+
+  return (
+    <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-2xl font-black text-white">{gym.name}</h2>
+
+            {gym.status === "coming_soon" ? (
+              <span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[.18em] text-orange-500">
+                Coming Soon
+              </span>
+            ) : (
+              <span className="rounded-full border border-green-400/30 bg-green-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[.18em] text-green-300">
+                Active
+              </span>
+            )}
+          </div>
+
+          <p className="mt-3 flex items-start gap-2 text-sm font-bold leading-5 text-white/55">
+            <MapPinned
+              className="mt-0.5 shrink-0 text-orange-500"
+              size={16}
+              strokeWidth={3}
+            />
+            {gym.address}
+          </p>
+
+          <p className="mt-3 flex items-start gap-2 text-sm font-bold leading-5 text-white/55">
+            <Clock
+              className="mt-0.5 shrink-0 text-orange-500"
+              size={16}
+              strokeWidth={3}
+            />
+            {gym.openingHours}
+          </p>
+        </div>
+      </div>
+
+      {gym.facilities.length > 0 ? (
+        <div className="mt-5 flex flex-wrap gap-2">
+          {gym.facilities.slice(0, 6).map((facility) => (
+            <span
+              key={facility}
+              className="rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs font-black text-white/60"
+            >
+              {facility}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-5 text-sm font-bold text-white/40">
+          Full gym details coming soon.
+        </p>
+      )}
+
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <a
+          href={mapsUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-3 text-sm font-black text-black transition active:scale-95"
+        >
+          <Navigation size={17} strokeWidth={3} />
+          Maps
+        </a>
+
+        <a
+          href={`/gyms/${gym.id}`}
+          className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-white transition active:scale-95"
+        >
+          Details
+          <ArrowRight size={17} strokeWidth={3} />
+        </a>
+      </div>
+    </div>
+  );
 }
 
 export default function GymsPage() {
-  const gymList = gyms as GymRecord[];
-
   return (
     <AppShell>
       <div className="space-y-6">
@@ -38,72 +110,46 @@ export default function GymsPage() {
           </h1>
 
           <p className="mt-4 text-sm leading-6 text-white/55">
-            Explore BestGymsMalta locations and open directions when you are
-            ready to train.
+            Explore BestGymsMalta locations, check opening hours, view
+            facilities and open map directions.
           </p>
         </section>
 
-        <div className="grid gap-4">
-          {gymList.map((gym) => {
-            const gymId = gym.id ?? gym.name ?? gym.title ?? "bgm-gym";
-            const gymName = gym.name ?? gym.title ?? "BestGymsMalta Gym";
+        <section className="space-y-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+              Active Locations
+            </p>
+            <h2 className="mt-2 text-2xl font-black text-white">
+              Open BGM gyms
+            </h2>
+          </div>
 
-            const locationText =
-              toText(gym.location) ||
-              toText(gym.area) ||
-              toText(gym.address) ||
-              "Malta";
+          <div className="grid gap-4">
+            {activeGyms.map((gym) => (
+              <GymCard key={gym.id} gym={gym} />
+            ))}
+          </div>
+        </section>
 
-            const descriptionText = toText(gym.description);
-            const facilitiesText = toText(gym.facilities);
+        {comingSoonGyms.length > 0 ? (
+          <section className="space-y-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+                Coming Soon
+              </p>
+              <h2 className="mt-2 text-2xl font-black text-white">
+                New locations
+              </h2>
+            </div>
 
-            const mapQuery = encodeURIComponent(`${gymName} ${locationText}`);
-
-            return (
-              <div
-                key={gymId}
-                className="rounded-3xl border border-white/10 bg-white/[0.04] p-5"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-black text-white">
-                      {gymName}
-                    </h2>
-
-                    <p className="mt-1 text-sm font-bold text-white/50">
-                      {locationText}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-orange-500/10 p-3 text-orange-500">
-                    <MapPinned size={22} strokeWidth={3} />
-                  </div>
-                </div>
-
-                {descriptionText ? (
-                  <p className="mt-4 text-sm leading-6 text-white/60">
-                    {descriptionText}
-                  </p>
-                ) : null}
-
-                {facilitiesText ? (
-                  <p className="mt-3 text-xs font-bold uppercase tracking-[.16em] text-white/35">
-                    {facilitiesText}
-                  </p>
-                ) : null}
-
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${mapQuery}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-5 inline-flex rounded-full bg-orange-500 px-5 py-3 text-sm font-black text-black"
-                >
-                  Open in Maps
-                </a>
-              </div>
-            );
-          })}
-        </div>
+            <div className="grid gap-4">
+              {comingSoonGyms.map((gym) => (
+                <GymCard key={gym.id} gym={gym} />
+              ))}
+            </div>
+          </section>
+        ) : null}
       </div>
     </AppShell>
   );
