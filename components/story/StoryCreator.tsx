@@ -5,15 +5,21 @@ import { activeGyms, comingSoonGyms, type Gym } from "@/components/data/gyms";
 import {
   Camera,
   Download,
+  Dumbbell,
   Image as ImageIcon,
   Move,
+  Plus,
   Share2,
   Smile,
   Sticker,
   Trash2,
+  Type,
+  X,
 } from "lucide-react";
 
-type StickerKind = "image" | "emoji" | "gym";
+type StickerKind = "image" | "emoji" | "text";
+
+type StickerCategory = "brands" | "gyms" | "emojis" | "text" | null;
 
 type StorySticker = {
   id: string;
@@ -52,6 +58,25 @@ const emojiOptions = [
   "👏",
   "👑",
   "🎯",
+  "💯",
+  "😤",
+  "🙌",
+  "📸",
+];
+
+const presetCaptions = [
+  "Leg Day",
+  "Push Day",
+  "Pull Day",
+  "New PB",
+  "Back at it",
+  "No excuses",
+  "Workout done",
+  "Be the best",
+  "Beat the rest",
+  "Strong session",
+  "BGM Check-in",
+  "TSM fuelled",
 ];
 
 const brandStickerOptions = [
@@ -132,6 +157,8 @@ export default function StoryCreator() {
     },
   ]);
   const [activeStickerId, setActiveStickerId] = useState("default-bgm-logo");
+  const [openCategory, setOpenCategory] = useState<StickerCategory>(null);
+  const [customCaption, setCustomCaption] = useState("");
   const [status, setStatus] = useState("");
 
   const gymStickerOptions = useMemo(
@@ -149,6 +176,7 @@ export default function StoryCreator() {
 
   function resetGesture(sticker: StorySticker) {
     const points = getPointerList();
+
     if (!points.length) {
       gestureRef.current = null;
       return;
@@ -194,6 +222,7 @@ export default function StoryCreator() {
     ]);
 
     setActiveStickerId(id);
+    setOpenCategory(null);
   }
 
   function addGymSticker(gym: Gym) {
@@ -203,7 +232,7 @@ export default function StoryCreator() {
       ...current,
       {
         id,
-        kind: "gym",
+        kind: "image",
         label: gym.name,
         value: gym.logo || "/bgm-watermark.png",
         x: 50,
@@ -214,6 +243,7 @@ export default function StoryCreator() {
     ]);
 
     setActiveStickerId(id);
+    setOpenCategory(null);
   }
 
   function addEmojiSticker(emoji: string) {
@@ -234,6 +264,32 @@ export default function StoryCreator() {
     ]);
 
     setActiveStickerId(id);
+    setOpenCategory(null);
+  }
+
+  function addTextSticker(text: string) {
+    const cleanText = text.trim();
+    if (!cleanText) return;
+
+    const id = `text-${Date.now()}`;
+
+    setStickers((current) => [
+      ...current,
+      {
+        id,
+        kind: "text",
+        label: cleanText,
+        value: cleanText,
+        x: 50,
+        y: 50,
+        size: 44,
+        rotation: 0,
+      },
+    ]);
+
+    setActiveStickerId(id);
+    setCustomCaption("");
+    setOpenCategory(null);
   }
 
   function removeActiveSticker() {
@@ -320,7 +376,11 @@ export default function StoryCreator() {
       const angle = getAngle(points);
       const angleChange = radiansToDegrees(angle - gesture.startAngle);
 
-      nextSize = clamp(gesture.startSticker.size * scale, 40, 360);
+      nextSize = clamp(
+        gesture.startSticker.size * scale,
+        sticker.kind === "text" ? 20 : 40,
+        sticker.kind === "text" ? 110 : 360
+      );
       nextRotation = gesture.startSticker.rotation + angleChange;
     }
 
@@ -408,7 +468,24 @@ export default function StoryCreator() {
         context.restore();
       }
 
-      if (sticker.kind === "image" || sticker.kind === "gym") {
+      if (sticker.kind === "text") {
+        context.save();
+        context.translate(stickerX, stickerY);
+        context.rotate(rotation);
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.font = `900 ${stickerSize}px Arial, sans-serif`;
+        context.lineWidth = Math.max(8, stickerSize * 0.12);
+        context.strokeStyle = "rgba(0,0,0,0.75)";
+        context.fillStyle = "#ffffff";
+        context.shadowColor = "rgba(0,0,0,0.45)";
+        context.shadowBlur = 18;
+        context.strokeText(sticker.value, 0, 0);
+        context.fillText(sticker.value, 0, 0);
+        context.restore();
+      }
+
+      if (sticker.kind === "image") {
         try {
           const image = await loadImage(sticker.value);
 
@@ -492,8 +569,8 @@ export default function StoryCreator() {
         </h1>
 
         <p className="mt-4 text-sm leading-6 text-white/55">
-          Add BGM, TSM, gym logos and emojis. Move, pinch, rotate and share
-          your story to Instagram, Facebook or TikTok.
+          Add BGM, TSM, gym logos, emojis and captions. Move, pinch, rotate and
+          share your story.
         </p>
       </section>
 
@@ -581,6 +658,13 @@ export default function StoryCreator() {
                 >
                   {sticker.value}
                 </span>
+              ) : sticker.kind === "text" ? (
+                <span
+                  className="pointer-events-none block max-w-[320px] select-none whitespace-nowrap text-center font-black uppercase leading-none text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.95)] [-webkit-text-stroke:1px_rgba(0,0,0,0.65)]"
+                  style={{ fontSize: sticker.size }}
+                >
+                  {sticker.value}
+                </span>
               ) : (
                 <img
                   src={sticker.value}
@@ -605,117 +689,74 @@ export default function StoryCreator() {
         </div>
       </section>
 
-      <section className="space-y-4 rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
-            Add Stickers
-          </p>
-          <h2 className="mt-2 text-2xl font-black text-white">
-            Brands, gyms and emojis
-          </h2>
-        </div>
+      <section className="grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => setOpenCategory("brands")}
+          className="flex items-center justify-center gap-2 rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-4 py-5 text-sm font-black text-white"
+        >
+          <Sticker size={18} strokeWidth={3} />
+          Brand Logos
+        </button>
 
-        <div>
-          <p className="mb-3 text-xs font-black uppercase tracking-[.18em] text-white/40">
-            Brand Logos
-          </p>
+        <button
+          type="button"
+          onClick={() => setOpenCategory("gyms")}
+          className="flex items-center justify-center gap-2 rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-4 py-5 text-sm font-black text-white"
+        >
+          <Dumbbell size={18} strokeWidth={3} />
+          Gym Logos
+        </button>
 
-          <div className="grid gap-2">
-            {brandStickerOptions.map((brand) => (
-              <button
-                key={brand.label}
-                type="button"
-                onClick={() => addImageSticker(brand.label, brand.value)}
-                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-left text-sm font-black text-white/65"
-              >
-                <img
-                  src={brand.value}
-                  alt=""
-                  draggable={false}
-                  className="h-9 w-9 object-contain"
-                />
-                {brand.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => setOpenCategory("emojis")}
+          className="flex items-center justify-center gap-2 rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-4 py-5 text-sm font-black text-white"
+        >
+          <Smile size={18} strokeWidth={3} />
+          Emojis
+        </button>
 
-        <div>
-          <p className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-[.18em] text-white/40">
-            <Smile size={15} strokeWidth={3} />
-            Emojis
-          </p>
-
-          <div className="flex flex-wrap gap-2">
-            {emojiOptions.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                onClick={() => addEmojiSticker(emoji)}
-                className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-2xl"
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <p className="mb-3 text-xs font-black uppercase tracking-[.18em] text-white/40">
-            Gym Logos
-          </p>
-
-          <div className="grid gap-2">
-            {gymStickerOptions.map((gym) => (
-              <button
-                key={gym.id}
-                type="button"
-                onClick={() => addGymSticker(gym)}
-                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-left text-sm font-black text-white/65"
-              >
-                <img
-                  src={gym.logo || "/bgm-watermark.png"}
-                  alt=""
-                  draggable={false}
-                  className="h-9 w-9 object-contain"
-                />
-                {gym.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {activeSticker ? (
-          <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-            <p className="text-xs font-black uppercase tracking-[.18em] text-white/40">
-              Selected sticker
-            </p>
-
-            <p className="mt-2 text-sm font-bold text-white/60">
-              {activeSticker.label}
-            </p>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={resetActiveStickerRotation}
-                className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-black text-white"
-              >
-                Reset Rotate
-              </button>
-
-              <button
-                type="button"
-                onClick={removeActiveSticker}
-                className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-black text-white"
-              >
-                <Trash2 size={16} strokeWidth={3} />
-                Remove
-              </button>
-            </div>
-          </div>
-        ) : null}
+        <button
+          type="button"
+          onClick={() => setOpenCategory("text")}
+          className="flex items-center justify-center gap-2 rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-4 py-5 text-sm font-black text-white"
+        >
+          <Type size={18} strokeWidth={3} />
+          Captions
+        </button>
       </section>
+
+      {activeSticker ? (
+        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+          <p className="text-xs font-black uppercase tracking-[.18em] text-white/40">
+            Selected sticker
+          </p>
+
+          <p className="mt-2 text-sm font-bold text-white/60">
+            {activeSticker.label}
+          </p>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={resetActiveStickerRotation}
+              className="rounded-full border border-white/10 bg-black/25 px-5 py-3 text-sm font-black text-white"
+            >
+              Reset Rotate
+            </button>
+
+            <button
+              type="button"
+              onClick={removeActiveSticker}
+              className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-black/25 px-5 py-3 text-sm font-black text-white"
+            >
+              <Trash2 size={16} strokeWidth={3} />
+              Remove
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <section className="grid grid-cols-2 gap-3">
         <button
@@ -739,6 +780,144 @@ export default function StoryCreator() {
 
       {status ? (
         <p className="text-center text-sm font-bold text-white/45">{status}</p>
+      ) : null}
+
+      {openCategory ? (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/70 p-4 backdrop-blur-sm">
+          <div className="max-h-[78vh] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950">
+            <div className="flex items-center justify-between border-b border-white/10 p-5">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+                  Add Sticker
+                </p>
+                <h2 className="mt-1 text-2xl font-black text-white">
+                  {openCategory === "brands"
+                    ? "Brand Logos"
+                    : openCategory === "gyms"
+                    ? "Gym Logos"
+                    : openCategory === "emojis"
+                    ? "Emojis"
+                    : "Text Captions"}
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setOpenCategory(null)}
+                className="rounded-full border border-white/10 bg-white/[0.04] p-3 text-white"
+              >
+                <X size={18} strokeWidth={3} />
+              </button>
+            </div>
+
+            <div className="max-h-[58vh] overflow-y-auto p-5">
+              {openCategory === "brands" ? (
+                <div className="grid gap-3">
+                  {brandStickerOptions.map((brand) => (
+                    <button
+                      key={brand.label}
+                      type="button"
+                      onClick={() => addImageSticker(brand.label, brand.value)}
+                      className="flex items-center gap-4 rounded-2xl border border-white/10 bg-black/25 p-4 text-left text-sm font-black text-white/70"
+                    >
+                      <img
+                        src={brand.value}
+                        alt=""
+                        draggable={false}
+                        className="h-12 w-12 object-contain"
+                      />
+                      {brand.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {openCategory === "gyms" ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {gymStickerOptions.map((gym) => (
+                    <button
+                      key={gym.id}
+                      type="button"
+                      onClick={() => addGymSticker(gym)}
+                      className="rounded-2xl border border-white/10 bg-black/25 p-4 text-center text-xs font-black text-white/70"
+                    >
+                      <img
+                        src={gym.logo || "/bgm-watermark.png"}
+                        alt=""
+                        draggable={false}
+                        className="mx-auto h-16 w-16 object-contain"
+                      />
+                      <span className="mt-3 block">{gym.shortName}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {openCategory === "emojis" ? (
+                <div className="grid grid-cols-4 gap-3">
+                  {emojiOptions.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => addEmojiSticker(emoji)}
+                      className="rounded-2xl border border-white/10 bg-black/25 px-4 py-5 text-3xl"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {openCategory === "text" ? (
+                <div className="space-y-5">
+                  <div>
+                    <p className="mb-3 text-xs font-black uppercase tracking-[.18em] text-white/40">
+                      Custom Caption
+                    </p>
+
+                    <div className="flex gap-3">
+                      <input
+                        value={customCaption}
+                        onChange={(event) =>
+                          setCustomCaption(event.target.value)
+                        }
+                        placeholder="Write your caption..."
+                        className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold text-white outline-none placeholder:text-white/25"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => addTextSticker(customCaption)}
+                        className="flex shrink-0 items-center justify-center rounded-full bg-orange-500 px-4 text-black"
+                      >
+                        <Plus size={18} strokeWidth={3} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="mb-3 text-xs font-black uppercase tracking-[.18em] text-white/40">
+                      Quick Captions
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {presetCaptions.map((caption) => (
+                        <button
+                          key={caption}
+                          type="button"
+                          onClick={() => addTextSticker(caption)}
+                          className="rounded-2xl border border-white/10 bg-black/25 p-4 text-sm font-black text-white/70"
+                        >
+                          {caption}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );
