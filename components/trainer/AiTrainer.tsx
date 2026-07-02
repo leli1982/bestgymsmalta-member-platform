@@ -135,13 +135,19 @@ function getExercisePool(goal: Goal, style: Style) {
   };
 }
 
+function rotateList(list: string[], amount: number) {
+  const offset = amount % list.length;
+  return [...list.slice(offset), ...list.slice(0, offset)];
+}
+
 function buildPlan(
   goal: Goal,
   level: Level,
   daysPerWeek: number,
   minutes: number,
   style: Style,
-  limitations: string
+  limitations: string,
+  planVersion: number
 ): PlanDay[] {
   const pool = getExercisePool(goal, style);
 
@@ -169,9 +175,8 @@ function buildPlan(
   for (let i = 0; i < daysPerWeek; i++) {
     const focus = focusList[i] || `Training Day ${i + 1}`;
 
-    const selected = pool.main
-      .slice(i, i + 5)
-      .concat(pool.main.slice(0, Math.max(0, 5 - pool.main.slice(i, i + 5).length)));
+    const rotatedMain = rotateList(pool.main, i + planVersion * 2);
+    const selected = rotatedMain.slice(0, 5);
 
     const exercises = [
       `${pool.warmup[i % pool.warmup.length]}`,
@@ -207,10 +212,20 @@ export default function AiTrainer() {
   const [style, setStyle] = useState<Style>("balanced");
   const [limitations, setLimitations] = useState("");
   const [generated, setGenerated] = useState(false);
+  const [planVersion, setPlanVersion] = useState(0);
 
   const plan = useMemo(
-    () => buildPlan(goal, level, daysPerWeek, minutes, style, limitations),
-    [goal, level, daysPerWeek, minutes, style, limitations]
+    () =>
+      buildPlan(
+        goal,
+        level,
+        daysPerWeek,
+        minutes,
+        style,
+        limitations,
+        planVersion
+      ),
+    [goal, level, daysPerWeek, minutes, style, limitations, planVersion]
   );
 
   return (
@@ -349,7 +364,10 @@ export default function AiTrainer() {
 
           <button
             type="button"
-            onClick={() => setGenerated(true)}
+            onClick={() => {
+              setGenerated(true);
+              setPlanVersion((current) => current + 1);
+            }}
             className="mt-2 flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black transition active:scale-95"
           >
             {generated ? (
