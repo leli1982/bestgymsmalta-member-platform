@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { currentMember } from "@/components/data/member";
+import LiveUpdates from "@/components/home/LiveUpdates";
 import { activeGyms } from "@/components/data/gyms";
 import {
   ArrowRight,
@@ -18,7 +19,6 @@ import {
   ShieldCheck,
   Sparkles,
   Stamp,
-  Trophy,
 } from "lucide-react";
 
 type SavedWorkoutPlan = {
@@ -73,13 +73,6 @@ const feedItems = [
     title: "Need a plan for today?",
     text: "Generate a workout based on your goal, level, time and training style.",
     href: "/trainer",
-  },
-  {
-    icon: Trophy,
-    label: "TSM Spotlight",
-    title: "Fuel your next session",
-    text: "Top Supplements Malta can be featured in member stories using the TSM logo sticker.",
-    href: "/story",
   },
 ];
 
@@ -318,6 +311,8 @@ export default function SocialHome() {
           </div>
         </a>
       </section>
+
+      <LiveUpdates />
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
         <div className="flex items-center justify-between gap-4">
