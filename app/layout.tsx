@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
+import SplashScreen from "@/components/SplashScreen";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "BestGymsMalta",
-  description: "Official BestGymsMalta member platform",
+  description:
+    "Official BestGymsMalta member platform for membership, passport, gym locations, fitness goals and social sharing.",
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -41,7 +43,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <SplashScreen />
+        {children}
+      </body>
     </html>
   );
 }

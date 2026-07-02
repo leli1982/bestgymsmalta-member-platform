@@ -1,0 +1,292 @@
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background:
+    radial-gradient(circle at center, rgba(249, 115, 22, 0.12), transparent 34%),
+    radial-gradient(circle at bottom, rgba(249, 115, 22, 0.22), transparent 24%),
+    #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 34px;
+  overflow: hidden;
+  opacity: 1;
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s ease;
+}
+
+.hide {
+  opacity: 0;
+  transform: scale(1.03);
+  pointer-events: none;
+}
+
+.logoArea {
+  position: relative;
+  width: min(82vw, 390px);
+  height: min(82vw, 390px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: logoAreaIn 0.6s ease-out both;
+}
+
+.logo {
+  position: relative;.logo {
+  position: relative;
+  z-index: 5;
+  width: 76%;
+  height: 76%;
+  object-fit: contain;
+  transform: translateY(14px) scale(1.08);
+  filter:
+    drop-shadow(0 0 8px rgba(255, 255, 255, 0.35))
+    drop-shadow(0 0 24px rgba(249, 115, 22, 0.32));
+  animation: logoPulse 1.5s ease-in-out infinite;
+}
+  z-index: 5;
+  width: 76%;
+  height: 76%;
+  object-fit: contain;
+  transform: translateY(-10px) scale(1.08);
+  filter:
+    drop-shadow(0 0 8px rgba(255, 255, 255, 0.35))
+    drop-shadow(0 0 24px rgba(249, 115, 22, 0.32));
+  animation: logoPulse 1.5s ease-in-out infinite;
+}
+
+.orangeGlow {
+  position: absolute;
+  inset: 26px;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.08);
+  box-shadow:
+    0 0 28px rgba(249, 115, 22, 0.45),
+    0 0 70px rgba(249, 115, 22, 0.3),
+    inset 0 0 34px rgba(249, 115, 22, 0.18);
+  animation: glowPulse 1.4s ease-in-out infinite;
+}
+
+.animatedCircle {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.circleTrack {
+  fill: none;
+  stroke: rgba(249, 115, 22, 0.22);
+  stroke-width: 3;
+}
+
+.circleLine {
+  fill: none;
+  stroke: #f97316;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 830;
+  stroke-dashoffset: 830;
+  filter:
+    drop-shadow(0 0 6px rgba(249, 115, 22, 1))
+    drop-shadow(0 0 18px rgba(249, 115, 22, 0.9))
+    drop-shadow(0 0 32px rgba(249, 115, 22, 0.7));
+  animation:
+    drawCircle 0.9s ease-out forwards,
+    rotateCircle 1.5s linear 0.9s infinite;
+  transform-origin: 150px 150px;
+}
+
+.orbitDot {
+  position: absolute;
+  z-index: 4;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #fff;
+  top: 31px;
+  left: 50%;
+  margin-left: -11px;
+  box-shadow:
+    0 0 12px #fff,
+    0 0 26px rgba(249, 115, 22, 1),
+    0 0 56px rgba(249, 115, 22, 0.95);
+  transform-origin: 11px calc(min(82vw, 390px) / 2 - 31px);
+  animation:
+    dotAppear 0.35s ease-out forwards,
+    dotOrbit 1.5s linear 0.9s infinite;
+}
+
+.tagline {
+  position: relative;
+  z-index: 5;
+  padding: 0 24px;
+  font-size: clamp(20px, 5vw, 30px);
+  color: #fff;
+  text-align: center;
+  letter-spacing: -0.03em;
+  text-shadow: 0 0 18px rgba(249, 115, 22, 0.35);
+  opacity: 0;
+  transform: translateY(12px);
+  animation: taglineIn 0.55s ease-out 0.55s forwards;
+}
+
+.tagline span {
+  color: #f97316;
+}
+
+.loadingLine {
+  width: min(46vw, 220px);
+  height: 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(249, 115, 22, 0.16);
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.45);
+  opacity: 0;
+  animation: lineIn 0.3s ease-out 0.7s forwards;
+}
+
+.loadingLine div {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #f97316,
+    #fff,
+    #f97316,
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: loadingSweep 1.15s ease-out 0.75s forwards;
+}
+
+@keyframes logoAreaIn {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes drawCircle {
+  from {
+    stroke-dashoffset: 830;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes rotateCircle {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dotAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes dotOrbit {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes logoPulse {
+  0%,
+  100% {
+    filter:
+      drop-shadow(0 0 8px rgba(255, 255, 255, 0.35))
+      drop-shadow(0 0 24px rgba(249, 115, 22, 0.32));
+  }
+
+  50% {
+    filter:
+      drop-shadow(0 0 14px rgba(255, 255, 255, 0.5))
+      drop-shadow(0 0 38px rgba(249, 115, 22, 0.55));
+  }
+}
+
+@keyframes glowPulse {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scale(0.98);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes taglineIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes lineIn {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes loadingSweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logoArea,
+  .circleLine,
+  .orbitDot,
+  .logo,
+  .orangeGlow,
+  .tagline,
+  .loadingLine,
+  .loadingLine div {
+    animation: none;
+  }
+
+  .circleLine {
+    stroke-dashoffset: 0;
+  }
+
+  .tagline,
+  .loadingLine {
+    opacity: 1;
+    transform: none;
+  }
+}
