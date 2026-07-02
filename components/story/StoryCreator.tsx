@@ -90,70 +90,100 @@ export default function StoryCreator() {
     updateWatermarkPosition(event.clientX, event.clientY);
   }
 
-  async function exportStory() {
+  async function createStoryBlob(): Promise<Blob | null> {
+    if (!photoUrl) return null;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 1080;
+    canvas.height = 1920;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    const photo = await loadImage(photoUrl);
+    const watermarkImage = await loadImage(WATERMARK_SRC);
+
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    drawCoverImage(ctx, photo, canvas.width, canvas.height);
+
+    const watermarkWidth = canvas.width * (watermark.size / 100);
+    const watermarkHeight =
+      watermarkWidth * (watermarkImage.height / watermarkImage.width);
+
+    const watermarkX = canvas.width * (watermark.x / 100) - watermarkWidth / 2;
+    const watermarkY =
+      canvas.height * (watermark.y / 100) - watermarkHeight / 2;
+
+    ctx.drawImage(
+      watermarkImage,
+      watermarkX,
+      watermarkY,
+      watermarkWidth,
+      watermarkHeight
+    );
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), "image/png");
+    });
+  }
+
+  async function shareStory() {
     if (!photoUrl || exporting) return;
 
     setExporting(true);
 
     try {
-      const canvas = document.createElement("canvas");
-      canvas.width = 1080;
-      canvas.height = 1920;
+      const blob = await createStoryBlob();
+      if (!blob) return;
 
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+      const file = new File([blob], "bestgymsmalta-story.png", {
+        type: "image/png",
+      });
 
-      const photo = await loadImage(photoUrl);
-      const watermarkImage = await loadImage(WATERMARK_SRC);
+      const canShare =
+        typeof navigator !== "undefined" &&
+        "canShare" in navigator &&
+        navigator.canShare?.({ files: [file] });
 
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      drawCoverImage(ctx, photo, canvas.width, canvas.height);
-
-      const watermarkWidth = canvas.width * (watermark.size / 100);
-      const watermarkHeight =
-        watermarkWidth * (watermarkImage.height / watermarkImage.width);
-
-      const watermarkX = canvas.width * (watermark.x / 100) - watermarkWidth / 2;
-      const watermarkY =
-        canvas.height * (watermark.y / 100) - watermarkHeight / 2;
-
-      ctx.drawImage(
-        watermarkImage,
-        watermarkX,
-        watermarkY,
-        watermarkWidth,
-        watermarkHeight
-      );
-
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-
-        const file = new File([blob], "bestgymsmalta-story.png", {
-          type: "image/png",
+      if (canShare) {
+        await navigator.share({
+          title: "BestGymsMalta Story",
+          text: "Be the best.... Beat the rest",
+          files: [file],
         });
+      } else {
+        saveBlobToDevice(blob);
+      }
+    } finally {
+      setExporting(false);
+    }
+  }
 
-        const canShare =
-          typeof navigator !== "undefined" &&
-          "canShare" in navigator &&
-          navigator.canShare?.({ files: [file] });
+  function saveBlobToDevice(blob: Blob) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
 
-        if (canShare) {
-          await navigator.share({
-            title: "BestGymsMalta Story",
-            text: "Be the best.... Beat the rest",
-            files: [file],
-          });
-        } else {
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = "bestgymsmalta-story.png";
-          link.click();
-          URL.revokeObjectURL(url);
-        }
-      }, "image/png");
+    link.href = url;
+    link.download = "bestgymsmalta-story.png";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function saveStory() {
+    if (!photoUrl || exporting) return;
+
+    setExporting(true);
+
+    try {
+      const blob = await createStoryBlob();
+      if (!blob) return;
+
+      saveBlobToDevice(blob);
     } finally {
       setExporting(false);
     }
@@ -281,7 +311,7 @@ export default function StoryCreator() {
         <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={exportStory}
+            onClick={shareStory}
             className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black transition active:scale-95"
           >
             <Share2 size={18} strokeWidth={3} />
@@ -290,7 +320,7 @@ export default function StoryCreator() {
 
           <button
             type="button"
-            onClick={exportStory}
+            onClick={saveStory}
             className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white transition active:scale-95"
           >
             <Download size={18} strokeWidth={3} />
