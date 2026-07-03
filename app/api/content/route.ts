@@ -47,20 +47,12 @@ export async function GET() {
       }
     );
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unknown Supabase error";
-
     console.error(error);
 
     return NextResponse.json(
       {
         announcements: [],
         error: "Could not load announcements.",
-        debug: {
-          message,
-          hasSupabaseUrl: Boolean(process.env.SUPABASE_URL),
-          hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
-        },
       },
       { status: 500 }
     );
