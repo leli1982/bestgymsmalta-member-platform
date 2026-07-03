@@ -356,7 +356,13 @@ export default function AiTrainer() {
   if (!member) {
     return (
       <section className="rounded-[2rem] border border-orange-500/30 bg-orange-500/10 p-6 text-center">
-        <Bot className="mx-auto text-orange-500" size={44} strokeWidth={3} />
+        <div className="mx-auto h-28 w-28 overflow-hidden rounded-full border-2 border-orange-500/40 bg-black/40 shadow-2xl">
+          <img
+            src="/bgm-trainer-icon.png"
+            alt="BGM AI Trainer Login"
+            className="h-full w-full object-cover"
+          />
+        </div>
         <h1 className="mt-5 text-4xl font-black text-white">AI Trainer</h1>
         <p className="mt-3 text-sm font-bold leading-6 text-white/55">
           Log in to generate and save your training plan to your member account.
@@ -378,7 +384,15 @@ export default function AiTrainer() {
       <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-orange-500/25 via-white/[0.04] to-black p-6">
         <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-orange-500/20 blur-3xl" />
 
-        <div className="relative">
+        <div className="absolute right-5 top-5 z-10 h-24 w-24 overflow-hidden rounded-full border-2 border-orange-500/40 bg-black/40 shadow-2xl">
+          <img
+            src="/bgm-trainer-icon.png"
+            alt="BGM AI Trainer"
+            className="h-full w-full object-cover"
+          />
+        </div>
+
+        <div className="relative pr-24">
           <p className="text-xs font-black uppercase tracking-[.25em] text-orange-500">
             AI Trainer
           </p>
