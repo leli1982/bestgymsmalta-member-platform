@@ -129,9 +129,9 @@ export default function SocialHome() {
         </div>
       </section>
 
-      <MemberCard />
-
       <ClosestGymCard />
+
+      <MemberCard />
 
       <LiveUpdates />
 
@@ -149,8 +149,10 @@ export default function SocialHome() {
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-3">
-          {quickLinks.map((item) => {
+          {quickLinks.map((item, index) => {
             const Icon = item.icon;
+            const isLastOdd =
+              quickLinks.length % 2 === 1 && index === quickLinks.length - 1;
 
             return (
               <a
@@ -158,7 +160,9 @@ export default function SocialHome() {
                 href={item.href}
                 target={item.external ? "_blank" : undefined}
                 rel={item.external ? "noreferrer" : undefined}
-                className="rounded-[1.5rem] border border-white/10 bg-black/25 p-4 transition hover:bg-white/[0.06]"
+                className={`rounded-[1.5rem] border border-white/10 bg-black/25 p-4 transition hover:bg-white/[0.06] ${
+                  isLastOdd ? "col-span-2" : ""
+                }`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-500">
