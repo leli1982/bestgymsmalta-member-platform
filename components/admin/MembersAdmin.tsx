@@ -10,6 +10,8 @@ type AdminMember = {
   email: string;
   phone: string;
   status: string;
+  enrollmentDate: string;
+  membershipPeriod: string;
   membershipExpiry: string;
   notes: string;
   username?: string;
@@ -23,9 +25,48 @@ const emptyMember: AdminMember = {
   email: "",
   phone: "",
   status: "active",
+  enrollmentDate: "",
+  membershipPeriod: "",
   membershipExpiry: "",
   notes: "",
 };
+
+const membershipPeriods = [
+  { label: "Choose duration", value: "" },
+  { label: "1 week", value: "1_week" },
+  { label: "2 weeks", value: "2_weeks" },
+  { label: "1 month", value: "1_month" },
+  { label: "3 months", value: "3_months" },
+  { label: "6 months", value: "6_months" },
+  { label: "1 year", value: "1_year" },
+];
+
+function formatDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function calculateExpiryDate(startDate: string, period: string) {
+  if (!startDate || !period) return "";
+
+  const date = new Date(`${startDate}T00:00:00`);
+
+  if (period === "1_week") date.setDate(date.getDate() + 7);
+  if (period === "2_weeks") date.setDate(date.getDate() + 14);
+  if (period === "1_month") date.setMonth(date.getMonth() + 1);
+  if (period === "3_months") date.setMonth(date.getMonth() + 3);
+  if (period === "6_months") date.setMonth(date.getMonth() + 6);
+  if (period === "1_year") date.setFullYear(date.getFullYear() + 1);
+
+  return formatDate(date);
+}
+
+function calculateStatus(expiryDate: string) {
+  if (!expiryDate) return "active";
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  return expiryDate < today ? "inactive" : "active";
+}
 
 export default function MembersAdmin({ pin }: { pin: string }) {
   const [members, setMembers] = useState<AdminMember[]>([]);
@@ -64,6 +105,25 @@ export default function MembersAdmin({ pin }: { pin: string }) {
     setStatus("Members loaded.");
   }
 
+  function updateMembershipDates(updates: Partial<AdminMember>) {
+    const nextForm = {
+      ...form,
+      ...updates,
+    };
+
+    if (nextForm.enrollmentDate && nextForm.membershipPeriod) {
+      const expiry = calculateExpiryDate(
+        nextForm.enrollmentDate,
+        nextForm.membershipPeriod
+      );
+
+      nextForm.membershipExpiry = expiry;
+      nextForm.status = calculateStatus(expiry);
+    }
+
+    setForm(nextForm);
+  }
+
   function editMember(member: AdminMember) {
     setEditingId(member.id || null);
     setForm({
@@ -73,6 +133,8 @@ export default function MembersAdmin({ pin }: { pin: string }) {
       email: member.email || "",
       phone: member.phone || "",
       status: member.status || "active",
+      enrollmentDate: member.enrollmentDate || "",
+      membershipPeriod: member.membershipPeriod || "",
       membershipExpiry: member.membershipExpiry || "",
       notes: member.notes || "",
       username: member.username || "",
@@ -171,6 +233,9 @@ export default function MembersAdmin({ pin }: { pin: string }) {
     loadMembers();
   }
 
+  const expiryPreview = form.membershipExpiry;
+  const statusPreview = calculateStatus(expiryPreview);
+
   return (
     <section className="space-y-6">
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
@@ -182,8 +247,9 @@ export default function MembersAdmin({ pin }: { pin: string }) {
         </div>
 
         <p className="mt-3 text-sm font-bold leading-6 text-white/50">
-          Add the member here first. They can only activate the app if their
-          member number and email match this record.
+          Add the member here first. Enter the enrolment date and choose the
+          membership duration. The expiry date and active/inactive status will
+          be calculated automatically.
         </p>
 
         <div className="mt-5 grid gap-3">
@@ -228,27 +294,74 @@ export default function MembersAdmin({ pin }: { pin: string }) {
           />
 
           <div className="grid grid-cols-2 gap-3">
-            <select
-              value={form.status}
-              onChange={(event) =>
-                setForm({ ...form, status: event.target.value })
-              }
-              className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="expired">Expired</option>
-            </select>
+            <label className="grid gap-2">
+              <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                Enrolment Date
+              </span>
+              <input
+                type="date"
+                value={form.enrollmentDate || ""}
+                onChange={(event) =>
+                  updateMembershipDates({
+                    enrollmentDate: event.target.value,
+                  })
+                }
+                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
+              />
+            </label>
 
-            <input
-              type="date"
-              value={form.membershipExpiry || ""}
-              onChange={(event) =>
-                setForm({ ...form, membershipExpiry: event.target.value })
-              }
-              className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
-            />
+            <label className="grid gap-2">
+              <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                Duration
+              </span>
+              <select
+                value={form.membershipPeriod || ""}
+                onChange={(event) =>
+                  updateMembershipDates({
+                    membershipPeriod: event.target.value,
+                  })
+                }
+                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
+              >
+                {membershipPeriods.map((period) => (
+                  <option key={period.value} value={period.value}>
+                    {period.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
+
+          <div className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4">
+            <p className="text-xs font-black uppercase tracking-[.18em] text-orange-500">
+              Auto Membership Status
+            </p>
+
+            <p className="mt-2 text-sm font-bold text-white">
+              Expiry: {expiryPreview || "Choose date and duration"}
+            </p>
+
+            <p
+              className={`mt-1 text-sm font-black uppercase tracking-[.16em] ${
+                statusPreview === "active" ? "text-green-300" : "text-red-300"
+              }`}
+            >
+              {statusPreview}
+            </p>
+          </div>
+
+          <input
+            type="date"
+            value={form.membershipExpiry || ""}
+            onChange={(event) =>
+              setForm({
+                ...form,
+                membershipExpiry: event.target.value,
+                status: calculateStatus(event.target.value),
+              })
+            }
+            className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
+          />
 
           <textarea
             value={form.notes}
@@ -329,7 +442,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
                 className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] ${
                   member.status === "active"
                     ? "bg-green-400/10 text-green-300"
-                    : "bg-white/10 text-white/35"
+                    : "bg-red-400/10 text-red-300"
                 }`}
               >
                 {member.status}
@@ -343,6 +456,12 @@ export default function MembersAdmin({ pin }: { pin: string }) {
                   ? `Activated as ${member.username}`
                   : "Not activated"}
               </p>
+
+              {member.enrollmentDate ? (
+                <p className="mt-1 text-xs font-bold text-white/35">
+                  Enrolled: {member.enrollmentDate}
+                </p>
+              ) : null}
 
               {member.membershipExpiry ? (
                 <p className="mt-1 text-xs font-bold text-white/35">

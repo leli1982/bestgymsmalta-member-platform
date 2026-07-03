@@ -14,14 +14,29 @@ function clean(value: unknown) {
   return String(value || "").trim();
 }
 
+function calculateStatus(status: string, expiry?: string | null) {
+  if (status === "inactive") return "inactive";
+
+  if (expiry) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (expiry < today) return "inactive";
+  }
+
+  return "active";
+}
+
 function publicMember(member: any) {
+  const status = calculateStatus(member.status || "active", member.membership_expiry);
+
   return {
     id: member.id,
     memberNumber: member.member_number,
     fullName: member.full_name || "",
     email: member.email || "",
     phone: member.phone || "",
-    status: member.status || "active",
+    status,
+    enrollmentDate: member.enrollment_date || "",
+    membershipPeriod: member.membership_period || "",
     membershipExpiry: member.membership_expiry || "",
     notes: member.notes || "",
     username: member.username || "",
@@ -75,13 +90,18 @@ export async function POST(request: NextRequest) {
       const member = body.member || {};
       const id = clean(member.id);
 
+      const membershipExpiry = clean(member.membershipExpiry) || null;
+      const incomingStatus = clean(member.status) || "active";
+
       const payload = {
         member_number: clean(member.memberNumber).toUpperCase(),
         full_name: clean(member.fullName),
         email: clean(member.email).toLowerCase(),
         phone: clean(member.phone) || null,
-        status: clean(member.status) || "active",
-        membership_expiry: clean(member.membershipExpiry) || null,
+        status: calculateStatus(incomingStatus, membershipExpiry),
+        enrollment_date: clean(member.enrollmentDate) || null,
+        membership_period: clean(member.membershipPeriod) || null,
+        membership_expiry: membershipExpiry,
         notes: clean(member.notes) || null,
         updated_at: new Date().toISOString(),
       };
