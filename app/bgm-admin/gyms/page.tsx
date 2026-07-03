@@ -32,6 +32,9 @@ export default function GymAdminPage() {
   const [selectedGymId, setSelectedGymId] = useState("");
   const [form, setForm] = useState<AdminGym | null>(null);
   const [status, setStatus] = useState("");
+  const [facilitiesText, setFacilitiesText] = useState("");
+  const [classesText, setClassesText] = useState("");
+  const [featuredEquipmentText, setFeaturedEquipmentText] = useState("");
 
   useEffect(() => {
     const savedPin = window.sessionStorage.getItem("bgmAdminPin");
@@ -85,8 +88,13 @@ export default function GymAdminPage() {
     setGyms(data.gyms || []);
 
     if (data.gyms?.length && !form) {
-      setSelectedGymId(data.gyms[0].id);
-      setForm(data.gyms[0]);
+      const firstGym = data.gyms[0];
+
+      setSelectedGymId(firstGym.id);
+      setForm(firstGym);
+      setFacilitiesText((firstGym.facilities || []).join(", "));
+      setClassesText((firstGym.classes || []).join(", "));
+      setFeaturedEquipmentText((firstGym.featuredEquipment || []).join(", "));
     }
   }
 
@@ -123,6 +131,9 @@ export default function GymAdminPage() {
 
     setSelectedGymId(id);
     setForm(gym);
+    setFacilitiesText((gym.facilities || []).join(", "));
+    setClassesText((gym.classes || []).join(", "));
+    setFeaturedEquipmentText((gym.featuredEquipment || []).join(", "));
   }
 
   function updateForm(updates: Partial<AdminGym>) {
@@ -145,7 +156,12 @@ export default function GymAdminPage() {
       method: "POST",
       body: JSON.stringify({
         mode: "update",
-        gym: form,
+        gym: {
+          ...form,
+          facilities: textToList(facilitiesText),
+          classes: textToList(classesText),
+          featuredEquipment: textToList(featuredEquipmentText),
+        },
       }),
     });
 
@@ -384,33 +400,27 @@ export default function GymAdminPage() {
                   className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold outline-none"
                 />
 
-                <input
-                  value={form.facilities.join(", ")}
-                  onChange={(event) =>
-                    updateForm({ facilities: textToList(event.target.value) })
-                  }
-                  placeholder="Facilities, comma separated"
-                  className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold outline-none"
+                <textarea
+                  value={facilitiesText}
+                  onChange={(event) => setFacilitiesText(event.target.value)}
+                  placeholder="Facilities, comma separated. Example: Free weights, Cardio, Showers"
+                  className="min-h-24 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold outline-none"
                 />
 
-                <input
-                  value={form.classes.join(", ")}
-                  onChange={(event) =>
-                    updateForm({ classes: textToList(event.target.value) })
-                  }
-                  placeholder="Classes, comma separated"
-                  className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold outline-none"
+                <textarea
+                  value={classesText}
+                  onChange={(event) => setClassesText(event.target.value)}
+                  placeholder="Classes, comma separated. Example: Spinning, Boxing, Functional Training"
+                  className="min-h-24 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold outline-none"
                 />
 
-                <input
-                  value={form.featuredEquipment.join(", ")}
+                <textarea
+                  value={featuredEquipmentText}
                   onChange={(event) =>
-                    updateForm({
-                      featuredEquipment: textToList(event.target.value),
-                    })
+                    setFeaturedEquipmentText(event.target.value)
                   }
-                  placeholder="Featured equipment, comma separated"
-                  className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold outline-none"
+                  placeholder="Featured equipment, comma separated. Example: Squat racks, Dumbbells, Cable machines"
+                  className="min-h-24 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold outline-none"
                 />
 
                 <textarea
