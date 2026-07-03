@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
+import { getSavedMember } from "@/lib/memberSession";
 
 type RecentCheckin = {
   id: string;
@@ -16,8 +17,15 @@ export default function RecentCheckins() {
 
   useEffect(() => {
     async function loadCheckins() {
+      const member = getSavedMember();
+
+      if (!member) {
+        setCheckins([]);
+        return;
+      }
+
       try {
-        const response = await fetch("/api/checkins?memberId=demo-member", {
+        const response = await fetch(`/api/checkins?memberId=${member.id}`, {
           cache: "no-store",
         });
 
@@ -29,6 +37,12 @@ export default function RecentCheckins() {
     }
 
     loadCheckins();
+
+    window.addEventListener("bgmMemberChanged", loadCheckins);
+
+    return () => {
+      window.removeEventListener("bgmMemberChanged", loadCheckins);
+    };
   }, []);
 
   if (checkins.length === 0) return null;

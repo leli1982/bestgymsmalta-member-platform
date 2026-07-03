@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { currentMember } from "@/components/data/member";
 import LiveUpdates from "@/components/home/LiveUpdates";
 import RecentCheckins from "@/components/home/RecentCheckins";
+import MemberActivityStats from "@/components/home/MemberActivityStats";
 import { activeGyms } from "@/components/data/gyms";
 import {
   ArrowRight,
@@ -314,6 +315,8 @@ export default function SocialHome() {
       </section>
 
       <LiveUpdates />
+
+      <MemberActivityStats />
 
       <RecentCheckins />
 

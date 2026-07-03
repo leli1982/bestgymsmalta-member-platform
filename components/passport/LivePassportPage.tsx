@@ -3,27 +3,34 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Lock, RefreshCw, Stamp } from "lucide-react";
 import type { Gym } from "@/components/data/gyms";
-
-const MEMBER_ID = "demo-member";
+import { getSavedMember, type AppMember } from "@/lib/memberSession";
 
 export default function LivePassportPage() {
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [visitedGymIds, setVisitedGymIds] = useState<string[]>([]);
+  const [member, setMember] = useState<AppMember | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadPassport() {
+      const savedMember = getSavedMember();
+      setMember(savedMember);
+
       try {
-        const [gymsResponse, checkinsResponse] = await Promise.all([
-          fetch("/api/gyms", { cache: "no-store" }),
-          fetch(`/api/checkins?memberId=${MEMBER_ID}`, { cache: "no-store" }),
-        ]);
-
+        const gymsResponse = await fetch("/api/gyms", { cache: "no-store" });
         const gymsData = await gymsResponse.json();
-        const checkinsData = await checkinsResponse.json();
-
         setGyms(gymsData.gyms || []);
-        setVisitedGymIds(checkinsData.visitedGymIds || []);
+
+        if (savedMember) {
+          const checkinsResponse = await fetch(
+            `/api/checkins?memberId=${savedMember.id}`,
+            { cache: "no-store" }
+          );
+          const checkinsData = await checkinsResponse.json();
+          setVisitedGymIds(checkinsData.visitedGymIds || []);
+        } else {
+          setVisitedGymIds([]);
+        }
       } catch {
         setGyms([]);
         setVisitedGymIds([]);
@@ -65,7 +72,11 @@ export default function LivePassportPage() {
 
           <div className="mt-6 rounded-2xl border border-white/10 bg-black/25 p-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-black text-white">Passport progress</p>
+              <p className="text-sm font-black text-white">
+                {member
+                  ? `${member.fullName || member.username}'s progress`
+                  : "Passport progress"}
+              </p>
               <p className="text-sm font-black text-orange-500">
                 {visitedGymIds.length}/{activeGyms.length}
               </p>
@@ -94,7 +105,25 @@ export default function LivePassportPage() {
         </section>
       ) : null}
 
-      {!loading ? (
+      {!loading && !member ? (
+        <section className="rounded-[2rem] border border-orange-500/30 bg-orange-500/10 p-5 text-center">
+          <h2 className="text-2xl font-black text-white">
+            Login to use your passport
+          </h2>
+          <p className="mt-3 text-sm font-bold leading-6 text-white/55">
+            Your stamps are saved to your member account. Log in or activate
+            your app account before scanning gym QR codes.
+          </p>
+          <a
+            href="/member-login"
+            className="mt-5 flex items-center justify-center rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+          >
+            Login / Activate
+          </a>
+        </section>
+      ) : null}
+
+      {!loading && member ? (
         <section className="grid gap-4">
           {activeGyms.map((gym) => {
             const visited = visitedGymIds.includes(gym.id);
@@ -145,10 +174,10 @@ export default function LivePassportPage() {
 
                 {!visited ? (
                   <a
-                    href={`/check-in/${gym.id}`}
-                    className="mt-4 flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-black text-white"
+                    href={`/scan-gym-qr?gymId=${gym.id}`}
+                    className="mt-4 flex items-center justify-center rounded-full bg-orange-500 px-5 py-3 text-sm font-black text-black"
                   >
-                    Check-in page
+                    Scan Gym QR
                   </a>
                 ) : null}
               </div>

@@ -3,17 +3,19 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Dumbbell, MapPinned, RefreshCw } from "lucide-react";
 import type { Gym } from "@/components/data/gyms";
-
-const MEMBER_ID = "demo-member";
+import { getSavedMember, type AppMember } from "@/lib/memberSession";
 
 export default function CheckInPage({ gymId }: { gymId: string }) {
   const [gym, setGym] = useState<Gym | null>(null);
+  const [member, setMember] = useState<AppMember | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [checkedIn, setCheckedIn] = useState(false);
 
   useEffect(() => {
+    setMember(getSavedMember());
+
     async function loadGym() {
       try {
         const response = await fetch("/api/gyms", {
@@ -35,6 +37,11 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
   }, [gymId]);
 
   async function confirmCheckIn() {
+    if (!member) {
+      setMessage("Please log in before checking in.");
+      return;
+    }
+
     setSaving(true);
     setMessage("");
 
@@ -44,7 +51,7 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        memberId: MEMBER_ID,
+        memberId: member.id,
         gymId,
       }),
     });
@@ -78,7 +85,7 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6">
         <h1 className="text-3xl font-black text-white">Gym not found</h1>
         <p className="mt-3 text-sm font-bold leading-6 text-white/50">
-          This QR code does not match an active BGM gym.
+          This QR code does not match a BGM gym.
         </p>
         <a
           href="/gyms"
@@ -123,59 +130,74 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 text-center">
-        {checkedIn ? (
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-400/10 text-green-300">
-            <CheckCircle2 size={42} strokeWidth={3} />
-          </div>
-        ) : (
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-orange-500/10 text-orange-500">
-            <Dumbbell size={38} strokeWidth={3} />
-          </div>
-        )}
-
-        <h2 className="mt-5 text-2xl font-black text-white">
-          {checkedIn ? "Passport stamped" : "Confirm your visit"}
-        </h2>
-
-        <p className="mt-3 text-sm font-bold leading-6 text-white/50">
-          {message ||
-            "Tap below to confirm your check-in and add this gym to your passport."}
-        </p>
-
-        {!checkedIn ? (
-          <button
-            type="button"
-            onClick={confirmCheckIn}
-            disabled={saving || gym.status !== "active"}
-            className="mt-5 w-full rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black disabled:opacity-40"
-          >
-            {saving ? "Checking in…" : "Confirm Check-in"}
-          </button>
-        ) : (
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <a
-              href="/passport"
-              className="rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
-            >
-              Passport
-            </a>
-
-            <a
-              href="/story"
-              className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white"
-            >
-              Share Story
-            </a>
-          </div>
-        )}
-
-        {gym.status !== "active" ? (
-          <p className="mt-4 text-sm font-bold text-orange-500">
-            This gym is not active yet.
+      {!member ? (
+        <section className="rounded-[2rem] border border-orange-500/30 bg-orange-500/10 p-5 text-center">
+          <h2 className="text-2xl font-black text-white">Login required</h2>
+          <p className="mt-3 text-sm font-bold leading-6 text-white/55">
+            Please log in or activate your account before checking in. This
+            connects the stamp to your own member passport.
           </p>
-        ) : null}
-      </section>
+
+          <a
+            href="/member-login"
+            className="mt-5 flex items-center justify-center rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+          >
+            Login / Activate
+          </a>
+        </section>
+      ) : (
+        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 text-center">
+          {checkedIn ? (
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-400/10 text-green-300">
+              <CheckCircle2 size={42} strokeWidth={3} />
+            </div>
+          ) : (
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-orange-500/10 text-orange-500">
+              <Dumbbell size={38} strokeWidth={3} />
+            </div>
+          )}
+
+          <h2 className="mt-5 text-2xl font-black text-white">
+            {checkedIn ? "Passport stamped" : "Confirm your visit"}
+          </h2>
+
+          <p className="mt-2 text-xs font-black uppercase tracking-[.18em] text-orange-500">
+            {member.fullName || member.username} · {member.memberNumber}
+          </p>
+
+          <p className="mt-3 text-sm font-bold leading-6 text-white/50">
+            {message ||
+              "Tap below to confirm your check-in and add this gym to your passport."}
+          </p>
+
+          {!checkedIn ? (
+            <button
+              type="button"
+              onClick={confirmCheckIn}
+              disabled={saving || gym.status !== "active"}
+              className="mt-5 w-full rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black disabled:opacity-40"
+            >
+              {saving ? "Checking in…" : "Confirm Check-in"}
+            </button>
+          ) : (
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <a
+                href="/passport"
+                className="rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+              >
+                Passport
+              </a>
+
+              <a
+                href="/story"
+                className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white"
+              >
+                Share Story
+              </a>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }
