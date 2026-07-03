@@ -2,6 +2,7 @@
 
 import {
   Bot,
+  Camera,
   Home,
   LogIn,
   MapPinned,
@@ -38,6 +39,11 @@ const navItems = [
     label: "Trainer",
     href: "/trainer",
     icon: Bot,
+  },
+  {
+    label: "Progress",
+    href: "/progress",
+    icon: Camera,
   },
   {
     label: "Login",

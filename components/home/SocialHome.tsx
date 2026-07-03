@@ -8,6 +8,7 @@ import RecentCheckins from "@/components/home/RecentCheckins";
 import MemberActivityStats from "@/components/home/MemberActivityStats";
 import ClosestGymCard from "@/components/home/ClosestGymCard";
 import MemberWorkoutPlanPreview from "@/components/home/MemberWorkoutPlanPreview";
+import ProgressVaultPreview from "@/components/home/ProgressVaultPreview";
 import { activeGyms } from "@/components/data/gyms";
 import {
   ArrowRight,
@@ -236,6 +237,8 @@ export default function SocialHome() {
       <MemberActivityStats />
 
       <MemberWorkoutPlanPreview />
+
+      <ProgressVaultPreview />
 
       <RecentCheckins />
 
