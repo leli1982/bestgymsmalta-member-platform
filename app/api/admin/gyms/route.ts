@@ -13,9 +13,9 @@ function isAdmin(request: NextRequest) {
 
 function appGymToDbGym(gym: any, index = 0) {
   return {
-    id: gym.id,
-    name: gym.name,
-    short_name: gym.shortName || gym.short_name || gym.name,
+    id: String(gym.id || "").trim(),
+    name: String(gym.name || "").trim(),
+    short_name: String(gym.shortName || gym.short_name || gym.name || "").trim(),
     status: gym.status || "active",
     city: gym.city || "",
     address: gym.address || "",
@@ -140,13 +140,18 @@ export async function POST(request: NextRequest) {
 
     if (mode === "update") {
       const gym = body.gym || {};
-      const id = String(gym.id || "");
+      const payload = appGymToDbGym(gym);
 
-      if (!id) {
+      if (!payload.id) {
         return NextResponse.json({ error: "Missing gym ID." }, { status: 400 });
       }
 
-      const payload = appGymToDbGym(gym);
+      if (!payload.name) {
+        return NextResponse.json(
+          { error: "Missing gym name." },
+          { status: 400 }
+        );
+      }
 
       const result = await supabase
         .from("bgm_gyms")
@@ -159,6 +164,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         gym: dbGymToAdminGym(result.data),
       });
+    }
+
+    if (mode === "delete") {
+      const id = String(body.id || "").trim();
+
+      if (!id) {
+        return NextResponse.json({ error: "Missing gym ID." }, { status: 400 });
+      }
+
+      const result = await supabase.from("bgm_gyms").delete().eq("id", id);
+
+      if (result.error) throw result.error;
+
+      return NextResponse.json({ ok: true });
     }
 
     return NextResponse.json({ error: "Invalid action." }, { status: 400 });

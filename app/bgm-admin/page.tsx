@@ -65,6 +65,28 @@ const emptyAnnouncement: Announcement = {
   sort_order: 0,
 };
 
+const emptyGym: AdminGym = {
+  id: "",
+  name: "",
+  shortName: "",
+  status: "coming_soon",
+  city: "",
+  address: "",
+  latitude: "",
+  longitude: "",
+  openingHours: "",
+  phone: "",
+  email: "",
+  logo: "",
+  accentColor: "#F97316",
+  qrCodeId: "",
+  facilities: [],
+  classes: [],
+  featuredEquipment: [],
+  notes: "",
+  sortOrder: 999,
+};
+
 export default function BgmAdminPage() {
   const [pin, setPin] = useState("");
   const [unlocked, setUnlocked] = useState(false);
@@ -84,6 +106,8 @@ export default function BgmAdminPage() {
   const [facilitiesText, setFacilitiesText] = useState("");
   const [classesText, setClassesText] = useState("");
   const [featuredEquipmentText, setFeaturedEquipmentText] = useState("");
+  const [creatingGym, setCreatingGym] = useState(false);
+  const [uploadingGymLogo, setUploadingGymLogo] = useState(false);
 
   useEffect(() => {
     const savedPin = window.sessionStorage.getItem("bgmAdminPin");
@@ -343,11 +367,95 @@ export default function BgmAdminPage() {
     const gym = gyms.find((item) => item.id === id);
     if (!gym) return;
 
+    setCreatingGym(false);
     loadGymIntoForm(gym);
   }
 
   function updateGymForm(updates: Partial<AdminGym>) {
     setGymForm((current) => (current ? { ...current, ...updates } : current));
+  }
+
+  function startNewGym() {
+    const newGym = {
+      ...emptyGym,
+      sortOrder: gyms.length + 1,
+    };
+
+    setCreatingGym(true);
+    setSelectedGymId("");
+    setGymForm(newGym);
+    setFacilitiesText("");
+    setClassesText("");
+    setFeaturedEquipmentText("");
+    setActiveTab("gyms");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setStatus("Adding new gym. Choose a unique gym ID, then save.");
+  }
+
+  async function uploadGymLogo(file?: File) {
+    if (!file) return;
+
+    setUploadingGymLogo(true);
+    setStatus("Uploading gym logo…");
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("/api/admin/gym-logo-upload", {
+      method: "POST",
+      headers: {
+        "x-admin-pin": pin,
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setStatus(data.error || "Gym logo upload failed.");
+      setUploadingGymLogo(false);
+      return;
+    }
+
+    updateGymForm({ logo: data.logoUrl });
+    setStatus("Gym logo uploaded.");
+    setUploadingGymLogo(false);
+  }
+
+  async function deleteGym(id?: string) {
+    if (!id) return;
+
+    const confirmed = window.confirm(
+      "Delete this gym from the app? This removes it from the public gym list."
+    );
+
+    if (!confirmed) return;
+
+    setStatus("Deleting gym…");
+
+    const response = await gymsFetch({
+      method: "POST",
+      body: JSON.stringify({
+        mode: "delete",
+        id,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setStatus(data.error || "Could not delete gym.");
+      return;
+    }
+
+    setCreatingGym(false);
+    setGymForm(null);
+    setSelectedGymId("");
+    setFacilitiesText("");
+    setClassesText("");
+    setFeaturedEquipmentText("");
+    setStatus("Gym deleted.");
+    await loadGyms();
   }
 
   function textToList(value: string) {
@@ -359,6 +467,16 @@ export default function BgmAdminPage() {
 
   async function saveGym() {
     if (!gymForm) return;
+
+    if (!gymForm.id.trim()) {
+      setStatus("Gym ID is required. Example: bgm-new-location");
+      return;
+    }
+
+    if (!gymForm.name.trim()) {
+      setStatus("Gym name is required.");
+      return;
+    }
 
     setStatus("Saving gym…");
 
@@ -384,6 +502,7 @@ export default function BgmAdminPage() {
       return;
     }
 
+    setCreatingGym(false);
     setStatus("Gym saved.");
     await loadGyms(pin, gymForm.id);
   }
@@ -756,7 +875,7 @@ export default function BgmAdminPage() {
                 comma-separated text.
               </p>
 
-              <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <button
                   type="button"
                   onClick={() => loadGyms()}
@@ -773,6 +892,15 @@ export default function BgmAdminPage() {
                 >
                   <Upload size={16} strokeWidth={3} />
                   Import Gyms
+                </button>
+
+                <button
+                  type="button"
+                  onClick={startNewGym}
+                  className="flex items-center justify-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-5 py-3 text-sm font-black text-orange-500"
+                >
+                  <Plus size={16} strokeWidth={3} />
+                  New Gym
                 </button>
               </div>
             </section>
@@ -820,6 +948,25 @@ export default function BgmAdminPage() {
                   </div>
 
                   <div className="grid gap-3">
+                    <input
+                      value={gymForm.id}
+                      disabled={!creatingGym}
+                      onChange={(event) =>
+                        updateGymForm({
+                          id: event.target.value
+                            .toLowerCase()
+                            .replace(/[^a-z0-9-]+/g, "-")
+                            .replace(/(^-|-$)/g, ""),
+                          qrCodeId: event.target.value
+                            .toLowerCase()
+                            .replace(/[^a-z0-9-]+/g, "-")
+                            .replace(/(^-|-$)/g, ""),
+                        })
+                      }
+                      placeholder="Gym ID, example: bgm-new-location"
+                      className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold outline-none disabled:opacity-45"
+                    />
+
                     <input
                       value={gymForm.name}
                       onChange={(event) =>
@@ -930,12 +1077,43 @@ export default function BgmAdminPage() {
                       />
                     </div>
 
+                    {gymForm.logo ? (
+                      <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/25">
+                        <div className="flex items-center justify-center p-5">
+                          <img
+                            src={gymForm.logo}
+                            alt=""
+                            className="max-h-28 object-contain"
+                          />
+                        </div>
+
+                        <div className="border-t border-white/10 p-3">
+                          <p className="break-all text-xs font-bold text-white/45">
+                            {gymForm.logo}
+                          </p>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <label className="flex cursor-pointer items-center justify-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-5 py-4 text-sm font-black text-orange-500">
+                      <ImageIcon size={18} strokeWidth={3} />
+                      {uploadingGymLogo ? "Uploading…" : "Upload Gym Logo"}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="hidden"
+                        onChange={(event) =>
+                          uploadGymLogo(event.target.files?.[0])
+                        }
+                      />
+                    </label>
+
                     <input
                       value={gymForm.logo}
                       onChange={(event) =>
                         updateGymForm({ logo: event.target.value })
                       }
-                      placeholder="Logo path, example /gym-logos/bgm-marsa.png"
+                      placeholder="Logo path or uploaded logo URL"
                       className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold outline-none"
                     />
 
@@ -989,8 +1167,19 @@ export default function BgmAdminPage() {
                       className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
                     >
                       <Save size={17} strokeWidth={3} />
-                      Save Gym
+                      {creatingGym ? "Add Gym" : "Save Gym"}
                     </button>
+
+                    {!creatingGym ? (
+                      <button
+                        type="button"
+                        onClick={() => deleteGym(gymForm.id)}
+                        className="flex items-center justify-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-black text-red-300"
+                      >
+                        <Trash2 size={17} strokeWidth={3} />
+                        Delete Gym
+                      </button>
+                    ) : null}
                   </div>
                 </section>
               </>
