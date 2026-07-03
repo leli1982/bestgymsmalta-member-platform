@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
+  CheckCircle2,
   Clock,
   Mail,
   MapPinned,
@@ -11,6 +12,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 import type { Gym } from "@/components/data/gyms";
+
+const MEMBER_ID = "demo-member";
 
 function getMapsUrl(gym: Gym) {
   const mapsQuery =
@@ -25,21 +28,29 @@ function getMapsUrl(gym: Gym) {
 
 export default function LiveGymDetailPage({ gymId }: { gymId: string }) {
   const [gym, setGym] = useState<Gym | null>(null);
+  const [visitedGymIds, setVisitedGymIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadGym() {
       try {
-        const response = await fetch("/api/gyms", {
-          cache: "no-store",
-        });
+        const [gymsResponse, checkinsResponse] = await Promise.all([
+          fetch("/api/gyms", { cache: "no-store" }),
+          fetch(`/api/checkins?memberId=${MEMBER_ID}`, { cache: "no-store" }),
+        ]);
 
-        const data = await response.json();
-        const foundGym = (data.gyms || []).find((item: Gym) => item.id === gymId);
+        const gymsData = await gymsResponse.json();
+        const checkinsData = await checkinsResponse.json();
+
+        const foundGym = (gymsData.gyms || []).find(
+          (item: Gym) => item.id === gymId
+        );
 
         setGym(foundGym || null);
+        setVisitedGymIds(checkinsData.visitedGymIds || []);
       } catch {
         setGym(null);
+        setVisitedGymIds([]);
       } finally {
         setLoading(false);
       }
@@ -81,6 +92,7 @@ export default function LiveGymDetailPage({ gymId }: { gymId: string }) {
   }
 
   const mapsUrl = getMapsUrl(gym);
+  const visited = visitedGymIds.includes(gym.id);
 
   return (
     <div className="space-y-6">
@@ -120,6 +132,41 @@ export default function LiveGymDetailPage({ gymId }: { gymId: string }) {
             />
           ) : null}
         </div>
+      </section>
+
+      <section
+        className={`rounded-[2rem] border p-5 ${
+          visited
+            ? "border-green-400/30 bg-green-400/10"
+            : "border-white/10 bg-white/[0.04]"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <CheckCircle2
+            className={visited ? "text-green-300" : "text-white/30"}
+            size={26}
+            strokeWidth={3}
+          />
+          <div>
+            <p className="text-sm font-black text-white">
+              {visited ? "Visited and stamped" : "Not stamped yet"}
+            </p>
+            <p className="mt-1 text-xs font-bold text-white/45">
+              {visited
+                ? "This gym is already in your passport."
+                : "Scan the gym QR code to stamp your passport."}
+            </p>
+          </div>
+        </div>
+
+        {!visited && gym.status === "active" ? (
+          <a
+            href={`/check-in/${gym.id}`}
+            className="mt-4 flex items-center justify-center rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+          >
+            Open Check-in Page
+          </a>
+        ) : null}
       </section>
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
@@ -196,32 +243,6 @@ export default function LiveGymDetailPage({ gymId }: { gymId: string }) {
           </div>
         </section>
       ) : null}
-
-      {gym.classes.length > 0 ? (
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
-            Classes
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            {gym.classes.map((className) => (
-              <span
-                key={className}
-                className="rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-2 text-xs font-black text-orange-500"
-              >
-                {className}
-              </span>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <a
-        href="/story"
-        className="flex items-center justify-center rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
-      >
-        Create Story
-      </a>
     </div>
   );
 }

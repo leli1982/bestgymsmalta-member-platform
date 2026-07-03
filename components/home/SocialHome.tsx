@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { currentMember } from "@/components/data/member";
 import LiveUpdates from "@/components/home/LiveUpdates";
+import RecentCheckins from "@/components/home/RecentCheckins";
 import { activeGyms } from "@/components/data/gyms";
 import {
   ArrowRight,
@@ -313,6 +314,8 @@ export default function SocialHome() {
       </section>
 
       <LiveUpdates />
+
+      <RecentCheckins />
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
         <div className="flex items-center justify-between gap-4">

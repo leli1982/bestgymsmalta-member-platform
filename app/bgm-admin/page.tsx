@@ -13,8 +13,10 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import GymQrAdmin from "@/components/admin/GymQrAdmin";
+import MembersAdmin from "@/components/admin/MembersAdmin";
 
-type AdminTab = "announcements" | "gyms";
+type AdminTab = "announcements" | "gyms" | "checkins" | "members";
 
 type Announcement = {
   id?: string;
@@ -561,7 +563,7 @@ export default function BgmAdminPage() {
             and facilities from one place.
           </p>
 
-          <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <button
               type="button"
               onClick={() => setActiveTab("announcements")}
@@ -584,6 +586,30 @@ export default function BgmAdminPage() {
               }`}
             >
               Gym Details
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("checkins")}
+              className={`rounded-full px-5 py-3 text-sm font-black ${
+                activeTab === "checkins"
+                  ? "bg-orange-500 text-black"
+                  : "border border-white/10 bg-white/[0.04] text-white"
+              }`}
+            >
+              QR Codes
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("members")}
+              className={`rounded-full px-5 py-3 text-sm font-black ${
+                activeTab === "members"
+                  ? "bg-orange-500 text-black"
+                  : "border border-white/10 bg-white/[0.04] text-white"
+              }`}
+            >
+              Members
             </button>
           </div>
         </section>
@@ -1186,6 +1212,10 @@ export default function BgmAdminPage() {
             ) : null}
           </>
         ) : null}
+
+        {activeTab === "checkins" ? <GymQrAdmin pin={pin} /> : null}
+
+        {activeTab === "members" ? <MembersAdmin pin={pin} /> : null}
 
         {status ? (
           <p className="text-center text-sm font-bold text-white/50">

@@ -13,13 +13,17 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "bcryptjs": "^3.0.3",
     "eslint": "latest",
     "eslint-config-next": "latest",
     "framer-motion": "^12.42.0",
+    "html5-qrcode": "^2.3.8",
     "lucide-react": "latest",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "react-qr-code": "^2.2.0",
+    "resend": "^6.16.0",
     "typescript": "latest"
   },
   "devDependencies": {
