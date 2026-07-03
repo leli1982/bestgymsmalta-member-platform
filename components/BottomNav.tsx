@@ -4,26 +4,16 @@ import {
   Bot,
   Camera,
   Home,
-  LogIn,
   MapPinned,
-  MessageCircle,
-  Stamp,
   Video,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-
-const FACEBOOK_MESSENGER_URL = "https://m.me/bestgymsmalta";
 
 const navItems = [
   {
     label: "Home",
     href: "/",
     icon: Home,
-  },
-  {
-    label: "Passport",
-    href: "/passport",
-    icon: Stamp,
   },
   {
     label: "Gyms",
@@ -45,18 +35,13 @@ const navItems = [
     href: "/progress",
     icon: Camera,
   },
-  {
-    label: "Login",
-    href: "/member-login",
-    icon: LogIn,
-  },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-black/90 px-3 pb-4 pt-3 backdrop-blur-xl">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-black/90 px-4 pb-4 pt-3 backdrop-blur-xl">
       <div className="mx-auto flex max-w-md items-center justify-center gap-2 rounded-[2rem] border border-white/10 bg-zinc-950/95 p-2 shadow-2xl">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -69,27 +54,17 @@ export default function BottomNav() {
             <a
               key={item.href}
               href={item.href}
-              className={`flex min-w-0 flex-1 flex-col items-center justify-center rounded-2xl px-2 py-2 text-[10px] font-black transition ${
+              className={`flex min-w-0 flex-1 flex-col items-center justify-center rounded-2xl px-2 py-2.5 text-[10px] font-black transition ${
                 isActive
                   ? "bg-orange-500 text-black"
                   : "text-white/45 hover:bg-white/[0.05] hover:text-white"
               }`}
             >
-              <Icon size={19} strokeWidth={3} />
+              <Icon size={20} strokeWidth={3} />
               <span className="mt-1 truncate">{item.label}</span>
             </a>
           );
         })}
-
-        <a
-          href={FACEBOOK_MESSENGER_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-2xl px-2 py-2 text-[10px] font-black text-white/45 transition hover:bg-white/[0.05] hover:text-white"
-        >
-          <MessageCircle size={19} strokeWidth={3} />
-          <span className="mt-1 truncate">Contact</span>
-        </a>
       </div>
     </nav>
   );
