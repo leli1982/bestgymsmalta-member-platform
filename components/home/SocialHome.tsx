@@ -22,6 +22,7 @@ import {
   Sparkles,
   Stamp,
 } from "lucide-react";
+import { getSavedMember, type AppMember } from "@/lib/memberSession";
 
 type SavedWorkoutPlan = {
   goal: string;
@@ -107,6 +108,22 @@ const quickActions = [
 ];
 
 export default function SocialHome() {
+  const [loggedInMember, setLoggedInMember] = useState<AppMember | null>(null);
+
+  useEffect(() => {
+    function loadLoggedInMember() {
+      setLoggedInMember(getSavedMember());
+    }
+
+    loadLoggedInMember();
+
+    window.addEventListener("bgmMemberChanged", loadLoggedInMember);
+
+    return () => {
+      window.removeEventListener("bgmMemberChanged", loadLoggedInMember);
+    };
+  }, []);
+
   const [savedPlan, setSavedPlan] = useState<SavedWorkoutPlan | null>(null);
 
   useEffect(() => {
@@ -156,7 +173,7 @@ export default function SocialHome() {
                 BestGymsMalta
               </p>
               <h1 className="mt-3 text-4xl font-black leading-tight text-white">
-                Welcome back, {member.firstName || member.fullName || "Member"}
+                Welcome back, {loggedInMember?.username || loggedInMember?.fullName?.split(" ")[0] || member.firstName || member.fullName || "Member"}
               </h1>
               <p className="mt-4 text-sm font-bold leading-6 text-white/55">
                 Your membership, training, passport and stories in one place.
