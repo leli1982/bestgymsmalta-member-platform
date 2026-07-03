@@ -1,189 +1,257 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
-import {
-  CalendarDays,
-  CreditCard,
-  Dumbbell,
-  MapPinned,
-  RotateCcw,
-  ShieldCheck,
-  SmartphoneNfc,
-} from "lucide-react";
-import { currentMember } from "@/components/data/member";
+import { useEffect, useState } from "react";
+import { BadgeCheck, CreditCard, LogIn, ShieldCheck } from "lucide-react";
+import { getSavedMember, type AppMember } from "@/lib/memberSession";
 
-function formatStatus(status: string) {
-  if (status === "active") return "Active";
-  if (status === "paused") return "Paused";
-  return "Expired";
-}
-
-function CardDetail({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
+function NfcMark() {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
-      <p className="text-[10px] font-black uppercase tracking-[.22em] text-white/35">
-        {label}
-      </p>
-      <p className="mt-1 text-base font-black text-white">{value}</p>
+    <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2">
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+        className="text-orange-500"
+      >
+        <path
+          d="M7 8.5C8.8 10.3 8.8 13.7 7 15.5"
+          stroke="currentColor"
+          strokeWidth="2.3"
+          strokeLinecap="round"
+        />
+        <path
+          d="M10.5 6C13.7 9.2 13.7 14.8 10.5 18"
+          stroke="currentColor"
+          strokeWidth="2.3"
+          strokeLinecap="round"
+        />
+        <path
+          d="M14 3.5C18.9 8.4 18.9 15.6 14 20.5"
+          stroke="currentColor"
+          strokeWidth="2.3"
+          strokeLinecap="round"
+        />
+      </svg>
+
+      <span className="text-[10px] font-black uppercase tracking-[.2em] text-white/60">
+        NFC
+      </span>
     </div>
   );
 }
 
 export default function MemberCard() {
+  const [member, setMember] = useState<AppMember | null>(null);
   const [flipped, setFlipped] = useState(false);
-  const status = formatStatus(currentMember.status);
 
-  return (
-    <section className="space-y-4">
-      <button
-        type="button"
-        onClick={() => setFlipped((current) => !current)}
-        className="group mb-2 block w-full text-left [perspective:1200px]"
-        aria-label="Flip membership card"
-      >
-        <div
-          className="relative min-h-[440px] w-full transition-transform duration-700 [transform-style:preserve-3d] sm:min-h-[390px]"
-          style={{
-            transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
-          }}
-        >
-          {/* FRONT */}
-          <div
-            className="absolute inset-0 overflow-hidden rounded-[2rem] border border-orange-500/25 bg-gradient-to-br from-zinc-950 via-black to-zinc-900 p-6 shadow-2xl [backface-visibility:hidden]"
-            style={{ backfaceVisibility: "hidden" }}
-          >
-            <div className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-orange-500/20 blur-3xl" />
-            <div className="absolute -bottom-20 left-8 h-52 w-52 rounded-full bg-orange-500/10 blur-3xl" />
+  useEffect(() => {
+    function loadMember() {
+      setMember(getSavedMember());
+    }
 
-            <div className="relative flex h-full flex-col justify-between">
-              <div className="flex items-start justify-between gap-4">
-                <div className="relative h-20 w-32">
-                  <Image
-                    src="/bgm-logo.png"
-                    alt="BestGymsMalta"
-                    fill
-                    priority
-                    className="object-contain object-left"
-                  />
-                </div>
+    loadMember();
 
-                <div className="rounded-full border border-green-400/30 bg-green-400/10 px-4 py-2">
-                  <p className="text-xs font-black uppercase tracking-[.18em] text-green-300">
-                    {status}
-                  </p>
-                </div>
-              </div>
+    window.addEventListener("bgmMemberChanged", loadMember);
 
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[.28em] text-orange-500">
-                  Digital Membership Card
-                </p>
+    return () => {
+      window.removeEventListener("bgmMemberChanged", loadMember);
+    };
+  }, []);
 
-                <h2 className="mt-2 text-3xl font-black leading-none text-white">
-                  {currentMember.fullName}
-                </h2>
-
-                <div className="mt-5 flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[.22em] text-white/35">
-                      Member No.
-                    </p>
-                    <p className="mt-1 text-xl font-black text-white">
-                      {currentMember.membershipNumber}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-3 text-orange-500">
-                    <SmartphoneNfc size={28} strokeWidth={3} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* BACK */}
-          <div
-            className="absolute inset-0 overflow-hidden rounded-[2rem] border border-orange-500/25 bg-gradient-to-br from-black via-zinc-950 to-zinc-900 p-6 shadow-2xl [backface-visibility:hidden]"
-            style={{
-              backfaceVisibility: "hidden",
-              transform: "rotateY(180deg)",
-            }}
-          >
-            <div className="absolute -left-20 -top-20 h-56 w-56 rounded-full bg-orange-500/20 blur-3xl" />
-            <div className="absolute -bottom-24 right-4 h-56 w-56 rounded-full bg-orange-500/10 blur-3xl" />
-
-            <div className="relative flex h-full flex-col justify-between">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[.28em] text-orange-500">
-                    Card Details
-                  </p>
-                  <h2 className="mt-2 text-2xl font-black text-white">
-                    {currentMember.membershipLabel}
-                  </h2>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-orange-500">
-                  <ShieldCheck size={26} strokeWidth={3} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <CardDetail label="NFC Card" value={currentMember.nfcCard.status} />
-                <CardDetail label="Since" value={currentMember.memberSince} />
-                <CardDetail
-                  label="Passport"
-                  value={`${currentMember.passport.gymsVisited}/${currentMember.passport.totalGyms}`}
-                />
-                <CardDetail
-                  label="Goal"
-                  value={`${currentMember.fitness.currentGoal.progress}%`}
-                />
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
-                <p className="text-[10px] font-black uppercase tracking-[.22em] text-white/35">
-                  Be the best.... Beat the rest
-                </p>
-                <p className="mt-2 text-sm font-bold leading-5 text-white/55">
-                  Show this digital card when needed. NFC-ready membership
-                  access is prepared for future rollout.
-                </p>
-              </div>
-            </div>
+  if (!member) {
+    return (
+      <section className="rounded-[2rem] border border-orange-500/30 bg-orange-500/10 p-5">
+        <div className="flex items-center gap-3">
+          <CreditCard className="text-orange-500" size={26} strokeWidth={3} />
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+              Digital Membership Card
+            </p>
+            <h2 className="mt-1 text-2xl font-black text-white">
+              Login to show your card
+            </h2>
           </div>
         </div>
-      </button>
 
-      <div className="flex items-center justify-center gap-2 text-xs font-black uppercase tracking-[.2em] text-white/35">
-        <RotateCcw size={15} strokeWidth={3} />
-        Tap card to flip
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <a
-          href="/passport"
-          className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black transition active:scale-95"
-        >
-          <MapPinned size={18} strokeWidth={3} />
-          Open Passport
-        </a>
+        <p className="mt-3 text-sm font-bold leading-6 text-white/55">
+          Your digital membership card appears here when you log in.
+        </p>
 
         <a
-          href="/goals"
-          className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white transition active:scale-95"
+          href="/member-login"
+          className="mt-5 flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
         >
-          <Dumbbell size={18} strokeWidth={3} />
-          Fitness Goals
+          <LogIn size={17} strokeWidth={3} />
+          Login / Activate
         </a>
+      </section>
+    );
+  }
+
+  const expiryText = member.membershipExpiry
+    ? new Date(member.membershipExpiry).toLocaleDateString()
+    : "Active member";
+
+  return (
+    <button
+      type="button"
+      onClick={() => setFlipped((value) => !value)}
+      className="block w-full text-left"
+      style={{ perspective: "1200px" }}
+      aria-label="Flip membership card"
+    >
+      <div
+        className="relative min-h-[285px] transition-transform duration-700"
+        style={{
+          transformStyle: "preserve-3d",
+          transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+        }}
+      >
+        {/* FRONT */}
+        <section
+          className="absolute inset-0 overflow-hidden rounded-[2rem] border border-orange-500/35 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black p-5 shadow-2xl"
+          style={{ backfaceVisibility: "hidden" }}
+        >
+          <div className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-orange-500/25 blur-3xl" />
+          <div className="absolute -bottom-20 left-8 h-44 w-44 rounded-full bg-orange-500/10 blur-3xl" />
+          <div className="absolute bottom-5 right-5 opacity-10">
+            <CreditCard size={120} strokeWidth={1.5} />
+          </div>
+
+          <div className="relative flex min-h-[245px] flex-col justify-between">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+                  BestGymsMalta
+                </p>
+
+                <h2 className="mt-4 text-3xl font-black leading-tight text-white">
+                  {member.fullName || member.username}
+                </h2>
+
+                <p className="mt-2 text-sm font-black uppercase tracking-[.18em] text-white/45">
+                  Member No. {member.memberNumber}
+                </p>
+              </div>
+
+              <div className="relative h-16 w-20 shrink-0">
+                <Image
+                  src="/bgm-logo.png"
+                  alt="BestGymsMalta"
+                  fill
+                  priority
+                  className="object-contain"
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <BadgeCheck
+                      className="text-green-300"
+                      size={21}
+                      strokeWidth={3}
+                    />
+                    <p className="text-xs font-black uppercase tracking-[.16em] text-green-300">
+                      {member.status || "Active"}
+                    </p>
+                  </div>
+
+                  <p className="mt-2 text-xs font-bold text-white/45">
+                    Valid until {expiryText}
+                  </p>
+                </div>
+
+                <NfcMark />
+              </div>
+
+              <p className="mt-5 text-center text-[10px] font-black uppercase tracking-[.22em] text-white/30">
+                Tap card to flip
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* BACK */}
+        <section
+          className="absolute inset-0 overflow-hidden rounded-[2rem] border border-orange-500/35 bg-gradient-to-br from-black via-zinc-950 to-zinc-900 p-5 shadow-2xl"
+          style={{
+            backfaceVisibility: "hidden",
+            transform: "rotateY(180deg)",
+          }}
+        >
+          <div className="absolute -left-16 -top-16 h-52 w-52 rounded-full bg-orange-500/20 blur-3xl" />
+          <div className="absolute -bottom-20 right-8 h-44 w-44 rounded-full bg-orange-500/10 blur-3xl" />
+
+          <div className="relative flex min-h-[245px] flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between gap-4">
+                <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+                  Member Details
+                </p>
+
+                <NfcMark />
+              </div>
+
+              <div className="mt-5 grid gap-3">
+                <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+                  <p className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                    Name
+                  </p>
+                  <p className="mt-2 text-lg font-black text-white">
+                    {member.fullName || member.username}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+                  <p className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                    Member Number
+                  </p>
+                  <p className="mt-2 text-xl font-black text-orange-500">
+                    {member.memberNumber}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck
+                        className="text-orange-500"
+                        size={19}
+                        strokeWidth={3}
+                      />
+                      <p className="text-xs font-black uppercase tracking-[.16em] text-white">
+                        Valid
+                      </p>
+                    </div>
+                    <p className="mt-2 text-xs font-bold text-white/45">
+                      {expiryText}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+                    <p className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                      Email
+                    </p>
+                    <p className="mt-2 truncate text-xs font-bold text-white/60">
+                      {member.email}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[.22em] text-white/30">
+              Tap card to return
+            </p>
+          </div>
+        </section>
       </div>
-    </section>
+    </button>
   );
 }

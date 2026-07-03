@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Camera,
-  CreditCard,
-  Home,
+  Camera,  Home,
   MapPinned,
   MessageCircle,
   Stamp,
@@ -18,11 +16,6 @@ const navItems = [
     label: "Home",
     href: "/",
     icon: Home,
-  },
-  {
-    label: "Card",
-    href: "/card",
-    icon: CreditCard,
   },
   {
     label: "Passport",

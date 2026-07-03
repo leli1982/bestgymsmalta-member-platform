@@ -6,6 +6,7 @@ import { currentMember } from "@/components/data/member";
 import LiveUpdates from "@/components/home/LiveUpdates";
 import RecentCheckins from "@/components/home/RecentCheckins";
 import MemberActivityStats from "@/components/home/MemberActivityStats";
+import MemberWorkoutPlanPreview from "@/components/home/MemberWorkoutPlanPreview";
 import { activeGyms } from "@/components/data/gyms";
 import {
   ArrowRight,
@@ -23,6 +24,7 @@ import {
   Stamp,
 } from "lucide-react";
 import { getSavedMember, type AppMember } from "@/lib/memberSession";
+import MemberCard from "@/components/member/MemberCard";
 
 type SavedWorkoutPlan = {
   goal: string;
@@ -222,118 +224,15 @@ export default function SocialHome() {
         </div>
       </section>
 
-      <section className="grid gap-4">
-        <a
-          href="/card"
-          className="group overflow-hidden rounded-[2rem] border border-orange-500/25 bg-gradient-to-br from-zinc-950 via-black to-zinc-900 p-5 shadow-2xl transition active:scale-[0.99]"
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="inline-flex rounded-full border border-green-400/30 bg-green-400/10 px-3 py-1">
-                <p className="text-[10px] font-black uppercase tracking-[.18em] text-green-300">
-                  {member.status || "Active"}
-                </p>
-              </div>
+      <MemberCard />
 
-              <h2 className="mt-4 text-2xl font-black text-white">
-                Digital Membership Card
-              </h2>
 
-              <p className="mt-2 text-sm font-bold leading-6 text-white/50">
-                Tap to open your premium flip card and membership details.
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-orange-500 p-3 text-black">
-              <BadgeCheck size={26} strokeWidth={3} />
-            </div>
-          </div>
-
-          <div className="mt-5 flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[.22em] text-white/35">
-                Member No.
-              </p>
-              <p className="mt-1 text-xl font-black text-white">
-                {member.membershipNumber || "BGM-0001"}
-              </p>
-            </div>
-
-            <ChevronRight
-              className="text-orange-500 transition group-hover:translate-x-1"
-              size={24}
-              strokeWidth={3}
-            />
-          </div>
-        </a>
-
-        <a
-          href="/trainer"
-          className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 transition active:scale-[0.99]"
-        >
-          <div className="flex items-start gap-4">
-            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-3xl border border-orange-500/50 bg-black">
-              <Image
-                src="/bgm-trainer-icon.png"
-                alt="BGM AI Trainer"
-                fill
-                className="object-cover"
-              />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
-                Virtual Trainer
-              </p>
-
-              <h2 className="mt-2 text-2xl font-black text-white">
-                {savedPlan ? "Continue your saved plan" : "Build today’s plan"}
-              </h2>
-
-              <p className="mt-2 text-sm font-bold leading-6 text-white/50">
-                {savedPlan
-                  ? `${goalLabel(savedPlan.goal)} · ${levelLabel(
-                      savedPlan.level
-                    )} · ${savedPlan.daysPerWeek} days · ${
-                      savedPlan.minutes
-                    } minutes`
-                  : "Generate a workout plan and chat with your BGM trainer."}
-              </p>
-            </div>
-
-            <ArrowRight className="mt-2 shrink-0 text-orange-500" size={22} />
-          </div>
-        </a>
-
-        <a
-          href="/story"
-          className="relative overflow-hidden rounded-[2rem] border border-orange-500/20 bg-orange-500/10 p-5 transition active:scale-[0.99]"
-        >
-          <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-orange-500/20 blur-2xl" />
-
-          <div className="relative flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
-                Social Story
-              </p>
-              <h2 className="mt-2 text-2xl font-black text-white">
-                Create your BGM story
-              </h2>
-              <p className="mt-2 text-sm font-bold leading-6 text-white/50">
-                Add gym logos, BGM, TSM, emojis and captions to your photo.
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-orange-500 p-3 text-black">
-              <Camera size={26} strokeWidth={3} />
-            </div>
-          </div>
-        </a>
-      </section>
 
       <LiveUpdates />
 
       <MemberActivityStats />
+
+      <MemberWorkoutPlanPreview />
 
       <RecentCheckins />
 

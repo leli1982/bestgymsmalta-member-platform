@@ -1,517 +1,589 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Brain,
-  CalendarDays,
+  Bot,
   Dumbbell,
-  FileText,
+  LogIn,
   MessageCircle,
   RefreshCw,
   Save,
-  Send,
-  ShieldAlert,
   Sparkles,
-  Target,
-  Timer,
   Trash2,
-  Zap,
 } from "lucide-react";
+import { getSavedMember, type AppMember } from "@/lib/memberSession";
 
-type Goal = "fat_loss" | "muscle" | "strength" | "fitness";
-type Level = "beginner" | "intermediate" | "advanced";
-type Style = "gym" | "functional" | "balanced";
-
-type PlanDay = {
+type WorkoutDay = {
   title: string;
   focus: string;
   exercises: string[];
 };
 
-type SavedWorkoutPlan = {
-  goal: Goal;
-  level: Level;
-  daysPerWeek: number;
-  minutes: number;
-  style: Style;
-  limitations: string;
-  planVersion: number;
-  savedAt: string;
-  plan: PlanDay[];
+type GeneratedPlan = {
+  title: string;
+  summary: string;
+  days: WorkoutDay[];
+  tips: string[];
+  generatedAt: string;
+  version: number;
 };
 
-type ChatMessage = {
-  id: string;
-  role: "user" | "trainer";
-  text: string;
-};
-
-const STORAGE_KEY = "bgmSavedWorkoutPlan";
-
-const quickPrompts = [
-  "Give me a 30 minute workout",
-  "Make this plan harder",
-  "I have knee pain",
-  "Give me a leg workout",
+const goals = [
+  "Build muscle",
+  "Lose fat",
+  "Improve fitness",
+  "Strength",
+  "Tone up",
+  "General health",
 ];
 
-function goalLabel(goal: Goal) {
-  if (goal === "fat_loss") return "Fat Loss";
-  if (goal === "muscle") return "Build Muscle";
-  if (goal === "strength") return "Strength";
-  return "General Fitness";
-}
+const levels = ["Beginner", "Intermediate", "Advanced"];
 
-function levelLabel(level: Level) {
-  if (level === "beginner") return "Beginner";
-  if (level === "intermediate") return "Intermediate";
-  return "Advanced";
-}
+const styles = [
+  "Gym machines",
+  "Free weights",
+  "Bodyweight",
+  "Mixed gym workout",
+  "Strength and conditioning",
+];
 
-function styleLabel(style: Style) {
-  if (style === "gym") return "Gym Machines & Weights";
-  if (style === "functional") return "Functional Training";
-  return "Balanced Training";
-}
-
-function getExercisePool(goal: Goal, style: Style) {
-  const base = {
-    warmup: [
-      "5–8 min treadmill or bike warm-up",
-      "Dynamic mobility: hips, shoulders and ankles",
-      "Light activation set before first main exercise",
-    ],
-    coolDown: [
-      "5 min easy cardio cooldown",
-      "Stretch chest, hips, hamstrings and back",
-      "Log how the session felt",
-    ],
-  };
-
-  if (style === "functional") {
-    return {
-      ...base,
-      main: [
-        "Kettlebell deadlift",
-        "TRX row",
-        "Walking lunges",
-        "Medicine ball slams",
-        "Battle ropes intervals",
-        "Box step-ups",
-        "Farmer carries",
-        "Plank shoulder taps",
-      ],
-    };
-  }
-
-  if (goal === "strength") {
-    return {
-      ...base,
-      main: [
-        "Squat or leg press",
-        "Bench press or chest press",
-        "Deadlift variation",
-        "Lat pulldown",
-        "Shoulder press",
-        "Seated row",
-        "Romanian deadlift",
-        "Core plank hold",
-      ],
-    };
-  }
-
-  if (goal === "muscle") {
-    return {
-      ...base,
-      main: [
-        "Chest press",
-        "Lat pulldown",
-        "Leg press",
-        "Shoulder press",
-        "Seated row",
-        "Leg curl",
-        "Bicep curls",
-        "Tricep pushdown",
-      ],
-    };
-  }
-
-  if (goal === "fat_loss") {
-    return {
-      ...base,
-      main: [
-        "Incline treadmill intervals",
-        "Leg press",
-        "Chest press",
-        "Seated row",
-        "Walking lunges",
-        "Cable rotations",
-        "Bike intervals",
-        "Core finisher",
-      ],
-    };
-  }
-
-  return {
-    ...base,
-    main: [
-      "Treadmill warm-up",
-      "Leg press",
-      "Chest press",
-      "Lat pulldown",
-      "Dumbbell shoulder press",
-      "Cable row",
-      "Bodyweight squats",
-      "Core circuit",
-    ],
-  };
-}
-
-function rotateList(list: string[], amount: number) {
-  const offset = amount % list.length;
-  return [...list.slice(offset), ...list.slice(0, offset)];
-}
-
-function buildPlan(
-  goal: Goal,
-  level: Level,
+function makeWorkoutPlan(
+  goal: string,
+  level: string,
   daysPerWeek: number,
   minutes: number,
-  style: Style,
+  style: string,
   limitations: string,
-  planVersion: number
-): PlanDay[] {
-  const pool = getExercisePool(goal, style);
+  version: number
+): GeneratedPlan {
+  const focusPool = [
+    "Full Body",
+    "Upper Body",
+    "Lower Body",
+    "Push",
+    "Pull",
+    "Legs",
+    "Core & Conditioning",
+  ];
 
-  const sets =
-    level === "beginner"
-      ? "2–3 sets"
-      : level === "intermediate"
-      ? "3–4 sets"
-      : "4–5 sets";
+  const exercisePool: Record<string, string[]> = {
+    "Full Body": [
+      "Leg press or goblet squat",
+      "Chest press or push-ups",
+      "Lat pulldown",
+      "Romanian deadlift",
+      "Plank hold",
+    ],
+    "Upper Body": [
+      "Chest press",
+      "Seated row",
+      "Shoulder press",
+      "Lat pulldown",
+      "Cable curls and triceps pressdown",
+    ],
+    "Lower Body": [
+      "Leg press",
+      "Hamstring curl",
+      "Walking lunges",
+      "Glute bridge",
+      "Standing calf raises",
+    ],
+    Push: [
+      "Incline chest press",
+      "Shoulder press",
+      "Cable fly",
+      "Lateral raises",
+      "Triceps rope pressdown",
+    ],
+    Pull: [
+      "Lat pulldown",
+      "Seated row",
+      "Face pulls",
+      "Dumbbell curls",
+      "Back extension",
+    ],
+    Legs: [
+      "Squat or leg press",
+      "Romanian deadlift",
+      "Leg extension",
+      "Hamstring curl",
+      "Core finisher",
+    ],
+    "Core & Conditioning": [
+      "Bike or treadmill intervals",
+      "Cable woodchops",
+      "Plank",
+      "Farmer carries",
+      "Stretching cooldown",
+    ],
+  };
 
-  const reps =
-    goal === "strength"
-      ? "4–8 reps"
-      : goal === "fat_loss"
-      ? "10–15 reps or timed intervals"
-      : "8–12 reps";
+  const days: WorkoutDay[] = Array.from({ length: daysPerWeek }).map((_, index) => {
+    const focus = focusPool[(index + version) % focusPool.length];
 
-  const focusList =
-    daysPerWeek <= 2
-      ? ["Full Body", "Full Body + Conditioning"]
-      : daysPerWeek === 3
-      ? ["Push", "Pull", "Legs + Core"]
-      : daysPerWeek === 4
-      ? ["Upper Body", "Lower Body", "Push + Core", "Pull + Conditioning"]
-      : daysPerWeek === 5
-      ? ["Push", "Pull", "Legs", "Upper Body", "Conditioning + Core"]
-      : daysPerWeek === 6
-      ? ["Push", "Pull", "Legs", "Push", "Pull", "Legs + Core"]
-      : [
-          "Chest + Triceps",
-          "Back + Biceps",
-          "Legs",
-          "Shoulders + Core",
-          "Conditioning",
-          "Full Body",
-          "Mobility + Cardio",
-        ];
-
-  const days: PlanDay[] = [];
-
-  for (let i = 0; i < daysPerWeek; i++) {
-    const focus = focusList[i] || `Training Day ${i + 1}`;
-    const rotatedMain = rotateList(pool.main, i + planVersion * 2);
-    const selected = rotatedMain.slice(0, 5);
-
-    const exercises = [
-      `${pool.warmup[i % pool.warmup.length]}`,
-      ...selected.map((exercise) => `${exercise} — ${sets} x ${reps}`),
-      `${pool.coolDown[i % pool.coolDown.length]}`,
-    ];
-
-    if (limitations.trim()) {
-      exercises.push(
-        `Trainer note: adjust movements around "${limitations.trim()}".`
-      );
-    }
-
-    if (daysPerWeek >= 6) {
-      exercises.push(
-        "Recovery note: because this is a high-frequency plan, keep at least 1–2 days lighter."
-      );
-    }
-
-    if (minutes <= 35) {
-      exercises.push("Keep rest short: 45–60 seconds between sets.");
-    } else if (minutes >= 60) {
-      exercises.push("Add 1–2 extra accessory exercises if energy is good.");
-    }
-
-    days.push({
-      title: `Day ${i + 1}`,
+    return {
+      title: `Day ${index + 1}`,
       focus,
-      exercises,
-    });
-  }
+      exercises: exercisePool[focus].map((exercise) => {
+        if (level === "Beginner") return `${exercise} · 2-3 sets`;
+        if (level === "Advanced") return `${exercise} · 4-5 sets`;
+        return `${exercise} · 3-4 sets`;
+      }),
+    };
+  });
 
-  return days;
-}
-
-function buildTrainerReply(
-  message: string,
-  goal: Goal,
-  level: Level,
-  minutes: number
-) {
-  const lower = message.toLowerCase();
-
-  if (
-    lower.includes("pain") ||
-    lower.includes("injury") ||
-    lower.includes("knee") ||
-    lower.includes("shoulder") ||
-    lower.includes("back pain")
-  ) {
-    return "Train carefully today. Avoid movements that cause pain, reduce the load, slow the tempo, and choose controlled machine-based exercises. If pain continues or feels sharp, stop and speak to a qualified professional or gym staff before continuing.";
-  }
-
-  if (
-    lower.includes("20") ||
-    lower.includes("short") ||
-    lower.includes("quick")
-  ) {
-    return "Quick session: 5 min warm-up, then 3 rounds of leg press, chest press, seated row and plank. Keep rest to 45 seconds. Finish with 5 minutes easy cardio.";
-  }
-
-  if (lower.includes("30")) {
-    return "For 30 minutes: warm up for 5 minutes, choose 4 main exercises, complete 3 sets each, then finish with a short core or cardio finisher. Keep it simple and focused.";
-  }
-
-  if (lower.includes("harder") || lower.includes("advanced")) {
-    return "To make it harder, add one extra set to each main exercise, slow down the lowering phase, reduce rest by 15 seconds, or add a finisher at the end. Do not increase everything at once.";
-  }
-
-  if (lower.includes("easier") || lower.includes("beginner")) {
-    return "To make it easier, use machines, reduce the weight, do 2 sets instead of 3, and rest longer between sets. Focus on good form before intensity.";
-  }
-
-  if (lower.includes("chest")) {
-    return "Chest workout: chest press, incline dumbbell press, cable fly, push-ups and tricep pushdowns. Use controlled reps and avoid bouncing the weight.";
-  }
-
-  if (lower.includes("legs") || lower.includes("leg")) {
-    return "Leg workout: leg press, Romanian deadlift, walking lunges, leg curl, calf raises and a short bike cooldown. Keep knees controlled and do not rush the reps.";
-  }
-
-  if (lower.includes("back")) {
-    return "Back workout: lat pulldown, seated row, single-arm cable row, face pulls and back extensions. Keep your chest tall and avoid pulling with momentum.";
-  }
-
-  if (lower.includes("fat") || lower.includes("weight")) {
-    return "For fat loss, combine strength training with short cardio finishers. Keep the weights challenging, rest controlled, and aim for consistency across the week.";
-  }
-
-  if (lower.includes("muscle")) {
-    return "For muscle growth, focus on controlled reps, progressive overload, and enough recovery. Aim mostly for 8–12 reps and stop each set close to failure without losing form.";
-  }
-
-  if (lower.includes("strength")) {
-    return "For strength, focus on heavier compound movements, lower reps, longer rest, and clean technique. Do not max out every session.";
-  }
-
-  return `Based on your current setup — ${goalLabel(goal)}, ${levelLabel(
-    level
-  )}, ${minutes} minutes — keep the workout focused, controlled and realistic. Start with a warm-up, complete your main lifts with good form, then finish with core, mobility or light cardio.`;
+  return {
+    title: `${goal} · ${daysPerWeek} day plan`,
+    summary: `${level} ${style.toLowerCase()} plan built for around ${minutes} minutes per session.${
+      limitations ? ` Notes: ${limitations}` : ""
+    }`,
+    days,
+    tips: [
+      "Warm up for 5-10 minutes before each session.",
+      "Keep 1-2 reps in reserve on most working sets.",
+      "Progress slowly by adding reps or weight when form feels solid.",
+      "If pain feels sharp or unusual, stop and ask a coach for guidance.",
+    ],
+    generatedAt: new Date().toISOString(),
+    version,
+  };
 }
 
 export default function AiTrainer() {
-  const [goal, setGoal] = useState<Goal>("fitness");
-  const [level, setLevel] = useState<Level>("beginner");
+  const [member, setMember] = useState<AppMember | null>(null);
+  const [goal, setGoal] = useState("Build muscle");
+  const [level, setLevel] = useState("Beginner");
   const [daysPerWeek, setDaysPerWeek] = useState(3);
   const [minutes, setMinutes] = useState(45);
-  const [style, setStyle] = useState<Style>("balanced");
+  const [style, setStyle] = useState("Mixed gym workout");
   const [limitations, setLimitations] = useState("");
-  const [generated, setGenerated] = useState(false);
-  const [planVersion, setPlanVersion] = useState(0);
-  const [savedPlan, setSavedPlan] = useState<SavedWorkoutPlan | null>(null);
-  const [saveStatus, setSaveStatus] = useState("");
+  const [planVersion, setPlanVersion] = useState(1);
+  const [plan, setPlan] = useState<GeneratedPlan | null>(null);
+  const [status, setStatus] = useState("");
+  const [loadingSaved, setLoadingSaved] = useState(true);
   const [chatInput, setChatInput] = useState("");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome",
-      role: "trainer",
-      text: "Hi, I’m your BGM AI Trainer. Generate a plan, then ask me how to adjust it.",
-    },
-  ]);
-
-  const plan = useMemo(
-    () =>
-      buildPlan(
-        goal,
-        level,
-        daysPerWeek,
-        minutes,
-        style,
-        limitations,
-        planVersion
-      ),
-    [goal, level, daysPerWeek, minutes, style, limitations, planVersion]
-  );
+  const [chatReply, setChatReply] = useState("");
 
   useEffect(() => {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    async function loadMemberAndPlan() {
+      const savedMember = getSavedMember();
+      setMember(savedMember);
 
-    if (!raw) return;
+      if (!savedMember) {
+        setLoadingSaved(false);
+        return;
+      }
 
-    try {
-      const parsed = JSON.parse(raw) as SavedWorkoutPlan;
-      setSavedPlan(parsed);
-    } catch {
-      window.localStorage.removeItem(STORAGE_KEY);
+      try {
+        const response = await fetch(
+          `/api/member/workout-plan?memberId=${savedMember.id}`,
+          { cache: "no-store" }
+        );
+
+        const data = await response.json();
+
+        if (data.savedPlan) {
+          setGoal(data.savedPlan.goal || "Build muscle");
+          setLevel(data.savedPlan.level || "Beginner");
+          setDaysPerWeek(data.savedPlan.daysPerWeek || 3);
+          setMinutes(data.savedPlan.minutes || 45);
+          setStyle(data.savedPlan.style || "Mixed gym workout");
+          setLimitations(data.savedPlan.limitations || "");
+          setPlan(data.savedPlan.plan || null);
+          setStatus("Loaded your saved member plan.");
+        }
+      } catch {
+        setStatus("Could not load saved plan.");
+      } finally {
+        setLoadingSaved(false);
+      }
     }
+
+    loadMemberAndPlan();
   }, []);
 
-  function saveCurrentPlan() {
-    const currentPlan: SavedWorkoutPlan = {
+  const completionText = useMemo(() => {
+    if (!plan) return "No plan generated yet.";
+
+    return `${plan.days.length} workout days · ${minutes} minutes each`;
+  }, [plan, minutes]);
+
+  function generatePlan() {
+    const generated = makeWorkoutPlan(
       goal,
       level,
       daysPerWeek,
       minutes,
       style,
       limitations,
-      planVersion,
-      savedAt: new Date().toISOString(),
-      plan,
-    };
+      planVersion
+    );
 
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(currentPlan));
-    setSavedPlan(currentPlan);
-    setSaveStatus("Plan saved on this device.");
+    setPlan(generated);
+    setStatus("New plan generated. Tap Save My Plan to store it.");
   }
 
-  function loadSavedPlan() {
-    if (!savedPlan) return;
+  function updatePlan() {
+    const nextVersion = planVersion + 1;
+    setPlanVersion(nextVersion);
 
-    setGoal(savedPlan.goal);
-    setLevel(savedPlan.level);
-    setDaysPerWeek(savedPlan.daysPerWeek);
-    setMinutes(savedPlan.minutes);
-    setStyle(savedPlan.style);
-    setLimitations(savedPlan.limitations);
-    setPlanVersion(savedPlan.planVersion);
-    setGenerated(true);
-    setSaveStatus("Saved plan loaded.");
+    const generated = makeWorkoutPlan(
+      goal,
+      level,
+      daysPerWeek,
+      minutes,
+      style,
+      limitations,
+      nextVersion
+    );
+
+    setPlan(generated);
+    setStatus("Plan updated with a fresh variation.");
   }
 
-  function clearSavedPlan() {
-    window.localStorage.removeItem(STORAGE_KEY);
-    setSavedPlan(null);
-    setSaveStatus("Saved plan cleared.");
+  async function savePlan() {
+    if (!member) {
+      setStatus("Please log in before saving your plan.");
+      return;
+    }
+
+    if (!plan) {
+      setStatus("Generate a plan first.");
+      return;
+    }
+
+    setStatus("Saving plan…");
+
+    const response = await fetch("/api/member/workout-plan", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        memberId: member.id,
+        goal,
+        level,
+        daysPerWeek,
+        minutes,
+        style,
+        limitations,
+        plan,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setStatus(data.error || "Could not save plan.");
+      return;
+    }
+
+    setStatus(data.message || "Workout plan saved.");
   }
 
-  function sendTrainerMessage(messageText?: string) {
-    const text = (messageText || chatInput).trim();
-    if (!text) return;
+  async function clearSavedPlan() {
+    if (!member) {
+      setStatus("Please log in first.");
+      return;
+    }
 
-    const userMessage: ChatMessage = {
-      id: `${Date.now()}-user`,
-      role: "user",
-      text,
-    };
+    const confirmed = window.confirm("Clear your saved AI Trainer plan?");
+    if (!confirmed) return;
 
-    const trainerMessage: ChatMessage = {
-      id: `${Date.now()}-trainer`,
-      role: "trainer",
-      text: buildTrainerReply(text, goal, level, minutes),
-    };
+    setStatus("Clearing saved plan…");
 
-    setChatMessages((current) => [...current, userMessage, trainerMessage]);
+    const response = await fetch(
+      `/api/member/workout-plan?memberId=${member.id}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setStatus(data.error || "Could not clear plan.");
+      return;
+    }
+
+    setPlan(null);
+    setStatus(data.message || "Saved plan cleared.");
+  }
+
+  function askTrainer() {
+    const question = chatInput.trim();
+
+    if (!question) return;
+
+    const lower = question.toLowerCase();
+
+    if (lower.includes("cardio")) {
+      setChatReply(
+        "Add 10-20 minutes of easy cardio after weights, or do 1-2 separate cardio days. Keep it light enough that it does not ruin your recovery."
+      );
+    } else if (lower.includes("protein") || lower.includes("food")) {
+      setChatReply(
+        "Aim for a protein source in each meal and keep your meals consistent. For specific nutrition advice, speak to a qualified professional."
+      );
+    } else if (lower.includes("pain") || lower.includes("injury")) {
+      setChatReply(
+        "Do not train through sharp pain. Stop that exercise and ask a coach or medical professional to check it."
+      );
+    } else if (lower.includes("progress")) {
+      setChatReply(
+        "Track weights, reps and consistency. When your form is clean and the set feels controlled, add a little weight or one extra rep."
+      );
+    } else {
+      setChatReply(
+        "Keep the plan simple, consistent and progressive. Train with good form, recover well, and ask a BGM coach if you want this adjusted in person."
+      );
+    }
+
     setChatInput("");
+  }
+
+  if (loadingSaved) {
+    return (
+      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+        <div className="flex items-center gap-3 text-white/45">
+          <RefreshCw size={18} className="animate-spin" />
+          <p className="text-sm font-bold">Loading AI Trainer…</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (!member) {
+    return (
+      <section className="rounded-[2rem] border border-orange-500/30 bg-orange-500/10 p-6 text-center">
+        <Bot className="mx-auto text-orange-500" size={44} strokeWidth={3} />
+        <h1 className="mt-5 text-4xl font-black text-white">AI Trainer</h1>
+        <p className="mt-3 text-sm font-bold leading-6 text-white/55">
+          Log in to generate and save your training plan to your member account.
+        </p>
+
+        <a
+          href="/member-login"
+          className="mt-5 flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+        >
+          <LogIn size={17} strokeWidth={3} />
+          Login / Activate
+        </a>
+      </section>
+    );
   }
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-orange-500/20 via-white/[0.04] to-black p-6">
-        <div className="flex items-center gap-4">
-          <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full border-2 border-orange-500/60 bg-black shadow-[0_0_30px_rgba(249,115,22,0.25)]">
-            <Image
-              src="/bgm-trainer-icon.png"
-              alt="BGM AI Trainer"
-              fill
-              priority
-              className="object-cover"
-            />
-          </div>
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-orange-500/25 via-white/[0.04] to-black p-6">
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-orange-500/20 blur-3xl" />
 
-          <div>
-            <div className="inline-flex rounded-full border border-orange-500/30 bg-orange-500/10 px-4 py-2">
-              <p className="text-xs font-black uppercase tracking-[.2em] text-orange-500">
-                AI Trainer
-              </p>
-            </div>
-
-            <h1 className="mt-4 text-4xl font-black leading-tight text-white">
-              Build your next workout
-            </h1>
-          </div>
-        </div>
-
-        <p className="mt-4 text-sm leading-6 text-white/55">
-          Choose your goal, level and training style. Your BGM trainer will
-          generate a simple plan you can follow inside any BestGymsMalta gym.
-        </p>
-
-        <div className="mt-6 flex items-start gap-3 rounded-2xl border border-orange-500/20 bg-orange-500/10 p-4">
-          <ShieldAlert
-            className="mt-0.5 shrink-0 text-orange-500"
-            size={20}
-            strokeWidth={3}
-          />
-          <p className="text-xs font-bold leading-5 text-white/55">
-            This is a prototype training guide, not medical advice. Members
-            should train within their ability and ask gym staff for help when
-            unsure.
+        <div className="relative">
+          <p className="text-xs font-black uppercase tracking-[.25em] text-orange-500">
+            AI Trainer
           </p>
+
+          <h1 className="mt-4 text-4xl font-black leading-tight text-white">
+            Build your member plan
+          </h1>
+
+          <p className="mt-3 text-sm font-bold leading-6 text-white/55">
+            Saved to {member.username || member.fullName || "your member account"}.
+          </p>
+
+          <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4">
+            <p className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+              Current Plan
+            </p>
+            <p className="mt-2 text-lg font-black text-white">
+              {completionText}
+            </p>
+          </div>
         </div>
       </section>
 
-      {savedPlan ? (
-        <section className="rounded-[2rem] border border-orange-500/20 bg-orange-500/10 p-5">
-          <div className="flex items-start justify-between gap-4">
+      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+        <div className="grid gap-4">
+          <label className="grid gap-2">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+              Goal
+            </span>
+            <select
+              value={goal}
+              onChange={(event) => setGoal(event.target.value)}
+              className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
+            >
+              {goals.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+          </label>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="grid gap-2">
+              <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                Level
+              </span>
+              <select
+                value={level}
+                onChange={(event) => setLevel(event.target.value)}
+                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
+              >
+                {levels.map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                Days / Week
+              </span>
+              <select
+                value={daysPerWeek}
+                onChange={(event) => setDaysPerWeek(Number(event.target.value))}
+                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
+              >
+                {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+                  <option key={day} value={day}>
+                    {day}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="grid gap-2">
+              <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                Minutes
+              </span>
+              <select
+                value={minutes}
+                onChange={(event) => setMinutes(Number(event.target.value))}
+                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
+              >
+                {[30, 45, 60, 75, 90].map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                Style
+              </span>
+              <select
+                value={style}
+                onChange={(event) => setStyle(event.target.value)}
+                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
+              >
+                {styles.map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <textarea
+            value={limitations}
+            onChange={(event) => setLimitations(event.target.value)}
+            placeholder="Limitations, injuries or notes optional"
+            className="min-h-24 rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={generatePlan}
+              className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+            >
+              <Sparkles size={17} strokeWidth={3} />
+              Generate
+            </button>
+
+            <button
+              type="button"
+              onClick={updatePlan}
+              className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white"
+            >
+              <RefreshCw size={17} strokeWidth={3} />
+              Update
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {plan ? (
+        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+          <div className="flex items-start gap-3">
+            <Dumbbell className="mt-1 text-orange-500" size={25} strokeWidth={3} />
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
-                Saved Plan
-              </p>
-              <h2 className="mt-2 text-2xl font-black text-white">
-                {goalLabel(savedPlan.goal)} · {levelLabel(savedPlan.level)}
-              </h2>
-              <p className="mt-2 text-sm font-bold text-white/50">
-                {savedPlan.daysPerWeek} days · {savedPlan.minutes} minutes ·{" "}
-                {styleLabel(savedPlan.style)}
+              <h2 className="text-2xl font-black text-white">{plan.title}</h2>
+              <p className="mt-2 text-sm font-bold leading-6 text-white/50">
+                {plan.summary}
               </p>
             </div>
+          </div>
 
-            <FileText className="shrink-0 text-orange-500" size={28} strokeWidth={3} />
+          <div className="mt-5 space-y-4">
+            {plan.days.map((day) => (
+              <div
+                key={day.title}
+                className="rounded-2xl border border-white/10 bg-black/25 p-4"
+              >
+                <p className="text-xs font-black uppercase tracking-[.18em] text-orange-500">
+                  {day.title}
+                </p>
+                <h3 className="mt-2 text-lg font-black text-white">
+                  {day.focus}
+                </h3>
+
+                <div className="mt-3 grid gap-2">
+                  {day.exercises.map((exercise) => (
+                    <p
+                      key={exercise}
+                      className="rounded-xl bg-white/[0.04] px-3 py-2 text-sm font-bold text-white/60"
+                    >
+                      {exercise}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4">
+            <p className="text-xs font-black uppercase tracking-[.18em] text-orange-500">
+              Coach Notes
+            </p>
+            <div className="mt-3 grid gap-2">
+              {plan.tips.map((tip) => (
+                <p key={tip} className="text-sm font-bold leading-6 text-white/60">
+                  {tip}
+                </p>
+              ))}
+            </div>
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={loadSavedPlan}
-              className="rounded-full bg-orange-500 px-5 py-3 text-sm font-black text-black"
+              onClick={savePlan}
+              className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
             >
-              Load Plan
+              <Save size={17} strokeWidth={3} />
+              Save My Plan
             </button>
 
             <button
               type="button"
               onClick={clearSavedPlan}
-              className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-black/25 px-5 py-3 text-sm font-black text-white"
+              className="flex items-center justify-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-black text-red-300"
             >
-              <Trash2 size={16} strokeWidth={3} />
+              <Trash2 size={17} strokeWidth={3} />
               Clear
             </button>
           </div>
@@ -519,279 +591,40 @@ export default function AiTrainer() {
       ) : null}
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="rounded-2xl bg-orange-500 p-3 text-black">
-            <Brain size={24} strokeWidth={3} />
-          </div>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
-              Trainer Setup
-            </p>
-            <h2 className="text-2xl font-black text-white">Your plan</h2>
-          </div>
+        <div className="flex items-center gap-3">
+          <MessageCircle className="text-orange-500" size={24} strokeWidth={3} />
+          <h2 className="text-2xl font-black text-white">Ask the Trainer</h2>
         </div>
 
-        <div className="grid gap-4">
-          <label className="space-y-2">
-            <span className="flex items-center gap-2 text-xs font-black uppercase tracking-[.18em] text-white/40">
-              <Target size={15} strokeWidth={3} />
-              Goal
-            </span>
-            <select
-              value={goal}
-              onChange={(event) => setGoal(event.target.value as Goal)}
-              className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
-            >
-              <option value="fitness">General Fitness</option>
-              <option value="fat_loss">Fat Loss</option>
-              <option value="muscle">Build Muscle</option>
-              <option value="strength">Strength</option>
-            </select>
-          </label>
-
-          <label className="space-y-2">
-            <span className="flex items-center gap-2 text-xs font-black uppercase tracking-[.18em] text-white/40">
-              <Zap size={15} strokeWidth={3} />
-              Level
-            </span>
-            <select
-              value={level}
-              onChange={(event) => setLevel(event.target.value as Level)}
-              className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
-            >
-              <option value="beginner">Beginner</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="advanced">Advanced</option>
-            </select>
-          </label>
-
-          <label className="space-y-2">
-            <span className="flex items-center gap-2 text-xs font-black uppercase tracking-[.18em] text-white/40">
-              <CalendarDays size={15} strokeWidth={3} />
-              Days per week: {daysPerWeek}
-            </span>
-            <input
-              type="range"
-              min="2"
-              max="7"
-              value={daysPerWeek}
-              onChange={(event) => setDaysPerWeek(Number(event.target.value))}
-              className="w-full accent-orange-500"
-            />
-          </label>
-
-          <label className="space-y-2">
-            <span className="flex items-center gap-2 text-xs font-black uppercase tracking-[.18em] text-white/40">
-              <Timer size={15} strokeWidth={3} />
-              Workout length: {minutes} minutes
-            </span>
-            <input
-              type="range"
-              min="30"
-              max="75"
-              step="15"
-              value={minutes}
-              onChange={(event) => setMinutes(Number(event.target.value))}
-              className="w-full accent-orange-500"
-            />
-          </label>
-
-          <label className="space-y-2">
-            <span className="flex items-center gap-2 text-xs font-black uppercase tracking-[.18em] text-white/40">
-              <Dumbbell size={15} strokeWidth={3} />
-              Training Style
-            </span>
-            <select
-              value={style}
-              onChange={(event) => setStyle(event.target.value as Style)}
-              className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
-            >
-              <option value="balanced">Balanced Training</option>
-              <option value="gym">Gym Machines & Weights</option>
-              <option value="functional">Functional Training</option>
-            </select>
-          </label>
-
-          <label className="space-y-2">
-            <span className="text-xs font-black uppercase tracking-[.18em] text-white/40">
-              Limitations or notes
-            </span>
-            <textarea
-              value={limitations}
-              onChange={(event) => setLimitations(event.target.value)}
-              placeholder="Example: knee pain, lower back, shoulder, beginner, short on time..."
-              className="min-h-28 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none placeholder:text-white/25"
-            />
-          </label>
-
-          <button
-            type="button"
-            onClick={() => {
-              setGenerated(true);
-              setPlanVersion((current) => current + 1);
-              setSaveStatus("");
-            }}
-            className="mt-2 flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black transition active:scale-95"
-          >
-            {generated ? (
-              <RefreshCw size={18} strokeWidth={3} />
-            ) : (
-              <Sparkles size={18} strokeWidth={3} />
-            )}
-            {generated ? "Update Plan" : "Generate Plan"}
-          </button>
-        </div>
-      </section>
-
-      {generated ? (
-        <section className="space-y-4">
-          <div className="rounded-[2rem] border border-orange-500/20 bg-orange-500/10 p-5">
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
-              Generated Plan
-            </p>
-            <h2 className="mt-2 text-3xl font-black text-white">
-              {goalLabel(goal)} · {levelLabel(level)}
-            </h2>
-            <p className="mt-2 text-sm font-bold text-white/50">
-              {daysPerWeek} days per week · {minutes} minutes ·{" "}
-              {styleLabel(style)}
-            </p>
-
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={saveCurrentPlan}
-                className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-black text-black"
-              >
-                <Save size={16} strokeWidth={3} />
-                Save Plan
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setPlanVersion((current) => current + 1)}
-                className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-black/25 px-5 py-3 text-sm font-black text-white"
-              >
-                <RefreshCw size={16} strokeWidth={3} />
-                New Version
-              </button>
-            </div>
-
-            {saveStatus ? (
-              <p className="mt-3 text-sm font-bold text-white/50">
-                {saveStatus}
-              </p>
-            ) : null}
-          </div>
-
-          {plan.map((day) => (
-            <div
-              key={day.title}
-              className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
-                    {day.title}
-                  </p>
-                  <h3 className="mt-2 text-2xl font-black text-white">
-                    {day.focus}
-                  </h3>
-                </div>
-
-                <div className="rounded-2xl bg-white/10 p-3 text-orange-500">
-                  <Dumbbell size={22} strokeWidth={3} />
-                </div>
-              </div>
-
-              <div className="mt-5 space-y-3">
-                {day.exercises.map((exercise, index) => (
-                  <div
-                    key={`${day.title}-${index}`}
-                    className="rounded-2xl border border-white/10 bg-black/25 p-4"
-                  >
-                    <p className="text-sm font-bold leading-5 text-white/65">
-                      {exercise}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </section>
-      ) : null}
-
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-orange-500/50 bg-black">
-            <Image
-              src="/bgm-trainer-icon.png"
-              alt="BGM Chat Trainer"
-              fill
-              className="object-cover"
-            />
-          </div>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
-              Chat Trainer
-            </p>
-            <h2 className="text-2xl font-black text-white">
-              Ask your BGM Trainer
-            </h2>
-          </div>
-        </div>
-
-        <div className="mb-4 flex flex-wrap gap-2">
-          {quickPrompts.map((prompt) => (
-            <button
-              key={prompt}
-              type="button"
-              onClick={() => sendTrainerMessage(prompt)}
-              className="rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs font-black text-white/55"
-            >
-              {prompt}
-            </button>
-          ))}
-        </div>
-
-        <div className="space-y-3">
-          {chatMessages.map((message) => (
-            <div
-              key={message.id}
-              className={`rounded-2xl border p-4 ${
-                message.role === "trainer"
-                  ? "border-orange-500/20 bg-orange-500/10"
-                  : "border-white/10 bg-black/25"
-              }`}
-            >
-              <p className="mb-1 text-[10px] font-black uppercase tracking-[.22em] text-white/35">
-                {message.role === "trainer" ? "BGM Trainer" : "You"}
-              </p>
-              <p className="text-sm font-bold leading-6 text-white/65">
-                {message.text}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-4 flex gap-3">
+        <div className="mt-4 grid gap-3">
           <input
             value={chatInput}
             onChange={(event) => setChatInput(event.target.value)}
-            placeholder="Ask about your workout..."
-            className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold text-white outline-none placeholder:text-white/25"
+            placeholder="Ask about cardio, progress, protein, injuries..."
+            className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
           />
 
           <button
             type="button"
-            onClick={() => sendTrainerMessage()}
-            className="flex shrink-0 items-center justify-center rounded-full bg-orange-500 px-4 text-black"
-            aria-label="Send message"
+            onClick={askTrainer}
+            className="rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
           >
-            <Send size={18} strokeWidth={3} />
+            Ask
           </button>
         </div>
+
+        {chatReply ? (
+          <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-4">
+            <p className="text-sm font-bold leading-6 text-white/60">
+              {chatReply}
+            </p>
+          </div>
+        ) : null}
       </section>
+
+      {status ? (
+        <p className="text-center text-sm font-bold text-white/50">{status}</p>
+      ) : null}
     </div>
   );
 }
