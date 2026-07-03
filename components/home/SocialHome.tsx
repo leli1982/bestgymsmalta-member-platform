@@ -6,6 +6,7 @@ import { currentMember } from "@/components/data/member";
 import LiveUpdates from "@/components/home/LiveUpdates";
 import RecentCheckins from "@/components/home/RecentCheckins";
 import MemberActivityStats from "@/components/home/MemberActivityStats";
+import ClosestGymCard from "@/components/home/ClosestGymCard";
 import MemberWorkoutPlanPreview from "@/components/home/MemberWorkoutPlanPreview";
 import { activeGyms } from "@/components/data/gyms";
 import {
@@ -225,6 +226,8 @@ export default function SocialHome() {
       </section>
 
       <MemberCard />
+
+      <ClosestGymCard />
 
 
 
