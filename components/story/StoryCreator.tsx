@@ -1,6 +1,11 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent,
+} from "react";
 import {
   Camera,
   ChevronRight,
@@ -24,10 +29,11 @@ type StoryTemplate = {
   mood: string;
 };
 
-type BrandSticker = {
+type StorySticker = {
   id: string;
   label: string;
-  src: string;
+  src?: string;
+  emoji?: string;
 };
 
 const templates: StoryTemplate[] = [
@@ -87,25 +93,30 @@ const templates: StoryTemplate[] = [
   },
 ];
 
-const brandStickers: BrandSticker[] = [
+const stickers: StorySticker[] = [
   { id: "bgm", label: "BGM", src: "/bgm-logo.png" },
   { id: "tsm", label: "TSM", src: "/brand-logos/tsm.png" },
+
+  { id: "emoji-fire", label: "Fire", emoji: "🔥" },
+  { id: "emoji-strong", label: "Strong", emoji: "💪" },
+  { id: "emoji-trophy", label: "Trophy", emoji: "🏆" },
+  { id: "emoji-lightning", label: "Energy", emoji: "⚡" },
+  { id: "emoji-check", label: "Done", emoji: "✅" },
+  { id: "emoji-heart", label: "Love", emoji: "🖤" },
+  { id: "emoji-camera", label: "Photo", emoji: "📸" },
+  { id: "emoji-star", label: "Star", emoji: "⭐" },
+
   { id: "birkirkara", label: "Birkirkara", src: "/gym-logos/bgm-birkirkara.png" },
   { id: "birzebbuga", label: "Birzebbuga", src: "/gym-logos/bgm-birzebbuga.png" },
   { id: "build", label: "Build", src: "/gym-logos/bgm-build.png" },
   { id: "kirkop", label: "Kirkop", src: "/gym-logos/bgm-kirkop.png" },
   { id: "marsa", label: "Marsa", src: "/gym-logos/bgm-marsa.png" },
+  { id: "marsascala", label: "Marsascala", src: "/gym-logos/bgm-marsascala.png" },
   { id: "neptunes", label: "Neptunes", src: "/gym-logos/bgm-neptunes.png" },
   { id: "pembroke", label: "Pembroke", src: "/gym-logos/bgm-pembroke.png" },
   { id: "sliema", label: "Sliema", src: "/gym-logos/bgm-sliema.png" },
   { id: "talqroqq", label: "Tal-Qroqq", src: "/gym-logos/bgm-talqroqq.png" },
-];
-
-const stickerPositions = [
-  { id: "top-left", label: "Top left" },
-  { id: "top-right", label: "Top right" },
-  { id: "bottom-left", label: "Bottom left" },
-  { id: "bottom-right", label: "Bottom right" },
+  { id: "birgu", label: "Birgu", src: "/gym-logos/bgm-birgu.png" },
 ];
 
 function loadImage(src: string) {
@@ -174,6 +185,8 @@ function wrapText(
   maxWidth: number,
   lineHeight: number
 ) {
+  if (!text.trim()) return y;
+
   const words = text.split(" ");
   let line = "";
   let currentY = y;
@@ -195,42 +208,51 @@ function wrapText(
   return currentY;
 }
 
-function getPreviewLogoPosition(position: string) {
-  if (position === "top-right") return "right-7 top-20";
-  if (position === "bottom-left") return "bottom-24 left-7";
-  if (position === "bottom-right") return "bottom-24 right-7";
-  return "left-7 top-7";
-}
-
 export default function StoryCreator() {
-  const [selectedTemplateId, setSelectedTemplateId] = useState(templates[0].id);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [customImage, setCustomImage] = useState("");
   const [selectedStickerId, setSelectedStickerId] = useState("bgm");
-  const [stickerPosition, setStickerPosition] = useState("top-left");
-  const [logoSize, setLogoSize] = useState(92);
-  const [title, setTitle] = useState(templates[0].title);
-  const [subtitle, setSubtitle] = useState(templates[0].subtitle);
-  const [badge, setBadge] = useState(templates[0].badge);
+
+  const [stickerX, setStickerX] = useState(16);
+  const [stickerY, setStickerY] = useState(8);
+  const [stickerSize, setStickerSize] = useState(82);
+  const [stickerRotation, setStickerRotation] = useState(0);
+
+  const [title, setTitle] = useState("");
+  const [subtitle, setSubtitle] = useState("");
+  const [badge, setBadge] = useState("BestGymsMalta");
   const [busy, setBusy] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
 
   const selectedTemplate = useMemo(() => {
-    return templates.find((template) => template.id === selectedTemplateId) || templates[0];
+    return (
+      templates.find((template) => template.id === selectedTemplateId) || null
+    );
   }, [selectedTemplateId]);
 
   const selectedSticker = useMemo(() => {
-    return brandStickers.find((sticker) => sticker.id === selectedStickerId) || brandStickers[0];
+    return (
+      stickers.find((sticker) => sticker.id === selectedStickerId) || stickers[0]
+    );
   }, [selectedStickerId]);
 
-  const background = customImage || selectedTemplate.background;
+  const background = customImage || selectedTemplate?.background || "";
 
   function selectTemplate(template: StoryTemplate) {
     setSelectedTemplateId(template.id);
     setTitle(template.title);
     setSubtitle(template.subtitle);
     setBadge(template.badge);
+  }
+
+  function clearTemplate() {
+    setSelectedTemplateId("");
+    setTitle("");
+    setSubtitle("");
+    setBadge("BestGymsMalta");
   }
 
   function handleImageUpload(file?: File) {
@@ -249,6 +271,29 @@ export default function StoryCreator() {
     setCustomImage("");
   }
 
+  function moveStickerFromPointer(event: PointerEvent<HTMLDivElement>) {
+    const preview = previewRef.current;
+    if (!preview) return;
+
+    const rect = preview.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+    setStickerX(Math.min(100, Math.max(0, x)));
+    setStickerY(Math.min(100, Math.max(0, y)));
+  }
+
+  function handleStickerPointerDown(event: PointerEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    moveStickerFromPointer(event);
+  }
+
+  function handleStickerPointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (event.buttons !== 1) return;
+    moveStickerFromPointer(event);
+  }
+
   async function renderStoryBlob() {
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
@@ -264,99 +309,84 @@ export default function StoryCreator() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     try {
+      if (!background) throw new Error("No background.");
       const backgroundImage = await loadImage(background);
       drawCoverImage(ctx, backgroundImage, canvas.width, canvas.height);
     } catch {
       const gradient = ctx.createLinearGradient(0, 0, 1080, 1920);
       gradient.addColorStop(0, "#2b1d00");
-      gradient.addColorStop(0.45, "#111111");
+      gradient.addColorStop(0.55, "#111111");
       gradient.addColorStop(1, "#000000");
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, 1080, 1920);
     }
 
     const darkOverlay = ctx.createLinearGradient(0, 0, 0, 1920);
-    darkOverlay.addColorStop(0, "rgba(0,0,0,0.15)");
-    darkOverlay.addColorStop(0.42, "rgba(0,0,0,0.32)");
-    darkOverlay.addColorStop(1, "rgba(0,0,0,0.88)");
+    darkOverlay.addColorStop(0, "rgba(0,0,0,0.04)");
+    darkOverlay.addColorStop(0.45, "rgba(0,0,0,0.10)");
+    darkOverlay.addColorStop(1, "rgba(0,0,0,0.36)");
     ctx.fillStyle = darkOverlay;
     ctx.fillRect(0, 0, 1080, 1920);
 
     const goldOverlay = ctx.createLinearGradient(0, 0, 1080, 1920);
-    goldOverlay.addColorStop(0, "rgba(252,180,21,0.24)");
-    goldOverlay.addColorStop(0.45, "rgba(252,180,21,0.03)");
+    goldOverlay.addColorStop(0, "rgba(252,180,21,0.08)");
+    goldOverlay.addColorStop(0.45, "rgba(252,180,21,0.01)");
     goldOverlay.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = goldOverlay;
     ctx.fillRect(0, 0, 1080, 1920);
 
-    ctx.strokeStyle = "rgba(252,180,21,0.88)";
+    ctx.strokeStyle = "rgba(252,180,21,0.78)";
     ctx.lineWidth = 8;
     roundedRect(ctx, 44, 44, 992, 1832, 54);
     ctx.stroke();
 
-    ctx.fillStyle = "rgba(0,0,0,0.52)";
-    roundedRect(ctx, 474, 118, 520, 88, 44);
-    ctx.fill();
+    if (badge.trim()) {
+      ctx.fillStyle = "rgba(0,0,0,0.42)";
+      roundedRect(ctx, 474, 118, 520, 88, 44);
+      ctx.fill();
 
-    ctx.fillStyle = "#fcb415";
-    ctx.font = "900 30px Arial";
-    ctx.fillText((badge || "BESTGYMSMALTA").toUpperCase(), 514, 174);
-
-    if (selectedSticker) {
-      try {
-        const sticker = await loadImage(selectedSticker.src);
-        const size = logoSize * 3.2;
-        const padding = 86;
-
-        let x = padding;
-        let y = 106;
-
-        if (stickerPosition === "top-right") {
-          x = 1080 - padding - size;
-          y = 230;
-        }
-
-        if (stickerPosition === "bottom-left") {
-          x = padding;
-          y = 1580;
-        }
-
-        if (stickerPosition === "bottom-right") {
-          x = 1080 - padding - size;
-          y = 1580;
-        }
-
-        ctx.fillStyle = "rgba(0,0,0,0.55)";
-        roundedRect(ctx, x - 18, y - 18, size + 36, size + 36, 42);
-        ctx.fill();
-
-        ctx.drawImage(sticker, x, y, size, size);
-      } catch {
-        // Ignore missing stickers.
-      }
+      ctx.fillStyle = "#fcb415";
+      ctx.font = "900 30px Arial";
+      ctx.fillText(badge.toUpperCase(), 514, 174);
     }
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "900 96px Arial";
-    const lastTitleY = wrapText(
-      ctx,
-      title || "Best mode: ON",
-      86,
-      1310,
-      890,
-      104
-    );
+    if (selectedSticker) {
+      const size = stickerSize * 3.2;
+      const centerX = (stickerX / 100) * canvas.width;
+      const centerY = (stickerY / 100) * canvas.height;
 
-    ctx.fillStyle = "rgba(255,255,255,0.72)";
-    ctx.font = "700 38px Arial";
-    wrapText(
-      ctx,
-      subtitle || "Be the best... Beat the rest.",
-      88,
-      lastTitleY + 84,
-      860,
-      52
-    );
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate((stickerRotation * Math.PI) / 180);
+
+      if (selectedSticker.src) {
+        try {
+          const sticker = await loadImage(selectedSticker.src);
+          ctx.drawImage(sticker, -size / 2, -size / 2, size, size);
+        } catch {
+          // Ignore missing image sticker.
+        }
+      } else {
+        ctx.font = `${size * 0.72}px Arial`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(selectedSticker.emoji || "🔥", 0, 6);
+      }
+
+      ctx.restore();
+    }
+
+    if (title.trim()) {
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 96px Arial";
+      const lastTitleY = wrapText(ctx, title, 86, 1310, 890, 104);
+
+      if (subtitle.trim()) {
+        ctx.fillStyle = "rgba(255,255,255,0.72)";
+        ctx.font = "700 38px Arial";
+        wrapText(ctx, subtitle, 88, lastTitleY + 84, 860, 52);
+      }
+    }
 
     ctx.fillStyle = "#fcb415";
     ctx.font = "900 28px Arial";
@@ -458,7 +488,7 @@ export default function StoryCreator() {
             </h1>
 
             <p className="mt-5 max-w-xs text-sm font-bold leading-6 text-white/70">
-              Take a photo, brand it and share it.
+              Take a photo, add a logo or sticker and share it.
             </p>
           </div>
         </div>
@@ -466,43 +496,78 @@ export default function StoryCreator() {
 
       <section className="rounded-[2rem] border border-[#fcb415]/25 bg-black/50 p-4 shadow-2xl">
         <div
+          ref={previewRef}
           className="relative mx-auto aspect-[9/16] w-full max-w-[360px] overflow-hidden rounded-[2rem] border border-white/10 bg-cover bg-center shadow-2xl"
           style={{
-            backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.86)), linear-gradient(135deg, rgba(252,180,21,.22), rgba(0,0,0,.50)), url('${background}')`,
+            backgroundImage: background
+              ? `linear-gradient(180deg, rgba(0,0,0,.04), rgba(0,0,0,.34)), linear-gradient(135deg, rgba(252,180,21,.08), rgba(0,0,0,.12)), url('${background}')`
+              : "linear-gradient(135deg, rgba(252,180,21,.22), rgba(0,0,0,.95))",
           }}
         >
-          <div className="absolute inset-4 rounded-[1.6rem] border-2 border-[#fcb415]/80" />
+          <div className="absolute inset-4 rounded-[1.6rem] border-2 border-[#fcb415]/70" />
 
-          <div className="absolute right-7 top-7 rounded-full bg-black/50 px-4 py-2 backdrop-blur-md">
-            <p className="text-[9px] font-black uppercase tracking-[.22em] text-[#fcb415]">
-              {badge}
-            </p>
-          </div>
-
-          {selectedSticker ? (
-            <div
-              className={`absolute rounded-2xl bg-black/45 p-2 backdrop-blur-md ${getPreviewLogoPosition(
-                stickerPosition
-              )}`}
-            >
-              <img
-                src={selectedSticker.src}
-                alt=""
-                style={{ width: `${logoSize}px`, height: `${logoSize}px` }}
-                className="object-contain"
-              />
+          {badge.trim() ? (
+            <div className="absolute right-7 top-7 rounded-full bg-black/40 px-4 py-2 backdrop-blur-md">
+              <p className="text-[9px] font-black uppercase tracking-[.22em] text-[#fcb415]">
+                {badge}
+              </p>
             </div>
           ) : null}
 
-          <div className="absolute bottom-20 left-7 right-7">
-            <h2 className="text-4xl font-black leading-[0.95] text-white drop-shadow-2xl">
-              {title}
-            </h2>
+          {selectedSticker ? (
+            <div
+              onPointerDown={handleStickerPointerDown}
+              onPointerMove={handleStickerPointerMove}
+              className="absolute cursor-grab active:cursor-grabbing"
+              style={{
+                left: `${stickerX}%`,
+                top: `${stickerY}%`,
+                transform: `translate(-50%, -50%) rotate(${stickerRotation}deg)`,
+                transformOrigin: "center center",
+                touchAction: "none",
+              }}
+              title="Drag to move"
+            >
+              {selectedSticker.src ? (
+                <img
+                  src={selectedSticker.src}
+                  alt=""
+                  style={{
+                    width: `${stickerSize}px`,
+                    height: `${stickerSize}px`,
+                  }}
+                  className="object-contain"
+                />
+              ) : (
+                <span
+                  style={{
+                    width: `${stickerSize}px`,
+                    height: `${stickerSize}px`,
+                    fontSize: `${stickerSize * 0.72}px`,
+                  }}
+                  className="flex items-center justify-center leading-none"
+                >
+                  {selectedSticker.emoji}
+                </span>
+              )}
+            </div>
+          ) : null}
 
-            <p className="mt-4 text-sm font-bold leading-6 text-white/70">
-              {subtitle}
-            </p>
-          </div>
+          {(title.trim() || subtitle.trim()) ? (
+            <div className="absolute bottom-20 left-7 right-7">
+              {title.trim() ? (
+                <h2 className="text-4xl font-black leading-[0.95] text-white drop-shadow-2xl">
+                  {title}
+                </h2>
+              ) : null}
+
+              {subtitle.trim() ? (
+                <p className="mt-4 text-sm font-bold leading-6 text-white/70">
+                  {subtitle}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="absolute bottom-7 left-7 right-7 flex items-end justify-between">
             <div>
@@ -541,7 +606,7 @@ export default function StoryCreator() {
         </div>
 
         <p className="mt-4 text-center text-xs font-bold leading-5 text-white/35">
-          Exports as a clean 1080x1920 Instagram story image.
+          Drag the logo or sticker directly on the story. Exports as 1080x1920.
         </p>
       </section>
 
@@ -608,6 +673,143 @@ export default function StoryCreator() {
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
         <div className="flex items-center gap-3">
+          <Sparkles className="text-[#fcb415]" size={24} strokeWidth={3} />
+
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              Stickers & Logos
+            </p>
+            <h2 className="mt-1 text-2xl font-black text-white">
+              Choose sticker or gym logo
+            </h2>
+          </div>
+        </div>
+
+        <div className="mt-5 grid grid-cols-3 gap-2">
+          {stickers.map((sticker) => (
+            <button
+              key={sticker.id}
+              type="button"
+              onClick={() => setSelectedStickerId(sticker.id)}
+              className={`rounded-2xl border p-3 text-xs font-black transition ${
+                sticker.id === selectedStickerId
+                  ? "border-[#fcb415] bg-[#fcb415] text-black"
+                  : "border-white/10 bg-black/25 text-white/60"
+              }`}
+            >
+              <span className="flex flex-col items-center gap-2">
+                {sticker.src ? (
+                  <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-black/10 p-1">
+                    <img
+                      src={sticker.src}
+                      alt=""
+                      className="h-full w-full object-contain"
+                    />
+                  </span>
+                ) : (
+                  <span className="flex h-12 w-12 items-center justify-center text-3xl leading-none">
+                    {sticker.emoji}
+                  </span>
+                )}
+
+                <span className="max-w-full truncate">{sticker.label}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-5 grid gap-4">
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setStickerX(16);
+                setStickerY(8);
+                setStickerRotation(0);
+                setStickerSize(82);
+              }}
+              className="rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+            >
+              Reset Sticker
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setStickerX(50);
+                setStickerY(10);
+                setStickerRotation(0);
+              }}
+              className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white"
+            >
+              Top Centre
+            </button>
+          </div>
+
+          <label className="grid gap-2">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+              Move left / right
+            </span>
+
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={stickerX}
+              onChange={(event) => setStickerX(Number(event.target.value))}
+              className="accent-[#fcb415]"
+            />
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+              Move up / down
+            </span>
+
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={stickerY}
+              onChange={(event) => setStickerY(Number(event.target.value))}
+              className="accent-[#fcb415]"
+            />
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+              Rotate
+            </span>
+
+            <input
+              type="range"
+              min="-45"
+              max="45"
+              value={stickerRotation}
+              onChange={(event) => setStickerRotation(Number(event.target.value))}
+              className="accent-[#fcb415]"
+            />
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+              Size
+            </span>
+
+            <input
+              type="range"
+              min="42"
+              max="150"
+              value={stickerSize}
+              onChange={(event) => setStickerSize(Number(event.target.value))}
+              className="accent-[#fcb415]"
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+        <div className="flex items-center gap-3">
           <Layers className="text-[#fcb415]" size={24} strokeWidth={3} />
 
           <div>
@@ -615,12 +817,37 @@ export default function StoryCreator() {
               Templates
             </p>
             <h2 className="mt-1 text-2xl font-black text-white">
-              Pick a story style
+              Optional story style
             </h2>
           </div>
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={clearTemplate}
+            className={`relative min-h-[150px] overflow-hidden rounded-[1.5rem] border p-4 text-left transition ${
+              selectedTemplateId === ""
+                ? "border-[#fcb415] bg-[#fcb415]/15 ring-2 ring-[#fcb415]/30"
+                : "border-white/10 bg-black/25"
+            }`}
+          >
+            <div className="relative flex min-h-[118px] flex-col justify-between">
+              <span className="w-fit rounded-full bg-[#fcb415] px-3 py-1 text-[9px] font-black uppercase tracking-[.16em] text-black">
+                Clean
+              </span>
+
+              <div>
+                <h3 className="text-lg font-black leading-tight text-white">
+                  No template
+                </h3>
+                <p className="mt-1 text-xs font-bold text-white/55">
+                  Photo + sticker only
+                </p>
+              </div>
+            </div>
+          </button>
+
           {templates.map((template) => {
             const active = template.id === selectedTemplateId;
 
@@ -635,7 +862,7 @@ export default function StoryCreator() {
                     : "border-white/10"
                 }`}
                 style={{
-                  backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.82)), url('${template.background}')`,
+                  backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.04), rgba(0,0,0,.38)), url('${template.background}')`,
                 }}
               >
                 <div className="relative flex min-h-[118px] flex-col justify-between">
@@ -691,6 +918,7 @@ export default function StoryCreator() {
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
+              placeholder="Optional"
               className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold text-white outline-none placeholder:text-white/25"
             />
           </label>
@@ -703,74 +931,8 @@ export default function StoryCreator() {
               value={subtitle}
               onChange={(event) => setSubtitle(event.target.value)}
               rows={3}
+              placeholder="Optional"
               className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold leading-6 text-white outline-none placeholder:text-white/25"
-            />
-          </label>
-        </div>
-      </section>
-
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <div className="flex items-center gap-3">
-          <Sparkles className="text-[#fcb415]" size={24} strokeWidth={3} />
-
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
-              Logo Sticker
-            </p>
-            <h2 className="mt-1 text-2xl font-black text-white">
-              Brand your story
-            </h2>
-          </div>
-        </div>
-
-        <div className="mt-5 grid grid-cols-3 gap-2">
-          {brandStickers.map((sticker) => (
-            <button
-              key={sticker.id}
-              type="button"
-              onClick={() => setSelectedStickerId(sticker.id)}
-              className={`rounded-2xl border p-3 text-xs font-black transition ${
-                sticker.id === selectedStickerId
-                  ? "border-[#fcb415] bg-[#fcb415] text-black"
-                  : "border-white/10 bg-black/25 text-white/60"
-              }`}
-            >
-              {sticker.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-5 grid gap-4">
-          <label className="grid gap-2">
-            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
-              Sticker position
-            </span>
-
-            <select
-              value={stickerPosition}
-              onChange={(event) => setStickerPosition(event.target.value)}
-              className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold text-white outline-none"
-            >
-              {stickerPositions.map((position) => (
-                <option key={position.id} value={position.id}>
-                  {position.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="grid gap-2">
-            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
-              Sticker size
-            </span>
-
-            <input
-              type="range"
-              min="56"
-              max="130"
-              value={logoSize}
-              onChange={(event) => setLogoSize(Number(event.target.value))}
-              className="accent-[#fcb415]"
             />
           </label>
         </div>
