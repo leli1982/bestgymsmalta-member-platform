@@ -1,105 +1,112 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type PointerEvent,
-} from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Camera,
+  ChevronRight,
   Download,
   ImagePlus,
-  Move,
-  RotateCw,
+  Layers,
+  RefreshCw,
   Share2,
   Sparkles,
-  Trash2,
+  Type,
+  Upload,
 } from "lucide-react";
-
-type Gym = {
-  id: string;
-  name: string;
-  logo?: string;
-  status?: string;
-};
 
 type StoryTemplate = {
   id: string;
-  label: string;
+  name: string;
+  badge: string;
   title: string;
   subtitle: string;
-  tag: string;
+  background: string;
+  mood: string;
 };
 
-type StoryLayer = {
+type BrandSticker = {
   id: string;
-  type: "image";
-  src: string;
   label: string;
-  x: number;
-  y: number;
-  size: number;
-  rotation: number;
+  src: string;
 };
 
 const templates: StoryTemplate[] = [
   {
-    id: "checked-in",
-    label: "Checked In",
-    title: "Checked in",
-    subtitle: "Another session done at BestGymsMalta",
-    tag: "BGM CHECK-IN",
+    id: "beast-mode",
+    name: "Beast Mode",
+    badge: "BGM Energy",
+    title: "Best mode: ON",
+    subtitle: "Another session done. Be the best... Beat the rest.",
+    background: "/visuals/story.jpg",
+    mood: "High energy",
   },
   {
-    id: "passport-stamp",
-    label: "Passport Stamp",
-    title: "Passport stamp unlocked",
-    subtitle: "One step closer to completing the BGM passport",
-    tag: "STAMP UNLOCKED",
-  },
-  {
-    id: "workout-complete",
-    label: "Workout Done",
-    title: "Workout complete",
-    subtitle: "No excuses. Just progress.",
-    tag: "SESSION COMPLETE",
-  },
-  {
-    id: "ai-plan",
-    label: "AI Plan",
-    title: "New training plan started",
-    subtitle: "Powered by the BGM AI Trainer",
-    tag: "AI TRAINER",
-  },
-  {
-    id: "ten-gyms",
-    label: "10 Gyms",
-    title: "10 gyms. 1 membership.",
-    subtitle: "Train across the BestGymsMalta network",
-    tag: "BESTGYMSMALTA",
+    id: "workout-done",
+    name: "Workout Done",
+    badge: "Session Complete",
+    title: "Workout done",
+    subtitle: "Showed up. Put in the work. Left stronger.",
+    background: "/visuals/trainer.jpg",
+    mood: "Clean fitness",
   },
   {
     id: "progress",
-    label: "Progress",
-    title: "Progress update",
-    subtitle: "Small steps. Big changes.",
-    tag: "FITNESS JOURNEY",
+    name: "Progress",
+    badge: "Progress Mode",
+    title: "Small steps. Big changes.",
+    subtitle: "Every rep, every set, every session counts.",
+    background: "/visuals/progress.jpg",
+    mood: "Transformation",
+  },
+  {
+    id: "network",
+    name: "10 Gyms",
+    badge: "BestGymsMalta",
+    title: "1 membership. 10 gyms.",
+    subtitle: "Train where it suits you across the BGM network.",
+    background: "/visuals/gyms.jpg",
+    mood: "BGM network",
+  },
+  {
+    id: "no-excuses",
+    name: "No Excuses",
+    badge: "Mindset",
+    title: "No excuses today",
+    subtitle: "Discipline beats motivation.",
+    background: "/visuals/home-hero.jpg",
+    mood: "Motivational",
+  },
+  {
+    id: "fresh-start",
+    name: "Fresh Start",
+    badge: "New Session",
+    title: "New day. New energy.",
+    subtitle: "Your future self is watching.",
+    background: "/visuals/announcement-default.jpg",
+    mood: "Lifestyle",
   },
 ];
 
-const defaultLayer: StoryLayer = {
-  id: "bgm-logo",
-  type: "image",
-  src: "/bgm-logo.png",
-  label: "BGM Logo",
-  x: 68,
-  y: 78,
-  size: 20,
-  rotation: 0,
-};
+const brandStickers: BrandSticker[] = [
+  { id: "bgm", label: "BGM", src: "/bgm-logo.png" },
+  { id: "tsm", label: "TSM", src: "/brand-logos/tsm.png" },
+  { id: "birkirkara", label: "Birkirkara", src: "/gym-logos/bgm-birkirkara.png" },
+  { id: "birzebbuga", label: "Birzebbuga", src: "/gym-logos/bgm-birzebbuga.png" },
+  { id: "build", label: "Build", src: "/gym-logos/bgm-build.png" },
+  { id: "kirkop", label: "Kirkop", src: "/gym-logos/bgm-kirkop.png" },
+  { id: "marsa", label: "Marsa", src: "/gym-logos/bgm-marsa.png" },
+  { id: "neptunes", label: "Neptunes", src: "/gym-logos/bgm-neptunes.png" },
+  { id: "pembroke", label: "Pembroke", src: "/gym-logos/bgm-pembroke.png" },
+  { id: "sliema", label: "Sliema", src: "/gym-logos/bgm-sliema.png" },
+  { id: "talqroqq", label: "Tal-Qroqq", src: "/gym-logos/bgm-talqroqq.png" },
+];
+
+const stickerPositions = [
+  { id: "top-left", label: "Top left" },
+  { id: "top-right", label: "Top right" },
+  { id: "bottom-left", label: "Bottom left" },
+  { id: "bottom-right", label: "Bottom right" },
+];
 
 function loadImage(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -111,19 +118,52 @@ function loadImage(src: string) {
   });
 }
 
-function drawCoveredImage(
+function drawCoverImage(
   ctx: CanvasRenderingContext2D,
   image: HTMLImageElement,
   width: number,
   height: number
 ) {
-  const scale = Math.max(width / image.width, height / image.height);
-  const scaledWidth = image.width * scale;
-  const scaledHeight = image.height * scale;
-  const x = (width - scaledWidth) / 2;
-  const y = (height - scaledHeight) / 2;
+  const imageRatio = image.width / image.height;
+  const canvasRatio = width / height;
 
-  ctx.drawImage(image, x, y, scaledWidth, scaledHeight);
+  let drawWidth = width;
+  let drawHeight = height;
+  let x = 0;
+  let y = 0;
+
+  if (imageRatio > canvasRatio) {
+    drawHeight = height;
+    drawWidth = height * imageRatio;
+    x = (width - drawWidth) / 2;
+  } else {
+    drawWidth = width;
+    drawHeight = width / imageRatio;
+    y = (height - drawHeight) / 2;
+  }
+
+  ctx.drawImage(image, x, y, drawWidth, drawHeight);
+}
+
+function roundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
 }
 
 function wrapText(
@@ -138,411 +178,403 @@ function wrapText(
   let line = "";
   let currentY = y;
 
-  for (const word of words) {
-    const testLine = line ? `${line} ${word}` : word;
+  for (let n = 0; n < words.length; n++) {
+    const testLine = `${line}${words[n]} `;
     const metrics = ctx.measureText(testLine);
 
-    if (metrics.width > maxWidth && line) {
-      ctx.fillText(line, x, currentY);
-      line = word;
+    if (metrics.width > maxWidth && n > 0) {
+      ctx.fillText(line.trim(), x, currentY);
+      line = `${words[n]} `;
       currentY += lineHeight;
     } else {
       line = testLine;
     }
   }
 
-  if (line) {
-    ctx.fillText(line, x, currentY);
-  }
-
+  ctx.fillText(line.trim(), x, currentY);
   return currentY;
 }
 
+function getPreviewLogoPosition(position: string) {
+  if (position === "top-right") return "right-7 top-20";
+  if (position === "bottom-left") return "bottom-24 left-7";
+  if (position === "bottom-right") return "bottom-24 right-7";
+  return "left-7 top-7";
+}
+
 export default function StoryCreator() {
+  const [selectedTemplateId, setSelectedTemplateId] = useState(templates[0].id);
+  const [customImage, setCustomImage] = useState("");
+  const [selectedStickerId, setSelectedStickerId] = useState("bgm");
+  const [stickerPosition, setStickerPosition] = useState("top-left");
+  const [logoSize, setLogoSize] = useState(92);
+  const [title, setTitle] = useState(templates[0].title);
+  const [subtitle, setSubtitle] = useState(templates[0].subtitle);
+  const [badge, setBadge] = useState(templates[0].badge);
+  const [busy, setBusy] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
-  const previewRef = useRef<HTMLDivElement | null>(null);
-
-  const [gyms, setGyms] = useState<Gym[]>([]);
-  const [photo, setPhoto] = useState<string>("");
-  const [selectedTemplateId, setSelectedTemplateId] = useState("checked-in");
-  const [customTitle, setCustomTitle] = useState("");
-  const [customSubtitle, setCustomSubtitle] = useState("");
-  const [layers, setLayers] = useState<StoryLayer[]>([defaultLayer]);
-  const [selectedLayerId, setSelectedLayerId] = useState("bgm-logo");
-  const [draggingLayerId, setDraggingLayerId] = useState<string | null>(null);
-  const [status, setStatus] = useState("");
-
-  useEffect(() => {
-    async function loadGyms() {
-      try {
-        const response = await fetch("/api/gyms", { cache: "no-store" });
-        const data = await response.json();
-        setGyms((data.gyms || []).filter((gym: Gym) => gym.status === "active"));
-      } catch {
-        setGyms([]);
-      }
-    }
-
-    loadGyms();
-  }, []);
 
   const selectedTemplate = useMemo(() => {
-    return (
-      templates.find((template) => template.id === selectedTemplateId) ||
-      templates[0]
-    );
+    return templates.find((template) => template.id === selectedTemplateId) || templates[0];
   }, [selectedTemplateId]);
 
-  const storyTitle = customTitle.trim() || selectedTemplate.title;
-  const storySubtitle = customSubtitle.trim() || selectedTemplate.subtitle;
+  const selectedSticker = useMemo(() => {
+    return brandStickers.find((sticker) => sticker.id === selectedStickerId) || brandStickers[0];
+  }, [selectedStickerId]);
 
-  const selectedLayer = layers.find((layer) => layer.id === selectedLayerId);
+  const background = customImage || selectedTemplate.background;
 
-  function handlePhotoUpload(file?: File) {
+  function selectTemplate(template: StoryTemplate) {
+    setSelectedTemplateId(template.id);
+    setTitle(template.title);
+    setSubtitle(template.subtitle);
+    setBadge(template.badge);
+  }
+
+  function handleImageUpload(file?: File) {
     if (!file) return;
 
     const reader = new FileReader();
 
     reader.onload = () => {
-      setPhoto(String(reader.result || ""));
-      setStatus("Photo added. Choose a template or move the logo.");
+      setCustomImage(String(reader.result || ""));
     };
 
     reader.readAsDataURL(file);
   }
 
-  function addLayer(src: string, label: string) {
-    const id = `${label}-${Date.now()}`;
-
-    setLayers((current) => [
-      ...current,
-      {
-        id,
-        type: "image",
-        src,
-        label,
-        x: 65,
-        y: 70,
-        size: 18,
-        rotation: 0,
-      },
-    ]);
-
-    setSelectedLayerId(id);
-    setStatus(`${label} added.`);
+  function resetPhoto() {
+    setCustomImage("");
   }
 
-  function updateSelectedLayer(updates: Partial<StoryLayer>) {
-    if (!selectedLayerId) return;
-
-    setLayers((current) =>
-      current.map((layer) =>
-        layer.id === selectedLayerId ? { ...layer, ...updates } : layer
-      )
-    );
-  }
-
-  function deleteSelectedLayer() {
-    if (!selectedLayerId) return;
-
-    setLayers((current) =>
-      current.filter((layer) => layer.id !== selectedLayerId)
-    );
-
-    setSelectedLayerId("bgm-logo");
-    setStatus("Sticker removed.");
-  }
-
-  function resetStory() {
-    setPhoto("");
-    setCustomTitle("");
-    setCustomSubtitle("");
-    setSelectedTemplateId("checked-in");
-    setLayers([defaultLayer]);
-    setSelectedLayerId("bgm-logo");
-    setStatus("Story reset.");
-  }
-
-  function handlePointerDown(event: PointerEvent<HTMLDivElement>, layerId: string) {
-    event.preventDefault();
-    setSelectedLayerId(layerId);
-    setDraggingLayerId(layerId);
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
-
-  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
-    if (!draggingLayerId || !previewRef.current) return;
-
-    const rect = previewRef.current.getBoundingClientRect();
-
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
-
-    setLayers((current) =>
-      current.map((layer) =>
-        layer.id === draggingLayerId
-          ? {
-              ...layer,
-              x: Math.min(92, Math.max(8, x)),
-              y: Math.min(92, Math.max(8, y)),
-            }
-          : layer
-      )
-    );
-  }
-
-  function handlePointerUp() {
-    setDraggingLayerId(null);
-  }
-
-  async function createStoryFile() {
+  async function renderStoryBlob() {
     const canvas = document.createElement("canvas");
-    const width = 1080;
-    const height = 1920;
-
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = 1080;
+    canvas.height = 1920;
 
     const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Could not create story image.");
 
-    const gradient = ctx.createLinearGradient(0, 0, width, height);
-    gradient.addColorStop(0, "#111111");
-    gradient.addColorStop(0.45, "#1c1c1c");
-    gradient.addColorStop(1, "#000000");
-
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
-
-    if (photo) {
-      try {
-        const image = await loadImage(photo);
-        drawCoveredImage(ctx, image, width, height);
-
-        const overlay = ctx.createLinearGradient(0, 0, 0, height);
-        overlay.addColorStop(0, "rgba(0,0,0,0.15)");
-        overlay.addColorStop(0.55, "rgba(0,0,0,0.05)");
-        overlay.addColorStop(1, "rgba(0,0,0,0.72)");
-        ctx.fillStyle = overlay;
-        ctx.fillRect(0, 0, width, height);
-      } catch {
-        // If the photo fails to load, keep the gradient.
-      }
+    if (!ctx) {
+      throw new Error("Could not create canvas.");
     }
 
-    ctx.fillStyle = "rgba(252,180,21,0.96)";
-    ctx.roundRect(70, 1120, width - 140, 52, 26);
-    ctx.fill();
+    ctx.fillStyle = "#050505";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = "#000000";
-    ctx.font = "900 30px Arial";
-    ctx.letterSpacing = "5px";
-    ctx.fillText(selectedTemplate.tag, 110, 1156);
-    ctx.letterSpacing = "0px";
+    try {
+      const backgroundImage = await loadImage(background);
+      drawCoverImage(ctx, backgroundImage, canvas.width, canvas.height);
+    } catch {
+      const gradient = ctx.createLinearGradient(0, 0, 1080, 1920);
+      gradient.addColorStop(0, "#2b1d00");
+      gradient.addColorStop(0.45, "#111111");
+      gradient.addColorStop(1, "#000000");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 1080, 1920);
+    }
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "900 96px Arial";
-    wrapText(ctx, storyTitle, 70, 1290, width - 140, 106);
+    const darkOverlay = ctx.createLinearGradient(0, 0, 0, 1920);
+    darkOverlay.addColorStop(0, "rgba(0,0,0,0.15)");
+    darkOverlay.addColorStop(0.42, "rgba(0,0,0,0.32)");
+    darkOverlay.addColorStop(1, "rgba(0,0,0,0.88)");
+    ctx.fillStyle = darkOverlay;
+    ctx.fillRect(0, 0, 1080, 1920);
 
-    ctx.fillStyle = "rgba(255,255,255,0.74)";
-    ctx.font = "700 42px Arial";
-    wrapText(ctx, storySubtitle, 70, 1545, width - 140, 54);
+    const goldOverlay = ctx.createLinearGradient(0, 0, 1080, 1920);
+    goldOverlay.addColorStop(0, "rgba(252,180,21,0.24)");
+    goldOverlay.addColorStop(0.45, "rgba(252,180,21,0.03)");
+    goldOverlay.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = goldOverlay;
+    ctx.fillRect(0, 0, 1080, 1920);
 
-    ctx.fillStyle = "rgba(0,0,0,0.55)";
-    ctx.roundRect(70, 1695, width - 140, 120, 36);
+    ctx.strokeStyle = "rgba(252,180,21,0.88)";
+    ctx.lineWidth = 8;
+    roundedRect(ctx, 44, 44, 992, 1832, 54);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(0,0,0,0.52)";
+    roundedRect(ctx, 474, 118, 520, 88, 44);
     ctx.fill();
 
     ctx.fillStyle = "#fcb415";
-    ctx.font = "900 34px Arial";
-    ctx.fillText("BE THE BEST... BEAT THE REST", 105, 1768);
+    ctx.font = "900 30px Arial";
+    ctx.fillText((badge || "BESTGYMSMALTA").toUpperCase(), 514, 174);
 
-    for (const layer of layers) {
+    if (selectedSticker) {
       try {
-        const image = await loadImage(layer.src);
-        const size = (layer.size / 100) * width;
-        const x = (layer.x / 100) * width;
-        const y = (layer.y / 100) * height;
+        const sticker = await loadImage(selectedSticker.src);
+        const size = logoSize * 3.2;
+        const padding = 86;
 
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate((layer.rotation * Math.PI) / 180);
-        ctx.drawImage(image, -size / 2, -size / 2, size, size);
-        ctx.restore();
-      } catch {
-        // Skip failed external image.
-      }
-    }
+        let x = padding;
+        let y = 106;
 
-    return new Promise<File>((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          reject(new Error("Could not create image."));
-          return;
+        if (stickerPosition === "top-right") {
+          x = 1080 - padding - size;
+          y = 230;
         }
 
-        resolve(
-          new File([blob], "bgm-story.png", {
-            type: "image/png",
-          })
-        );
-      }, "image/png");
-    });
-  }
+        if (stickerPosition === "bottom-left") {
+          x = padding;
+          y = 1580;
+        }
 
-  async function shareStory() {
-    try {
-      setStatus("Preparing story…");
+        if (stickerPosition === "bottom-right") {
+          x = 1080 - padding - size;
+          y = 1580;
+        }
 
-      const file = await createStoryFile();
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        roundedRect(ctx, x - 18, y - 18, size + 36, size + 36, 42);
+        ctx.fill();
 
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: "BestGymsMalta Story",
-          text: "Created with the BestGymsMalta member app.",
-          files: [file],
-        });
-
-        setStatus("Story shared.");
-        return;
+        ctx.drawImage(sticker, x, y, size, size);
+      } catch {
+        // Ignore missing stickers.
       }
-
-      const url = URL.createObjectURL(file);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "bgm-story.png";
-      link.click();
-      URL.revokeObjectURL(url);
-
-      setStatus("Story downloaded. Upload it to Instagram, Facebook or TikTok.");
-    } catch {
-      setStatus("Could not share story. Try downloading it instead.");
     }
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 96px Arial";
+    const lastTitleY = wrapText(
+      ctx,
+      title || "Best mode: ON",
+      86,
+      1310,
+      890,
+      104
+    );
+
+    ctx.fillStyle = "rgba(255,255,255,0.72)";
+    ctx.font = "700 38px Arial";
+    wrapText(
+      ctx,
+      subtitle || "Be the best... Beat the rest.",
+      88,
+      lastTitleY + 84,
+      860,
+      52
+    );
+
+    ctx.fillStyle = "#fcb415";
+    ctx.font = "900 28px Arial";
+    ctx.fillText("BE THE BEST... BEAT THE REST", 88, 1786);
+
+    ctx.fillStyle = "rgba(255,255,255,0.48)";
+    ctx.font = "700 25px Arial";
+    ctx.fillText("BESTGYMSMALTA", 88, 1832);
+
+    return new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Could not export story."));
+            return;
+          }
+
+          resolve(blob);
+        },
+        "image/png",
+        1
+      );
+    });
   }
 
   async function downloadStory() {
     try {
-      setStatus("Preparing download…");
+      setBusy(true);
 
-      const file = await createStoryFile();
-      const url = URL.createObjectURL(file);
+      const blob = await renderStoryBlob();
+      const url = URL.createObjectURL(blob);
+
       const link = document.createElement("a");
-
       link.href = url;
-      link.download = "bgm-story.png";
+      link.download = "bestgymsmalta-story.png";
       link.click();
 
       URL.revokeObjectURL(url);
-      setStatus("Story downloaded.");
-    } catch {
-      setStatus("Could not download story.");
+    } finally {
+      setBusy(false);
     }
   }
 
-  const previewStyle: CSSProperties = photo
-    ? {
-        backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,.12), rgba(0,0,0,.76)), url(${photo})`,
+  async function shareStory() {
+    try {
+      setBusy(true);
+
+      const blob = await renderStoryBlob();
+      const file = new File([blob], "bestgymsmalta-story.png", {
+        type: "image/png",
+      });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: "BestGymsMalta Story",
+          text: "Created with the BestGymsMalta app",
+          files: [file],
+        });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "bestgymsmalta-story.png";
+        link.click();
+        URL.revokeObjectURL(url);
       }
-    : {};
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#fcb415]/25 via-white/[0.04] to-black p-6">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#fcb415]/20 blur-3xl" />
+      <section
+        className="relative min-h-[300px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
+        style={{
+          backgroundImage:
+            "linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.82)), linear-gradient(135deg, rgba(252,180,21,.22), rgba(0,0,0,.82)), url('/visuals/story.jpg')",
+        }}
+      >
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
 
-        <div className="relative">
-          <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
-            Story Templates
-          </p>
-
-          <h1 className="mt-4 text-4xl font-black leading-tight text-white">
-            Create a BGM story
-          </h1>
-
-          <p className="mt-3 text-sm font-bold leading-6 text-white/55">
-            Choose a template, add your photo, move the logo and share it to
-            Instagram, Facebook or TikTok.
-          </p>
-        </div>
-      </section>
-
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <p className="text-xs font-black uppercase tracking-[.22em] text-[#fcb415]">
-          Choose Template
-        </p>
-
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          {templates.map((template) => (
-            <button
-              key={template.id}
-              type="button"
-              onClick={() => setSelectedTemplateId(template.id)}
-              className={`rounded-2xl px-4 py-4 text-left text-sm font-black ${
-                selectedTemplateId === template.id
-                  ? "bg-[#fcb415] text-black"
-                  : "border border-white/10 bg-black/25 text-white"
-              }`}
-            >
-              {template.label}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <div
-          ref={previewRef}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          className="relative mx-auto aspect-[9/16] w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black bg-cover bg-center shadow-2xl"
-          style={previewStyle}
-        >
-          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/80" />
-
-          <div className="absolute bottom-20 left-5 right-5">
-            <div className="inline-flex rounded-full bg-[#fcb415] px-4 py-2 text-[10px] font-black uppercase tracking-[.22em] text-black">
-              {selectedTemplate.tag}
+        <div className="relative flex min-h-[250px] flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <div className="rounded-full border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-md">
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                Story Studio
+              </p>
             </div>
 
-            <h2 className="mt-4 text-4xl font-black leading-tight text-white drop-shadow">
-              {storyTitle}
-            </h2>
-
-            <p className="mt-3 text-sm font-bold leading-6 text-white/70 drop-shadow">
-              {storySubtitle}
-            </p>
-
-            <div className="mt-5 rounded-2xl bg-black/55 px-4 py-3">
-              <p className="text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
-                Be the best... Beat the rest
-              </p>
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black/35 text-[#fcb415] backdrop-blur-md">
+              <Camera size={24} strokeWidth={3} />
             </div>
           </div>
 
-          {layers.map((layer) => (
+          <div>
+            <h1 className="text-5xl font-black leading-[0.95] text-white drop-shadow-2xl">
+              Create your BGM story
+            </h1>
+
+            <p className="mt-5 max-w-xs text-sm font-bold leading-6 text-white/70">
+              Take a photo, brand it and share it.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-[#fcb415]/25 bg-black/50 p-4 shadow-2xl">
+        <div
+          className="relative mx-auto aspect-[9/16] w-full max-w-[360px] overflow-hidden rounded-[2rem] border border-white/10 bg-cover bg-center shadow-2xl"
+          style={{
+            backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.86)), linear-gradient(135deg, rgba(252,180,21,.22), rgba(0,0,0,.50)), url('${background}')`,
+          }}
+        >
+          <div className="absolute inset-4 rounded-[1.6rem] border-2 border-[#fcb415]/80" />
+
+          <div className="absolute right-7 top-7 rounded-full bg-black/50 px-4 py-2 backdrop-blur-md">
+            <p className="text-[9px] font-black uppercase tracking-[.22em] text-[#fcb415]">
+              {badge}
+            </p>
+          </div>
+
+          {selectedSticker ? (
             <div
-              key={layer.id}
-              onPointerDown={(event) => handlePointerDown(event, layer.id)}
-              className={`absolute z-20 flex cursor-move touch-none items-center justify-center rounded-xl ${
-                selectedLayerId === layer.id ? "ring-2 ring-[#fcb415]" : ""
-              }`}
-              style={{
-                left: `${layer.x}%`,
-                top: `${layer.y}%`,
-                width: `${layer.size}%`,
-                transform: `translate(-50%, -50%) rotate(${layer.rotation}deg)`,
-              }}
+              className={`absolute rounded-2xl bg-black/45 p-2 backdrop-blur-md ${getPreviewLogoPosition(
+                stickerPosition
+              )}`}
             >
               <img
-                src={layer.src}
-                alt={layer.label}
-                draggable={false}
-                className="w-full select-none object-contain"
+                src={selectedSticker.src}
+                alt=""
+                style={{ width: `${logoSize}px`, height: `${logoSize}px` }}
+                className="object-contain"
               />
             </div>
-          ))}
+          ) : null}
+
+          <div className="absolute bottom-20 left-7 right-7">
+            <h2 className="text-4xl font-black leading-[0.95] text-white drop-shadow-2xl">
+              {title}
+            </h2>
+
+            <p className="mt-4 text-sm font-bold leading-6 text-white/70">
+              {subtitle}
+            </p>
+          </div>
+
+          <div className="absolute bottom-7 left-7 right-7 flex items-end justify-between">
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[.22em] text-[#fcb415]">
+                Be the best... Beat the rest
+              </p>
+              <p className="mt-1 text-[10px] font-bold uppercase tracking-[.18em] text-white/45">
+                BestGymsMalta
+              </p>
+            </div>
+
+            <ChevronRight className="text-[#fcb415]" size={22} strokeWidth={3} />
+          </div>
         </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={shareStory}
+            disabled={busy}
+            className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black disabled:opacity-60"
+          >
+            <Share2 size={17} strokeWidth={3} />
+            Share
+          </button>
+
+          <button
+            type="button"
+            onClick={downloadStory}
+            disabled={busy}
+            className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white disabled:opacity-60"
+          >
+            <Download size={17} strokeWidth={3} />
+            Download
+          </button>
+        </div>
+
+        <p className="mt-4 text-center text-xs font-bold leading-5 text-white/35">
+          Exports as a clean 1080x1920 Instagram story image.
+        </p>
+      </section>
+
+      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+        <div className="flex items-center gap-3">
+          <ImagePlus className="text-[#fcb415]" size={24} strokeWidth={3} />
+
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              Photo
+            </p>
+            <h2 className="mt-1 text-2xl font-black text-white">
+              Take or upload a photo
+            </h2>
+          </div>
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(event) => handleImageUpload(event.target.files?.[0])}
+        />
+
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(event) => handleImageUpload(event.target.files?.[0])}
+        />
 
         <div className="mt-5 grid grid-cols-2 gap-3">
           <button
@@ -551,7 +583,7 @@ export default function StoryCreator() {
             className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
           >
             <Camera size={17} strokeWidth={3} />
-            Camera
+            Take Photo
           </button>
 
           <button
@@ -559,184 +591,190 @@ export default function StoryCreator() {
             onClick={() => fileInputRef.current?.click()}
             className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white"
           >
-            <ImagePlus size={17} strokeWidth={3} />
-            Gallery
-          </button>
-        </div>
-
-        <input
-          ref={cameraInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="hidden"
-          onChange={(event) => handlePhotoUpload(event.target.files?.[0])}
-        />
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(event) => handlePhotoUpload(event.target.files?.[0])}
-        />
-      </section>
-
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <p className="text-xs font-black uppercase tracking-[.22em] text-[#fcb415]">
-          Custom Text
-        </p>
-
-        <div className="mt-4 grid gap-3">
-          <input
-            value={customTitle}
-            onChange={(event) => setCustomTitle(event.target.value)}
-            placeholder={selectedTemplate.title}
-            className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
-          />
-
-          <input
-            value={customSubtitle}
-            onChange={(event) => setCustomSubtitle(event.target.value)}
-            placeholder={selectedTemplate.subtitle}
-            className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
-          />
-        </div>
-      </section>
-
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <p className="text-xs font-black uppercase tracking-[.22em] text-[#fcb415]">
-          Logos & Stickers
-        </p>
-
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => addLayer("/bgm-logo.png", "BGM Logo")}
-            className="rounded-2xl border border-white/10 bg-black/25 px-4 py-4 text-sm font-black text-white"
-          >
-            BGM Logo
+            <Upload size={17} strokeWidth={3} />
+            Upload
           </button>
 
           <button
             type="button"
-            onClick={() => addLayer("/brand-logos/tsm.png", "TSM Logo")}
-            className="rounded-2xl border border-white/10 bg-black/25 px-4 py-4 text-sm font-black text-white"
+            onClick={resetPhoto}
+            className="col-span-2 flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white"
           >
-            TSM Logo
+            <RefreshCw size={17} strokeWidth={3} />
+            Use Preset Background
           </button>
         </div>
+      </section>
 
-        {gyms.length > 0 ? (
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {gyms
-              .filter((gym) => gym.logo)
-              .slice(0, 10)
-              .map((gym) => (
-                <button
-                  key={gym.id}
-                  type="button"
-                  onClick={() => addLayer(gym.logo || "", gym.name)}
-                  className="rounded-2xl border border-white/10 bg-black/25 px-4 py-4 text-left text-xs font-black text-white"
-                >
-                  {gym.name}
-                </button>
+      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+        <div className="flex items-center gap-3">
+          <Layers className="text-[#fcb415]" size={24} strokeWidth={3} />
+
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              Templates
+            </p>
+            <h2 className="mt-1 text-2xl font-black text-white">
+              Pick a story style
+            </h2>
+          </div>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          {templates.map((template) => {
+            const active = template.id === selectedTemplateId;
+
+            return (
+              <button
+                key={template.id}
+                type="button"
+                onClick={() => selectTemplate(template)}
+                className={`relative min-h-[150px] overflow-hidden rounded-[1.5rem] border bg-cover bg-center p-4 text-left transition ${
+                  active
+                    ? "border-[#fcb415] ring-2 ring-[#fcb415]/30"
+                    : "border-white/10"
+                }`}
+                style={{
+                  backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.82)), url('${template.background}')`,
+                }}
+              >
+                <div className="relative flex min-h-[118px] flex-col justify-between">
+                  <span className="w-fit rounded-full bg-[#fcb415] px-3 py-1 text-[9px] font-black uppercase tracking-[.16em] text-black">
+                    {template.badge}
+                  </span>
+
+                  <div>
+                    <h3 className="text-lg font-black leading-tight text-white">
+                      {template.name}
+                    </h3>
+                    <p className="mt-1 text-xs font-bold text-white/55">
+                      {template.mood}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+        <div className="flex items-center gap-3">
+          <Type className="text-[#fcb415]" size={24} strokeWidth={3} />
+
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              Text
+            </p>
+            <h2 className="mt-1 text-2xl font-black text-white">
+              Edit your message
+            </h2>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4">
+          <label className="grid gap-2">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+              Badge
+            </span>
+            <input
+              value={badge}
+              onChange={(event) => setBadge(event.target.value)}
+              className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold text-white outline-none placeholder:text-white/25"
+            />
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+              Main title
+            </span>
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold text-white outline-none placeholder:text-white/25"
+            />
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+              Subtitle
+            </span>
+            <textarea
+              value={subtitle}
+              onChange={(event) => setSubtitle(event.target.value)}
+              rows={3}
+              className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold leading-6 text-white outline-none placeholder:text-white/25"
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+        <div className="flex items-center gap-3">
+          <Sparkles className="text-[#fcb415]" size={24} strokeWidth={3} />
+
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              Logo Sticker
+            </p>
+            <h2 className="mt-1 text-2xl font-black text-white">
+              Brand your story
+            </h2>
+          </div>
+        </div>
+
+        <div className="mt-5 grid grid-cols-3 gap-2">
+          {brandStickers.map((sticker) => (
+            <button
+              key={sticker.id}
+              type="button"
+              onClick={() => setSelectedStickerId(sticker.id)}
+              className={`rounded-2xl border p-3 text-xs font-black transition ${
+                sticker.id === selectedStickerId
+                  ? "border-[#fcb415] bg-[#fcb415] text-black"
+                  : "border-white/10 bg-black/25 text-white/60"
+              }`}
+            >
+              {sticker.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-5 grid gap-4">
+          <label className="grid gap-2">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+              Sticker position
+            </span>
+
+            <select
+              value={stickerPosition}
+              onChange={(event) => setStickerPosition(event.target.value)}
+              className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold text-white outline-none"
+            >
+              {stickerPositions.map((position) => (
+                <option key={position.id} value={position.id}>
+                  {position.label}
+                </option>
               ))}
-          </div>
-        ) : null}
+            </select>
+          </label>
 
-        {selectedLayer ? (
-          <div className="mt-5 rounded-2xl border border-[#fcb415]/30 bg-[#fcb415]/10 p-4">
-            <div className="flex items-center gap-2">
-              <Move className="text-[#fcb415]" size={18} strokeWidth={3} />
-              <p className="text-sm font-black text-white">
-                Editing: {selectedLayer.label}
-              </p>
-            </div>
+          <label className="grid gap-2">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+              Sticker size
+            </span>
 
-            <div className="mt-4 grid grid-cols-4 gap-2">
-              <button
-                type="button"
-                onClick={() =>
-                  updateSelectedLayer({
-                    size: Math.max(8, selectedLayer.size - 3),
-                  })
-                }
-                className="rounded-full border border-white/10 bg-black/25 py-3 text-sm font-black text-white"
-              >
-                -
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  updateSelectedLayer({
-                    size: Math.min(48, selectedLayer.size + 3),
-                  })
-                }
-                className="rounded-full border border-white/10 bg-black/25 py-3 text-sm font-black text-white"
-              >
-                +
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  updateSelectedLayer({
-                    rotation: selectedLayer.rotation + 15,
-                  })
-                }
-                className="flex items-center justify-center rounded-full border border-white/10 bg-black/25 py-3 text-white"
-              >
-                <RotateCw size={16} strokeWidth={3} />
-              </button>
-
-              <button
-                type="button"
-                onClick={deleteSelectedLayer}
-                className="flex items-center justify-center rounded-full border border-red-500/30 bg-red-500/10 py-3 text-red-300"
-              >
-                <Trash2 size={16} strokeWidth={3} />
-              </button>
-            </div>
-          </div>
-        ) : null}
+            <input
+              type="range"
+              min="56"
+              max="130"
+              value={logoSize}
+              onChange={(event) => setLogoSize(Number(event.target.value))}
+              className="accent-[#fcb415]"
+            />
+          </label>
+        </div>
       </section>
-
-      <section className="grid grid-cols-2 gap-3">
-        <button
-          type="button"
-          onClick={shareStory}
-          className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
-        >
-          <Share2 size={17} strokeWidth={3} />
-          Share
-        </button>
-
-        <button
-          type="button"
-          onClick={downloadStory}
-          className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white"
-        >
-          <Download size={17} strokeWidth={3} />
-          Download
-        </button>
-
-        <button
-          type="button"
-          onClick={resetStory}
-          className="col-span-2 flex items-center justify-center gap-2 rounded-full border border-white/10 bg-black/25 px-5 py-4 text-sm font-black text-white"
-        >
-          <Sparkles size={17} strokeWidth={3} />
-          Reset Story
-        </button>
-      </section>
-
-      {status ? (
-        <p className="text-center text-sm font-bold leading-6 text-white/50">
-          {status}
-        </p>
-      ) : null}
     </div>
   );
 }
