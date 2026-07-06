@@ -11,6 +11,7 @@ import {
   Phone,
   RefreshCw,
   Sparkles,
+  Box,
 } from "lucide-react";
 
 type Gym = {
@@ -30,6 +31,8 @@ type Gym = {
   logo?: string;
   coverImage?: string;
   cover_image?: string;
+  virtualTourUrl?: string;
+  virtual_tour_url?: string;
   facilities?: string[];
   classes?: string[];
   featuredEquipment?: string[];
@@ -66,6 +69,28 @@ function getCoverImage(gym: Gym) {
 
 function getFeaturedEquipment(gym: Gym) {
   return gym.featuredEquipment || gym.featured_equipment || [];
+}
+
+
+const gymTourLinks: Record<string, string> = {
+  "bgm-talqroqq": "https://my.matterport.com/show/?m=mcqf1r934fB&play=1&qs=1",
+  "bgm-birkirkara": "https://my.matterport.com/show/?m=yo8dbfqbqHQ&play=1&qs=1",
+  "bgm-birzebbuga": "https://my.matterport.com/show/?m=6qK39DQ1379&play=1&qs=1",
+  "bgm-build": "https://my.matterport.com/show/?m=ffCPVyFjR3P&play=1&qs=1",
+  "bgm-kirkop": "https://my.matterport.com/show/?m=ZQRMmgRHk6G&play=1&qs=1",
+  "bgm-marsa": "https://my.matterport.com/show/?m=xceozbh8LwW&play=1&qs=1",
+  "bgm-neptunes": "https://my.matterport.com/show/?m=gLS3C2Gi5cF&play=1&qs=1",
+  "bgm-pembroke": "https://my.matterport.com/show/?m=Pgd6FYMgZ2t&play=1&qs=1",
+  "bgm-sliema": "https://my.matterport.com/show/?m=RXM25JipdP9&play=1&qs=1",
+};
+
+function getVirtualTourUrl(gym: Gym) {
+  return (
+    gym.virtualTourUrl ||
+    gym.virtual_tour_url ||
+    gymTourLinks[gym.id] ||
+    ""
+  );
 }
 
 function getMapsUrl(gym: Gym) {
@@ -149,6 +174,7 @@ export default function LiveGymDetailPage(props: {
   }
 
   const openingHours = getOpeningHours(gym);
+  const tourUrl = getVirtualTourUrl(gym);
 
   return (
     <div className="space-y-6">
@@ -208,15 +234,29 @@ export default function LiveGymDetailPage(props: {
               {gym.address || gym.city || "BestGymsMalta location"}
             </p>
 
-            <a
-              href={getMapsUrl(gym)}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-6 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
-            >
-              <Navigation size={17} strokeWidth={3} />
-              Open Directions
-            </a>
+            <div className="mt-6 grid gap-3">
+              <a
+                href={getMapsUrl(gym)}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+              >
+                <Navigation size={17} strokeWidth={3} />
+                Open Directions
+              </a>
+
+              {tourUrl ? (
+                <a
+                  href={tourUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-4 text-sm font-black text-white backdrop-blur-md"
+                >
+                  <Box size={18} strokeWidth={3} />
+                  Start 3D Virtual Tour
+                </a>
+              ) : null}
+            </div>
           </div>
         </div>
       </section>

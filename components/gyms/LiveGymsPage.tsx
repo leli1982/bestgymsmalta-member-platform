@@ -9,6 +9,7 @@ import {
   Navigation,
   RefreshCw,
   Search,
+  Box,
 } from "lucide-react";
 
 type Gym = {
@@ -28,6 +29,8 @@ type Gym = {
   logo?: string;
   coverImage?: string;
   cover_image?: string;
+  virtualTourUrl?: string;
+  virtual_tour_url?: string;
   facilities?: string[];
   classes?: string[];
   featuredEquipment?: string[];
@@ -58,6 +61,28 @@ function getCoverImage(gym: Gym) {
     gym.cover_image ||
     gymCoverImages[gym.id] ||
     "/visuals/gyms.jpg"
+  );
+}
+
+
+const gymTourLinks: Record<string, string> = {
+  "bgm-talqroqq": "https://my.matterport.com/show/?m=mcqf1r934fB&play=1&qs=1",
+  "bgm-birkirkara": "https://my.matterport.com/show/?m=yo8dbfqbqHQ&play=1&qs=1",
+  "bgm-birzebbuga": "https://my.matterport.com/show/?m=6qK39DQ1379&play=1&qs=1",
+  "bgm-build": "https://my.matterport.com/show/?m=ffCPVyFjR3P&play=1&qs=1",
+  "bgm-kirkop": "https://my.matterport.com/show/?m=ZQRMmgRHk6G&play=1&qs=1",
+  "bgm-marsa": "https://my.matterport.com/show/?m=xceozbh8LwW&play=1&qs=1",
+  "bgm-neptunes": "https://my.matterport.com/show/?m=gLS3C2Gi5cF&play=1&qs=1",
+  "bgm-pembroke": "https://my.matterport.com/show/?m=Pgd6FYMgZ2t&play=1&qs=1",
+  "bgm-sliema": "https://my.matterport.com/show/?m=RXM25JipdP9&play=1&qs=1",
+};
+
+function getVirtualTourUrl(gym: Gym) {
+  return (
+    gym.virtualTourUrl ||
+    gym.virtual_tour_url ||
+    gymTourLinks[gym.id] ||
+    ""
   );
 }
 
@@ -208,6 +233,7 @@ export default function LiveGymsPage() {
       <section className="space-y-5">
         {filteredGyms.map((gym) => {
           const openingHours = getOpeningHours(gym);
+          const tourUrl = getVirtualTourUrl(gym);
 
           return (
             <article
@@ -299,6 +325,18 @@ export default function LiveGymsPage() {
                     Directions
                   </a>
                 </div>
+
+                {tourUrl ? (
+                  <a
+                    href={tourUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 flex items-center justify-center gap-2 rounded-full border border-[#fcb415]/30 bg-[#fcb415]/10 px-5 py-4 text-sm font-black text-[#fcb415]"
+                  >
+                    <Box size={18} strokeWidth={3} />
+                    Explore 3D Virtual Tour
+                  </a>
+                ) : null}
               </div>
             </article>
           );
