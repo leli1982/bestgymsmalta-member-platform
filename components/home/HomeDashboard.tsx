@@ -18,7 +18,7 @@ export default function HomeDashboard() {
       <DashboardStats />
 
       <div>
-        <p className="mb-3 text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+        <p className="mb-3 text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
           Quick Actions
         </p>
 

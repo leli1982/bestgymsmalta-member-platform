@@ -355,8 +355,8 @@ export default function AiTrainer() {
 
   if (!member) {
     return (
-      <section className="rounded-[2rem] border border-orange-500/30 bg-orange-500/10 p-6 text-center">
-        <div className="mx-auto h-28 w-28 overflow-hidden rounded-full border-2 border-orange-500/40 bg-black/40 shadow-2xl">
+      <section className="rounded-[2rem] border border-[#fcb415]/30 bg-[#fcb415]/10 p-6 text-center">
+        <div className="mx-auto h-28 w-28 overflow-hidden rounded-full border-2 border-[#fcb415]/40 bg-black/40 shadow-2xl">
           <img
             src="/bgm-trainer-icon.png"
             alt="BGM AI Trainer Login"
@@ -370,7 +370,7 @@ export default function AiTrainer() {
 
         <a
           href="/member-login"
-          className="mt-5 flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+          className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
         >
           <LogIn size={17} strokeWidth={3} />
           Login / Activate
@@ -381,10 +381,10 @@ export default function AiTrainer() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-orange-500/25 via-white/[0.04] to-black p-6">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-orange-500/20 blur-3xl" />
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#fcb415]/25 via-white/[0.04] to-black p-6">
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#fcb415]/20 blur-3xl" />
 
-        <div className="absolute right-5 top-5 z-10 h-24 w-24 overflow-hidden rounded-full border-2 border-orange-500/40 bg-black/40 shadow-2xl">
+        <div className="absolute right-5 top-5 z-10 h-24 w-24 overflow-hidden rounded-full border-2 border-[#fcb415]/40 bg-black/40 shadow-2xl">
           <img
             src="/bgm-trainer-icon.png"
             alt="BGM AI Trainer"
@@ -393,7 +393,7 @@ export default function AiTrainer() {
         </div>
 
         <div className="relative pr-24">
-          <p className="text-xs font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
             AI Trainer
           </p>
 
@@ -512,7 +512,7 @@ export default function AiTrainer() {
             <button
               type="button"
               onClick={generatePlan}
-              className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+              className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
             >
               <Sparkles size={17} strokeWidth={3} />
               Generate
@@ -533,7 +533,7 @@ export default function AiTrainer() {
       {plan ? (
         <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
           <div className="flex items-start gap-3">
-            <Dumbbell className="mt-1 text-orange-500" size={25} strokeWidth={3} />
+            <Dumbbell className="mt-1 text-[#fcb415]" size={25} strokeWidth={3} />
             <div>
               <h2 className="text-2xl font-black text-white">{plan.title}</h2>
               <p className="mt-2 text-sm font-bold leading-6 text-white/50">
@@ -548,7 +548,7 @@ export default function AiTrainer() {
                 key={day.title}
                 className="rounded-2xl border border-white/10 bg-black/25 p-4"
               >
-                <p className="text-xs font-black uppercase tracking-[.18em] text-orange-500">
+                <p className="text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
                   {day.title}
                 </p>
                 <h3 className="mt-2 text-lg font-black text-white">
@@ -569,8 +569,8 @@ export default function AiTrainer() {
             ))}
           </div>
 
-          <div className="mt-5 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4">
-            <p className="text-xs font-black uppercase tracking-[.18em] text-orange-500">
+          <div className="mt-5 rounded-2xl border border-[#fcb415]/30 bg-[#fcb415]/10 p-4">
+            <p className="text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
               Coach Notes
             </p>
             <div className="mt-3 grid gap-2">
@@ -586,7 +586,7 @@ export default function AiTrainer() {
             <button
               type="button"
               onClick={savePlan}
-              className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+              className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
             >
               <Save size={17} strokeWidth={3} />
               Save My Plan
@@ -606,7 +606,7 @@ export default function AiTrainer() {
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
         <div className="flex items-center gap-3">
-          <MessageCircle className="text-orange-500" size={24} strokeWidth={3} />
+          <MessageCircle className="text-[#fcb415]" size={24} strokeWidth={3} />
           <h2 className="text-2xl font-black text-white">Ask the Trainer</h2>
         </div>
 
@@ -621,7 +621,7 @@ export default function AiTrainer() {
           <button
             type="button"
             onClick={askTrainer}
-            className="rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+            className="rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
           >
             Ask
           </button>

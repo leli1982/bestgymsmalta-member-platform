@@ -16,7 +16,7 @@ export default function ChallengeCard({
       href={href}
       className="block rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 transition hover:bg-white/[0.07] active:scale-[0.98]"
     >
-      <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+      <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
         Fitness Focus
       </p>
 
@@ -24,7 +24,7 @@ export default function ChallengeCard({
 
       <p className="mt-2 text-sm leading-6 text-white/55">{description}</p>
 
-      <p className="mt-4 text-sm font-black text-orange-500">{detail}</p>
+      <p className="mt-4 text-sm font-black text-[#fcb415]">{detail}</p>
     </a>
   );
 }

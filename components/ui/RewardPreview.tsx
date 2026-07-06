@@ -16,11 +16,11 @@ export default function PassportProgressPreview({
   return (
     <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
       <div className="flex items-center gap-3">
-        <div className="rounded-2xl bg-orange-500/10 p-3 text-orange-500">
+        <div className="rounded-2xl bg-[#fcb415]/10 p-3 text-[#fcb415]">
           <MapPinned size={22} strokeWidth={3} />
         </div>
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
             Passport
           </p>
           <h2 className="mt-1 text-xl font-black text-white">{title}</h2>
@@ -29,7 +29,7 @@ export default function PassportProgressPreview({
 
       <div className="mt-5 h-3 overflow-hidden rounded-full bg-white/10">
         <div
-          className="h-full rounded-full bg-orange-500"
+          className="h-full rounded-full bg-[#fcb415]"
           style={{ width: `${progress}%` }}
         />
       </div>

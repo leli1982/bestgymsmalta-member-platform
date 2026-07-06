@@ -15,7 +15,7 @@ export default function GlassPanel({
     section: "p-6",
     hero: "p-7 min-h-[260px]",
     compact: "p-4",
-    highlight: "p-6 orange-halo",
+    highlight: "p-6 gold-halo",
   };
 
   return (

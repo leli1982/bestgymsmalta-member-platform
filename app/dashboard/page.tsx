@@ -26,7 +26,7 @@ export default function DashboardPage() {
     <AppShell>
       <div className="space-y-6">
         <div>
-          <p className="text-sm font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-sm font-black uppercase tracking-[.25em] text-[#fcb415]">
             Dashboard
           </p>
           <h1 className="mt-2 text-3xl font-black text-white">
@@ -61,7 +61,7 @@ export default function DashboardPage() {
         </div>
 
         <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
             Current Goal
           </p>
           <h2 className="mt-2 text-2xl font-black text-white">
@@ -69,7 +69,7 @@ export default function DashboardPage() {
           </h2>
           <div className="mt-5 h-3 overflow-hidden rounded-full bg-white/10">
             <div
-              className="h-full rounded-full bg-orange-500"
+              className="h-full rounded-full bg-[#fcb415]"
               style={{ width: `${currentMember.fitness.currentGoal.progress}%` }}
             />
           </div>

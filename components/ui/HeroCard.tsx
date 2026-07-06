@@ -15,9 +15,9 @@ export default function HeroCard({
 }: HeroCardProps) {
   return (
     <section
-      className={`relative min-h-[430px] overflow-hidden rounded-[2rem] border border-orange-500/60 bg-zinc-950 p-6 shadow-[0_0_35px_rgba(249,115,22,0.25)] ${className}`}
+      className={`relative min-h-[430px] overflow-hidden rounded-[2rem] border border-[#fcb415]/60 bg-zinc-950 p-6 shadow-[0_0_35px_rgba(252,180,21,0.25)] ${className}`}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_45%,rgba(249,115,22,0.55),transparent_38%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_45%,rgba(252,180,21,0.55),transparent_38%)]" />
 
       {imageSrc && (
         <img

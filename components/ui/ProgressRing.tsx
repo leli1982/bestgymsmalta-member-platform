@@ -22,10 +22,10 @@ export default function ProgressRing({
 
   return (
     <div
-      className="relative flex items-center justify-center rounded-full bg-black/60 shadow-[0_0_35px_rgba(249,115,22,0.18)]"
+      className="relative flex items-center justify-center rounded-full bg-black/60 shadow-[0_0_35px_rgba(252,180,21,0.18)]"
       style={{ width: size, height: size }}
     >
-      <div className="absolute inset-2 rounded-full bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.16),transparent_58%)]" />
+      <div className="absolute inset-2 rounded-full bg-[radial-gradient(circle_at_center,rgba(252,180,21,0.16),transparent_58%)]" />
 
       <motion.div
         className="absolute inset-0 rounded-full border border-primary/20"
@@ -47,7 +47,7 @@ export default function ProgressRing({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="#F97316"
+          stroke="#fcb415"
           strokeWidth={stroke}
           fill="transparent"
           strokeLinecap="round"
@@ -56,7 +56,7 @@ export default function ProgressRing({
           animate={{ strokeDashoffset: offset }}
           transition={{ duration: 1.2, ease: "easeOut" }}
           style={{
-            filter: "drop-shadow(0 0 14px rgba(249,115,22,.85))",
+            filter: "drop-shadow(0 0 14px rgba(252,180,21,.85))",
           }}
         />
 
@@ -65,7 +65,7 @@ export default function ProgressRing({
           cy={stroke / 2}
           r={stroke / 3}
           fill="#FB923C"
-          className="drop-shadow-[0_0_8px_rgba(249,115,22,0.9)]"
+          className="drop-shadow-[0_0_8px_rgba(252,180,21,0.9)]"
         />
       </svg>
 

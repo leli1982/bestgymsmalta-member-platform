@@ -17,7 +17,7 @@ export default function CheckInPage() {
     <AppShell>
       <div className="space-y-6">
         <div>
-          <p className="text-sm font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-sm font-black uppercase tracking-[.25em] text-[#fcb415]">
             Check In
           </p>
           <h1 className="mt-2 text-3xl font-black text-white">
@@ -29,8 +29,8 @@ export default function CheckInPage() {
           </p>
         </div>
 
-        <div className="rounded-[2rem] border border-orange-500/25 bg-orange-500/10 p-6 text-center">
-          <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-[2rem] border border-orange-500/40 bg-black/40 text-orange-500">
+        <div className="rounded-[2rem] border border-[#fcb415]/25 bg-[#fcb415]/10 p-6 text-center">
+          <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-[2rem] border border-[#fcb415]/40 bg-black/40 text-[#fcb415]">
             <QrCode size={56} strokeWidth={3} />
           </div>
 
@@ -41,7 +41,7 @@ export default function CheckInPage() {
             This will later connect to the real gym QR/NFC check-in system.
           </p>
 
-          <button className="mt-6 w-full rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black">
+          <button className="mt-6 w-full rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black">
             Start Check-In
           </button>
         </div>
@@ -57,7 +57,7 @@ export default function CheckInPage() {
             href="/passport"
             className="flex items-center gap-3 rounded-3xl border border-white/10 bg-white/[0.04] p-5"
           >
-            <MapPinned className="text-orange-500" size={24} strokeWidth={3} />
+            <MapPinned className="text-[#fcb415]" size={24} strokeWidth={3} />
             <div>
               <p className="font-black text-white">Open Passport</p>
               <p className="text-sm text-white/45">
@@ -70,7 +70,7 @@ export default function CheckInPage() {
             href="/story"
             className="flex items-center gap-3 rounded-3xl border border-white/10 bg-white/[0.04] p-5"
           >
-            <Camera className="text-orange-500" size={24} strokeWidth={3} />
+            <Camera className="text-[#fcb415]" size={24} strokeWidth={3} />
             <div>
               <p className="font-black text-white">Create Story</p>
               <p className="text-sm text-white/45">
@@ -80,7 +80,7 @@ export default function CheckInPage() {
           </a>
 
           <div className="flex items-center gap-3 rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-            <ShieldCheck className="text-orange-500" size={24} strokeWidth={3} />
+            <ShieldCheck className="text-[#fcb415]" size={24} strokeWidth={3} />
             <div>
               <p className="font-black text-white">NFC-ready</p>
               <p className="text-sm text-white/45">

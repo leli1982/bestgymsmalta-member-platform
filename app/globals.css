@@ -9,9 +9,9 @@
   --card: #121212;
   --card-2: #1a1a1a;
 
-  --primary: #f97316;
+  --primary: #fcb415;
   --primary-light: #fb923c;
-  --primary-glow: rgba(249, 115, 22, 0.45);
+  --primary-glow: rgba(252,180,21, 0.45);
 
   --text: #ffffff;
   --muted: #9ca3af;
@@ -46,22 +46,22 @@ body {
 
 .story-gradient {
   background:
-    radial-gradient(circle at top left, rgba(249, 115, 22, 0.22), transparent 34%),
+    radial-gradient(circle at top left, rgba(252,180,21, 0.22), transparent 34%),
     radial-gradient(circle at bottom right, rgba(255, 49, 49, 0.18), transparent 40%),
     linear-gradient(145deg, #111, #050505);
 }
 
 .bgm-pattern {
   background-image:
-    radial-gradient(circle at 1px 1px, rgba(249, 115, 22, 0.18) 1px, transparent 0),
-    radial-gradient(circle at center, rgba(249, 115, 22, 0.06), transparent 55%);
+    radial-gradient(circle at 1px 1px, rgba(252,180,21, 0.18) 1px, transparent 0),
+    radial-gradient(circle at center, rgba(252,180,21, 0.06), transparent 55%);
   background-size: 32px 32px, 100% 100%;
 }
 
 .bgm-soft-glow {
   background:
-    radial-gradient(circle at top right, rgba(249, 115, 22, 0.18), transparent 35%),
-    radial-gradient(circle at bottom left, rgba(249, 115, 22, 0.08), transparent 30%);
+    radial-gradient(circle at top right, rgba(252,180,21, 0.18), transparent 35%),
+    radial-gradient(circle at bottom left, rgba(252,180,21, 0.08), transparent 30%);
 }
 .premium-surface {
   position: relative;
@@ -69,7 +69,7 @@ body {
   border-radius: 32px;
   background:
     linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.025)),
-    radial-gradient(circle at top right, rgba(249,115,22,0.16), transparent 38%);
+    radial-gradient(circle at top right, rgba(252,180,21,0.16), transparent 38%);
   border: 1px solid rgba(255,255,255,0.1);
   box-shadow:
     0 18px 60px rgba(0,0,0,0.55),
@@ -97,10 +97,10 @@ body {
   opacity: 1;
 }
 
-.orange-halo {
+.gold-halo {
   box-shadow:
-    0 0 30px rgba(249,115,22,0.30),
-    0 0 80px rgba(249,115,22,0.12);
+    0 0 30px rgba(252,180,21,0.30),
+    0 0 80px rgba(252,180,21,0.12);
 }
 
 .icon-token {
@@ -108,10 +108,10 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 18px;
-  background: rgba(249,115,22,0.10);
-  color: #f97316;
-  border: 1px solid rgba(249,115,22,0.22);
-  box-shadow: 0 0 24px rgba(249,115,22,0.18);
+  background: rgba(252,180,21,0.10);
+  color: #fcb415;
+  border: 1px solid rgba(252,180,21,0.22);
+  box-shadow: 0 0 24px rgba(252,180,21,0.18);
 }
 
 .luxury-section-title {
@@ -126,5 +126,28 @@ body {
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.28em;
-  color: #f97316;
+  color: #fcb415;
+}
+/* BGM premium gold polish */
+:root {
+  --bgm-gold: #fcb415;
+  --bgm-gold-rgb: 252, 180, 21;
+}
+
+html,
+body {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(var(--bgm-gold-rgb), 0.16), transparent 28rem),
+    radial-gradient(circle at 92% 16%, rgba(var(--bgm-gold-rgb), 0.10), transparent 24rem),
+    radial-gradient(circle at 50% 100%, rgba(var(--bgm-gold-rgb), 0.06), transparent 22rem),
+    linear-gradient(180deg, #090909 0%, #050505 100%);
+}
+
+body {
+  color: white;
+}
+
+::selection {
+  background: var(--bgm-gold);
+  color: black;
 }

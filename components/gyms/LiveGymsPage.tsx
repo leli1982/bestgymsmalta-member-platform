@@ -26,7 +26,7 @@ function GymCard({ gym }: { gym: Gym }) {
             <h2 className="text-2xl font-black text-white">{gym.name}</h2>
 
             {gym.status === "coming_soon" ? (
-              <span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[.18em] text-orange-500">
+              <span className="rounded-full border border-[#fcb415]/30 bg-[#fcb415]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[.18em] text-[#fcb415]">
                 Coming Soon
               </span>
             ) : (
@@ -38,7 +38,7 @@ function GymCard({ gym }: { gym: Gym }) {
 
           <p className="mt-3 flex items-start gap-2 text-sm font-bold leading-5 text-white/55">
             <MapPinned
-              className="mt-0.5 shrink-0 text-orange-500"
+              className="mt-0.5 shrink-0 text-[#fcb415]"
               size={16}
               strokeWidth={3}
             />
@@ -47,7 +47,7 @@ function GymCard({ gym }: { gym: Gym }) {
 
           <p className="mt-3 flex items-start gap-2 text-sm font-bold leading-5 text-white/55">
             <Clock
-              className="mt-0.5 shrink-0 text-orange-500"
+              className="mt-0.5 shrink-0 text-[#fcb415]"
               size={16}
               strokeWidth={3}
             />
@@ -86,7 +86,7 @@ function GymCard({ gym }: { gym: Gym }) {
           href={mapsUrl}
           target="_blank"
           rel="noreferrer"
-          className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-3 text-sm font-black text-black transition active:scale-95"
+          className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-4 py-3 text-sm font-black text-black transition active:scale-95"
         >
           <Navigation size={17} strokeWidth={3} />
           Maps
@@ -132,9 +132,9 @@ export default function LiveGymsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-orange-500/20 via-white/[0.04] to-black p-6">
-        <div className="inline-flex rounded-full border border-orange-500/30 bg-orange-500/10 px-4 py-2">
-          <p className="text-xs font-black uppercase tracking-[.2em] text-orange-500">
+      <section className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#fcb415]/20 via-white/[0.04] to-black p-6">
+        <div className="inline-flex rounded-full border border-[#fcb415]/30 bg-[#fcb415]/10 px-4 py-2">
+          <p className="text-xs font-black uppercase tracking-[.2em] text-[#fcb415]">
             Gym Locations
           </p>
         </div>
@@ -161,7 +161,7 @@ export default function LiveGymsPage() {
       {!loading && activeGyms.length > 0 ? (
         <section className="space-y-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
               Active Locations
             </p>
             <h2 className="mt-2 text-2xl font-black text-white">
@@ -180,7 +180,7 @@ export default function LiveGymsPage() {
       {!loading && comingSoonGyms.length > 0 ? (
         <section className="space-y-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
               Coming Soon
             </p>
             <h2 className="mt-2 text-2xl font-black text-white">

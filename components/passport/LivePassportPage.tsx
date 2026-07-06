@@ -53,11 +53,11 @@ export default function LivePassportPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-orange-500/25 via-white/[0.04] to-black p-6">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-orange-500/20 blur-3xl" />
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#fcb415]/25 via-white/[0.04] to-black p-6">
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#fcb415]/20 blur-3xl" />
 
         <div className="relative">
-          <p className="text-xs font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
             BGM Passport
           </p>
 
@@ -77,14 +77,14 @@ export default function LivePassportPage() {
                   ? `${member.fullName || member.username}'s progress`
                   : "Passport progress"}
               </p>
-              <p className="text-sm font-black text-orange-500">
+              <p className="text-sm font-black text-[#fcb415]">
                 {visitedGymIds.length}/{activeGyms.length}
               </p>
             </div>
 
             <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/10">
               <div
-                className="h-full rounded-full bg-orange-500"
+                className="h-full rounded-full bg-[#fcb415]"
                 style={{ width: `${completion}%` }}
               />
             </div>
@@ -106,7 +106,7 @@ export default function LivePassportPage() {
       ) : null}
 
       {!loading && !member ? (
-        <section className="rounded-[2rem] border border-orange-500/30 bg-orange-500/10 p-5 text-center">
+        <section className="rounded-[2rem] border border-[#fcb415]/30 bg-[#fcb415]/10 p-5 text-center">
           <h2 className="text-2xl font-black text-white">
             Login to use your passport
           </h2>
@@ -116,7 +116,7 @@ export default function LivePassportPage() {
           </p>
           <a
             href="/member-login"
-            className="mt-5 flex items-center justify-center rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+            className="mt-5 flex items-center justify-center rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
           >
             Login / Activate
           </a>
@@ -133,7 +133,7 @@ export default function LivePassportPage() {
                 key={gym.id}
                 className={`rounded-[2rem] border p-5 ${
                   visited
-                    ? "border-orange-500/40 bg-orange-500/10"
+                    ? "border-[#fcb415]/40 bg-[#fcb415]/10"
                     : "border-white/10 bg-white/[0.04]"
                 }`}
               >
@@ -142,7 +142,7 @@ export default function LivePassportPage() {
                     <div
                       className={`flex h-14 w-14 items-center justify-center rounded-2xl ${
                         visited
-                          ? "bg-orange-500 text-black"
+                          ? "bg-[#fcb415] text-black"
                           : "bg-black/30 text-white/35"
                       }`}
                     >
@@ -175,7 +175,7 @@ export default function LivePassportPage() {
                 {!visited ? (
                   <a
                     href={`/scan-gym-qr?gymId=${gym.id}`}
-                    className="mt-4 flex items-center justify-center rounded-full bg-orange-500 px-5 py-3 text-sm font-black text-black"
+                    className="mt-4 flex items-center justify-center rounded-full bg-[#fcb415] px-5 py-3 text-sm font-black text-black"
                   >
                     Scan Gym QR
                   </a>
@@ -188,7 +188,7 @@ export default function LivePassportPage() {
 
       {!loading && comingSoonGyms.length > 0 ? (
         <section className="space-y-3">
-          <p className="text-xs font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
             Future Stamps
           </p>
 

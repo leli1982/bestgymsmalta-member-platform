@@ -52,7 +52,7 @@ export default function LiveUpdates() {
   return (
     <section className="space-y-3">
       <div>
-        <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+        <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
           BGM Updates
         </p>
         <h2 className="mt-2 text-2xl font-black text-white">
@@ -74,13 +74,13 @@ export default function LiveUpdates() {
           ) : null}
 
           <div className="p-5">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-2">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#fcb415]/30 bg-[#fcb415]/10 px-3 py-2">
               <Megaphone
                 size={15}
                 strokeWidth={3}
-                className="text-orange-500"
+                className="text-[#fcb415]"
               />
-              <p className="text-[10px] font-black uppercase tracking-[.18em] text-orange-500">
+              <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#fcb415]">
                 {item.category || "Update"}
               </p>
             </div>
@@ -96,7 +96,7 @@ export default function LiveUpdates() {
                 href={item.button_url}
                 target={item.button_url.startsWith("http") ? "_blank" : undefined}
                 rel={item.button_url.startsWith("http") ? "noreferrer" : undefined}
-                className="mt-5 inline-flex rounded-full bg-orange-500 px-5 py-3 text-sm font-black text-black"
+                className="mt-5 inline-flex rounded-full bg-[#fcb415] px-5 py-3 text-sm font-black text-black"
               >
                 {item.button_text}
               </a>

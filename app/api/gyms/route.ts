@@ -18,7 +18,7 @@ function dbGymToAppGym(gym: any) {
     phone: gym.phone || "",
     email: gym.email || "",
     logo: gym.logo || "",
-    accentColor: gym.accent_color || "#F97316",
+    accentColor: gym.accent_color || "#fcb415",
     qrCodeId: gym.qr_code_id || gym.id,
     facilities: gym.facilities || [],
     classes: gym.classes || [],

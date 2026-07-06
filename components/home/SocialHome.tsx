@@ -95,14 +95,14 @@ export default function SocialHome() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-orange-500/25 via-white/[0.04] to-black p-6">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-orange-500/20 blur-3xl" />
-        <div className="absolute -bottom-24 left-6 h-56 w-56 rounded-full bg-orange-500/10 blur-3xl" />
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#fcb415]/25 via-white/[0.04] to-black p-6">
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#fcb415]/20 blur-3xl" />
+        <div className="absolute -bottom-24 left-6 h-56 w-56 rounded-full bg-[#fcb415]/10 blur-3xl" />
 
         <div className="relative">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[.22em] text-orange-500">
+              <p className="text-xs font-black uppercase tracking-[.22em] text-[#fcb415]">
                 BestGymsMalta
               </p>
 
@@ -137,9 +137,9 @@ export default function SocialHome() {
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
         <div className="flex items-center gap-3">
-          <Dumbbell className="text-orange-500" size={25} strokeWidth={3} />
+          <Dumbbell className="text-[#fcb415]" size={25} strokeWidth={3} />
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
               Quick Links
             </p>
             <h2 className="mt-1 text-2xl font-black text-white">
@@ -165,7 +165,7 @@ export default function SocialHome() {
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-500">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fcb415]/10 text-[#fcb415]">
                     <Icon size={24} strokeWidth={3} />
                   </div>
 
@@ -190,9 +190,9 @@ export default function SocialHome() {
       </section>
 
       <footer className="rounded-[2rem] border border-white/10 bg-black/25 p-6 text-center">
-        <Sparkles className="mx-auto text-orange-500" size={30} strokeWidth={3} />
+        <Sparkles className="mx-auto text-[#fcb415]" size={30} strokeWidth={3} />
 
-        <p className="mt-4 text-xs font-black uppercase tracking-[.25em] text-orange-500">
+        <p className="mt-4 text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
           Be the best... Beat the rest
         </p>
 

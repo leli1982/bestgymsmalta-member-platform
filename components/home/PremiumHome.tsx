@@ -23,7 +23,7 @@ function MiniStat({
 }) {
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-      <div className="text-orange-500">{icon}</div>
+      <div className="text-[#fcb415]">{icon}</div>
       <p className="mt-3 text-2xl font-black text-white">{value}</p>
       <p className="mt-1 text-xs font-black uppercase tracking-[.18em] text-white/35">
         {label}
@@ -49,7 +49,7 @@ function JourneyItem({
         </p>
         <p className="mt-1 font-black text-white">{title}</p>
       </div>
-      <p className="text-sm font-black text-orange-500">{detail}</p>
+      <p className="text-sm font-black text-[#fcb415]">{detail}</p>
     </div>
   );
 }
@@ -57,9 +57,9 @@ function JourneyItem({
 export default function PremiumHome() {
   return (
     <div className="space-y-6">
-      <section className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-orange-500/20 via-white/[0.04] to-black p-6">
-        <div className="inline-flex rounded-full border border-orange-500/30 bg-orange-500/10 px-4 py-2">
-          <p className="text-xs font-black uppercase tracking-[.2em] text-orange-500">
+      <section className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#fcb415]/20 via-white/[0.04] to-black p-6">
+        <div className="inline-flex rounded-full border border-[#fcb415]/30 bg-[#fcb415]/10 px-4 py-2">
+          <p className="text-xs font-black uppercase tracking-[.2em] text-[#fcb415]">
             Active Membership
           </p>
         </div>
@@ -87,7 +87,7 @@ export default function PremiumHome() {
               </p>
             </div>
 
-            <div className="rounded-2xl bg-orange-500 p-3 text-black">
+            <div className="rounded-2xl bg-[#fcb415] p-3 text-black">
               <ShieldCheck size={28} strokeWidth={3} />
             </div>
           </div>
@@ -108,7 +108,7 @@ export default function PremiumHome() {
       </div>
 
       <section>
-        <p className="mb-3 text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+        <p className="mb-3 text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
           Quick Actions
         </p>
 
@@ -158,7 +158,7 @@ export default function PremiumHome() {
       </section>
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+        <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
           Member Journey
         </p>
         <h2 className="mt-2 text-2xl font-black text-white">

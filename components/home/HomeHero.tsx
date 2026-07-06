@@ -2,9 +2,9 @@ import { Camera, CreditCard, MapPinned } from "lucide-react";
 
 export default function HomeHero() {
   return (
-    <section className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-orange-500/20 via-white/[0.04] to-black p-6">
-      <div className="inline-flex rounded-full border border-orange-500/30 bg-orange-500/10 px-4 py-2">
-        <p className="text-xs font-black uppercase tracking-[.2em] text-orange-500">
+    <section className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#fcb415]/20 via-white/[0.04] to-black p-6">
+      <div className="inline-flex rounded-full border border-[#fcb415]/30 bg-[#fcb415]/10 px-4 py-2">
+        <p className="text-xs font-black uppercase tracking-[.2em] text-[#fcb415]">
           Active Member
         </p>
       </div>
@@ -23,7 +23,7 @@ export default function HomeHero() {
           href="/card"
           className="rounded-3xl border border-white/10 bg-black/25 p-4 text-center"
         >
-          <CreditCard className="mx-auto text-orange-500" size={24} />
+          <CreditCard className="mx-auto text-[#fcb415]" size={24} />
           <p className="mt-2 text-xs font-black text-white">Card</p>
         </a>
 
@@ -31,7 +31,7 @@ export default function HomeHero() {
           href="/passport"
           className="rounded-3xl border border-white/10 bg-black/25 p-4 text-center"
         >
-          <MapPinned className="mx-auto text-orange-500" size={24} />
+          <MapPinned className="mx-auto text-[#fcb415]" size={24} />
           <p className="mt-2 text-xs font-black text-white">Passport</p>
         </a>
 
@@ -39,7 +39,7 @@ export default function HomeHero() {
           href="/story"
           className="rounded-3xl border border-white/10 bg-black/25 p-4 text-center"
         >
-          <Camera className="mx-auto text-orange-500" size={24} />
+          <Camera className="mx-auto text-[#fcb415]" size={24} />
           <p className="mt-2 text-xs font-black text-white">Story</p>
         </a>
       </div>

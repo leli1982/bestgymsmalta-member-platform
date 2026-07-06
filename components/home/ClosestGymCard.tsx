@@ -173,7 +173,7 @@ export default function ClosestGymCard() {
     <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
             Closest Gym
           </p>
 
@@ -187,7 +187,7 @@ export default function ClosestGymCard() {
           </p>
         </div>
 
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-500">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#fcb415]/10 text-[#fcb415]">
           <LocateFixed size={25} strokeWidth={3} />
         </div>
       </div>
@@ -200,10 +200,10 @@ export default function ClosestGymCard() {
       ) : null}
 
       {closestGym ? (
-        <div className="mt-5 rounded-[1.5rem] border border-orange-500/30 bg-orange-500/10 p-4">
+        <div className="mt-5 rounded-[1.5rem] border border-[#fcb415]/30 bg-[#fcb415]/10 p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[.18em] text-orange-500">
+              <p className="text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
                 Nearest to you
               </p>
 
@@ -213,7 +213,7 @@ export default function ClosestGymCard() {
 
               <p className="mt-2 flex items-start gap-2 text-sm font-bold leading-6 text-white/55">
                 <MapPinned
-                  className="mt-0.5 shrink-0 text-orange-500"
+                  className="mt-0.5 shrink-0 text-[#fcb415]"
                   size={17}
                   strokeWidth={3}
                 />
@@ -232,7 +232,7 @@ export default function ClosestGymCard() {
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-              <Route className="text-orange-500" size={20} strokeWidth={3} />
+              <Route className="text-[#fcb415]" size={20} strokeWidth={3} />
               <p className="mt-2 text-2xl font-black text-white">
                 {closestGym.distanceKm.toFixed(1)}km
               </p>
@@ -245,7 +245,7 @@ export default function ClosestGymCard() {
               href={getMapsUrl(closestGym)}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-4 text-sm font-black text-black"
+              className="flex items-center justify-center gap-2 rounded-2xl bg-[#fcb415] px-4 py-4 text-sm font-black text-black"
             >
               <Navigation size={17} strokeWidth={3} />
               Directions
@@ -265,7 +265,7 @@ export default function ClosestGymCard() {
         type="button"
         onClick={findClosestGym}
         disabled={findingLocation || loadingGyms}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black disabled:opacity-40"
+        className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black disabled:opacity-40"
       >
         {findingLocation ? (
           <RefreshCw size={17} strokeWidth={3} className="animate-spin" />

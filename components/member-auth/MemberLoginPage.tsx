@@ -89,7 +89,7 @@ export default function MemberLoginPage() {
   if (member) {
     return (
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6">
-        <p className="text-xs font-black uppercase tracking-[.25em] text-orange-500">
+        <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
           Member Login
         </p>
 
@@ -99,7 +99,7 @@ export default function MemberLoginPage() {
 
         <div className="mt-5 rounded-2xl border border-white/10 bg-black/30 p-4">
           <p className="text-lg font-black text-white">{member.fullName}</p>
-          <p className="mt-1 text-xs font-black uppercase tracking-[.18em] text-orange-500">
+          <p className="mt-1 text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
             {member.memberNumber}
           </p>
           <p className="mt-2 text-sm font-bold text-white/45">
@@ -115,7 +115,7 @@ export default function MemberLoginPage() {
         <div className="mt-5 grid grid-cols-2 gap-3">
           <a
             href="/passport"
-            className="flex items-center justify-center rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+            className="flex items-center justify-center rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
           >
             Passport
           </a>
@@ -141,7 +141,7 @@ export default function MemberLoginPage() {
 
   return (
     <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6">
-      <p className="text-xs font-black uppercase tracking-[.25em] text-orange-500">
+      <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
         BestGymsMalta
       </p>
 
@@ -159,7 +159,7 @@ export default function MemberLoginPage() {
           onClick={() => setMode("login")}
           className={`rounded-full px-5 py-3 text-sm font-black ${
             mode === "login"
-              ? "bg-orange-500 text-black"
+              ? "bg-[#fcb415] text-black"
               : "border border-white/10 bg-white/[0.04] text-white"
           }`}
         >
@@ -171,7 +171,7 @@ export default function MemberLoginPage() {
           onClick={() => setMode("activate")}
           className={`rounded-full px-5 py-3 text-sm font-black ${
             mode === "activate"
-              ? "bg-orange-500 text-black"
+              ? "bg-[#fcb415] text-black"
               : "border border-white/10 bg-white/[0.04] text-white"
           }`}
         >
@@ -199,7 +199,7 @@ export default function MemberLoginPage() {
           <button
             type="button"
             onClick={handleLogin}
-            className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+            className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
           >
             <LogIn size={17} strokeWidth={3} />
             Login
@@ -242,7 +242,7 @@ export default function MemberLoginPage() {
           <button
             type="button"
             onClick={handleActivate}
-            className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+            className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
           >
             <UserPlus size={17} strokeWidth={3} />
             Activate App Account

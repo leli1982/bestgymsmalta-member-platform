@@ -50,10 +50,10 @@ export default function MemberWorkoutPlanPreview() {
   if (!plan) return null;
 
   return (
-    <section className="rounded-[2rem] border border-orange-500/30 bg-orange-500/10 p-5">
+    <section className="rounded-[2rem] border border-[#fcb415]/30 bg-[#fcb415]/10 p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
             Saved AI Plan
           </p>
 
@@ -67,12 +67,12 @@ export default function MemberWorkoutPlanPreview() {
           </p>
         </div>
 
-        <Bot className="shrink-0 text-orange-500" size={30} strokeWidth={3} />
+        <Bot className="shrink-0 text-[#fcb415]" size={30} strokeWidth={3} />
       </div>
 
       <a
         href="/trainer"
-        className="mt-5 flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+        className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
       >
         Open AI Trainer
         <ChevronRight size={17} strokeWidth={3} />

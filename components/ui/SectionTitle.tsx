@@ -13,7 +13,7 @@ export default function SectionTitle({
     <div className="mb-4 flex items-end justify-between gap-4">
       <div>
         {eyebrow && (
-          <p className="text-xs font-black uppercase tracking-[0.3em] text-orange-500">
+          <p className="text-xs font-black uppercase tracking-[0.3em] text-[#fcb415]">
             {eyebrow}
           </p>
         )}
@@ -23,7 +23,7 @@ export default function SectionTitle({
       </div>
 
       {action && (
-        <p className="text-xs font-black uppercase text-orange-500">
+        <p className="text-xs font-black uppercase text-[#fcb415]">
           {action}
         </p>
       )}

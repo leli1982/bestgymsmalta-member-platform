@@ -31,7 +31,7 @@ function appGymToDbGym(gym: any, index = 0) {
     phone: gym.phone || "",
     email: gym.email || "",
     logo: gym.logo || "",
-    accent_color: gym.accentColor || gym.accent_color || "#F97316",
+    accent_color: gym.accentColor || gym.accent_color || "#fcb415",
     qr_code_id: gym.qrCodeId || gym.qr_code_id || gym.id,
     facilities: Array.isArray(gym.facilities)
       ? gym.facilities
@@ -73,7 +73,7 @@ function dbGymToAdminGym(gym: any) {
     phone: gym.phone || "",
     email: gym.email || "",
     logo: gym.logo || "",
-    accentColor: gym.accent_color || "#F97316",
+    accentColor: gym.accent_color || "#fcb415",
     qrCodeId: gym.qr_code_id || gym.id,
     facilities: gym.facilities || [],
     classes: gym.classes || [],

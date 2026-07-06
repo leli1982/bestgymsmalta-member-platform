@@ -19,7 +19,7 @@ function JourneyItem({
         <p className="mt-1 font-black text-white">{title}</p>
       </div>
 
-      <p className="font-black text-orange-500">{detail}</p>
+      <p className="font-black text-[#fcb415]">{detail}</p>
     </div>
   );
 }
@@ -29,7 +29,7 @@ export default function MemberShowcasePage() {
     <AppShell>
       <div className="space-y-6">
         <div>
-          <p className="text-sm font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-sm font-black uppercase tracking-[.25em] text-[#fcb415]">
             Member Showcase
           </p>
           <h1 className="mt-2 text-3xl font-black text-white">
@@ -43,7 +43,7 @@ export default function MemberShowcasePage() {
         <MemberCard />
 
         <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
             Member Journey
           </p>
           <h2 className="mt-2 text-2xl font-black text-white">

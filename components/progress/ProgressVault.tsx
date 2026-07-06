@@ -205,8 +205,8 @@ export default function ProgressVault() {
 
   if (!member) {
     return (
-      <section className="rounded-[2rem] border border-orange-500/30 bg-orange-500/10 p-6 text-center">
-        <ImagePlus className="mx-auto text-orange-500" size={44} strokeWidth={3} />
+      <section className="rounded-[2rem] border border-[#fcb415]/30 bg-[#fcb415]/10 p-6 text-center">
+        <ImagePlus className="mx-auto text-[#fcb415]" size={44} strokeWidth={3} />
 
         <h1 className="mt-5 text-4xl font-black text-white">
           Progress Vault
@@ -219,7 +219,7 @@ export default function ProgressVault() {
 
         <a
           href="/member-login"
-          className="mt-5 flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+          className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
         >
           <LogIn size={17} strokeWidth={3} />
           Login / Activate
@@ -230,11 +230,11 @@ export default function ProgressVault() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-orange-500/25 via-white/[0.04] to-black p-6">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-orange-500/20 blur-3xl" />
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#fcb415]/25 via-white/[0.04] to-black p-6">
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#fcb415]/20 blur-3xl" />
 
         <div className="relative">
-          <p className="text-xs font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
             Private Progress Vault
           </p>
 
@@ -259,7 +259,7 @@ export default function ProgressVault() {
       </section>
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <p className="text-xs font-black uppercase tracking-[.22em] text-orange-500">
+        <p className="text-xs font-black uppercase tracking-[.22em] text-[#fcb415]">
           Upload Photo
         </p>
 
@@ -286,7 +286,7 @@ export default function ProgressVault() {
           <button
             type="button"
             onClick={() => cameraInputRef.current?.click()}
-            className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+            className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
           >
             <Camera size={17} strokeWidth={3} />
             Camera
@@ -374,7 +374,7 @@ export default function ProgressVault() {
             type="button"
             onClick={savePhoto}
             disabled={saving}
-            className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black disabled:opacity-40"
+            className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black disabled:opacity-40"
           >
             {saving ? (
               <RefreshCw size={17} strokeWidth={3} className="animate-spin" />
@@ -387,8 +387,8 @@ export default function ProgressVault() {
       </section>
 
       {photos.length >= 2 ? (
-        <section className="rounded-[2rem] border border-orange-500/30 bg-orange-500/10 p-5">
-          <p className="text-xs font-black uppercase tracking-[.22em] text-orange-500">
+        <section className="rounded-[2rem] border border-[#fcb415]/30 bg-[#fcb415]/10 p-5">
+          <p className="text-xs font-black uppercase tracking-[.22em] text-[#fcb415]">
             Before / After Compare
           </p>
 
@@ -432,7 +432,7 @@ export default function ProgressVault() {
             {beforePhoto ? (
               <div className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/30">
                 <div className="bg-black/60 px-3 py-2">
-                  <p className="text-[10px] font-black uppercase tracking-[.2em] text-orange-500">
+                  <p className="text-[10px] font-black uppercase tracking-[.2em] text-[#fcb415]">
                     Before
                   </p>
                   <p className="mt-1 text-xs font-bold text-white/60">
@@ -451,7 +451,7 @@ export default function ProgressVault() {
             {afterPhoto ? (
               <div className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/30">
                 <div className="bg-black/60 px-3 py-2">
-                  <p className="text-[10px] font-black uppercase tracking-[.2em] text-orange-500">
+                  <p className="text-[10px] font-black uppercase tracking-[.2em] text-[#fcb415]">
                     After
                   </p>
                   <p className="mt-1 text-xs font-bold text-white/60">
@@ -471,7 +471,7 @@ export default function ProgressVault() {
           {beforePhoto?.bodyWeight && afterPhoto?.bodyWeight ? (
             <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-4">
               <div className="flex items-center gap-3">
-                <Scale className="text-orange-500" size={20} strokeWidth={3} />
+                <Scale className="text-[#fcb415]" size={20} strokeWidth={3} />
                 <p className="text-sm font-bold text-white/60">
                   Before: {beforePhoto.bodyWeight} · After: {afterPhoto.bodyWeight}
                 </p>
@@ -482,7 +482,7 @@ export default function ProgressVault() {
       ) : null}
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <p className="text-xs font-black uppercase tracking-[.22em] text-orange-500">
+        <p className="text-xs font-black uppercase tracking-[.22em] text-[#fcb415]">
           Photo Timeline
         </p>
 
@@ -517,7 +517,7 @@ export default function ProgressVault() {
                     <p className="text-lg font-black text-white">
                       {formatDate(photo.progressDate)}
                     </p>
-                    <p className="mt-1 text-xs font-black uppercase tracking-[.18em] text-orange-500">
+                    <p className="mt-1 text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
                       {photo.photoView}
                       {photo.bodyWeight ? ` · ${photo.bodyWeight}` : ""}
                     </p>

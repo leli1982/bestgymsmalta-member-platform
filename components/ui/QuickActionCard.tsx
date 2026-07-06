@@ -21,7 +21,7 @@ export default function QuickActionCard({
     >
       <div className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-primary/15 blur-2xl transition group-hover:bg-primary/25" />
 
-      <div className="relative z-10 mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20 shadow-[0_0_22px_rgba(249,115,22,.18)]">
+      <div className="relative z-10 mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20 shadow-[0_0_22px_rgba(252,180,21,.18)]">
         {icon}
       </div>
 

@@ -104,13 +104,13 @@ export default function LiveGymDetailPage({ gymId }: { gymId: string }) {
         Back to Gyms
       </a>
 
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-orange-500/20 via-white/[0.04] to-black p-6">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-orange-500/20 blur-3xl" />
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#fcb415]/20 via-white/[0.04] to-black p-6">
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#fcb415]/20 blur-3xl" />
 
         <div className="relative flex items-start justify-between gap-4">
           <div>
-            <div className="inline-flex rounded-full border border-orange-500/30 bg-orange-500/10 px-4 py-2">
-              <p className="text-xs font-black uppercase tracking-[.2em] text-orange-500">
+            <div className="inline-flex rounded-full border border-[#fcb415]/30 bg-[#fcb415]/10 px-4 py-2">
+              <p className="text-xs font-black uppercase tracking-[.2em] text-[#fcb415]">
                 {gym.status === "coming_soon" ? "Coming Soon" : "Active Gym"}
               </p>
             </div>
@@ -162,7 +162,7 @@ export default function LiveGymDetailPage({ gymId }: { gymId: string }) {
         {!visited && gym.status === "active" ? (
           <a
             href={`/check-in/${gym.id}`}
-            className="mt-4 flex items-center justify-center rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+            className="mt-4 flex items-center justify-center rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
           >
             Open Check-in Page
           </a>
@@ -170,12 +170,12 @@ export default function LiveGymDetailPage({ gymId }: { gymId: string }) {
       </section>
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+        <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
           Location
         </p>
 
         <p className="mt-3 flex items-start gap-2 text-sm font-bold leading-6 text-white/55">
-          <MapPinned className="mt-0.5 text-orange-500" size={17} strokeWidth={3} />
+          <MapPinned className="mt-0.5 text-[#fcb415]" size={17} strokeWidth={3} />
           {gym.address}
         </p>
 
@@ -183,7 +183,7 @@ export default function LiveGymDetailPage({ gymId }: { gymId: string }) {
           href={mapsUrl}
           target="_blank"
           rel="noreferrer"
-          className="mt-5 flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+          className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
         >
           <Navigation size={18} strokeWidth={3} />
           Open Maps
@@ -191,12 +191,12 @@ export default function LiveGymDetailPage({ gymId }: { gymId: string }) {
       </section>
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+        <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
           Opening Hours
         </p>
 
         <p className="mt-3 flex items-start gap-2 text-sm font-bold leading-6 text-white/55">
-          <Clock className="mt-0.5 text-orange-500" size={17} strokeWidth={3} />
+          <Clock className="mt-0.5 text-[#fcb415]" size={17} strokeWidth={3} />
           {gym.openingHours || "Opening hours coming soon"}
         </p>
       </section>
@@ -208,7 +208,7 @@ export default function LiveGymDetailPage({ gymId }: { gymId: string }) {
               href={`tel:${gym.phone}`}
               className="flex items-center gap-3 rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 text-white"
             >
-              <Phone className="text-orange-500" size={22} strokeWidth={3} />
+              <Phone className="text-[#fcb415]" size={22} strokeWidth={3} />
               <span className="text-sm font-black">{gym.phone}</span>
             </a>
           ) : null}
@@ -218,7 +218,7 @@ export default function LiveGymDetailPage({ gymId }: { gymId: string }) {
               href={`mailto:${gym.email}`}
               className="flex items-center gap-3 rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 text-white"
             >
-              <Mail className="text-orange-500" size={22} strokeWidth={3} />
+              <Mail className="text-[#fcb415]" size={22} strokeWidth={3} />
               <span className="text-sm font-black">{gym.email}</span>
             </a>
           ) : null}
@@ -227,7 +227,7 @@ export default function LiveGymDetailPage({ gymId }: { gymId: string }) {
 
       {gym.facilities.length > 0 ? (
         <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
             Facilities
           </p>
 

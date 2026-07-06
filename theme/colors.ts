@@ -3,9 +3,9 @@ export const colors = {
   card: "#141414",
   cardElevated: "#1B1B1B",
 
-  primary: "#F97316",
+  primary: "#fcb415",
   primaryLight: "#FB923C",
-  primaryGlow: "rgba(249,115,22,.45)",
+  primaryGlow: "rgba(252,180,21,.45)",
 
   success: "#22C55E",
   warning: "#FACC15",

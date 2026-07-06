@@ -3,8 +3,8 @@
   inset: 0;
   z-index: 9999;
   background:
-    radial-gradient(circle at center, rgba(249, 115, 22, 0.12), transparent 34%),
-    radial-gradient(circle at bottom, rgba(249, 115, 22, 0.22), transparent 24%),
+    radial-gradient(circle at center, rgba(252,180,21, 0.12), transparent 34%),
+    radial-gradient(circle at bottom, rgba(252,180,21, 0.22), transparent 24%),
     #000;
   display: flex;
   flex-direction: column;
@@ -43,7 +43,7 @@
   transform: translateY(6px) scale(1.08);
   filter:
     drop-shadow(0 0 8px rgba(255, 255, 255, 0.35))
-    drop-shadow(0 0 24px rgba(249, 115, 22, 0.32));
+    drop-shadow(0 0 24px rgba(252,180,21, 0.32));
   animation: logoGlowOnce 1.4s ease-out both;
 }
 
@@ -51,11 +51,11 @@
   position: absolute;
   inset: 26px;
   border-radius: 999px;
-  background: rgba(249, 115, 22, 0.08);
+  background: rgba(252,180,21, 0.08);
   box-shadow:
-    0 0 28px rgba(249, 115, 22, 0.45),
-    0 0 70px rgba(249, 115, 22, 0.3),
-    inset 0 0 34px rgba(249, 115, 22, 0.18);
+    0 0 28px rgba(252,180,21, 0.45),
+    0 0 70px rgba(252,180,21, 0.3),
+    inset 0 0 34px rgba(252,180,21, 0.18);
   animation: glowOnce 1.4s ease-out both;
 }
 
@@ -71,7 +71,7 @@
 
 .circleTrack {
   fill: none;
-  stroke: rgba(249, 115, 22, 0.22);
+  stroke: rgba(252,180,21, 0.22);
   stroke-width: 3;
   opacity: 0;
   animation: trackIn 0.35s ease-out forwards;
@@ -79,15 +79,15 @@
 
 .circleLine {
   fill: none;
-  stroke: #f97316;
+  stroke: #fcb415;
   stroke-width: 5;
   stroke-linecap: round;
   stroke-dasharray: 830;
   stroke-dashoffset: 830;
   filter:
-    drop-shadow(0 0 6px rgba(249, 115, 22, 1))
-    drop-shadow(0 0 18px rgba(249, 115, 22, 0.9))
-    drop-shadow(0 0 32px rgba(249, 115, 22, 0.7));
+    drop-shadow(0 0 6px rgba(252,180,21, 1))
+    drop-shadow(0 0 18px rgba(252,180,21, 0.9))
+    drop-shadow(0 0 32px rgba(252,180,21, 0.7));
   animation: drawCircleOnce 1.05s ease-out forwards;
   transform-origin: 150px 150px;
 }
@@ -104,8 +104,8 @@
   margin-left: -11px;
   box-shadow:
     0 0 12px #fff,
-    0 0 26px rgba(249, 115, 22, 1),
-    0 0 56px rgba(249, 115, 22, 0.95);
+    0 0 26px rgba(252,180,21, 1),
+    0 0 56px rgba(252,180,21, 0.95);
   opacity: 0;
   animation: dotFlashOnce 1.05s ease-out forwards;
 }
@@ -118,14 +118,14 @@
   color: #fff;
   text-align: center;
   letter-spacing: -0.03em;
-  text-shadow: 0 0 18px rgba(249, 115, 22, 0.35);
+  text-shadow: 0 0 18px rgba(252,180,21, 0.35);
   opacity: 0;
   transform: translateY(12px);
   animation: taglineIn 0.5s ease-out 0.55s forwards;
 }
 
 .tagline span {
-  color: #f97316;
+  color: #fcb415;
 }
 
 .loadingLine {
@@ -133,8 +133,8 @@
   height: 4px;
   border-radius: 999px;
   overflow: hidden;
-  background: rgba(249, 115, 22, 0.16);
-  box-shadow: 0 0 20px rgba(249, 115, 22, 0.45);
+  background: rgba(252,180,21, 0.16);
+  box-shadow: 0 0 20px rgba(252,180,21, 0.45);
   opacity: 0;
   animation: lineIn 0.3s ease-out 0.7s forwards;
 }
@@ -145,9 +145,9 @@
   background: linear-gradient(
     90deg,
     transparent,
-    #f97316,
+    #fcb415,
     #fff,
-    #f97316,
+    #fcb415,
     transparent
   );
   transform: translateX(-100%);
@@ -214,19 +214,19 @@
   0% {
     filter:
       drop-shadow(0 0 4px rgba(255, 255, 255, 0.25))
-      drop-shadow(0 0 12px rgba(249, 115, 22, 0.2));
+      drop-shadow(0 0 12px rgba(252,180,21, 0.2));
   }
 
   55% {
     filter:
       drop-shadow(0 0 14px rgba(255, 255, 255, 0.5))
-      drop-shadow(0 0 40px rgba(249, 115, 22, 0.65));
+      drop-shadow(0 0 40px rgba(252,180,21, 0.65));
   }
 
   100% {
     filter:
       drop-shadow(0 0 8px rgba(255, 255, 255, 0.35))
-      drop-shadow(0 0 24px rgba(249, 115, 22, 0.32));
+      drop-shadow(0 0 24px rgba(252,180,21, 0.32));
   }
 }
 

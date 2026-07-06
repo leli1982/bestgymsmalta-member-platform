@@ -80,7 +80,7 @@ const emptyGym: AdminGym = {
   phone: "",
   email: "",
   logo: "",
-  accentColor: "#F97316",
+  accentColor: "#fcb415",
   qrCodeId: "",
   facilities: [],
   classes: [],
@@ -513,7 +513,7 @@ export default function BgmAdminPage() {
     return (
       <main className="min-h-screen bg-black p-5 text-white">
         <div className="mx-auto max-w-md rounded-[2rem] border border-white/10 bg-white/[0.04] p-6">
-          <p className="text-xs font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
             BGM Admin
           </p>
 
@@ -535,7 +535,7 @@ export default function BgmAdminPage() {
           <button
             type="button"
             onClick={unlockAdmin}
-            className="mt-4 w-full rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+            className="mt-4 w-full rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
           >
             Unlock Admin
           </button>
@@ -551,8 +551,8 @@ export default function BgmAdminPage() {
   return (
     <main className="min-h-screen bg-black p-5 pb-28 text-white">
       <div className="mx-auto max-w-2xl space-y-6">
-        <section className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-orange-500/20 to-black p-6">
-          <p className="text-xs font-black uppercase tracking-[.25em] text-orange-500">
+        <section className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#fcb415]/20 to-black p-6">
+          <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
             BGM Admin
           </p>
 
@@ -569,7 +569,7 @@ export default function BgmAdminPage() {
               onClick={() => setActiveTab("announcements")}
               className={`rounded-full px-5 py-3 text-sm font-black ${
                 activeTab === "announcements"
-                  ? "bg-orange-500 text-black"
+                  ? "bg-[#fcb415] text-black"
                   : "border border-white/10 bg-white/[0.04] text-white"
               }`}
             >
@@ -581,7 +581,7 @@ export default function BgmAdminPage() {
               onClick={() => setActiveTab("gyms")}
               className={`rounded-full px-5 py-3 text-sm font-black ${
                 activeTab === "gyms"
-                  ? "bg-orange-500 text-black"
+                  ? "bg-[#fcb415] text-black"
                   : "border border-white/10 bg-white/[0.04] text-white"
               }`}
             >
@@ -593,7 +593,7 @@ export default function BgmAdminPage() {
               onClick={() => setActiveTab("checkins")}
               className={`rounded-full px-5 py-3 text-sm font-black ${
                 activeTab === "checkins"
-                  ? "bg-orange-500 text-black"
+                  ? "bg-[#fcb415] text-black"
                   : "border border-white/10 bg-white/[0.04] text-white"
               }`}
             >
@@ -605,7 +605,7 @@ export default function BgmAdminPage() {
               onClick={() => setActiveTab("members")}
               className={`rounded-full px-5 py-3 text-sm font-black ${
                 activeTab === "members"
-                  ? "bg-orange-500 text-black"
+                  ? "bg-[#fcb415] text-black"
                   : "border border-white/10 bg-white/[0.04] text-white"
               }`}
             >
@@ -620,7 +620,7 @@ export default function BgmAdminPage() {
               <div className="mb-5 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <Megaphone
-                    className="text-orange-500"
+                    className="text-[#fcb415]"
                     size={26}
                     strokeWidth={3}
                   />
@@ -695,7 +695,7 @@ export default function BgmAdminPage() {
                   </div>
                 ) : null}
 
-                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-5 py-4 text-sm font-black text-orange-500">
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-full border border-[#fcb415]/30 bg-[#fcb415]/10 px-5 py-4 text-sm font-black text-[#fcb415]">
                   <ImageIcon size={18} strokeWidth={3} />
                   {uploading ? "Uploading…" : "Upload Image"}
                   <input
@@ -794,14 +794,14 @@ export default function BgmAdminPage() {
                         active: event.target.checked,
                       })
                     }
-                    className="h-5 w-5 accent-orange-500"
+                    className="h-5 w-5 accent-[#fcb415]"
                   />
                 </label>
 
                 <button
                   type="button"
                   onClick={saveAnnouncement}
-                  className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+                  className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
                 >
                   {editingAnnouncementId ? (
                     <Save size={17} strokeWidth={3} />
@@ -862,7 +862,7 @@ export default function BgmAdminPage() {
                       <button
                         type="button"
                         onClick={() => editAnnouncement(item)}
-                        className="flex items-center gap-2 rounded-full bg-orange-500 px-4 py-2 text-xs font-black text-black"
+                        className="flex items-center gap-2 rounded-full bg-[#fcb415] px-4 py-2 text-xs font-black text-black"
                       >
                         <Pencil size={14} strokeWidth={3} />
                         Edit
@@ -914,7 +914,7 @@ export default function BgmAdminPage() {
                 <button
                   type="button"
                   onClick={seedGyms}
-                  className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-black text-black"
+                  className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-3 text-sm font-black text-black"
                 >
                   <Upload size={16} strokeWidth={3} />
                   Import Gyms
@@ -923,7 +923,7 @@ export default function BgmAdminPage() {
                 <button
                   type="button"
                   onClick={startNewGym}
-                  className="flex items-center justify-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-5 py-3 text-sm font-black text-orange-500"
+                  className="flex items-center justify-center gap-2 rounded-full border border-[#fcb415]/30 bg-[#fcb415]/10 px-5 py-3 text-sm font-black text-[#fcb415]"
                 >
                   <Plus size={16} strokeWidth={3} />
                   New Gym
@@ -966,7 +966,7 @@ export default function BgmAdminPage() {
                 <section className="space-y-4 rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
                   <div className="flex items-center gap-3">
                     <MapPinned
-                      className="text-orange-500"
+                      className="text-[#fcb415]"
                       size={26}
                       strokeWidth={3}
                     />
@@ -1121,7 +1121,7 @@ export default function BgmAdminPage() {
                       </div>
                     ) : null}
 
-                    <label className="flex cursor-pointer items-center justify-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-5 py-4 text-sm font-black text-orange-500">
+                    <label className="flex cursor-pointer items-center justify-center gap-2 rounded-full border border-[#fcb415]/30 bg-[#fcb415]/10 px-5 py-4 text-sm font-black text-[#fcb415]">
                       <ImageIcon size={18} strokeWidth={3} />
                       {uploadingGymLogo ? "Uploading…" : "Upload Gym Logo"}
                       <input
@@ -1190,7 +1190,7 @@ export default function BgmAdminPage() {
                     <button
                       type="button"
                       onClick={saveGym}
-                      className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+                      className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
                     >
                       <Save size={17} strokeWidth={3} />
                       {creatingGym ? "Add Gym" : "Save Gym"}

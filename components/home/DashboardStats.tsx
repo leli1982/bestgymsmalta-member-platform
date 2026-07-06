@@ -12,7 +12,7 @@ function MiniStat({
 }) {
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-      <div className="text-orange-500">{icon}</div>
+      <div className="text-[#fcb415]">{icon}</div>
       <p className="mt-3 text-2xl font-black text-white">{value}</p>
       <p className="mt-1 text-xs font-black uppercase tracking-[.18em] text-white/35">
         {label}

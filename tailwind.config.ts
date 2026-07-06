@@ -14,7 +14,7 @@ const config: Config = {
         card: "#141414",
         "card-elevated": "#1B1B1B",
 
-        primary: "#F97316",
+        primary: "#fcb415",
         "primary-light": "#FB923C",
 
         success: "#22C55E",
@@ -28,12 +28,12 @@ const config: Config = {
         bg: "#090909",
         panel: "#141414",
         panel2: "#1B1B1B",
-        acid: "#F97316",
+        acid: "#fcb415",
         flame: "#FF3131",
         steel: "#A7A7A7",
       },
       boxShadow: {
-        glow: "0 0 35px rgba(249,115,22,.35)",
+        glow: "0 0 35px rgba(252,180,21,.35)",
         card: "0 8px 40px rgba(0,0,0,.35)",
         nav: "0 0 35px rgba(0,0,0,.6)",
         redglow: "0 0 40px rgba(255,49,49,.20)",

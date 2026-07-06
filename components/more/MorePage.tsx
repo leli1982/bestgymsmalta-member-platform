@@ -43,11 +43,11 @@ export default function MorePage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-orange-500/25 via-white/[0.04] to-black p-6">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-orange-500/20 blur-3xl" />
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#fcb415]/25 via-white/[0.04] to-black p-6">
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#fcb415]/20 blur-3xl" />
 
         <div className="relative">
-          <p className="text-xs font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
             More
           </p>
 
@@ -63,10 +63,10 @@ export default function MorePage() {
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
         <div className="flex items-center gap-3">
-          <ShieldCheck className="text-orange-500" size={26} strokeWidth={3} />
+          <ShieldCheck className="text-[#fcb415]" size={26} strokeWidth={3} />
 
           <div>
-            <p className="text-xs font-black uppercase tracking-[.22em] text-orange-500">
+            <p className="text-xs font-black uppercase tracking-[.22em] text-[#fcb415]">
               Member
             </p>
 
@@ -85,7 +85,7 @@ export default function MorePage() {
         {!member ? (
           <a
             href="/member-login"
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
           >
             <LogIn size={17} strokeWidth={3} />
             Login / Activate
@@ -99,7 +99,7 @@ export default function MorePage() {
           className="flex items-center justify-between gap-4 rounded-[2rem] border border-white/10 bg-white/[0.04] p-5"
         >
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-500">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#fcb415]/10 text-[#fcb415]">
               <Stamp size={26} strokeWidth={3} />
             </div>
 
@@ -123,7 +123,7 @@ export default function MorePage() {
           className="flex items-center justify-between gap-4 rounded-[2rem] border border-white/10 bg-white/[0.04] p-5"
         >
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-500">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#fcb415]/10 text-[#fcb415]">
               <UserCircle size={26} strokeWidth={3} />
             </div>
 
@@ -146,10 +146,10 @@ export default function MorePage() {
           href={FACEBOOK_MESSENGER_URL}
           target="_blank"
           rel="noreferrer"
-          className="flex items-center justify-between gap-4 rounded-[2rem] border border-orange-500/30 bg-orange-500/10 p-5"
+          className="flex items-center justify-between gap-4 rounded-[2rem] border border-[#fcb415]/30 bg-[#fcb415]/10 p-5"
         >
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-black">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#fcb415] text-black">
               <MessageCircle size={26} strokeWidth={3} />
             </div>
 
@@ -197,8 +197,8 @@ export default function MorePage() {
       </section>
 
       <section className="rounded-[2rem] border border-white/10 bg-black/25 p-5 text-center">
-        <Sparkles className="mx-auto text-orange-500" size={28} strokeWidth={3} />
-        <p className="mt-3 text-xs font-black uppercase tracking-[.24em] text-orange-500">
+        <Sparkles className="mx-auto text-[#fcb415]" size={28} strokeWidth={3} />
+        <p className="mt-3 text-xs font-black uppercase tracking-[.24em] text-[#fcb415]">
           Be the best... Beat the rest
         </p>
         <p className="mt-2 text-sm font-bold text-white/40">

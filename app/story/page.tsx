@@ -6,7 +6,7 @@ export default function StoryPage() {
     <AppShell>
       <div className="space-y-6">
         <div>
-          <p className="text-sm font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-sm font-black uppercase tracking-[.25em] text-[#fcb415]">
             Story Creator
           </p>
           <h1 className="mt-2 text-3xl font-black text-white">

@@ -25,14 +25,14 @@ export default function PassportPreview() {
             key={gym.name}
             className={`rounded-xl border p-4 ${
               gym.visited
-                ? "border-orange-500 text-white"
+                ? "border-[#fcb415] text-white"
                 : "border-white/15 text-zinc-500"
             }`}
           >
             <p className="font-black">{gym.name}</p>
             <p
               className={`mt-1 text-sm ${
-                gym.visited ? "text-orange-500" : "text-zinc-500"
+                gym.visited ? "text-[#fcb415]" : "text-zinc-500"
               }`}
             >
               {gym.visited ? "Visited" : "Locked"}

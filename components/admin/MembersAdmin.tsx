@@ -240,7 +240,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
     <section className="space-y-6">
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
         <div className="flex items-center gap-3">
-          <UserPlus className="text-orange-500" size={26} strokeWidth={3} />
+          <UserPlus className="text-[#fcb415]" size={26} strokeWidth={3} />
           <h2 className="text-2xl font-black">
             {editingId ? "Edit Member" : "Add Member"}
           </h2>
@@ -332,8 +332,8 @@ export default function MembersAdmin({ pin }: { pin: string }) {
             </label>
           </div>
 
-          <div className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4">
-            <p className="text-xs font-black uppercase tracking-[.18em] text-orange-500">
+          <div className="rounded-2xl border border-[#fcb415]/30 bg-[#fcb415]/10 p-4">
+            <p className="text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
               Auto Membership Status
             </p>
 
@@ -374,7 +374,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
 
           {editingId ? (
             <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-              <p className="text-xs font-black uppercase tracking-[.18em] text-orange-500">
+              <p className="text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
                 App Login
               </p>
               <p className="mt-2 text-sm font-bold text-white/55">
@@ -389,7 +389,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
             <button
               type="button"
               onClick={saveMember}
-              className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+              className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
             >
               <Save size={17} strokeWidth={3} />
               {editingId ? "Save Member" : "Add Member"}
@@ -430,7 +430,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
                 <p className="text-lg font-black text-white">
                   {member.fullName}
                 </p>
-                <p className="mt-1 text-xs font-black uppercase tracking-[.16em] text-orange-500">
+                <p className="mt-1 text-xs font-black uppercase tracking-[.16em] text-[#fcb415]">
                   {member.memberNumber}
                 </p>
                 <p className="mt-1 text-sm font-bold text-white/45">
@@ -474,7 +474,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
               <button
                 type="button"
                 onClick={() => editMember(member)}
-                className="rounded-full bg-orange-500 px-4 py-2 text-xs font-black text-black"
+                className="rounded-full bg-[#fcb415] px-4 py-2 text-xs font-black text-black"
               >
                 Edit
               </button>

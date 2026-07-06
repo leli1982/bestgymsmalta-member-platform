@@ -20,9 +20,9 @@ export default function AppShell({
 }: AppShellProps) {
   return (
     <main className="relative min-h-screen overflow-hidden bg-go text-white">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_85%_5%,rgba(249,115,22,0.28),transparent_30%),radial-gradient(circle_at_10%_45%,rgba(249,115,22,0.08),transparent_25%),linear-gradient(180deg,#090909_0%,#050505_100%)]" />
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_85%_5%,rgba(252,180,21,0.28),transparent_30%),radial-gradient(circle_at_10%_45%,rgba(252,180,21,0.08),transparent_25%),linear-gradient(180deg,#090909_0%,#050505_100%)]" />
 
-      <div className="pointer-events-none fixed inset-0 opacity-[0.08] bg-[radial-gradient(circle_at_1px_1px,rgba(249,115,22,0.8)_1px,transparent_0)] bg-[length:28px_28px]" />
+      <div className="pointer-events-none fixed inset-0 opacity-[0.08] bg-[radial-gradient(circle_at_1px_1px,rgba(252,180,21,0.8)_1px,transparent_0)] bg-[length:28px_28px]" />
 
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_center,transparent_45%,rgba(0,0,0,0.75)_100%)]" />
 
@@ -50,7 +50,7 @@ export default function AppShell({
                   <img
                     src="/logos/bgm-main.png"
                     alt="BestGymsMalta"
-                    className="mt-1 w-24 object-contain drop-shadow-[0_0_18px_rgba(249,115,22,0.35)]"
+                    className="mt-1 w-24 object-contain drop-shadow-[0_0_18px_rgba(252,180,21,0.35)]"
                   />
                 )}
               </header>

@@ -331,7 +331,7 @@ export default function StoryCreator() {
       }
     }
 
-    ctx.fillStyle = "rgba(249,115,22,0.96)";
+    ctx.fillStyle = "rgba(252,180,21,0.96)";
     ctx.roundRect(70, 1120, width - 140, 52, 26);
     ctx.fill();
 
@@ -353,7 +353,7 @@ export default function StoryCreator() {
     ctx.roundRect(70, 1695, width - 140, 120, 36);
     ctx.fill();
 
-    ctx.fillStyle = "#f97316";
+    ctx.fillStyle = "#fcb415";
     ctx.font = "900 34px Arial";
     ctx.fillText("BE THE BEST... BEAT THE REST", 105, 1768);
 
@@ -447,11 +447,11 @@ export default function StoryCreator() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-orange-500/25 via-white/[0.04] to-black p-6">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-orange-500/20 blur-3xl" />
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#fcb415]/25 via-white/[0.04] to-black p-6">
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#fcb415]/20 blur-3xl" />
 
         <div className="relative">
-          <p className="text-xs font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
             Story Templates
           </p>
 
@@ -467,7 +467,7 @@ export default function StoryCreator() {
       </section>
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <p className="text-xs font-black uppercase tracking-[.22em] text-orange-500">
+        <p className="text-xs font-black uppercase tracking-[.22em] text-[#fcb415]">
           Choose Template
         </p>
 
@@ -479,7 +479,7 @@ export default function StoryCreator() {
               onClick={() => setSelectedTemplateId(template.id)}
               className={`rounded-2xl px-4 py-4 text-left text-sm font-black ${
                 selectedTemplateId === template.id
-                  ? "bg-orange-500 text-black"
+                  ? "bg-[#fcb415] text-black"
                   : "border border-white/10 bg-black/25 text-white"
               }`}
             >
@@ -501,7 +501,7 @@ export default function StoryCreator() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/80" />
 
           <div className="absolute bottom-20 left-5 right-5">
-            <div className="inline-flex rounded-full bg-orange-500 px-4 py-2 text-[10px] font-black uppercase tracking-[.22em] text-black">
+            <div className="inline-flex rounded-full bg-[#fcb415] px-4 py-2 text-[10px] font-black uppercase tracking-[.22em] text-black">
               {selectedTemplate.tag}
             </div>
 
@@ -514,7 +514,7 @@ export default function StoryCreator() {
             </p>
 
             <div className="mt-5 rounded-2xl bg-black/55 px-4 py-3">
-              <p className="text-xs font-black uppercase tracking-[.18em] text-orange-500">
+              <p className="text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
                 Be the best... Beat the rest
               </p>
             </div>
@@ -525,7 +525,7 @@ export default function StoryCreator() {
               key={layer.id}
               onPointerDown={(event) => handlePointerDown(event, layer.id)}
               className={`absolute z-20 flex cursor-move touch-none items-center justify-center rounded-xl ${
-                selectedLayerId === layer.id ? "ring-2 ring-orange-500" : ""
+                selectedLayerId === layer.id ? "ring-2 ring-[#fcb415]" : ""
               }`}
               style={{
                 left: `${layer.x}%`,
@@ -548,7 +548,7 @@ export default function StoryCreator() {
           <button
             type="button"
             onClick={() => cameraInputRef.current?.click()}
-            className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+            className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
           >
             <Camera size={17} strokeWidth={3} />
             Camera
@@ -583,7 +583,7 @@ export default function StoryCreator() {
       </section>
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <p className="text-xs font-black uppercase tracking-[.22em] text-orange-500">
+        <p className="text-xs font-black uppercase tracking-[.22em] text-[#fcb415]">
           Custom Text
         </p>
 
@@ -605,7 +605,7 @@ export default function StoryCreator() {
       </section>
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <p className="text-xs font-black uppercase tracking-[.22em] text-orange-500">
+        <p className="text-xs font-black uppercase tracking-[.22em] text-[#fcb415]">
           Logos & Stickers
         </p>
 
@@ -646,9 +646,9 @@ export default function StoryCreator() {
         ) : null}
 
         {selectedLayer ? (
-          <div className="mt-5 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4">
+          <div className="mt-5 rounded-2xl border border-[#fcb415]/30 bg-[#fcb415]/10 p-4">
             <div className="flex items-center gap-2">
-              <Move className="text-orange-500" size={18} strokeWidth={3} />
+              <Move className="text-[#fcb415]" size={18} strokeWidth={3} />
               <p className="text-sm font-black text-white">
                 Editing: {selectedLayer.label}
               </p>
@@ -707,7 +707,7 @@ export default function StoryCreator() {
         <button
           type="button"
           onClick={shareStory}
-          className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+          className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
         >
           <Share2 size={17} strokeWidth={3} />
           Share

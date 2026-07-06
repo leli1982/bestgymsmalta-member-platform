@@ -89,7 +89,7 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
         </p>
         <a
           href="/gyms"
-          className="mt-5 flex items-center justify-center rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+          className="mt-5 flex items-center justify-center rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
         >
           View Gyms
         </a>
@@ -99,13 +99,13 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-orange-500/20 via-white/[0.04] to-black p-6">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-orange-500/20 blur-3xl" />
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#fcb415]/20 via-white/[0.04] to-black p-6">
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#fcb415]/20 blur-3xl" />
 
         <div className="relative">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[.25em] text-orange-500">
+              <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
                 BGM Check-in
               </p>
 
@@ -124,14 +124,14 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
           </div>
 
           <p className="mt-4 flex items-start gap-2 text-sm font-bold leading-6 text-white/55">
-            <MapPinned className="mt-0.5 text-orange-500" size={17} />
+            <MapPinned className="mt-0.5 text-[#fcb415]" size={17} />
             {gym.address}
           </p>
         </div>
       </section>
 
       {!member ? (
-        <section className="rounded-[2rem] border border-orange-500/30 bg-orange-500/10 p-5 text-center">
+        <section className="rounded-[2rem] border border-[#fcb415]/30 bg-[#fcb415]/10 p-5 text-center">
           <h2 className="text-2xl font-black text-white">Login required</h2>
           <p className="mt-3 text-sm font-bold leading-6 text-white/55">
             Please log in or activate your account before checking in. This
@@ -140,7 +140,7 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
 
           <a
             href="/member-login"
-            className="mt-5 flex items-center justify-center rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+            className="mt-5 flex items-center justify-center rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
           >
             Login / Activate
           </a>
@@ -152,7 +152,7 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
               <CheckCircle2 size={42} strokeWidth={3} />
             </div>
           ) : (
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-orange-500/10 text-orange-500">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#fcb415]/10 text-[#fcb415]">
               <Dumbbell size={38} strokeWidth={3} />
             </div>
           )}
@@ -161,7 +161,7 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
             {checkedIn ? "Passport stamped" : "Confirm your visit"}
           </h2>
 
-          <p className="mt-2 text-xs font-black uppercase tracking-[.18em] text-orange-500">
+          <p className="mt-2 text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
             {member.fullName || member.username} · {member.memberNumber}
           </p>
 
@@ -175,7 +175,7 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
               type="button"
               onClick={confirmCheckIn}
               disabled={saving || gym.status !== "active"}
-              className="mt-5 w-full rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black disabled:opacity-40"
+              className="mt-5 w-full rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black disabled:opacity-40"
             >
               {saving ? "Checking in…" : "Confirm Check-in"}
             </button>
@@ -183,7 +183,7 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
             <div className="mt-5 grid grid-cols-2 gap-3">
               <a
                 href="/passport"
-                className="rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+                className="rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
               >
                 Passport
               </a>

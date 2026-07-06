@@ -14,7 +14,7 @@ function NfcMark() {
         viewBox="0 0 24 24"
         fill="none"
         aria-hidden="true"
-        className="text-orange-500"
+        className="text-[#fcb415]"
       >
         <path
           d="M7 8.5C8.8 10.3 8.8 13.7 7 15.5"
@@ -63,11 +63,11 @@ export default function MemberCard() {
 
   if (!member) {
     return (
-      <section className="rounded-[2rem] border border-orange-500/30 bg-orange-500/10 p-5">
+      <section className="rounded-[2rem] border border-[#fcb415]/30 bg-[#fcb415]/10 p-5">
         <div className="flex items-center gap-3">
-          <CreditCard className="text-orange-500" size={26} strokeWidth={3} />
+          <CreditCard className="text-[#fcb415]" size={26} strokeWidth={3} />
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
               Digital Membership Card
             </p>
             <h2 className="mt-1 text-2xl font-black text-white">
@@ -82,7 +82,7 @@ export default function MemberCard() {
 
         <a
           href="/member-login"
-          className="mt-5 flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+          className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
         >
           <LogIn size={17} strokeWidth={3} />
           Login / Activate
@@ -112,11 +112,11 @@ export default function MemberCard() {
       >
         {/* FRONT */}
         <section
-          className="absolute inset-0 overflow-hidden rounded-[2rem] border border-orange-500/35 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black p-5 shadow-2xl"
+          className="absolute inset-0 overflow-hidden rounded-[2rem] border border-[#fcb415]/35 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black p-5 shadow-2xl"
           style={{ backfaceVisibility: "hidden" }}
         >
-          <div className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-orange-500/25 blur-3xl" />
-          <div className="absolute -bottom-20 left-8 h-44 w-44 rounded-full bg-orange-500/10 blur-3xl" />
+          <div className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-[#fcb415]/25 blur-3xl" />
+          <div className="absolute -bottom-20 left-8 h-44 w-44 rounded-full bg-[#fcb415]/10 blur-3xl" />
           <div className="absolute bottom-5 right-5 opacity-10">
             <CreditCard size={120} strokeWidth={1.5} />
           </div>
@@ -124,7 +124,7 @@ export default function MemberCard() {
           <div className="relative flex min-h-[245px] flex-col justify-between">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+                <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
                   BestGymsMalta
                 </p>
 
@@ -179,19 +179,19 @@ export default function MemberCard() {
 
         {/* BACK */}
         <section
-          className="absolute inset-0 overflow-hidden rounded-[2rem] border border-orange-500/35 bg-gradient-to-br from-black via-zinc-950 to-zinc-900 p-5 shadow-2xl"
+          className="absolute inset-0 overflow-hidden rounded-[2rem] border border-[#fcb415]/35 bg-gradient-to-br from-black via-zinc-950 to-zinc-900 p-5 shadow-2xl"
           style={{
             backfaceVisibility: "hidden",
             transform: "rotateY(180deg)",
           }}
         >
-          <div className="absolute -left-16 -top-16 h-52 w-52 rounded-full bg-orange-500/20 blur-3xl" />
-          <div className="absolute -bottom-20 right-8 h-44 w-44 rounded-full bg-orange-500/10 blur-3xl" />
+          <div className="absolute -left-16 -top-16 h-52 w-52 rounded-full bg-[#fcb415]/20 blur-3xl" />
+          <div className="absolute -bottom-20 right-8 h-44 w-44 rounded-full bg-[#fcb415]/10 blur-3xl" />
 
           <div className="relative flex min-h-[245px] flex-col justify-between">
             <div>
               <div className="flex items-center justify-between gap-4">
-                <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+                <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
                   Member Details
                 </p>
 
@@ -212,7 +212,7 @@ export default function MemberCard() {
                   <p className="text-xs font-black uppercase tracking-[.18em] text-white/35">
                     Member Number
                   </p>
-                  <p className="mt-2 text-xl font-black text-orange-500">
+                  <p className="mt-2 text-xl font-black text-[#fcb415]">
                     {member.memberNumber}
                   </p>
                 </div>
@@ -221,7 +221,7 @@ export default function MemberCard() {
                   <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
                     <div className="flex items-center gap-2">
                       <ShieldCheck
-                        className="text-orange-500"
+                        className="text-[#fcb415]"
                         size={19}
                         strokeWidth={3}
                       />

@@ -63,7 +63,7 @@ export default function ProgressVaultPreview() {
       <div className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-orange-500">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
               Progress Vault
             </p>
 
@@ -79,12 +79,12 @@ export default function ProgressVaultPreview() {
             </p>
           </div>
 
-          <Camera className="shrink-0 text-orange-500" size={30} strokeWidth={3} />
+          <Camera className="shrink-0 text-[#fcb415]" size={30} strokeWidth={3} />
         </div>
 
         <a
           href="/progress"
-          className="mt-5 flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+          className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
         >
           Open Progress Vault
           <ChevronRight size={17} strokeWidth={3} />

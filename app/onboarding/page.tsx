@@ -12,7 +12,7 @@ function OnboardingCard({
 }) {
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-      <div className="mb-4 inline-flex rounded-2xl bg-orange-500/10 p-3 text-orange-500">
+      <div className="mb-4 inline-flex rounded-2xl bg-[#fcb415]/10 p-3 text-[#fcb415]">
         {icon}
       </div>
       <h2 className="text-xl font-black text-white">{title}</h2>
@@ -26,7 +26,7 @@ export default function OnboardingPage() {
     <main className="min-h-screen bg-black px-5 py-10 text-white">
       <div className="mx-auto max-w-md space-y-6">
         <div>
-          <p className="text-sm font-black uppercase tracking-[.25em] text-orange-500">
+          <p className="text-sm font-black uppercase tracking-[.25em] text-[#fcb415]">
             Welcome
           </p>
           <h1 className="mt-3 text-4xl font-black leading-tight">
@@ -66,7 +66,7 @@ export default function OnboardingPage() {
 
         <Link
           href="/"
-          className="flex w-full items-center justify-center rounded-full bg-orange-500 px-5 py-4 text-sm font-black text-black"
+          className="flex w-full items-center justify-center rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
         >
           Continue
         </Link>
