@@ -247,7 +247,7 @@ export default function LiveGymDetailPage(props: {
 
               {tourUrl ? (
                 <a
-                  href={tourUrl}
+                  href={`/gyms/${gym.id}/tour`}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-4 text-sm font-black text-white backdrop-blur-md"
@@ -260,6 +260,50 @@ export default function LiveGymDetailPage(props: {
           </div>
         </div>
       </section>
+
+      {tourUrl ? (
+        <section
+          className="relative overflow-hidden rounded-[2rem] border border-[#fcb415]/25 bg-cover bg-center p-5 shadow-2xl"
+          style={{
+            backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.86)), linear-gradient(135deg, rgba(252,180,21,.22), rgba(0,0,0,.78)), url('${getCoverImage(
+              gym
+            )}')`,
+          }}
+        >
+          <div className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-[#fcb415]/25 blur-3xl" />
+
+          <div className="relative">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fcb415] text-black">
+                <Box size={24} strokeWidth={3} />
+              </div>
+
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                  Explore before you visit
+                </p>
+
+                <h2 className="mt-1 text-2xl font-black text-white">
+                  Walk through this gym in 3D
+                </h2>
+              </div>
+            </div>
+
+            <p className="mt-4 text-sm font-bold leading-6 text-white/65">
+              Take a virtual look inside {gym.name} before you arrive and get a
+              feel for the space, layout and facilities.
+            </p>
+
+            <a
+              href={`/gyms/${gym.id}/tour`}
+              className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+            >
+              <Box size={18} strokeWidth={3} />
+              Start 3D Virtual Tour
+            </a>
+          </div>
+        </section>
+      ) : null}
 
       {openingHours ? (
         <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">

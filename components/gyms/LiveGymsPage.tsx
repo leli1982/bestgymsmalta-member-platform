@@ -328,7 +328,7 @@ export default function LiveGymsPage() {
 
                 {tourUrl ? (
                   <a
-                    href={tourUrl}
+                    href={`/gyms/${gym.id}/tour`}
                     target="_blank"
                     rel="noreferrer"
                     className="mt-3 flex items-center justify-center gap-2 rounded-full border border-[#fcb415]/30 bg-[#fcb415]/10 px-5 py-4 text-sm font-black text-[#fcb415]"

@@ -45,6 +45,7 @@ type AdminGym = {
   phone: string;
   email: string;
   logo: string;
+  virtualTourUrl: string;
   accentColor: string;
   qrCodeId: string;
   facilities: string[];
@@ -80,6 +81,7 @@ const emptyGym: AdminGym = {
   phone: "",
   email: "",
   logo: "",
+  virtualTourUrl: "",
   accentColor: "#fcb415",
   qrCodeId: "",
   facilities: [],
@@ -944,6 +946,21 @@ export default function BgmAdminPage() {
             {gyms.length > 0 && gymForm ? (
               <>
                 <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+                  <label className="grid gap-2">
+                    <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                      3D Virtual Tour URL
+                    </span>
+
+                    <input
+                      value={gymForm.virtualTourUrl}
+                      onChange={(event) =>
+                        updateGymForm({ virtualTourUrl: event.target.value })
+                      }
+                      placeholder="https://my.matterport.com/show/?m=..."
+                      className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold text-white outline-none placeholder:text-white/25"
+                    />
+                  </label>
+
                   <label className="space-y-2">
                     <span className="text-xs font-black uppercase tracking-[.18em] text-white/40">
                       Select Gym

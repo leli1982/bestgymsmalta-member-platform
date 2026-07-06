@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { gyms as fallbackGyms } from "@/components/data/gyms";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { defaultGymTourLinks } from "@/lib/gymVirtualTours";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,11 @@ function appGymToDbGym(gym: any, index = 0) {
     phone: gym.phone || "",
     email: gym.email || "",
     logo: gym.logo || "",
+    virtual_tour_url:
+      gym.virtualTourUrl ||
+      gym.virtual_tour_url ||
+      defaultGymTourLinks[gym.id] ||
+      "",
     accent_color: gym.accentColor || gym.accent_color || "#fcb415",
     qr_code_id: gym.qrCodeId || gym.qr_code_id || gym.id,
     facilities: Array.isArray(gym.facilities)
@@ -73,6 +79,8 @@ function dbGymToAdminGym(gym: any) {
     phone: gym.phone || "",
     email: gym.email || "",
     logo: gym.logo || "",
+    virtualTourUrl: gym.virtual_tour_url || defaultGymTourLinks[gym.id] || "",
+    virtual_tour_url: gym.virtual_tour_url || defaultGymTourLinks[gym.id] || "",
     accentColor: gym.accent_color || "#fcb415",
     qrCodeId: gym.qr_code_id || gym.id,
     facilities: gym.facilities || [],
