@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronRight, Sparkles } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { getSavedMember, type AppMember } from "@/lib/memberSession";
 
 export default function VisualHomeHero() {
@@ -44,8 +44,12 @@ export default function VisualHomeHero() {
             </p>
           </div>
 
-          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black/35 backdrop-blur-md">
-            <Sparkles className="text-[#fcb415]" size={22} strokeWidth={3} />
+          <div className="flex h-16 w-16 items-center justify-center">
+            <img
+              src="/bgm-logo.png"
+              alt="BestGymsMalta"
+              className="h-full w-full object-contain drop-shadow-2xl"
+            />
           </div>
         </div>
 
