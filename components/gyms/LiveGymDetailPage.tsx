@@ -1,56 +1,112 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
-  CheckCircle2,
   Clock,
+  Dumbbell,
   Mail,
   MapPinned,
   Navigation,
   Phone,
   RefreshCw,
+  Sparkles,
 } from "lucide-react";
-import type { Gym } from "@/components/data/gyms";
 
-const MEMBER_ID = "demo-member";
+type Gym = {
+  id: string;
+  name: string;
+  shortName?: string;
+  short_name?: string;
+  status?: string;
+  city?: string;
+  address?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  openingHours?: string;
+  opening_hours?: string;
+  phone?: string;
+  email?: string;
+  logo?: string;
+  coverImage?: string;
+  cover_image?: string;
+  facilities?: string[];
+  classes?: string[];
+  featuredEquipment?: string[];
+  featured_equipment?: string[];
+  notes?: string;
+};
+
+function getOpeningHours(gym: Gym) {
+  return gym.openingHours || gym.opening_hours || "";
+}
+
+const gymCoverImages: Record<string, string> = {
+  "bgm-birkirkara": "/visuals/gyms/birkirkara.jpg",
+  "bgm-birzebbuga": "/visuals/gyms/birzebbuga.jpg",
+  "bgm-build": "/visuals/gyms/build.jpg",
+  "bgm-kirkop": "/visuals/gyms/kirkop.jpg",
+  "bgm-marsa": "/visuals/gyms/marsa.jpg",
+  "bgm-marsascala": "/visuals/gyms/marsascala.jpg",
+  "bgm-neptunes": "/visuals/gyms/neptunes.jpg",
+  "bgm-pembroke": "/visuals/gyms/pembroke.jpg",
+  "bgm-sliema": "/visuals/gyms/sliema.jpg",
+  "bgm-talqroqq": "/visuals/gyms/talqroqq.jpg",
+  "bgm-birgu": "/visuals/gyms/birgu.jpg",
+};
+
+function getCoverImage(gym: Gym) {
+  return (
+    gym.coverImage ||
+    gym.cover_image ||
+    gymCoverImages[gym.id] ||
+    "/visuals/gyms.jpg"
+  );
+}
+
+function getFeaturedEquipment(gym: Gym) {
+  return gym.featuredEquipment || gym.featured_equipment || [];
+}
 
 function getMapsUrl(gym: Gym) {
-  const mapsQuery =
-    typeof gym.latitude === "number" && typeof gym.longitude === "number"
-      ? `${gym.latitude},${gym.longitude}`
-      : `${gym.name} ${gym.address}`;
+  if (typeof gym.latitude === "number" && typeof gym.longitude === "number") {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+      `${gym.latitude},${gym.longitude}`
+    )}`;
+  }
 
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    mapsQuery
+    `${gym.name} ${gym.address || ""}`
   )}`;
 }
 
-export default function LiveGymDetailPage({ gymId }: { gymId: string }) {
+function statusLabel(status?: string) {
+  if (status === "coming_soon") return "Coming Soon";
+  if (status === "inactive") return "Inactive";
+  return "Open";
+}
+
+export default function LiveGymDetailPage(props: {
+  gymId?: string;
+  id?: string;
+}) {
+  const gymId = props.gymId || props.id || "";
   const [gym, setGym] = useState<Gym | null>(null);
-  const [visitedGymIds, setVisitedGymIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadGym() {
       try {
-        const [gymsResponse, checkinsResponse] = await Promise.all([
-          fetch("/api/gyms", { cache: "no-store" }),
-          fetch(`/api/checkins?memberId=${MEMBER_ID}`, { cache: "no-store" }),
-        ]);
+        const response = await fetch("/api/gyms", {
+          cache: "no-store",
+        });
 
-        const gymsData = await gymsResponse.json();
-        const checkinsData = await checkinsResponse.json();
-
-        const foundGym = (gymsData.gyms || []).find(
-          (item: Gym) => item.id === gymId
-        );
+        const data = await response.json();
+        const foundGym = (data.gyms || []).find((item: Gym) => item.id === gymId);
 
         setGym(foundGym || null);
-        setVisitedGymIds(checkinsData.visitedGymIds || []);
       } catch {
         setGym(null);
-        setVisitedGymIds([]);
       } finally {
         setLoading(false);
       }
@@ -59,188 +115,221 @@ export default function LiveGymDetailPage({ gymId }: { gymId: string }) {
     loadGym();
   }, [gymId]);
 
+  const facilities = useMemo(() => gym?.facilities || [], [gym]);
+  const classes = useMemo(() => gym?.classes || [], [gym]);
+  const equipment = useMemo(() => (gym ? getFeaturedEquipment(gym) : []), [gym]);
+
   if (loading) {
     return (
-      <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
         <div className="flex items-center gap-3 text-white/45">
           <RefreshCw size={18} className="animate-spin" />
-          <p className="text-sm font-bold">Loading gym details…</p>
+          <p className="text-sm font-bold">Loading gym…</p>
         </div>
-      </div>
+      </section>
     );
   }
 
   if (!gym) {
     return (
-      <div className="space-y-5">
+      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 text-center">
+        <Dumbbell className="mx-auto text-[#fcb415]" size={42} strokeWidth={3} />
+        <h1 className="mt-4 text-3xl font-black text-white">Gym not found</h1>
+        <p className="mt-3 text-sm font-bold leading-6 text-white/50">
+          This location could not be found.
+        </p>
         <a
           href="/gyms"
-          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-black text-white"
+          className="mt-5 flex items-center justify-center rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
         >
-          <ArrowLeft size={17} strokeWidth={3} />
           Back to Gyms
         </a>
-
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6">
-          <h1 className="text-3xl font-black text-white">Gym not found</h1>
-          <p className="mt-3 text-sm font-bold leading-6 text-white/50">
-            This gym could not be loaded.
-          </p>
-        </section>
-      </div>
+      </section>
     );
   }
 
-  const mapsUrl = getMapsUrl(gym);
-  const visited = visitedGymIds.includes(gym.id);
+  const openingHours = getOpeningHours(gym);
 
   return (
     <div className="space-y-6">
       <a
         href="/gyms"
-        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-black text-white"
+        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-white"
       >
         <ArrowLeft size={17} strokeWidth={3} />
         Back to Gyms
       </a>
 
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#fcb415]/20 via-white/[0.04] to-black p-6">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#fcb415]/20 blur-3xl" />
+      <section
+        className="relative min-h-[430px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
+        style={{
+          backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.82)), linear-gradient(135deg, rgba(252,180,21,.18), rgba(0,0,0,.78)), url('${getCoverImage(
+            gym
+          )}')`,
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/88" />
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
 
-        <div className="relative flex items-start justify-between gap-4">
+        <div className="relative flex min-h-[380px] flex-col justify-between">
+          <div className="flex items-start justify-between gap-4">
+            <span
+              className={`rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[.2em] ${
+                gym.status === "active"
+                  ? "bg-[#fcb415] text-black"
+                  : "border border-white/10 bg-black/45 text-white/70"
+              }`}
+            >
+              {statusLabel(gym.status)}
+            </span>
+
+            {gym.logo ? (
+              <div className="flex h-20 w-20 items-center justify-center rounded-3xl border border-white/10 bg-black/45 p-3 backdrop-blur-md">
+                <img src={gym.logo} alt="" className="h-full w-full object-contain" />
+              </div>
+            ) : null}
+          </div>
+
           <div>
-            <div className="inline-flex rounded-full border border-[#fcb415]/30 bg-[#fcb415]/10 px-4 py-2">
-              <p className="text-xs font-black uppercase tracking-[.2em] text-[#fcb415]">
-                {gym.status === "coming_soon" ? "Coming Soon" : "Active Gym"}
-              </p>
-            </div>
+            <p className="text-sm font-black uppercase tracking-[.24em] text-[#fcb415]">
+              BestGymsMalta Location
+            </p>
 
-            <h1 className="mt-5 text-4xl font-black leading-tight text-white">
+            <h1 className="mt-4 text-5xl font-black leading-[0.95] text-white drop-shadow-2xl">
               {gym.name}
             </h1>
 
-            <p className="mt-4 text-sm font-bold leading-6 text-white/55">
-              {gym.notes || "Part of the BestGymsMalta member network."}
+            <p className="mt-5 flex items-start gap-2 text-sm font-bold leading-6 text-white/70">
+              <MapPinned
+                className="mt-0.5 shrink-0 text-[#fcb415]"
+                size={17}
+                strokeWidth={3}
+              />
+              {gym.address || gym.city || "BestGymsMalta location"}
             </p>
-          </div>
 
-          {gym.logo ? (
-            <img
-              src={gym.logo}
-              alt=""
-              className="h-20 w-20 shrink-0 object-contain"
-            />
-          ) : null}
+            <a
+              href={getMapsUrl(gym)}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-6 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+            >
+              <Navigation size={17} strokeWidth={3} />
+              Open Directions
+            </a>
+          </div>
         </div>
       </section>
 
-      <section
-        className={`rounded-[2rem] border p-5 ${
-          visited
-            ? "border-green-400/30 bg-green-400/10"
-            : "border-white/10 bg-white/[0.04]"
-        }`}
-      >
-        <div className="flex items-center gap-3">
-          <CheckCircle2
-            className={visited ? "text-green-300" : "text-white/30"}
-            size={26}
-            strokeWidth={3}
-          />
-          <div>
-            <p className="text-sm font-black text-white">
-              {visited ? "Visited and stamped" : "Not stamped yet"}
-            </p>
-            <p className="mt-1 text-xs font-bold text-white/45">
-              {visited
-                ? "This gym is already in your passport."
-                : "Scan the gym QR code to stamp your passport."}
-            </p>
+      {openingHours ? (
+        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+          <div className="flex items-start gap-3">
+            <Clock className="mt-0.5 shrink-0 text-[#fcb415]" size={23} strokeWidth={3} />
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                Opening Hours
+              </p>
+              <p className="mt-3 whitespace-pre-line text-sm font-bold leading-6 text-white/60">
+                {openingHours}
+              </p>
+            </div>
           </div>
-        </div>
+        </section>
+      ) : null}
 
-        {!visited && gym.status === "active" ? (
+      <section className="grid grid-cols-2 gap-3">
+        {gym.phone ? (
           <a
-            href={`/check-in/${gym.id}`}
-            className="mt-4 flex items-center justify-center rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+            href={`tel:${gym.phone}`}
+            className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-4"
           >
-            Open Check-in Page
+            <Phone className="text-[#fcb415]" size={23} strokeWidth={3} />
+            <p className="mt-3 text-xs font-black uppercase tracking-[.18em] text-white/35">
+              Phone
+            </p>
+            <p className="mt-1 text-sm font-bold text-white">{gym.phone}</p>
+          </a>
+        ) : null}
+
+        {gym.email ? (
+          <a
+            href={`mailto:${gym.email}`}
+            className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-4"
+          >
+            <Mail className="text-[#fcb415]" size={23} strokeWidth={3} />
+            <p className="mt-3 text-xs font-black uppercase tracking-[.18em] text-white/35">
+              Email
+            </p>
+            <p className="mt-1 truncate text-sm font-bold text-white">
+              {gym.email}
+            </p>
           </a>
         ) : null}
       </section>
 
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
-          Location
-        </p>
-
-        <p className="mt-3 flex items-start gap-2 text-sm font-bold leading-6 text-white/55">
-          <MapPinned className="mt-0.5 text-[#fcb415]" size={17} strokeWidth={3} />
-          {gym.address}
-        </p>
-
-        <a
-          href={mapsUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
-        >
-          <Navigation size={18} strokeWidth={3} />
-          Open Maps
-        </a>
-      </section>
-
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
-          Opening Hours
-        </p>
-
-        <p className="mt-3 flex items-start gap-2 text-sm font-bold leading-6 text-white/55">
-          <Clock className="mt-0.5 text-[#fcb415]" size={17} strokeWidth={3} />
-          {gym.openingHours || "Opening hours coming soon"}
-        </p>
-      </section>
-
-      {(gym.phone || gym.email) ? (
-        <section className="grid gap-3">
-          {gym.phone ? (
-            <a
-              href={`tel:${gym.phone}`}
-              className="flex items-center gap-3 rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 text-white"
-            >
-              <Phone className="text-[#fcb415]" size={22} strokeWidth={3} />
-              <span className="text-sm font-black">{gym.phone}</span>
-            </a>
-          ) : null}
-
-          {gym.email ? (
-            <a
-              href={`mailto:${gym.email}`}
-              className="flex items-center gap-3 rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 text-white"
-            >
-              <Mail className="text-[#fcb415]" size={22} strokeWidth={3} />
-              <span className="text-sm font-black">{gym.email}</span>
-            </a>
-          ) : null}
-        </section>
-      ) : null}
-
-      {gym.facilities.length > 0 ? (
+      {facilities.length > 0 ? (
         <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
           <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
             Facilities
           </p>
-
           <div className="mt-4 flex flex-wrap gap-2">
-            {gym.facilities.map((facility) => (
+            {facilities.map((facility) => (
               <span
                 key={facility}
-                className="rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs font-black text-white/60"
+                className="rounded-full border border-white/10 bg-black/25 px-4 py-2 text-xs font-black text-white/65"
               >
                 {facility}
               </span>
             ))}
           </div>
+        </section>
+      ) : null}
+
+      {classes.length > 0 ? (
+        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+            Classes
+          </p>
+          <div className="mt-4 grid gap-2">
+            {classes.map((gymClass) => (
+              <div
+                key={gymClass}
+                className="rounded-2xl border border-white/10 bg-black/25 p-4"
+              >
+                <p className="text-sm font-black text-white">{gymClass}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {equipment.length > 0 ? (
+        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+            Featured Equipment
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {equipment.map((item) => (
+              <div
+                key={item}
+                className="rounded-2xl border border-white/10 bg-black/25 p-4"
+              >
+                <Sparkles className="text-[#fcb415]" size={18} strokeWidth={3} />
+                <p className="mt-3 text-sm font-black text-white">{item}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {gym.notes ? (
+        <section className="rounded-[2rem] border border-[#fcb415]/25 bg-[#fcb415]/10 p-5">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+            Notes
+          </p>
+          <p className="mt-3 text-sm font-bold leading-6 text-white/65">
+            {gym.notes}
+          </p>
         </section>
       ) : null}
     </div>
