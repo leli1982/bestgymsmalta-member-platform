@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Share2,
   Sparkles,
+  Trash2,
   Type,
   Upload,
 } from "lucide-react";
@@ -34,6 +35,28 @@ type StorySticker = {
   label: string;
   src?: string;
   emoji?: string;
+};
+
+type StoryLayer = {
+  id: string;
+  stickerId: string;
+  x: number;
+  y: number;
+  size: number;
+  rotation: number;
+};
+
+type PointerPoint = {
+  x: number;
+  y: number;
+};
+
+type GestureStart = {
+  layerId: string;
+  size: number;
+  rotation: number;
+  distance: number;
+  angle: number;
 };
 
 const templates: StoryTemplate[] = [
@@ -118,6 +141,23 @@ const stickers: StorySticker[] = [
   { id: "talqroqq", label: "Tal-Qroqq", src: "/gym-logos/bgm-talqroqq.png" },
   { id: "birgu", label: "Birgu", src: "/gym-logos/bgm-birgu.png" },
 ];
+
+const defaultLayer: StoryLayer = {
+  id: "layer-bgm-default",
+  stickerId: "bgm",
+  x: 16,
+  y: 8,
+  size: 82,
+  rotation: 0,
+};
+
+function makeLayerId() {
+  return `layer-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
 
 function loadImage(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -208,15 +248,19 @@ function wrapText(
   return currentY;
 }
 
+function getDistance(a: PointerPoint, b: PointerPoint) {
+  return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+function getAngle(a: PointerPoint, b: PointerPoint) {
+  return (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+}
+
 export default function StoryCreator() {
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [customImage, setCustomImage] = useState("");
-  const [selectedStickerId, setSelectedStickerId] = useState("bgm");
-
-  const [stickerX, setStickerX] = useState(16);
-  const [stickerY, setStickerY] = useState(8);
-  const [stickerSize, setStickerSize] = useState(82);
-  const [stickerRotation, setStickerRotation] = useState(0);
+  const [storyLayers, setStoryLayers] = useState<StoryLayer[]>([defaultLayer]);
+  const [selectedLayerId, setSelectedLayerId] = useState(defaultLayer.id);
 
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
@@ -226,6 +270,8 @@ export default function StoryCreator() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
+  const activePointersRef = useRef<Map<number, PointerPoint>>(new Map());
+  const gestureStartRef = useRef<GestureStart | null>(null);
 
   const selectedTemplate = useMemo(() => {
     return (
@@ -233,13 +279,65 @@ export default function StoryCreator() {
     );
   }, [selectedTemplateId]);
 
-  const selectedSticker = useMemo(() => {
-    return (
-      stickers.find((sticker) => sticker.id === selectedStickerId) || stickers[0]
-    );
-  }, [selectedStickerId]);
+  const selectedLayer = useMemo(() => {
+    return storyLayers.find((layer) => layer.id === selectedLayerId) || null;
+  }, [storyLayers, selectedLayerId]);
 
   const background = customImage || selectedTemplate?.background || "";
+
+  function getSticker(stickerId: string) {
+    return stickers.find((sticker) => sticker.id === stickerId) || stickers[0];
+  }
+
+  function updateLayer(layerId: string, updates: Partial<StoryLayer>) {
+    setStoryLayers((current) =>
+      current.map((layer) =>
+        layer.id === layerId ? { ...layer, ...updates } : layer
+      )
+    );
+  }
+
+  function updateSelectedLayer(updates: Partial<StoryLayer>) {
+    if (!selectedLayer) return;
+    updateLayer(selectedLayer.id, updates);
+  }
+
+  function addSticker(stickerId: string) {
+    const offset = storyLayers.length * 7;
+
+    const newLayer: StoryLayer = {
+      id: makeLayerId(),
+      stickerId,
+      x: clamp(18 + offset, 10, 78),
+      y: clamp(12 + offset, 8, 72),
+      size: 82,
+      rotation: 0,
+    };
+
+    setStoryLayers((current) => [...current, newLayer]);
+    setSelectedLayerId(newLayer.id);
+  }
+
+  function removeSelectedLayer() {
+    if (!selectedLayer) return;
+
+    setStoryLayers((current) => {
+      const remaining = current.filter((layer) => layer.id !== selectedLayer.id);
+      setSelectedLayerId(remaining[remaining.length - 1]?.id || "");
+      return remaining;
+    });
+  }
+
+  function resetSelectedLayer() {
+    if (!selectedLayer) return;
+
+    updateLayer(selectedLayer.id, {
+      x: 16,
+      y: 8,
+      size: 82,
+      rotation: 0,
+    });
+  }
 
   function selectTemplate(template: StoryTemplate) {
     setSelectedTemplateId(template.id);
@@ -271,27 +369,163 @@ export default function StoryCreator() {
     setCustomImage("");
   }
 
-  function moveStickerFromPointer(event: PointerEvent<HTMLDivElement>) {
+  function pointerToPreviewPercent(point: PointerPoint) {
     const preview = previewRef.current;
-    if (!preview) return;
+    if (!preview) return { x: 50, y: 50 };
 
     const rect = preview.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
 
-    setStickerX(Math.min(100, Math.max(0, x)));
-    setStickerY(Math.min(100, Math.max(0, y)));
+    return {
+      x: clamp(((point.x - rect.left) / rect.width) * 100, 0, 100),
+      y: clamp(((point.y - rect.top) / rect.height) * 100, 0, 100),
+    };
   }
 
-  function handleStickerPointerDown(event: PointerEvent<HTMLDivElement>) {
+  function beginPinchGesture(layer: StoryLayer) {
+    const points = Array.from(activePointersRef.current.values());
+
+    if (points.length < 2) {
+      gestureStartRef.current = null;
+      return;
+    }
+
+    const [a, b] = points;
+
+    gestureStartRef.current = {
+      layerId: layer.id,
+      size: layer.size,
+      rotation: layer.rotation,
+      distance: getDistance(a, b),
+      angle: getAngle(a, b),
+    };
+  }
+
+  function moveLayerFromPointers(layer: StoryLayer) {
+    const points = Array.from(activePointersRef.current.values());
+
+    if (points.length === 1) {
+      const position = pointerToPreviewPercent(points[0]);
+      updateLayer(layer.id, position);
+      return;
+    }
+
+    if (points.length >= 2) {
+      const [a, b] = points;
+      const center = {
+        x: (a.x + b.x) / 2,
+        y: (a.y + b.y) / 2,
+      };
+      const position = pointerToPreviewPercent(center);
+
+      if (!gestureStartRef.current || gestureStartRef.current.layerId !== layer.id) {
+        beginPinchGesture(layer);
+      }
+
+      const gesture = gestureStartRef.current;
+
+      if (!gesture) return;
+
+      const currentDistance = getDistance(a, b);
+      const currentAngle = getAngle(a, b);
+      const scale =
+        gesture.distance > 0 ? currentDistance / gesture.distance : 1;
+
+      updateLayer(layer.id, {
+        x: position.x,
+        y: position.y,
+        size: clamp(gesture.size * scale, 32, 180),
+        rotation: gesture.rotation + (currentAngle - gesture.angle),
+      });
+    }
+  }
+
+  function handleLayerPointerDown(
+    event: PointerEvent<HTMLDivElement>,
+    layer: StoryLayer
+  ) {
     event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    moveStickerFromPointer(event);
+    event.stopPropagation();
+
+    setSelectedLayerId(layer.id);
+
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Ignore unsupported pointer capture.
+    }
+
+    activePointersRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    if (activePointersRef.current.size >= 2) {
+      beginPinchGesture(layer);
+    } else {
+      gestureStartRef.current = null;
+      moveLayerFromPointers(layer);
+    }
   }
 
-  function handleStickerPointerMove(event: PointerEvent<HTMLDivElement>) {
-    if (event.buttons !== 1) return;
-    moveStickerFromPointer(event);
+  function handleLayerPointerMove(
+    event: PointerEvent<HTMLDivElement>,
+    layer: StoryLayer
+  ) {
+    if (!activePointersRef.current.has(event.pointerId)) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    activePointersRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    moveLayerFromPointers(layer);
+  }
+
+  function handleLayerPointerUp(event: PointerEvent<HTMLDivElement>) {
+    activePointersRef.current.delete(event.pointerId);
+
+    if (activePointersRef.current.size < 2) {
+      gestureStartRef.current = null;
+    }
+
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // Ignore unsupported pointer capture.
+    }
+  }
+
+  async function renderStickerOnCanvas(
+    ctx: CanvasRenderingContext2D,
+    layer: StoryLayer
+  ) {
+    const sticker = getSticker(layer.stickerId);
+    const size = layer.size * 3.2;
+    const centerX = (layer.x / 100) * 1080;
+    const centerY = (layer.y / 100) * 1920;
+
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate((layer.rotation * Math.PI) / 180);
+
+    if (sticker.src) {
+      try {
+        const image = await loadImage(sticker.src);
+        ctx.drawImage(image, -size / 2, -size / 2, size, size);
+      } catch {
+        // Ignore missing sticker image.
+      }
+    } else {
+      ctx.font = `${size * 0.72}px Arial`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(sticker.emoji || "🔥", 0, 6);
+    }
+
+    ctx.restore();
   }
 
   async function renderStoryBlob() {
@@ -350,30 +584,8 @@ export default function StoryCreator() {
       ctx.fillText(badge.toUpperCase(), 514, 174);
     }
 
-    if (selectedSticker) {
-      const size = stickerSize * 3.2;
-      const centerX = (stickerX / 100) * canvas.width;
-      const centerY = (stickerY / 100) * canvas.height;
-
-      ctx.save();
-      ctx.translate(centerX, centerY);
-      ctx.rotate((stickerRotation * Math.PI) / 180);
-
-      if (selectedSticker.src) {
-        try {
-          const sticker = await loadImage(selectedSticker.src);
-          ctx.drawImage(sticker, -size / 2, -size / 2, size, size);
-        } catch {
-          // Ignore missing image sticker.
-        }
-      } else {
-        ctx.font = `${size * 0.72}px Arial`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(selectedSticker.emoji || "🔥", 0, 6);
-      }
-
-      ctx.restore();
+    for (const layer of storyLayers) {
+      await renderStickerOnCanvas(ctx, layer);
     }
 
     if (title.trim()) {
@@ -488,7 +700,7 @@ export default function StoryCreator() {
             </h1>
 
             <p className="mt-5 max-w-xs text-sm font-bold leading-6 text-white/70">
-              Take a photo, add a logo or sticker and share it.
+              Take a photo, add multiple logos or stickers and share it.
             </p>
           </div>
         </div>
@@ -514,44 +726,55 @@ export default function StoryCreator() {
             </div>
           ) : null}
 
-          {selectedSticker ? (
-            <div
-              onPointerDown={handleStickerPointerDown}
-              onPointerMove={handleStickerPointerMove}
-              className="absolute cursor-grab active:cursor-grabbing"
-              style={{
-                left: `${stickerX}%`,
-                top: `${stickerY}%`,
-                transform: `translate(-50%, -50%) rotate(${stickerRotation}deg)`,
-                transformOrigin: "center center",
-                touchAction: "none",
-              }}
-              title="Drag to move"
-            >
-              {selectedSticker.src ? (
-                <img
-                  src={selectedSticker.src}
-                  alt=""
-                  style={{
-                    width: `${stickerSize}px`,
-                    height: `${stickerSize}px`,
-                  }}
-                  className="object-contain"
-                />
-              ) : (
-                <span
-                  style={{
-                    width: `${stickerSize}px`,
-                    height: `${stickerSize}px`,
-                    fontSize: `${stickerSize * 0.72}px`,
-                  }}
-                  className="flex items-center justify-center leading-none"
-                >
-                  {selectedSticker.emoji}
-                </span>
-              )}
-            </div>
-          ) : null}
+          {storyLayers.map((layer) => {
+            const sticker = getSticker(layer.stickerId);
+            const active = layer.id === selectedLayerId;
+
+            return (
+              <div
+                key={layer.id}
+                onPointerDown={(event) => handleLayerPointerDown(event, layer)}
+                onPointerMove={(event) => handleLayerPointerMove(event, layer)}
+                onPointerUp={handleLayerPointerUp}
+                onPointerCancel={handleLayerPointerUp}
+                className={`absolute cursor-grab rounded-xl active:cursor-grabbing ${
+                  active ? "ring-2 ring-[#fcb415]" : ""
+                }`}
+                style={{
+                  left: `${layer.x}%`,
+                  top: `${layer.y}%`,
+                  transform: `translate(-50%, -50%) rotate(${layer.rotation}deg)`,
+                  transformOrigin: "center center",
+                  touchAction: "none",
+                }}
+                title="Drag, pinch or rotate"
+              >
+                {sticker.src ? (
+                  <img
+                    src={sticker.src}
+                    alt=""
+                    draggable={false}
+                    style={{
+                      width: `${layer.size}px`,
+                      height: `${layer.size}px`,
+                    }}
+                    className="select-none object-contain"
+                  />
+                ) : (
+                  <span
+                    style={{
+                      width: `${layer.size}px`,
+                      height: `${layer.size}px`,
+                      fontSize: `${layer.size * 0.72}px`,
+                    }}
+                    className="flex select-none items-center justify-center leading-none"
+                  >
+                    {sticker.emoji}
+                  </span>
+                )}
+              </div>
+            );
+          })}
 
           {(title.trim() || subtitle.trim()) ? (
             <div className="absolute bottom-20 left-7 right-7">
@@ -606,7 +829,8 @@ export default function StoryCreator() {
         </div>
 
         <p className="mt-4 text-center text-xs font-bold leading-5 text-white/35">
-          Drag the logo or sticker directly on the story. Exports as 1080x1920.
+          Tap to select. Drag to move. Pinch to resize. Twist with two fingers
+          to rotate.
         </p>
       </section>
 
@@ -680,7 +904,7 @@ export default function StoryCreator() {
               Stickers & Logos
             </p>
             <h2 className="mt-1 text-2xl font-black text-white">
-              Choose sticker or gym logo
+              Tap to add more
             </h2>
           </div>
         </div>
@@ -690,12 +914,8 @@ export default function StoryCreator() {
             <button
               key={sticker.id}
               type="button"
-              onClick={() => setSelectedStickerId(sticker.id)}
-              className={`rounded-2xl border p-3 text-xs font-black transition ${
-                sticker.id === selectedStickerId
-                  ? "border-[#fcb415] bg-[#fcb415] text-black"
-                  : "border-white/10 bg-black/25 text-white/60"
-              }`}
+              onClick={() => addSticker(sticker.id)}
+              className="rounded-2xl border border-white/10 bg-black/25 p-3 text-xs font-black text-white/60 transition hover:border-[#fcb415]/50 hover:text-white"
             >
               <span className="flex flex-col items-center gap-2">
                 {sticker.src ? (
@@ -718,93 +938,107 @@ export default function StoryCreator() {
           ))}
         </div>
 
-        <div className="mt-5 grid gap-4">
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setStickerX(16);
-                setStickerY(8);
-                setStickerRotation(0);
-                setStickerSize(82);
-              }}
-              className="rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
-            >
-              Reset Sticker
-            </button>
+        <div className="mt-5 rounded-[1.5rem] border border-white/10 bg-black/25 p-4">
+          <p className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+            Selected item
+          </p>
 
-            <button
-              type="button"
-              onClick={() => {
-                setStickerX(50);
-                setStickerY(10);
-                setStickerRotation(0);
-              }}
-              className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white"
-            >
-              Top Centre
-            </button>
-          </div>
+          {selectedLayer ? (
+            <div className="mt-4 grid gap-4">
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={resetSelectedLayer}
+                  className="rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+                >
+                  Reset Selected
+                </button>
 
-          <label className="grid gap-2">
-            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
-              Move left / right
-            </span>
+                <button
+                  type="button"
+                  onClick={removeSelectedLayer}
+                  className="flex items-center justify-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-black text-red-200"
+                >
+                  <Trash2 size={17} strokeWidth={3} />
+                  Remove
+                </button>
+              </div>
 
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={stickerX}
-              onChange={(event) => setStickerX(Number(event.target.value))}
-              className="accent-[#fcb415]"
-            />
-          </label>
+              <label className="grid gap-2">
+                <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                  Size
+                </span>
 
-          <label className="grid gap-2">
-            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
-              Move up / down
-            </span>
+                <input
+                  type="range"
+                  min="32"
+                  max="180"
+                  value={selectedLayer.size}
+                  onChange={(event) =>
+                    updateSelectedLayer({ size: Number(event.target.value) })
+                  }
+                  className="accent-[#fcb415]"
+                />
+              </label>
 
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={stickerY}
-              onChange={(event) => setStickerY(Number(event.target.value))}
-              className="accent-[#fcb415]"
-            />
-          </label>
+              <label className="grid gap-2">
+                <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                  Rotate
+                </span>
 
-          <label className="grid gap-2">
-            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
-              Rotate
-            </span>
+                <input
+                  type="range"
+                  min="-180"
+                  max="180"
+                  value={selectedLayer.rotation}
+                  onChange={(event) =>
+                    updateSelectedLayer({
+                      rotation: Number(event.target.value),
+                    })
+                  }
+                  className="accent-[#fcb415]"
+                />
+              </label>
 
-            <input
-              type="range"
-              min="-45"
-              max="45"
-              value={stickerRotation}
-              onChange={(event) => setStickerRotation(Number(event.target.value))}
-              className="accent-[#fcb415]"
-            />
-          </label>
+              <label className="grid gap-2">
+                <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                  Move left / right
+                </span>
 
-          <label className="grid gap-2">
-            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
-              Size
-            </span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={selectedLayer.x}
+                  onChange={(event) =>
+                    updateSelectedLayer({ x: Number(event.target.value) })
+                  }
+                  className="accent-[#fcb415]"
+                />
+              </label>
 
-            <input
-              type="range"
-              min="42"
-              max="150"
-              value={stickerSize}
-              onChange={(event) => setStickerSize(Number(event.target.value))}
-              className="accent-[#fcb415]"
-            />
-          </label>
+              <label className="grid gap-2">
+                <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                  Move up / down
+                </span>
+
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={selectedLayer.y}
+                  onChange={(event) =>
+                    updateSelectedLayer({ y: Number(event.target.value) })
+                  }
+                  className="accent-[#fcb415]"
+                />
+              </label>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm font-bold text-white/45">
+              Add or tap a sticker to edit it.
+            </p>
+          )}
         </div>
       </section>
 
@@ -842,7 +1076,7 @@ export default function StoryCreator() {
                   No template
                 </h3>
                 <p className="mt-1 text-xs font-bold text-white/55">
-                  Photo + sticker only
+                  Photo + stickers only
                 </p>
               </div>
             </div>
