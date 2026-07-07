@@ -59,6 +59,15 @@ type GestureStart = {
   angle: number;
 };
 
+type HandleTransformStart = {
+  layerId: string;
+  mode: "resize" | "rotate";
+  startSize: number;
+  startRotation: number;
+  startDistance: number;
+  startAngle: number;
+};
+
 const templates: StoryTemplate[] = [
   {
     id: "beast-mode",
@@ -272,6 +281,7 @@ export default function StoryCreator() {
   const previewRef = useRef<HTMLDivElement | null>(null);
   const activePointersRef = useRef<Map<number, PointerPoint>>(new Map());
   const gestureStartRef = useRef<GestureStart | null>(null);
+  const handleTransformRef = useRef<HandleTransformStart | null>(null);
 
   const selectedTemplate = useMemo(() => {
     return (
@@ -498,6 +508,101 @@ export default function StoryCreator() {
     }
   }
 
+  function getLayerCentrePoint(layer: StoryLayer): PointerPoint | null {
+    const preview = previewRef.current;
+    if (!preview) return null;
+
+    const rect = preview.getBoundingClientRect();
+
+    return {
+      x: rect.left + (layer.x / 100) * rect.width,
+      y: rect.top + (layer.y / 100) * rect.height,
+    };
+  }
+
+  function startHandleTransform(
+    event: PointerEvent<HTMLButtonElement>,
+    layer: StoryLayer,
+    mode: "resize" | "rotate"
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    setSelectedLayerId(layer.id);
+
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Ignore unsupported pointer capture.
+    }
+
+    const centre = getLayerCentrePoint(layer);
+    if (!centre) return;
+
+    const pointer = {
+      x: event.clientX,
+      y: event.clientY,
+    };
+
+    handleTransformRef.current = {
+      layerId: layer.id,
+      mode,
+      startSize: layer.size,
+      startRotation: layer.rotation,
+      startDistance: Math.max(1, getDistance(centre, pointer)),
+      startAngle: getAngle(centre, pointer),
+    };
+  }
+
+  function moveHandleTransform(event: PointerEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const transform = handleTransformRef.current;
+    if (!transform) return;
+
+    const layer = storyLayers.find((item) => item.id === transform.layerId);
+    if (!layer) return;
+
+    const centre = getLayerCentrePoint(layer);
+    if (!centre) return;
+
+    const pointer = {
+      x: event.clientX,
+      y: event.clientY,
+    };
+
+    if (transform.mode === "resize") {
+      const currentDistance = getDistance(centre, pointer);
+      const scale = currentDistance / transform.startDistance;
+
+      updateLayer(transform.layerId, {
+        size: clamp(transform.startSize * scale, 28, 220),
+      });
+
+      return;
+    }
+
+    const currentAngle = getAngle(centre, pointer);
+
+    updateLayer(transform.layerId, {
+      rotation: transform.startRotation + (currentAngle - transform.startAngle),
+    });
+  }
+
+  function endHandleTransform(event: PointerEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    handleTransformRef.current = null;
+
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // Ignore unsupported pointer capture.
+    }
+  }
+
   async function renderStickerOnCanvas(
     ctx: CanvasRenderingContext2D,
     layer: StoryLayer
@@ -709,7 +814,7 @@ export default function StoryCreator() {
       <section className="rounded-[2rem] border border-[#fcb415]/25 bg-black/50 p-4 shadow-2xl">
         <div
           ref={previewRef}
-          className="relative mx-auto aspect-[9/16] w-full max-w-[360px] overflow-hidden rounded-[2rem] border border-white/10 bg-cover bg-center shadow-2xl"
+          className="relative mx-auto aspect-[9/16] w-full max-w-[360px] touch-none select-none overflow-hidden rounded-[2rem] border border-white/10 bg-cover bg-center shadow-2xl"
           style={{
             backgroundImage: background
               ? `linear-gradient(180deg, rgba(0,0,0,.04), rgba(0,0,0,.34)), linear-gradient(135deg, rgba(252,180,21,.08), rgba(0,0,0,.12)), url('${background}')`
@@ -737,7 +842,7 @@ export default function StoryCreator() {
                 onPointerMove={(event) => handleLayerPointerMove(event, layer)}
                 onPointerUp={handleLayerPointerUp}
                 onPointerCancel={handleLayerPointerUp}
-                className={`absolute cursor-grab rounded-xl active:cursor-grabbing ${
+                className={`absolute touch-none select-none cursor-grab rounded-xl active:cursor-grabbing ${
                   active ? "ring-2 ring-[#fcb415]" : ""
                 }`}
                 style={{
@@ -772,6 +877,40 @@ export default function StoryCreator() {
                     {sticker.emoji}
                   </span>
                 )}
+
+                {active ? (
+                  <>
+                    <span className="pointer-events-none absolute -inset-2 rounded-xl border-2 border-[#fcb415]" />
+
+                    <button
+                      type="button"
+                      aria-label="Rotate selected sticker"
+                      onPointerDown={(event) =>
+                        startHandleTransform(event, layer, "rotate")
+                      }
+                      onPointerMove={moveHandleTransform}
+                      onPointerUp={endHandleTransform}
+                      onPointerCancel={endHandleTransform}
+                      className="absolute -right-4 -top-4 flex h-9 w-9 touch-none items-center justify-center rounded-full border border-black/40 bg-[#fcb415] text-sm font-black text-black shadow-xl"
+                    >
+                      ↻
+                    </button>
+
+                    <button
+                      type="button"
+                      aria-label="Resize selected sticker"
+                      onPointerDown={(event) =>
+                        startHandleTransform(event, layer, "resize")
+                      }
+                      onPointerMove={moveHandleTransform}
+                      onPointerUp={endHandleTransform}
+                      onPointerCancel={endHandleTransform}
+                      className="absolute -bottom-4 -right-4 flex h-9 w-9 touch-none items-center justify-center rounded-full border border-black/40 bg-[#fcb415] text-sm font-black text-black shadow-xl"
+                    >
+                      ↔
+                    </button>
+                  </>
+                ) : null}
               </div>
             );
           })}
@@ -829,8 +968,7 @@ export default function StoryCreator() {
         </div>
 
         <p className="mt-4 text-center text-xs font-bold leading-5 text-white/35">
-          Tap to select. Drag to move. Pinch to resize. Twist with two fingers
-          to rotate.
+          Tap to select. Drag to move. Use the gold handles to resize or rotate.
         </p>
       </section>
 
