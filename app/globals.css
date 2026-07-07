@@ -151,3 +151,125 @@ body {
   background: var(--bgm-gold);
   color: black;
 }
+
+
+/* -------------------------------------------------------
+   BGM final mobile UX polish
+------------------------------------------------------- */
+
+:root {
+  --bgm-mobile-bottom-space: calc(88px + env(safe-area-inset-bottom));
+  --bgm-touch-size: 44px;
+}
+
+html {
+  min-height: 100%;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100%;
+  overscroll-behavior-y: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+button,
+a {
+  min-height: var(--bgm-touch-size);
+}
+
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+/* Prevent iOS zoom on focused fields */
+@media (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Better image handling across the app */
+img {
+  max-width: 100%;
+}
+
+/* Hide horizontal scrollbar but keep swipe areas usable */
+.no-scrollbar,
+.overflow-x-auto {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}
+
+/* More comfortable page bottom spacing above fixed mobile nav */
+main {
+  padding-bottom: var(--bgm-mobile-bottom-space);
+}
+
+/* Keep fixed bottom navigation clear of iPhone home indicator */
+nav,
+.bgm-bottom-nav {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+/* Make mobile cards feel more touch-friendly */
+@media (max-width: 768px) {
+  section,
+  article {
+    scroll-margin-top: 1rem;
+  }
+
+  button,
+  a {
+    cursor: default;
+  }
+
+  textarea {
+    resize: vertical;
+  }
+}
+
+/* Softer focus states for accessibility without ugly browser outlines */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #fcb415;
+  outline-offset: 3px;
+}
+
+/* Avoid accidental dragging/selection of app graphics */
+img,
+svg {
+  user-select: none;
+}
+
+/* Keep PWA layout from feeling cramped on small phones */
+@media (max-width: 390px) {
+  h1 {
+    letter-spacing: -0.04em;
+  }
+}

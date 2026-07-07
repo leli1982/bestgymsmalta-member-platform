@@ -19,7 +19,7 @@ export default function AppShell({
   useTopBar = true,
 }: AppShellProps) {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-go text-white">
+    <main className="relative min-h-screen overflow-hidden bg-go text-white pb-[calc(96px+env(safe-area-inset-bottom))]">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_85%_5%,rgba(252,180,21,0.28),transparent_30%),radial-gradient(circle_at_10%_45%,rgba(252,180,21,0.08),transparent_25%),linear-gradient(180deg,#090909_0%,#050505_100%)]" />
 
       <div className="pointer-events-none fixed inset-0 opacity-[0.08] bg-[radial-gradient(circle_at_1px_1px,rgba(252,180,21,0.8)_1px,transparent_0)] bg-[length:28px_28px]" />
