@@ -84,8 +84,13 @@ function formatDate(value?: string) {
 }
 
 function normalizePlanPayload(data: any): WorkoutPlan | null {
+  const savedPlan = data?.savedPlan || data?.saved_plan || null;
+
   const payload =
     data?.plan ||
+    savedPlan?.plan ||
+    savedPlan?.plan_json ||
+    savedPlan?.planJson ||
     data?.workoutPlan ||
     data?.workout_plan ||
     data?.data ||
@@ -121,7 +126,11 @@ function normalizePlanPayload(data: any): WorkoutPlan | null {
       payload.notes ||
       "",
     overview: payload.overview || "",
-    createdAt: payload.createdAt || payload.created_at,
+    createdAt:
+      payload.createdAt ||
+      payload.created_at ||
+      savedPlan?.savedAt ||
+      savedPlan?.saved_at,
     created_at: payload.created_at,
     days:
       payload.days ||
@@ -253,7 +262,9 @@ export default function AiTrainer() {
           level,
           daysPerWeek: Number(daysPerWeek),
           sessionTime: Number(sessionTime),
+          minutes: Number(sessionTime),
           focus,
+          style: focus,
           limitations,
           notes: limitations,
         }),
