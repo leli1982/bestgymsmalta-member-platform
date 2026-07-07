@@ -1,434 +1,475 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
+  Activity,
   Bot,
+  CalendarDays,
+  CheckCircle2,
+  ChevronRight,
+  Clock3,
   Dumbbell,
-  LogIn,
-  MessageCircle,
+  Flame,
+  Lock,
   RefreshCw,
-  Save,
+  ShieldCheck,
   Sparkles,
-  Trash2,
+  Target,
+  Trophy,
+  UserCheck,
+  Zap,
 } from "lucide-react";
 import { getSavedMember, type AppMember } from "@/lib/memberSession";
 
-type WorkoutDay = {
-  title: string;
-  focus: string;
-  exercises: string[];
+type Exercise =
+  | string
+  | {
+      name?: string;
+      sets?: string;
+      reps?: string;
+      notes?: string;
+    };
+
+type TrainingDay = {
+  title?: string;
+  day?: string;
+  focus?: string;
+  exercises?: Exercise[];
+  notes?: string;
 };
 
-type GeneratedPlan = {
-  title: string;
-  summary: string;
-  days: WorkoutDay[];
-  tips: string[];
-  generatedAt: string;
-  version: number;
+type WorkoutPlan = {
+  id?: string;
+  title?: string;
+  summary?: string;
+  overview?: string;
+  createdAt?: string;
+  created_at?: string;
+  days?: TrainingDay[];
+  raw?: string;
 };
 
 const goals = [
   "Build muscle",
   "Lose fat",
+  "Get stronger",
   "Improve fitness",
-  "Strength",
   "Tone up",
   "General health",
 ];
 
 const levels = ["Beginner", "Intermediate", "Advanced"];
 
-const styles = [
-  "Gym machines",
-  "Free weights",
-  "Bodyweight",
-  "Mixed gym workout",
-  "Strength and conditioning",
+const focusAreas = [
+  "Full body",
+  "Upper body",
+  "Lower body",
+  "Push / Pull / Legs",
+  "Strength",
+  "Conditioning",
 ];
 
-function makeWorkoutPlan(
-  goal: string,
-  level: string,
-  daysPerWeek: number,
-  minutes: number,
-  style: string,
-  limitations: string,
-  version: number
-): GeneratedPlan {
-  const focusPool = [
-    "Full Body",
-    "Upper Body",
-    "Lower Body",
-    "Push",
-    "Pull",
-    "Legs",
-    "Core & Conditioning",
-  ];
+function formatDate(value?: string) {
+  if (!value) return "";
 
-  const exercisePool: Record<string, string[]> = {
-    "Full Body": [
-      "Leg press or goblet squat",
-      "Chest press or push-ups",
-      "Lat pulldown",
-      "Romanian deadlift",
-      "Plank hold",
-    ],
-    "Upper Body": [
-      "Chest press",
-      "Seated row",
-      "Shoulder press",
-      "Lat pulldown",
-      "Cable curls and triceps pressdown",
-    ],
-    "Lower Body": [
-      "Leg press",
-      "Hamstring curl",
-      "Walking lunges",
-      "Glute bridge",
-      "Standing calf raises",
-    ],
-    Push: [
-      "Incline chest press",
-      "Shoulder press",
-      "Cable fly",
-      "Lateral raises",
-      "Triceps rope pressdown",
-    ],
-    Pull: [
-      "Lat pulldown",
-      "Seated row",
-      "Face pulls",
-      "Dumbbell curls",
-      "Back extension",
-    ],
-    Legs: [
-      "Squat or leg press",
-      "Romanian deadlift",
-      "Leg extension",
-      "Hamstring curl",
-      "Core finisher",
-    ],
-    "Core & Conditioning": [
-      "Bike or treadmill intervals",
-      "Cable woodchops",
-      "Plank",
-      "Farmer carries",
-      "Stretching cooldown",
-    ],
-  };
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
 
-  const days: WorkoutDay[] = Array.from({ length: daysPerWeek }).map((_, index) => {
-    const focus = focusPool[(index + version) % focusPool.length];
+function normalizePlanPayload(data: any): WorkoutPlan | null {
+  const payload =
+    data?.plan ||
+    data?.workoutPlan ||
+    data?.workout_plan ||
+    data?.data ||
+    null;
 
-    return {
-      title: `Day ${index + 1}`,
-      focus,
-      exercises: exercisePool[focus].map((exercise) => {
-        if (level === "Beginner") return `${exercise} · 2-3 sets`;
-        if (level === "Advanced") return `${exercise} · 4-5 sets`;
-        return `${exercise} · 3-4 sets`;
-      }),
-    };
-  });
+  if (!payload) return null;
+
+  if (typeof payload === "string") {
+    try {
+      const parsed = JSON.parse(payload);
+      return normalizePlanPayload({ plan: parsed });
+    } catch {
+      return {
+        title: "Your AI Training Plan",
+        raw: payload,
+      };
+    }
+  }
+
+  if (typeof payload !== "object") return null;
 
   return {
-    title: `${goal} · ${daysPerWeek} day plan`,
-    summary: `${level} ${style.toLowerCase()} plan built for around ${minutes} minutes per session.${
-      limitations ? ` Notes: ${limitations}` : ""
-    }`,
-    days,
-    tips: [
-      "Warm up for 5-10 minutes before each session.",
-      "Keep 1-2 reps in reserve on most working sets.",
-      "Progress slowly by adding reps or weight when form feels solid.",
-      "If pain feels sharp or unusual, stop and ask a coach for guidance.",
-    ],
-    generatedAt: new Date().toISOString(),
-    version,
+    id: payload.id,
+    title:
+      payload.title ||
+      payload.name ||
+      payload.planTitle ||
+      "Your AI Training Plan",
+    summary:
+      payload.summary ||
+      payload.overview ||
+      payload.description ||
+      payload.notes ||
+      "",
+    overview: payload.overview || "",
+    createdAt: payload.createdAt || payload.created_at,
+    created_at: payload.created_at,
+    days:
+      payload.days ||
+      payload.trainingDays ||
+      payload.training_days ||
+      payload.workouts ||
+      [],
+    raw: payload.raw,
   };
+}
+
+function renderExercise(exercise: Exercise, index: number) {
+  if (typeof exercise === "string") {
+    return (
+      <li key={index} className="text-sm font-bold leading-6 text-white/60">
+        {exercise}
+      </li>
+    );
+  }
+
+  return (
+    <li key={index} className="rounded-2xl border border-white/10 bg-black/25 p-3">
+      <p className="text-sm font-black text-white">
+        {exercise.name || `Exercise ${index + 1}`}
+      </p>
+
+      {(exercise.sets || exercise.reps) ? (
+        <p className="mt-1 text-xs font-bold text-[#fcb415]">
+          {[exercise.sets, exercise.reps].filter(Boolean).join(" × ")}
+        </p>
+      ) : null}
+
+      {exercise.notes ? (
+        <p className="mt-2 text-xs font-bold leading-5 text-white/45">
+          {exercise.notes}
+        </p>
+      ) : null}
+    </li>
+  );
 }
 
 export default function AiTrainer() {
   const [member, setMember] = useState<AppMember | null>(null);
+  const [plan, setPlan] = useState<WorkoutPlan | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState("");
+
   const [goal, setGoal] = useState("Build muscle");
   const [level, setLevel] = useState("Beginner");
-  const [daysPerWeek, setDaysPerWeek] = useState(3);
-  const [minutes, setMinutes] = useState(45);
-  const [style, setStyle] = useState("Mixed gym workout");
+  const [daysPerWeek, setDaysPerWeek] = useState("3");
+  const [sessionTime, setSessionTime] = useState("45");
+  const [focus, setFocus] = useState("Full body");
   const [limitations, setLimitations] = useState("");
-  const [planVersion, setPlanVersion] = useState(1);
-  const [plan, setPlan] = useState<GeneratedPlan | null>(null);
-  const [status, setStatus] = useState("");
-  const [loadingSaved, setLoadingSaved] = useState(true);
-  const [chatInput, setChatInput] = useState("");
-  const [chatReply, setChatReply] = useState("");
 
   useEffect(() => {
-    async function loadMemberAndPlan() {
-      const savedMember = getSavedMember();
-      setMember(savedMember);
-
-      if (!savedMember) {
-        setLoadingSaved(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          `/api/member/workout-plan?memberId=${savedMember.id}`,
-          { cache: "no-store" }
-        );
-
-        const data = await response.json();
-
-        if (data.savedPlan) {
-          setGoal(data.savedPlan.goal || "Build muscle");
-          setLevel(data.savedPlan.level || "Beginner");
-          setDaysPerWeek(data.savedPlan.daysPerWeek || 3);
-          setMinutes(data.savedPlan.minutes || 45);
-          setStyle(data.savedPlan.style || "Mixed gym workout");
-          setLimitations(data.savedPlan.limitations || "");
-          setPlan(data.savedPlan.plan || null);
-          setStatus("Loaded your saved member plan.");
-        }
-      } catch {
-        setStatus("Could not load saved plan.");
-      } finally {
-        setLoadingSaved(false);
-      }
-    }
-
-    loadMemberAndPlan();
+    setMember(getSavedMember());
   }, []);
 
-  const completionText = useMemo(() => {
-    if (!plan) return "No plan generated yet.";
+  useEffect(() => {
+    if (!member?.id) {
+      setLoadingPlan(false);
+      return;
+    }
 
-    return `${plan.days.length} workout days · ${minutes} minutes each`;
-  }, [plan, minutes]);
+    loadSavedPlan(member.id);
+  }, [member?.id]);
 
-  function generatePlan() {
-    const generated = makeWorkoutPlan(
-      goal,
-      level,
-      daysPerWeek,
-      minutes,
-      style,
-      limitations,
-      planVersion
-    );
+  const planDate = useMemo(() => {
+    return formatDate(plan?.createdAt || plan?.created_at);
+  }, [plan]);
 
-    setPlan(generated);
-    setStatus("New plan generated. Tap Save My Plan to store it.");
+  async function parseResponse(response: Response) {
+    const contentType = response.headers.get("content-type") || "";
+
+    if (contentType.includes("application/json")) {
+      return response.json();
+    }
+
+    return {
+      plan: await response.text(),
+    };
   }
 
-  function updatePlan() {
-    const nextVersion = planVersion + 1;
-    setPlanVersion(nextVersion);
+  async function loadSavedPlan(memberId: string) {
+    try {
+      setLoadingPlan(true);
 
-    const generated = makeWorkoutPlan(
-      goal,
-      level,
-      daysPerWeek,
-      minutes,
-      style,
-      limitations,
-      nextVersion
-    );
+      const response = await fetch(
+        `/api/member/workout-plan?memberId=${encodeURIComponent(memberId)}`,
+        {
+          cache: "no-store",
+        }
+      );
 
-    setPlan(generated);
-    setStatus("Plan updated with a fresh variation.");
-  }
+      if (!response.ok) return;
 
-  async function savePlan() {
-    if (!member) {
-      setStatus("Please log in before saving your plan.");
-      return;
-    }
+      const data = await parseResponse(response);
+      const normalised = normalizePlanPayload(data);
 
-    if (!plan) {
-      setStatus("Generate a plan first.");
-      return;
-    }
-
-    setStatus("Saving plan…");
-
-    const response = await fetch("/api/member/workout-plan", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        memberId: member.id,
-        goal,
-        level,
-        daysPerWeek,
-        minutes,
-        style,
-        limitations,
-        plan,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      setStatus(data.error || "Could not save plan.");
-      return;
-    }
-
-    setStatus(data.message || "Workout plan saved.");
-  }
-
-  async function clearSavedPlan() {
-    if (!member) {
-      setStatus("Please log in first.");
-      return;
-    }
-
-    const confirmed = window.confirm("Clear your saved AI Trainer plan?");
-    if (!confirmed) return;
-
-    setStatus("Clearing saved plan…");
-
-    const response = await fetch(
-      `/api/member/workout-plan?memberId=${member.id}`,
-      {
-        method: "DELETE",
+      if (normalised) {
+        setPlan(normalised);
       }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      setStatus(data.error || "Could not clear plan.");
-      return;
+    } catch {
+      // Some older API versions may only support POST. Ignore silently.
+    } finally {
+      setLoadingPlan(false);
     }
-
-    setPlan(null);
-    setStatus(data.message || "Saved plan cleared.");
   }
 
-  function askTrainer() {
-    const question = chatInput.trim();
+  async function generatePlan(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-    if (!question) return;
+    if (!member?.id) return;
 
-    const lower = question.toLowerCase();
+    try {
+      setGenerating(true);
+      setError("");
 
-    if (lower.includes("cardio")) {
-      setChatReply(
-        "Add 10-20 minutes of easy cardio after weights, or do 1-2 separate cardio days. Keep it light enough that it does not ruin your recovery."
+      const response = await fetch("/api/member/workout-plan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          memberId: member.id,
+          goal,
+          experience: level,
+          level,
+          daysPerWeek: Number(daysPerWeek),
+          sessionTime: Number(sessionTime),
+          focus,
+          limitations,
+          notes: limitations,
+        }),
+      });
+
+      const data = await parseResponse(response);
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not generate workout plan.");
+      }
+
+      const normalised = normalizePlanPayload(data);
+
+      setPlan(
+        normalised || {
+          title: "Your AI Training Plan",
+          raw: JSON.stringify(data, null, 2),
+        }
       );
-    } else if (lower.includes("protein") || lower.includes("food")) {
-      setChatReply(
-        "Aim for a protein source in each meal and keep your meals consistent. For specific nutrition advice, speak to a qualified professional."
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Could not generate workout plan."
       );
-    } else if (lower.includes("pain") || lower.includes("injury")) {
-      setChatReply(
-        "Do not train through sharp pain. Stop that exercise and ask a coach or medical professional to check it."
-      );
-    } else if (lower.includes("progress")) {
-      setChatReply(
-        "Track weights, reps and consistency. When your form is clean and the set feels controlled, add a little weight or one extra rep."
-      );
-    } else {
-      setChatReply(
-        "Keep the plan simple, consistent and progressive. Train with good form, recover well, and ask a BGM coach if you want this adjusted in person."
-      );
+    } finally {
+      setGenerating(false);
     }
-
-    setChatInput("");
-  }
-
-  if (loadingSaved) {
-    return (
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <div className="flex items-center gap-3 text-white/45">
-          <RefreshCw size={18} className="animate-spin" />
-          <p className="text-sm font-bold">Loading AI Trainer…</p>
-        </div>
-      </section>
-    );
   }
 
   if (!member) {
     return (
-      <section className="rounded-[2rem] border border-[#fcb415]/30 bg-[#fcb415]/10 p-6 text-center">
-        <div className="mx-auto h-28 w-28 overflow-hidden rounded-full border-2 border-[#fcb415]/40 bg-black/40 shadow-2xl">
-          <img
-            src="/bgm-trainer-icon.png"
-            alt="BGM AI Trainer Login"
-            className="h-full w-full object-cover"
-          />
-        </div>
-        <h1 className="mt-5 text-4xl font-black text-white">AI Trainer</h1>
-        <p className="mt-3 text-sm font-bold leading-6 text-white/55">
-          Log in to generate and save your training plan to your member account.
-        </p>
-
-        <a
-          href="/member-login"
-          className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+      <div className="space-y-6">
+        <section
+          className="relative min-h-[390px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
+          style={{
+            backgroundImage:
+              "linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.84)), linear-gradient(135deg, rgba(252,180,21,.24), rgba(0,0,0,.84)), url('/visuals/trainer.jpg')",
+          }}
         >
-          <LogIn size={17} strokeWidth={3} />
-          Login / Activate
-        </a>
-      </section>
+          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
+
+          <div className="relative flex min-h-[340px] flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <div className="rounded-full border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-md">
+                <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                  AI Trainer
+                </p>
+              </div>
+
+              <img
+                src="/bgm-trainer-icon.png"
+                alt=""
+                className="h-16 w-16 object-contain drop-shadow-2xl mix-blend-screen"
+              />
+            </div>
+
+            <div>
+              <Lock className="text-[#fcb415]" size={34} strokeWidth={3} />
+
+              <h1 className="mt-4 text-5xl font-black leading-[0.95] text-white drop-shadow-2xl">
+                Your virtual trainer
+              </h1>
+
+              <p className="mt-5 max-w-xs text-sm font-bold leading-6 text-white/70">
+                Log in to generate and save a training plan against your BGM
+                member profile.
+              </p>
+
+              <a
+                href="/member-login"
+                className="mt-6 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+              >
+                Login / Activate
+                <ChevronRight size={17} strokeWidth={3} />
+              </a>
+            </div>
+          </div>
+        </section>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#fcb415]/25 via-white/[0.04] to-black p-6">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#fcb415]/20 blur-3xl" />
+      <section
+        className="relative min-h-[430px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
+        style={{
+          backgroundImage:
+            "linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.86)), linear-gradient(135deg, rgba(252,180,21,.24), rgba(0,0,0,.84)), url('/visuals/trainer.jpg')",
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/25 to-black/90" />
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
 
-        <div className="absolute right-5 top-5 z-10 h-24 w-24 overflow-hidden rounded-full border-2 border-[#fcb415]/40 bg-black/40 shadow-2xl">
-          <img
-            src="/bgm-trainer-icon.png"
-            alt="BGM AI Trainer"
-            className="h-full w-full object-cover"
-          />
-        </div>
+        <div className="relative flex min-h-[380px] flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <div className="rounded-full border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-md">
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                AI Trainer
+              </p>
+            </div>
 
-        <div className="relative pr-24">
-          <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
-            AI Trainer
-          </p>
+            <img
+              src="/bgm-trainer-icon.png"
+              alt=""
+              className="h-16 w-16 object-contain drop-shadow-2xl mix-blend-screen"
+            />
+          </div>
 
-          <h1 className="mt-4 text-4xl font-black leading-tight text-white">
-            Build your member plan
-          </h1>
-
-          <p className="mt-3 text-sm font-bold leading-6 text-white/55">
-            Saved to {member.username || member.fullName || "your member account"}.
-          </p>
-
-          <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4">
-            <p className="text-xs font-black uppercase tracking-[.18em] text-white/35">
-              Current Plan
+          <div>
+            <p className="text-sm font-black uppercase tracking-[.24em] text-[#fcb415]">
+              Built around your goal
             </p>
-            <p className="mt-2 text-lg font-black text-white">
-              {completionText}
+
+            <h1 className="mt-4 text-5xl font-black leading-[0.95] text-white drop-shadow-2xl">
+              Your virtual trainer
+            </h1>
+
+            <p className="mt-5 max-w-xs text-sm font-bold leading-6 text-white/70">
+              Generate a simple gym plan based on your level, goal and weekly
+              routine.
+            </p>
+
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              <div className="rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-md">
+                <Target className="text-[#fcb415]" size={22} strokeWidth={3} />
+                <p className="mt-3 text-lg font-black text-white">{goal}</p>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-md">
+                <CalendarDays
+                  className="text-[#fcb415]"
+                  size={22}
+                  strokeWidth={3}
+                />
+                <p className="mt-3 text-lg font-black text-white">
+                  {daysPerWeek}x
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-md">
+                <Clock3 className="text-[#fcb415]" size={22} strokeWidth={3} />
+                <p className="mt-3 text-lg font-black text-white">
+                  {sessionTime}m
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-[#fcb415]/25 bg-[#fcb415]/10 p-5">
+        <div className="flex items-start gap-3">
+          <ShieldCheck
+            className="mt-0.5 shrink-0 text-[#fcb415]"
+            size={26}
+            strokeWidth={3}
+          />
+
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              Smart Guidance
+            </p>
+
+            <h2 className="mt-1 text-2xl font-black text-white">
+              Train with structure
+            </h2>
+
+            <p className="mt-3 text-sm font-bold leading-6 text-white/60">
+              Your plan is guidance only. Train safely, use good form and ask a
+              coach if you are unsure about an exercise.
             </p>
           </div>
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <div className="grid gap-4">
+      <form
+        onSubmit={generatePlan}
+        className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5"
+      >
+        <div className="flex items-center gap-3">
+          <Bot className="text-[#fcb415]" size={25} strokeWidth={3} />
+
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              Plan Builder
+            </p>
+
+            <h2 className="mt-1 text-2xl font-black text-white">
+              Create your plan
+            </h2>
+          </div>
+        </div>
+
+        {error ? (
+          <div className="mt-5 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold leading-6 text-red-200">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="mt-5 grid gap-4">
           <label className="grid gap-2">
             <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
-              Goal
+              Main goal
             </span>
+
             <select
               value={goal}
               onChange={(event) => setGoal(event.target.value)}
-              className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
+              className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold text-white outline-none"
             >
               {goals.map((item) => (
-                <option key={item}>{item}</option>
+                <option key={item} value={item}>
+                  {item}
+                </option>
               ))}
             </select>
           </label>
@@ -438,46 +479,13 @@ export default function AiTrainer() {
               <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
                 Level
               </span>
+
               <select
                 value={level}
                 onChange={(event) => setLevel(event.target.value)}
-                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
+                className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold text-white outline-none"
               >
                 {levels.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </label>
-
-            <label className="grid gap-2">
-              <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
-                Days / Week
-              </span>
-              <select
-                value={daysPerWeek}
-                onChange={(event) => setDaysPerWeek(Number(event.target.value))}
-                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
-              >
-                {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-                  <option key={day} value={day}>
-                    {day}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <label className="grid gap-2">
-              <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
-                Minutes
-              </span>
-              <select
-                value={minutes}
-                onChange={(event) => setMinutes(Number(event.target.value))}
-                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
-              >
-                {[30, 45, 60, 75, 90].map((item) => (
                   <option key={item} value={item}>
                     {item}
                   </option>
@@ -487,158 +495,291 @@ export default function AiTrainer() {
 
             <label className="grid gap-2">
               <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
-                Style
+                Focus
               </span>
+
               <select
-                value={style}
-                onChange={(event) => setStyle(event.target.value)}
-                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
+                value={focus}
+                onChange={(event) => setFocus(event.target.value)}
+                className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold text-white outline-none"
               >
-                {styles.map((item) => (
-                  <option key={item}>{item}</option>
+                {focusAreas.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
                 ))}
               </select>
             </label>
           </div>
 
-          <textarea
-            value={limitations}
-            onChange={(event) => setLimitations(event.target.value)}
-            placeholder="Limitations, injuries or notes optional"
-            className="min-h-24 rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
-          />
-
           <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={generatePlan}
-              className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
-            >
-              <Sparkles size={17} strokeWidth={3} />
-              Generate
-            </button>
+            <label className="grid gap-2">
+              <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                Days per week
+              </span>
 
-            <button
-              type="button"
-              onClick={updatePlan}
-              className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white"
-            >
-              <RefreshCw size={17} strokeWidth={3} />
-              Update
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {plan ? (
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-          <div className="flex items-start gap-3">
-            <Dumbbell className="mt-1 text-[#fcb415]" size={25} strokeWidth={3} />
-            <div>
-              <h2 className="text-2xl font-black text-white">{plan.title}</h2>
-              <p className="mt-2 text-sm font-bold leading-6 text-white/50">
-                {plan.summary}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5 space-y-4">
-            {plan.days.map((day) => (
-              <div
-                key={day.title}
-                className="rounded-2xl border border-white/10 bg-black/25 p-4"
+              <select
+                value={daysPerWeek}
+                onChange={(event) => setDaysPerWeek(event.target.value)}
+                className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold text-white outline-none"
               >
-                <p className="text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
-                  {day.title}
-                </p>
-                <h3 className="mt-2 text-lg font-black text-white">
-                  {day.focus}
-                </h3>
+                {["1", "2", "3", "4", "5", "6", "7"].map((item) => (
+                  <option key={item} value={item}>
+                    {item} days
+                  </option>
+                ))}
+              </select>
+            </label>
 
-                <div className="mt-3 grid gap-2">
-                  {day.exercises.map((exercise) => (
-                    <p
-                      key={exercise}
-                      className="rounded-xl bg-white/[0.04] px-3 py-2 text-sm font-bold text-white/60"
-                    >
-                      {exercise}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            ))}
+            <label className="grid gap-2">
+              <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                Session time
+              </span>
+
+              <select
+                value={sessionTime}
+                onChange={(event) => setSessionTime(event.target.value)}
+                className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold text-white outline-none"
+              >
+                {["30", "45", "60", "75", "90"].map((item) => (
+                  <option key={item} value={item}>
+                    {item} minutes
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-[#fcb415]/30 bg-[#fcb415]/10 p-4">
-            <p className="text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
-              Coach Notes
-            </p>
-            <div className="mt-3 grid gap-2">
-              {plan.tips.map((tip) => (
-                <p key={tip} className="text-sm font-bold leading-6 text-white/60">
-                  {tip}
-                </p>
-              ))}
-            </div>
-          </div>
+          <label className="grid gap-2">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+              Injuries, limitations or notes
+            </span>
 
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={savePlan}
-              className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
-            >
-              <Save size={17} strokeWidth={3} />
-              Save My Plan
-            </button>
+            <textarea
+              value={limitations}
+              onChange={(event) => setLimitations(event.target.value)}
+              rows={3}
+              placeholder="Example: knee pain, avoid deadlifts, prefer machines..."
+              className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold leading-6 text-white outline-none placeholder:text-white/25"
+            />
+          </label>
+        </div>
 
-            <button
-              type="button"
-              onClick={clearSavedPlan}
-              className="flex items-center justify-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-black text-red-300"
-            >
-              <Trash2 size={17} strokeWidth={3} />
-              Clear
-            </button>
-          </div>
-        </section>
-      ) : null}
+        <button
+          type="submit"
+          disabled={generating}
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black disabled:opacity-60"
+        >
+          {generating ? (
+            <>
+              <RefreshCw size={17} strokeWidth={3} className="animate-spin" />
+              Building plan…
+            </>
+          ) : (
+            <>
+              Generate Plan
+              <Zap size={17} strokeWidth={3} />
+            </>
+          )}
+        </button>
+      </form>
 
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <div className="flex items-center gap-3">
-          <MessageCircle className="text-[#fcb415]" size={24} strokeWidth={3} />
-          <h2 className="text-2xl font-black text-white">Ask the Trainer</h2>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Dumbbell className="text-[#fcb415]" size={25} strokeWidth={3} />
+
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                Current Plan
+              </p>
+
+              <h2 className="mt-1 text-2xl font-black text-white">
+                Your training week
+              </h2>
+            </div>
+          </div>
+
+          {loadingPlan ? (
+            <RefreshCw className="animate-spin text-[#fcb415]" size={24} />
+          ) : null}
         </div>
 
-        <div className="mt-4 grid gap-3">
-          <input
-            value={chatInput}
-            onChange={(event) => setChatInput(event.target.value)}
-            placeholder="Ask about cardio, progress, protein, injuries..."
-            className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
-          />
+        {!plan && !loadingPlan ? (
+          <div className="mt-5 rounded-[1.6rem] border border-white/10 bg-black/25 p-6 text-center">
+            <Sparkles
+              className="mx-auto text-[#fcb415]"
+              size={42}
+              strokeWidth={3}
+            />
 
-          <button
-            type="button"
-            onClick={askTrainer}
-            className="rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
-          >
-            Ask
-          </button>
-        </div>
+            <h3 className="mt-4 text-3xl font-black text-white">
+              No plan yet
+            </h3>
 
-        {chatReply ? (
-          <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-4">
-            <p className="text-sm font-bold leading-6 text-white/60">
-              {chatReply}
+            <p className="mt-3 text-sm font-bold leading-6 text-white/50">
+              Build your first AI training plan and save it to your member
+              profile.
             </p>
+          </div>
+        ) : null}
+
+        {plan ? (
+          <div className="mt-5 space-y-4">
+            <div className="rounded-[1.6rem] border border-[#fcb415]/25 bg-[#fcb415]/10 p-5">
+              <div className="flex items-start gap-3">
+                <Trophy
+                  className="mt-0.5 shrink-0 text-[#fcb415]"
+                  size={26}
+                  strokeWidth={3}
+                />
+
+                <div>
+                  <h3 className="text-2xl font-black text-white">
+                    {plan.title || "Your AI Training Plan"}
+                  </h3>
+
+                  {planDate ? (
+                    <p className="mt-1 text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
+                      Created {planDate}
+                    </p>
+                  ) : null}
+
+                  {plan.summary || plan.overview ? (
+                    <p className="mt-3 text-sm font-bold leading-6 text-white/60">
+                      {plan.summary || plan.overview}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            {plan.days && plan.days.length > 0 ? (
+              <div className="space-y-3">
+                {plan.days.map((day, index) => (
+                  <article
+                    key={`${day.title || day.day || "day"}-${index}`}
+                    className="rounded-[1.6rem] border border-white/10 bg-black/25 p-5"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#fcb415] text-black">
+                        <Flame size={24} strokeWidth={3} />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-black uppercase tracking-[.18em] text-white/35">
+                          Day {index + 1}
+                        </p>
+
+                        <h3 className="mt-1 text-xl font-black text-white">
+                          {day.title || day.day || `Training Day ${index + 1}`}
+                        </h3>
+
+                        {day.focus ? (
+                          <p className="mt-1 text-sm font-bold text-[#fcb415]">
+                            {day.focus}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {day.exercises && day.exercises.length > 0 ? (
+                      <ul className="mt-4 grid gap-2">
+                        {day.exercises.map(renderExercise)}
+                      </ul>
+                    ) : null}
+
+                    {day.notes ? (
+                      <p className="mt-4 text-sm font-bold leading-6 text-white/45">
+                        {day.notes}
+                      </p>
+                    ) : null}
+                  </article>
+                ))}
+              </div>
+            ) : plan.raw ? (
+              <div className="rounded-[1.6rem] border border-white/10 bg-black/25 p-5">
+                <pre className="whitespace-pre-wrap text-sm font-bold leading-6 text-white/60">
+                  {plan.raw}
+                </pre>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </section>
 
-      {status ? (
-        <p className="text-center text-sm font-bold text-white/50">{status}</p>
-      ) : null}
+      <section className="grid grid-cols-2 gap-3">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+          <Activity className="text-[#fcb415]" size={24} strokeWidth={3} />
+          <h3 className="mt-3 text-lg font-black text-white">
+            Track progress
+          </h3>
+          <p className="mt-1 text-xs font-bold leading-5 text-white/45">
+            Use your Progress Vault to keep visual updates alongside your plan.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+          <UserCheck className="text-[#fcb415]" size={24} strokeWidth={3} />
+          <h3 className="mt-3 text-lg font-black text-white">
+            Ask a coach
+          </h3>
+          <p className="mt-1 text-xs font-bold leading-5 text-white/45">
+            Need help with form? Ask a BGM team member in the gym.
+          </p>
+        </div>
+
+        <a
+          href="/progress"
+          className="flex items-center justify-between rounded-2xl border border-[#fcb415]/25 bg-[#fcb415]/10 p-4"
+        >
+          <div>
+            <h3 className="text-lg font-black text-white">Progress Vault</h3>
+            <p className="mt-1 text-xs font-bold text-white/45">
+              Save photos
+            </p>
+          </div>
+          <ChevronRight className="text-[#fcb415]" size={22} strokeWidth={3} />
+        </a>
+
+        <a
+          href="/story"
+          className="flex items-center justify-between rounded-2xl border border-[#fcb415]/25 bg-[#fcb415]/10 p-4"
+        >
+          <div>
+            <h3 className="text-lg font-black text-white">Share Story</h3>
+            <p className="mt-1 text-xs font-bold text-white/45">
+              Create post
+            </p>
+          </div>
+          <ChevronRight className="text-[#fcb415]" size={22} strokeWidth={3} />
+        </a>
+      </section>
+
+      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+        <div className="flex items-start gap-3">
+          <CheckCircle2
+            className="mt-0.5 shrink-0 text-[#fcb415]"
+            size={26}
+            strokeWidth={3}
+          />
+
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              Trainer Tip
+            </p>
+
+            <h2 className="mt-1 text-2xl font-black text-white">
+              Consistency beats perfection
+            </h2>
+
+            <p className="mt-3 text-sm font-bold leading-6 text-white/60">
+              A realistic plan that you follow is better than a perfect plan you
+              quit after one week. Start simple and build momentum.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
