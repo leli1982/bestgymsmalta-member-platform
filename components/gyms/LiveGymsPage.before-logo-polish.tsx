@@ -263,11 +263,11 @@ export default function LiveGymsPage() {
                     </span>
 
                     {gym.logo ? (
-                      <div className="flex h-24 w-24 items-center justify-center">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-black/45 p-2 backdrop-blur-md">
                         <img
                           src={gym.logo}
                           alt=""
-                          className="h-full w-full object-contain drop-shadow-2xl"
+                          className="h-full w-full object-contain"
                         />
                       </div>
                     ) : null}

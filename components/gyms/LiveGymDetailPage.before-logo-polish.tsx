@@ -210,8 +210,8 @@ export default function LiveGymDetailPage(props: {
             </span>
 
             {gym.logo ? (
-              <div className="flex h-28 w-28 items-center justify-center">
-                <img src={gym.logo} alt="" className="h-full w-full object-contain drop-shadow-2xl" />
+              <div className="flex h-20 w-20 items-center justify-center rounded-3xl border border-white/10 bg-black/45 p-3 backdrop-blur-md">
+                <img src={gym.logo} alt="" className="h-full w-full object-contain" />
               </div>
             ) : null}
           </div>
