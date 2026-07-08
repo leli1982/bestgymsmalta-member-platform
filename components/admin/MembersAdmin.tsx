@@ -85,15 +85,14 @@ function isMemberExpired(member: any) {
 function formatMemberDate(value?: string) {
   if (!value) return "Not set";
 
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).format(new Date(value));
-  } catch {
-    return value;
+  const text = String(value).trim();
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if (isoMatch) {
+    return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
   }
+
+  return text;
 }
 
 function memberDisplayStatus(member: any) {
@@ -284,8 +283,8 @@ export default function MembersAdmin({ pin }: { pin: string }) {
 
   function downloadMembersTemplate() {
     const csv = [
-      "memberNumber,fullName,email,phone,enrollmentDate,membershipPeriod,membershipExpiry,notes",
-      "BGM00125,John Borg,john@email.com,99123456,2026-07-07,6_months,2027-01-07,Optional notes",
+      "memberNumber,fullName,email,phone,enrollmentDate,membershipPeriod,membershipExpiry,status,notes",
+      "BGM00125,John Borg,john@email.com,99123456,07/07/2026,6_months,07/01/2027,active,Optional notes",
     ].join("\n");
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });

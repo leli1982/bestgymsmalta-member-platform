@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import GymQrAdmin from "@/components/admin/GymQrAdmin";
+import AdminCheckinsViewer from "@/components/admin/AdminCheckinsViewer";
 import MembersAdmin from "@/components/admin/MembersAdmin";
 
 type AdminTab = "announcements" | "gyms" | "checkins" | "members";
@@ -940,6 +941,43 @@ export default function BgmAdminPage() {
                   />
                 </div>
 
+                <div className="overflow-hidden rounded-[1.7rem] border border-[#fcb415]/25 bg-[#fcb415]/10">
+                  <div className="p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                      Announcement Preview
+                    </p>
+
+                    <h3 className="mt-2 text-2xl font-black text-white">
+                      {announcementForm.title || "Announcement title"}
+                    </h3>
+
+                    <p className="mt-2 text-sm font-bold leading-6 text-white/60">
+                      {announcementForm.message ||
+                        "Your announcement message will appear here."}
+                    </p>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-[#fcb415]">
+                        {announcementForm.category || "Update"}
+                      </span>
+
+                      {announcementForm.button_text ? (
+                        <span className="rounded-full bg-[#fcb415] px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-black">
+                          {announcementForm.button_text}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {announcementForm.image_url ? (
+                    <img
+                      src={announcementForm.image_url}
+                      alt=""
+                      className="h-44 w-full object-cover"
+                    />
+                  ) : null}
+                </div>
+
                 <label className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/25 px-4 py-4">
                   <span className="text-sm font-black text-white">Active</span>
                   <input
@@ -1088,6 +1126,39 @@ export default function BgmAdminPage() {
               </div>
             </section>
 
+            <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                Gym admin overview
+              </p>
+
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <p className="text-3xl font-black text-white">{gyms.length}</p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35">
+                    Total
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <p className="text-3xl font-black text-green-300">
+                    {gyms.filter((gym) => gym.status === "active").length}
+                  </p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35">
+                    Active
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <p className="text-3xl font-black text-[#fcb415]">
+                    {gyms.filter((gym) => gym.virtualTourUrl).length}
+                  </p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35">
+                    3D Tours
+                  </p>
+                </div>
+              </div>
+            </section>
+
             {gyms.length === 0 ? (
               <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
                 <p className="text-sm font-bold leading-6 text-white/50">
@@ -1133,6 +1204,50 @@ export default function BgmAdminPage() {
                       ))}
                     </select>
                   </label>
+                </section>
+
+                <section className="overflow-hidden rounded-[2rem] border border-[#fcb415]/25 bg-[#fcb415]/10">
+                  <div className="p-5">
+                    <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                      Selected gym preview
+                    </p>
+
+                    <div className="mt-4 flex items-center gap-4">
+                      {gymForm.logo ? (
+                        <img
+                          src={gymForm.logo}
+                          alt=""
+                          className="h-16 w-16 shrink-0 object-contain drop-shadow-2xl"
+                        />
+                      ) : (
+                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-black/25 text-xl font-black text-[#fcb415]">
+                          BGM
+                        </div>
+                      )}
+
+                      <div className="min-w-0">
+                        <h3 className="truncate text-2xl font-black text-white">
+                          {gymForm.name || "New gym"}
+                        </h3>
+
+                        <p className="mt-1 text-sm font-bold text-white/55">
+                          {gymForm.city || "City not set"}
+                        </p>
+
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <span className="rounded-full bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-[#fcb415]">
+                            {gymForm.status}
+                          </span>
+
+                          {gymForm.virtualTourUrl ? (
+                            <span className="rounded-full bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-white/60">
+                              3D Tour
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </section>
 
                 <section className="space-y-4 rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
@@ -1385,7 +1500,12 @@ export default function BgmAdminPage() {
           </>
         ) : null}
 
-        {activeTab === "checkins" ? <GymQrAdmin pin={pin} /> : null}
+        {activeTab === "checkins" ? (
+          <div className="space-y-6">
+            <AdminCheckinsViewer pin={pin} />
+            <GymQrAdmin pin={pin} />
+          </div>
+        ) : null}
 
         {activeTab === "members" ? <MembersAdmin pin={pin} /> : null}
 

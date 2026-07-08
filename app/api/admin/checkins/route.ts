@@ -3,52 +3,104 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
-function isAdmin(request: NextRequest) {
-  const expectedPin = process.env.BGM_ADMIN_PIN;
-  const suppliedPin = request.headers.get("x-admin-pin");
-
-  return Boolean(expectedPin && suppliedPin && suppliedPin === expectedPin);
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value
+  );
 }
 
 export async function GET(request: NextRequest) {
-  if (!isAdmin(request)) {
-    return NextResponse.json({ error: "Not authorised." }, { status: 401 });
-  }
-
   try {
+    const pin = request.headers.get("x-admin-pin") || "";
+
+    if (!process.env.BGM_ADMIN_PIN || pin !== process.env.BGM_ADMIN_PIN) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
     const supabase = getSupabaseAdmin();
 
-    const checkinsResult = await supabase
+    const limit = Math.min(
+      500,
+      Math.max(20, Number(request.nextUrl.searchParams.get("limit") || 200))
+    );
+
+    const gymId = request.nextUrl.searchParams.get("gymId") || "";
+
+    let query = supabase
       .from("bgm_member_checkins")
-      .select("*")
+      .select("id, member_id, gym_id, checkin_at, source, created_at")
       .order("checkin_at", { ascending: false })
-      .limit(50);
+      .limit(limit);
+
+    if (gymId) {
+      query = query.eq("gym_id", gymId);
+    }
+
+    const checkinsResult = await query;
 
     if (checkinsResult.error) throw checkinsResult.error;
 
-    const gymsResult = await supabase.from("bgm_gyms").select("id, name, logo");
+    const checkins = checkinsResult.data || [];
+
+    const memberIds = Array.from(
+      new Set(
+        checkins
+          .map((item) => String(item.member_id || ""))
+          .filter((value) => value && isUuid(value))
+      )
+    );
+
+    const gymIds = Array.from(
+      new Set(checkins.map((item) => String(item.gym_id || "")).filter(Boolean))
+    );
+
+    const membersResult = memberIds.length
+      ? await supabase
+          .from("bgm_members")
+          .select("id, member_number, full_name, email")
+          .in("id", memberIds)
+      : { data: [], error: null };
+
+    if (membersResult.error) throw membersResult.error;
+
+    const gymsResult = gymIds.length
+      ? await supabase
+          .from("bgm_gyms")
+          .select("id, name, short_name, city")
+          .in("id", gymIds)
+      : { data: [], error: null };
 
     if (gymsResult.error) throw gymsResult.error;
 
-    const gymMap = new Map(
-      (gymsResult.data || []).map((gym) => [gym.id, gym])
+    const membersById = new Map(
+      (membersResult.data || []).map((member) => [String(member.id), member])
     );
 
-    const checkins = (checkinsResult.data || []).map((checkin) => {
-      const gym = gymMap.get(checkin.gym_id);
+    const gymsById = new Map(
+      (gymsResult.data || []).map((gym) => [String(gym.id), gym])
+    );
+
+    const mapped = checkins.map((checkin) => {
+      const member = membersById.get(String(checkin.member_id || ""));
+      const gym = gymsById.get(String(checkin.gym_id || ""));
 
       return {
         id: checkin.id,
         memberId: checkin.member_id,
+        memberName: member?.full_name || "Unknown member",
+        memberNumber: member?.member_number || "",
+        memberEmail: member?.email || "",
         gymId: checkin.gym_id,
-        gymName: gym?.name || checkin.gym_id,
-        gymLogo: gym?.logo || "",
-        checkinAt: checkin.checkin_at,
-        source: checkin.source,
+        gymName: gym?.short_name || gym?.name || checkin.gym_id || "Unknown gym",
+        gymCity: gym?.city || "",
+        checkinAt: checkin.checkin_at || checkin.created_at,
+        source: checkin.source || "qr",
       };
     });
 
-    return NextResponse.json({ checkins });
+    return NextResponse.json({
+      checkins: mapped,
+    });
   } catch (error) {
     console.error(error);
 
