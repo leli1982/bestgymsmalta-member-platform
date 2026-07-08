@@ -15,6 +15,10 @@ function normaliseHeader(value: string) {
     .replace(/_/g, "");
 }
 
+function normaliseMemberNumber(value: string) {
+  return clean(value).toUpperCase();
+}
+
 function parseCsvLine(line: string) {
   const result: string[] = [];
   let current = "";
@@ -45,7 +49,6 @@ function parseCsvLine(line: string) {
   }
 
   result.push(current.trim());
-
   return result;
 }
 
@@ -56,9 +59,7 @@ function parseCsv(text: string) {
     .map((line) => line.trim())
     .filter(Boolean);
 
-  if (lines.length < 2) {
-    return [];
-  }
+  if (lines.length < 2) return [];
 
   const headers = parseCsvLine(lines[0]).map(normaliseHeader);
 
@@ -88,6 +89,30 @@ function calculateStatus(expiry: string) {
   return expiry < new Date().toISOString().slice(0, 10) ? "inactive" : "active";
 }
 
+async function deleteFromTableIfExists(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  table: string,
+  column: string,
+  ids: string[]
+) {
+  if (!ids.length) return;
+
+  const result = await supabase.from(table).delete().in(column, ids);
+
+  if (result.error) {
+    const message = String(result.error.message || "");
+
+    if (
+      message.includes("Could not find the table") ||
+      message.includes("schema cache")
+    ) {
+      return;
+    }
+
+    throw result.error;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const pin = request.headers.get("x-admin-pin") || "";
@@ -106,8 +131,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const csvText = await file.text();
-    const rows = parseCsv(csvText);
+    const rows = parseCsv(await file.text());
 
     if (!rows.length) {
       return NextResponse.json(
@@ -118,12 +142,14 @@ export async function POST(request: NextRequest) {
 
     const members = rows
       .map((row) => {
-        const memberNumber = getRowValue(row, [
-          "memberNumber",
-          "member_number",
-          "number",
-          "membershipNumber",
-        ]).toUpperCase();
+        const memberNumber = normaliseMemberNumber(
+          getRowValue(row, [
+            "memberNumber",
+            "member_number",
+            "number",
+            "membershipNumber",
+          ])
+        );
 
         const fullName = getRowValue(row, ["fullName", "full_name", "name"]);
         const email = getRowValue(row, ["email"]).toLowerCase();
@@ -160,7 +186,9 @@ export async function POST(request: NextRequest) {
           updated_at: new Date().toISOString(),
         };
       })
-      .filter((member) => member.member_number && member.full_name && member.email);
+      .filter(
+        (member) => member.member_number && member.full_name && member.email
+      );
 
     if (!members.length) {
       return NextResponse.json(
@@ -172,24 +200,87 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const csvMemberNumbers = Array.from(
+      new Set(members.map((member) => member.member_number))
+    );
+
     const supabase = getSupabaseAdmin();
 
-    const result = await supabase
+    const existingResult = await supabase
+      .from("bgm_members")
+      .select("id, member_number");
+
+    if (existingResult.error) throw existingResult.error;
+
+    const existingMembers = existingResult.data || [];
+
+    const membersToDelete = existingMembers.filter(
+      (member) =>
+        !csvMemberNumbers.includes(normaliseMemberNumber(member.member_number))
+    );
+
+    const idsToDelete = membersToDelete.map((member) => String(member.id));
+
+    if (idsToDelete.length) {
+      await deleteFromTableIfExists(
+        supabase,
+        "bgm_member_checkins",
+        "member_id",
+        idsToDelete
+      );
+
+      await deleteFromTableIfExists(
+        supabase,
+        "bgm_member_stats",
+        "member_id",
+        idsToDelete
+      );
+
+      await deleteFromTableIfExists(
+        supabase,
+        "bgm_progress_photos",
+        "member_id",
+        idsToDelete
+      );
+
+      await deleteFromTableIfExists(
+        supabase,
+        "bgm_member_workout_plans",
+        "member_id",
+        idsToDelete
+      );
+
+      await deleteFromTableIfExists(
+        supabase,
+        "bgm_member_password_resets",
+        "member_id",
+        idsToDelete
+      );
+
+      const deleteMembersResult = await supabase
+        .from("bgm_members")
+        .delete()
+        .in("id", idsToDelete);
+
+      if (deleteMembersResult.error) throw deleteMembersResult.error;
+    }
+
+    const upsertResult = await supabase
       .from("bgm_members")
       .upsert(members, {
         onConflict: "member_number",
       })
       .select("id, member_number, full_name, email");
 
-    if (result.error) throw result.error;
+    if (upsertResult.error) throw upsertResult.error;
 
     return NextResponse.json({
-      imported: result.data?.length || 0,
+      imported: upsertResult.data?.length || 0,
+      removed: idsToDelete.length,
       skipped: rows.length - members.length,
-      members: result.data || [],
-      message: `Imported ${result.data?.length || 0} member${
-        result.data?.length === 1 ? "" : "s"
-      }.`,
+      csvMemberNumbers,
+      removedMemberNumbers: membersToDelete.map((member) => member.member_number),
+      message: `CSV sync complete. Imported ${upsertResult.data?.length || 0}. Removed ${idsToDelete.length}.`,
     });
   } catch (error) {
     console.error(error);

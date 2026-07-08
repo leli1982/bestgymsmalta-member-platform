@@ -1,8 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { RefreshCw, Save, Trash2, UserPlus, X,
+
+import {
+  Download,
+  RefreshCw,
+  Save,
+  Trash2,
   Upload,
+  UserPlus,
+  X,
 } from "lucide-react";
 
 type AdminMember = {
@@ -90,8 +97,7 @@ function formatMemberDate(value?: string) {
 }
 
 function memberDisplayStatus(member: any) {
-  if (isMemberExpired(member)) return "expired";
-  return member.status || "active";
+  return String(member?.status || "active").toLowerCase();
 }
 
 export default function MembersAdmin({ pin }: { pin: string }) {
@@ -109,7 +115,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
   }, []);
 
   async function adminFetch(options?: RequestInit) {
-    return fetch("/api/admin/members", {
+    return fetch(`/api/admin/members?t=${Date.now()}`, {
       ...options,
       headers: {
         "Content-Type": "application/json",
@@ -204,7 +210,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
     setStatus(editingId ? "Member updated." : "Member added.");
     setEditingId(null);
     setForm(emptyMember);
-    loadMembers();
+    await loadMembers();
   }
 
   async function resetAppLogin(member: AdminMember) {
@@ -232,7 +238,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
     }
 
     setStatus("App login reset.");
-    loadMembers();
+    await loadMembers();
   }
 
   async function deleteMember(member: AdminMember) {
@@ -259,8 +265,17 @@ export default function MembersAdmin({ pin }: { pin: string }) {
       return;
     }
 
+    setMembers((current) =>
+      current.filter((item) => item.id !== member.id)
+    );
+
+    if (editingId === member.id) {
+      setEditingId(null);
+      setForm(emptyMember);
+    }
+
     setStatus("Member deleted.");
-    loadMembers();
+    await loadMembers();
   }
 
   const expiryPreview = form.membershipExpiry;
@@ -310,7 +325,9 @@ export default function MembersAdmin({ pin }: { pin: string }) {
       }
 
       setImportSummary(
-        `Imported ${data.imported || 0} member${data.imported === 1 ? "" : "s"}.${
+        `Synced ${data.imported || 0} member${data.imported === 1 ? "" : "s"}.${
+          data.removed ? ` Removed ${data.removed} member${data.removed === 1 ? "" : "s"} not in CSV.` : ""
+        }${
           data.skipped ? ` Skipped ${data.skipped} incomplete row${data.skipped === 1 ? "" : "s"}.` : ""
         }`
       );
@@ -321,6 +338,38 @@ export default function MembersAdmin({ pin }: { pin: string }) {
       setStatus(error instanceof Error ? error.message : "Could not import members.");
     } finally {
       setImportingMembers(false);
+    }
+  }
+
+  async function exportMembersCsv() {
+    try {
+      setStatus("Preparing members export…");
+
+      const response = await fetch("/api/admin/members/export", {
+        headers: {
+          "x-admin-pin": pin,
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Could not export members.");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `bgm-members-export-${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`;
+      link.click();
+
+      URL.revokeObjectURL(url);
+      setStatus("Members CSV exported.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not export members.");
     }
   }
 
@@ -356,7 +405,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
       }
 
       if (memberFilter === "inactive") {
-        return member.status !== "active" && !expired;
+        return memberDisplayStatus(member) !== "active";
       }
 
       if (memberFilter === "enrolled") {
@@ -625,8 +674,8 @@ export default function MembersAdmin({ pin }: { pin: string }) {
           </h3>
 
           <p className="mt-2 text-sm font-bold leading-6 text-white/55">
-            Add new members or update existing members using their member number.
-            App login details are not changed by CSV import.
+            Sync members exactly from your CSV file. Members not included in the CSV will be removed from the admin member list.
+            Existing app login details for matching members are kept.
           </p>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
@@ -649,6 +698,15 @@ export default function MembersAdmin({ pin }: { pin: string }) {
               />
             </label>
           </div>
+
+          <button
+            type="button"
+            onClick={exportMembersCsv}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-black/25 px-4 py-3 text-xs font-black uppercase tracking-[.12em] text-white"
+          >
+            <Download size={15} strokeWidth={3} />
+            Export CSV
+          </button>
 
           {importSummary ? (
             <p className="mt-3 rounded-2xl border border-white/10 bg-black/25 p-3 text-sm font-bold leading-6 text-white/60">
@@ -692,6 +750,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
 
         <div className="mt-5 space-y-4">
           {filteredMembers.map((member) => {
+            const expired = isMemberExpired(member);
             const displayStatus = memberDisplayStatus(member);
 
             return (
@@ -725,7 +784,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
                       className={
                         displayStatus === "active"
                           ? "shrink-0 rounded-full bg-green-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-green-300"
-                          : displayStatus === "expired"
+                          : expired
                             ? "shrink-0 rounded-full bg-red-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-red-300"
                             : "shrink-0 rounded-full bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35"
                       }
@@ -763,6 +822,12 @@ export default function MembersAdmin({ pin }: { pin: string }) {
                       <p className="mt-1 text-sm font-black text-white">
                         {formatMemberDate(member.membershipExpiry)}
                       </p>
+
+                      {expired ? (
+                        <p className="mt-1 text-[10px] font-black uppercase tracking-[.14em] text-red-300">
+                          Membership expired
+                        </p>
+                      ) : null}
                     </div>
                   </div>
 
