@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Save, Trash2, UserPlus, X } from "lucide-react";
 
 type AdminMember = {
@@ -68,8 +68,34 @@ function calculateStatus(expiryDate: string) {
   return expiryDate < today ? "inactive" : "active";
 }
 
+function isMemberExpired(member: any) {
+  if (!member?.membershipExpiry) return false;
+  return member.membershipExpiry < new Date().toISOString().slice(0, 10);
+}
+
+function formatMemberDate(value?: string) {
+  if (!value) return "Not set";
+
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function memberDisplayStatus(member: any) {
+  if (isMemberExpired(member)) return "expired";
+  return member.status || "active";
+}
+
 export default function MembersAdmin({ pin }: { pin: string }) {
   const [members, setMembers] = useState<AdminMember[]>([]);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [memberFilter, setMemberFilter] = useState("all");
   const [form, setForm] = useState<AdminMember>(emptyMember);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [status, setStatus] = useState("");
@@ -235,6 +261,64 @@ export default function MembersAdmin({ pin }: { pin: string }) {
 
   const expiryPreview = form.membershipExpiry;
   const statusPreview = calculateStatus(expiryPreview);
+
+
+  const filteredMembers = useMemo(() => {
+    const query = memberSearch.trim().toLowerCase();
+
+    return members.filter((member) => {
+      const expired = isMemberExpired(member);
+      const displayStatus = memberDisplayStatus(member);
+
+      const matchesSearch =
+        !query ||
+        [
+          member.fullName,
+          member.memberNumber,
+          member.email,
+          member.phone,
+          member.username,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+
+      if (!matchesSearch) return false;
+
+      if (memberFilter === "active") {
+        return displayStatus === "active";
+      }
+
+      if (memberFilter === "expired") {
+        return expired;
+      }
+
+      if (memberFilter === "inactive") {
+        return member.status !== "active" && !expired;
+      }
+
+      if (memberFilter === "enrolled") {
+        return Boolean(member.appEnrolled);
+      }
+
+      if (memberFilter === "not_enrolled") {
+        return !member.appEnrolled;
+      }
+
+      return true;
+    });
+  }, [members, memberSearch, memberFilter]);
+
+  const activeMembers = members.filter(
+    (member) => memberDisplayStatus(member) === "active"
+  ).length;
+
+  const expiredMembers = members.filter(isMemberExpired).length;
+
+  const appActivatedMembers = members.filter(
+    (member) => member.appEnrolled
+  ).length;
 
   return (
     <section className="space-y-6">
@@ -407,99 +491,234 @@ export default function MembersAdmin({ pin }: { pin: string }) {
         </div>
       </section>
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-2xl font-black">Members</h2>
+      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              Members
+            </p>
+
+            <h2 className="mt-1 text-3xl font-black text-white">
+              Member control centre
+            </h2>
+
+            <p className="mt-2 text-sm font-bold leading-6 text-white/45">
+              Search, edit and manage member app access from one place.
+            </p>
+          </div>
 
           <button
             type="button"
             onClick={loadMembers}
-            className="rounded-full border border-white/10 bg-white/[0.04] p-3"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/25 text-white"
           >
-            <RefreshCw size={16} strokeWidth={3} />
+            <RefreshCw size={17} strokeWidth={3} />
           </button>
         </div>
 
-        {members.map((member) => (
-          <div
-            key={member.id}
-            className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-4"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-lg font-black text-white">
-                  {member.fullName}
-                </p>
-                <p className="mt-1 text-xs font-black uppercase tracking-[.16em] text-[#fcb415]">
-                  {member.memberNumber}
-                </p>
-                <p className="mt-1 text-sm font-bold text-white/45">
-                  {member.email}
-                </p>
-              </div>
-
-              <span
-                className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] ${
-                  member.status === "active"
-                    ? "bg-green-400/10 text-green-300"
-                    : "bg-red-400/10 text-red-300"
-                }`}
-              >
-                {member.status}
-              </span>
-            </div>
-
-            <div className="mt-3 rounded-2xl border border-white/10 bg-black/25 p-3">
-              <p className="text-xs font-bold text-white/45">
-                App:{" "}
-                {member.appEnrolled
-                  ? `Activated as ${member.username}`
-                  : "Not activated"}
-              </p>
-
-              {member.enrollmentDate ? (
-                <p className="mt-1 text-xs font-bold text-white/35">
-                  Enrolled: {member.enrollmentDate}
-                </p>
-              ) : null}
-
-              {member.membershipExpiry ? (
-                <p className="mt-1 text-xs font-bold text-white/35">
-                  Expiry: {member.membershipExpiry}
-                </p>
-              ) : null}
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => editMember(member)}
-                className="rounded-full bg-[#fcb415] px-4 py-2 text-xs font-black text-black"
-              >
-                Edit
-              </button>
-
-              {member.appEnrolled ? (
-                <button
-                  type="button"
-                  onClick={() => resetAppLogin(member)}
-                  className="rounded-full border border-white/10 px-4 py-2 text-xs font-black"
-                >
-                  Reset App Login
-                </button>
-              ) : null}
-
-              <button
-                type="button"
-                onClick={() => deleteMember(member)}
-                className="flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-black text-red-300"
-              >
-                <Trash2 size={14} strokeWidth={3} />
-                Delete
-              </button>
-            </div>
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+            <p className="text-3xl font-black text-white">{members.length}</p>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35">
+              Total
+            </p>
           </div>
-        ))}
+
+          <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+            <p className="text-3xl font-black text-green-300">
+              {activeMembers}
+            </p>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35">
+              Active
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+            <p className="text-3xl font-black text-[#fcb415]">
+              {appActivatedMembers}
+            </p>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35">
+              App users
+            </p>
+          </div>
+        </div>
+
+        {expiredMembers > 0 ? (
+          <div className="mt-3 rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
+            <p className="text-sm font-black text-red-200">
+              {expiredMembers} expired member{expiredMembers === 1 ? "" : "s"} found
+            </p>
+            <p className="mt-1 text-xs font-bold leading-5 text-red-200/60">
+              Use the Expired filter to review memberships that may need renewal.
+            </p>
+          </div>
+        ) : null}
+
+        <div className="mt-5 grid gap-3">
+          <input
+            value={memberSearch}
+            onChange={(event) => setMemberSearch(event.target.value)}
+            placeholder="Search name, member number, email, phone or username"
+            className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-base font-bold text-white outline-none placeholder:text-white/25"
+          />
+
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {[
+              ["all", "All"],
+              ["active", "Active"],
+              ["expired", "Expired"],
+              ["inactive", "Inactive"],
+              ["enrolled", "App active"],
+              ["not_enrolled", "Not activated"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setMemberFilter(value)}
+                className={
+                  memberFilter === value
+                    ? "shrink-0 rounded-full bg-[#fcb415] px-4 py-3 text-xs font-black uppercase tracking-[.14em] text-black"
+                    : "shrink-0 rounded-full border border-white/10 bg-black/25 px-4 py-3 text-xs font-black uppercase tracking-[.14em] text-white/45"
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-5 space-y-4">
+          {filteredMembers.map((member) => {
+            const displayStatus = memberDisplayStatus(member);
+
+            return (
+              <article
+                key={member.id}
+                className="overflow-hidden rounded-[2rem] border border-white/10 bg-black/25"
+              >
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-xl font-black text-white">
+                        {member.fullName || "Unnamed member"}
+                      </p>
+
+                      <p className="mt-1 text-xs font-black uppercase tracking-[.16em] text-[#fcb415]">
+                        {member.memberNumber || "No member number"}
+                      </p>
+
+                      <p className="mt-2 break-all text-sm font-bold text-white/45">
+                        {member.email || "No email"}
+                      </p>
+
+                      {member.phone ? (
+                        <p className="mt-1 text-sm font-bold text-white/35">
+                          {member.phone}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <span
+                      className={
+                        displayStatus === "active"
+                          ? "shrink-0 rounded-full bg-green-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-green-300"
+                          : displayStatus === "expired"
+                            ? "shrink-0 rounded-full bg-red-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-red-300"
+                            : "shrink-0 rounded-full bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35"
+                      }
+                    >
+                      {displayStatus}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                      <p className="text-[10px] font-black uppercase tracking-[.16em] text-white/30">
+                        App Login
+                      </p>
+                      <p
+                        className={
+                          member.appEnrolled
+                            ? "mt-1 text-sm font-black text-green-300"
+                            : "mt-1 text-sm font-black text-white/45"
+                        }
+                      >
+                        {member.appEnrolled ? "Activated" : "Not activated"}
+                      </p>
+
+                      {member.appEnrolled && member.username ? (
+                        <p className="mt-1 truncate text-xs font-bold text-white/35">
+                          {member.username}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                      <p className="text-[10px] font-black uppercase tracking-[.16em] text-white/30">
+                        Expiry
+                      </p>
+                      <p className="mt-1 text-sm font-black text-white">
+                        {formatMemberDate(member.membershipExpiry)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {member.enrollmentDate ? (
+                    <p className="mt-3 text-xs font-bold text-white/35">
+                      Enrolled: {formatMemberDate(member.enrollmentDate)}
+                    </p>
+                  ) : null}
+
+                  {member.notes ? (
+                    <p className="mt-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-xs font-bold leading-5 text-white/45">
+                      {member.notes}
+                    </p>
+                  ) : null}
+
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => editMember(member)}
+                      className="rounded-full bg-[#fcb415] px-5 py-3 text-xs font-black text-black"
+                    >
+                      Edit
+                    </button>
+
+                    {member.appEnrolled ? (
+                      <button
+                        type="button"
+                        onClick={() => resetAppLogin(member)}
+                        className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-xs font-black text-white"
+                      >
+                        Reset App Login
+                      </button>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={() => deleteMember(member)}
+                      className="flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-5 py-3 text-xs font-black text-red-300"
+                    >
+                      <Trash2 size={14} strokeWidth={3} />
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+
+          {filteredMembers.length === 0 ? (
+            <div className="rounded-[1.7rem] border border-white/10 bg-black/25 p-6 text-center">
+              <p className="text-2xl font-black text-white">
+                No members found
+              </p>
+              <p className="mt-2 text-sm font-bold leading-6 text-white/45">
+                Try changing the search text or selected filter.
+              </p>
+            </div>
+          ) : null}
+        </div>
       </section>
 
       {status ? (
