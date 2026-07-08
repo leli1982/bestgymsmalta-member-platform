@@ -84,6 +84,63 @@ function getRowValue(row: Record<string, string>, keys: string[]) {
   return "";
 }
 
+function isValidIsoDate(year: string, month: string, day: string) {
+  const date = new Date(`${year}-${month}-${day}T00:00:00.000Z`);
+
+  return (
+    !Number.isNaN(date.getTime()) &&
+    date.getUTCFullYear() === Number(year) &&
+    date.getUTCMonth() + 1 === Number(month) &&
+    date.getUTCDate() === Number(day)
+  );
+}
+
+function normaliseDateToIso(value: string) {
+  const cleanValue = clean(value);
+
+  if (!cleanValue) return "";
+
+  // Already ISO: yyyy-mm-dd
+  const isoMatch = cleanValue.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+
+  if (isoMatch) {
+    const year = isoMatch[1];
+    const month = isoMatch[2].padStart(2, "0");
+    const day = isoMatch[3].padStart(2, "0");
+
+    return isValidIsoDate(year, month, day) ? `${year}-${month}-${day}` : "";
+  }
+
+  // European preferred: dd/mm/yyyy or dd-mm-yyyy
+  // Also rescues accidental US format mm/dd/yyyy when the second number is over 12.
+  const slashMatch = cleanValue.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+
+  if (slashMatch) {
+    let first = Number(slashMatch[1]);
+    let second = Number(slashMatch[2]);
+    const year = slashMatch[3];
+
+    let day = first;
+    let month = second;
+
+    // If month is impossible but first number can be a month, assume accidental US format.
+    // Example: 02/17/2026 becomes 17/02/2026.
+    if (second > 12 && first <= 12) {
+      day = second;
+      month = first;
+    }
+
+    const dayText = String(day).padStart(2, "0");
+    const monthText = String(month).padStart(2, "0");
+
+    return isValidIsoDate(year, monthText, dayText)
+      ? `${year}-${monthText}-${dayText}`
+      : "";
+  }
+
+  return "";
+}
+
 function calculateStatus(expiry: string) {
   if (!expiry) return "active";
   return expiry < new Date().toISOString().slice(0, 10) ? "inactive" : "active";
@@ -154,23 +211,27 @@ export async function POST(request: NextRequest) {
         const fullName = getRowValue(row, ["fullName", "full_name", "name"]);
         const email = getRowValue(row, ["email"]).toLowerCase();
         const phone = getRowValue(row, ["phone", "mobile"]);
-        const enrollmentDate = getRowValue(row, [
-          "enrollmentDate",
-          "enrolmentDate",
-          "enrollment_date",
-          "enrolment_date",
-        ]);
+        const enrollmentDate = normaliseDateToIso(
+          getRowValue(row, [
+            "enrollmentDate",
+            "enrolmentDate",
+            "enrollment_date",
+            "enrolment_date",
+          ])
+        );
         const membershipPeriod = getRowValue(row, [
           "membershipPeriod",
           "membership_period",
           "duration",
         ]);
-        const membershipExpiry = getRowValue(row, [
-          "membershipExpiry",
-          "membership_expiry",
-          "expiry",
-          "expiryDate",
-        ]);
+        const membershipExpiry = normaliseDateToIso(
+          getRowValue(row, [
+            "membershipExpiry",
+            "membership_expiry",
+            "expiry",
+            "expiryDate",
+          ])
+        );
         const notes = getRowValue(row, ["notes", "note"]);
 
         return {
@@ -181,7 +242,7 @@ export async function POST(request: NextRequest) {
           enrollment_date: enrollmentDate || null,
           membership_period: membershipPeriod || null,
           membership_expiry: membershipExpiry || null,
-          status: calculateStatus(membershipExpiry),
+          status: (getRowValue(row, ["status"]) || "active").toLowerCase(),
           notes: notes || null,
           updated_at: new Date().toISOString(),
         };
@@ -200,8 +261,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const csvMemberNumbers = Array.from(
-      new Set(members.map((member) => member.member_number))
+    const membersByNumber = new Map<string, (typeof members)[number]>();
+    const duplicateMemberNumbers: string[] = [];
+
+    for (const member of members) {
+      if (membersByNumber.has(member.member_number)) {
+        duplicateMemberNumbers.push(member.member_number);
+      }
+
+      membersByNumber.set(member.member_number, member);
+    }
+
+    const uniqueMembers = Array.from(membersByNumber.values());
+
+    const csvMemberNumbers = uniqueMembers.map(
+      (member) => member.member_number
     );
 
     const supabase = getSupabaseAdmin();
@@ -267,7 +341,7 @@ export async function POST(request: NextRequest) {
 
     const upsertResult = await supabase
       .from("bgm_members")
-      .upsert(members, {
+      .upsert(uniqueMembers, {
         onConflict: "member_number",
       })
       .select("id, member_number, full_name, email");
@@ -278,15 +352,26 @@ export async function POST(request: NextRequest) {
       imported: upsertResult.data?.length || 0,
       removed: idsToDelete.length,
       skipped: rows.length - members.length,
+      duplicates: Array.from(new Set(duplicateMemberNumbers)),
       csvMemberNumbers,
       removedMemberNumbers: membersToDelete.map((member) => member.member_number),
-      message: `CSV sync complete. Imported ${upsertResult.data?.length || 0}. Removed ${idsToDelete.length}.`,
+      message: `CSV sync complete. Imported ${upsertResult.data?.length || 0}. Removed ${idsToDelete.length}. Duplicate member numbers ignored: ${Array.from(new Set(duplicateMemberNumbers)).length}.`,
     });
   } catch (error) {
-    console.error(error);
+    console.error("CSV import failed:", error);
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : typeof error === "object"
+          ? JSON.stringify(error)
+          : String(error);
 
     return NextResponse.json(
-      { error: "Could not import members CSV." },
+      {
+        error: "Could not import members CSV.",
+        detail: message,
+      },
       { status: 500 }
     );
   }
