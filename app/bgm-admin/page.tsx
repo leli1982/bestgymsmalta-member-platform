@@ -2,15 +2,21 @@
 
 import { useEffect, useState } from "react";
 import {
+  Building2,
   Image as ImageIcon,
+  LockKeyhole,
+  LogOut,
   MapPinned,
   Megaphone,
   Pencil,
   Plus,
+  QrCode,
   RefreshCw,
   Save,
+  ShieldCheck,
   Trash2,
   Upload,
+  Users,
   X,
 } from "lucide-react";
 import GymQrAdmin from "@/components/admin/GymQrAdmin";
@@ -514,37 +520,82 @@ export default function BgmAdminPage() {
   if (!unlocked) {
     return (
       <main className="min-h-screen bg-black p-5 text-white">
-        <div className="mx-auto max-w-md rounded-[2rem] border border-white/10 bg-white/[0.04] p-6">
-          <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
-            BGM Admin
-          </p>
-
-          <h1 className="mt-3 text-3xl font-black">Member app admin</h1>
-
-          <p className="mt-3 text-sm font-bold leading-6 text-white/50">
-            Enter your private admin PIN to manage announcements and gym
-            details.
-          </p>
-
-          <input
-            type="password"
-            value={pin}
-            onChange={(event) => setPin(event.target.value)}
-            placeholder="Admin PIN"
-            className="mt-5 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
-          />
-
-          <button
-            type="button"
-            onClick={unlockAdmin}
-            className="mt-4 w-full rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+        <div className="mx-auto flex min-h-[calc(100vh-40px)] max-w-md items-center">
+          <section
+            className="relative w-full overflow-hidden rounded-[2.4rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
+            style={{
+              backgroundImage:
+                "linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.88)), linear-gradient(135deg, rgba(252,180,21,.24), rgba(0,0,0,.88)), url('/visuals/account.jpg')",
+            }}
           >
-            Unlock Admin
-          </button>
+            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
+            <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-[#fcb415]/10 blur-3xl" />
 
-          {status ? (
-            <p className="mt-4 text-sm font-bold text-white/50">{status}</p>
-          ) : null}
+            <div className="relative">
+              <div className="flex items-center justify-between">
+                <div className="rounded-full border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-md">
+                  <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                    Secure Admin
+                  </p>
+                </div>
+
+                <img
+                  src="/bgm-logo.png"
+                  alt="BestGymsMalta"
+                  className="h-16 w-16 object-contain drop-shadow-2xl"
+                />
+              </div>
+
+              <div className="mt-14">
+                <LockKeyhole className="text-[#fcb415]" size={38} strokeWidth={3} />
+
+                <h1 className="mt-5 text-5xl font-black leading-[0.95] text-white">
+                  BGM Admin
+                </h1>
+
+                <p className="mt-4 text-sm font-bold leading-6 text-white/60">
+                  Manage the member app, gym details, announcements, QR codes and
+                  member access.
+                </p>
+              </div>
+
+              <div className="mt-8 rounded-[1.7rem] border border-white/10 bg-black/40 p-4 backdrop-blur-md">
+                <label className="grid gap-2">
+                  <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                    Admin PIN
+                  </span>
+
+                  <input
+                    type="password"
+                    value={pin}
+                    onChange={(event) => setPin(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        unlockAdmin();
+                      }
+                    }}
+                    placeholder="Enter private PIN"
+                    className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-base font-bold text-white outline-none placeholder:text-white/25"
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  onClick={unlockAdmin}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+                >
+                  Unlock Admin
+                  <ShieldCheck size={18} strokeWidth={3} />
+                </button>
+
+                {status ? (
+                  <p className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-sm font-bold leading-6 text-white/55">
+                    {status}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </section>
         </div>
       </main>
     );
@@ -552,67 +603,171 @@ export default function BgmAdminPage() {
 
   return (
     <main className="min-h-screen bg-black p-5 pb-28 text-white">
-      <div className="mx-auto max-w-2xl space-y-6">
-        <section className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#fcb415]/20 to-black p-6">
-          <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
-            BGM Admin
-          </p>
+      <div className="mx-auto max-w-5xl space-y-6">
+        <section
+          className="relative overflow-hidden rounded-[2.4rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
+          style={{
+            backgroundImage:
+              "linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.88)), linear-gradient(135deg, rgba(252,180,21,.24), rgba(0,0,0,.88)), url('/visuals/account.jpg')",
+          }}
+        >
+          <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#fcb415]/25 blur-3xl" />
+          <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-[#fcb415]/10 blur-3xl" />
 
-          <h1 className="mt-3 text-4xl font-black">Member app admin</h1>
+          <div className="relative">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="w-fit rounded-full border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-md">
+                  <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                    BestGymsMalta
+                  </p>
+                </div>
 
-          <p className="mt-3 text-sm font-bold leading-6 text-white/50">
-            Manage announcements, images, opening hours, gym status, map pins
-            and facilities from one place.
-          </p>
+                <h1 className="mt-5 text-5xl font-black leading-[0.95] text-white">
+                  Member app admin
+                </h1>
 
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <button
-              type="button"
-              onClick={() => setActiveTab("announcements")}
-              className={`rounded-full px-5 py-3 text-sm font-black ${
-                activeTab === "announcements"
-                  ? "bg-[#fcb415] text-black"
-                  : "border border-white/10 bg-white/[0.04] text-white"
-              }`}
-            >
-              Announcements
-            </button>
+                <p className="mt-4 max-w-xl text-sm font-bold leading-6 text-white/60">
+                  Manage announcements, gym details, QR codes and member access
+                  from one clean control centre.
+                </p>
+              </div>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab("gyms")}
-              className={`rounded-full px-5 py-3 text-sm font-black ${
-                activeTab === "gyms"
-                  ? "bg-[#fcb415] text-black"
-                  : "border border-white/10 bg-white/[0.04] text-white"
-              }`}
-            >
-              Gym Details
-            </button>
+              <img
+                src="/bgm-logo.png"
+                alt="BestGymsMalta"
+                className="h-16 w-16 shrink-0 object-contain drop-shadow-2xl"
+              />
+            </div>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab("checkins")}
-              className={`rounded-full px-5 py-3 text-sm font-black ${
-                activeTab === "checkins"
-                  ? "bg-[#fcb415] text-black"
-                  : "border border-white/10 bg-white/[0.04] text-white"
-              }`}
-            >
-              QR Codes
-            </button>
+            <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-md">
+                <Megaphone className="text-[#fcb415]" size={22} strokeWidth={3} />
+                <p className="mt-3 text-3xl font-black text-white">
+                  {announcements.length}
+                </p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35">
+                  Announcements
+                </p>
+              </div>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab("members")}
-              className={`rounded-full px-5 py-3 text-sm font-black ${
-                activeTab === "members"
-                  ? "bg-[#fcb415] text-black"
-                  : "border border-white/10 bg-white/[0.04] text-white"
-              }`}
-            >
-              Members
-            </button>
+              <div className="rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-md">
+                <Building2 className="text-[#fcb415]" size={22} strokeWidth={3} />
+                <p className="mt-3 text-3xl font-black text-white">
+                  {gyms.filter((gym) => gym.status === "active").length}
+                </p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35">
+                  Active gyms
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-md">
+                <MapPinned className="text-[#fcb415]" size={22} strokeWidth={3} />
+                <p className="mt-3 text-3xl font-black text-white">
+                  {gyms.filter((gym) => gym.status === "coming_soon").length}
+                </p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35">
+                  Coming soon
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-md">
+                <ShieldCheck className="text-[#fcb415]" size={22} strokeWidth={3} />
+                <p className="mt-3 text-3xl font-black text-white">ON</p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35">
+                  Admin access
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <button
+                type="button"
+                onClick={() => setActiveTab("announcements")}
+                className={
+                  activeTab === "announcements"
+                    ? "flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-4 py-4 text-sm font-black text-black"
+                    : "flex items-center justify-center gap-2 rounded-full border border-white/10 bg-black/35 px-4 py-4 text-sm font-black text-white/70 backdrop-blur-md"
+                }
+              >
+                <Megaphone size={17} strokeWidth={3} />
+                News
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("gyms")}
+                className={
+                  activeTab === "gyms"
+                    ? "flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-4 py-4 text-sm font-black text-black"
+                    : "flex items-center justify-center gap-2 rounded-full border border-white/10 bg-black/35 px-4 py-4 text-sm font-black text-white/70 backdrop-blur-md"
+                }
+              >
+                <Building2 size={17} strokeWidth={3} />
+                Gyms
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("checkins")}
+                className={
+                  activeTab === "checkins"
+                    ? "flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-4 py-4 text-sm font-black text-black"
+                    : "flex items-center justify-center gap-2 rounded-full border border-white/10 bg-black/35 px-4 py-4 text-sm font-black text-white/70 backdrop-blur-md"
+                }
+              >
+                <QrCode size={17} strokeWidth={3} />
+                QR Codes
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("members")}
+                className={
+                  activeTab === "members"
+                    ? "flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-4 py-4 text-sm font-black text-black"
+                    : "flex items-center justify-center gap-2 rounded-full border border-white/10 bg-black/35 px-4 py-4 text-sm font-black text-white/70 backdrop-blur-md"
+                }
+              >
+                <Users size={17} strokeWidth={3} />
+                Members
+              </button>
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  loadAnnouncements();
+                  loadGyms();
+                  setStatus("Admin data refreshed.");
+                }}
+                className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-xs font-black uppercase tracking-[.14em] text-white/70"
+              >
+                <RefreshCw size={15} strokeWidth={3} />
+                Refresh
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  window.sessionStorage.removeItem("bgmAdminPin");
+                  setUnlocked(false);
+                  setPin("");
+                  setStatus("");
+                }}
+                className="flex items-center justify-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs font-black uppercase tracking-[.14em] text-red-200"
+              >
+                <LogOut size={15} strokeWidth={3} />
+                Lock
+              </button>
+
+              {status ? (
+                <p className="rounded-full border border-white/10 bg-black/30 px-4 py-3 text-xs font-bold text-white/45">
+                  {status}
+                </p>
+              ) : null}
+            </div>
           </div>
         </section>
 
