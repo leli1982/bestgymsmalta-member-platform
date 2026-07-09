@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { requireAdmin } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 
 function isAdmin(request: NextRequest) {
-  const expectedPin = process.env.BGM_ADMIN_PIN;
-  const suppliedPin = request.headers.get("x-admin-pin");
-
-  return Boolean(expectedPin && suppliedPin && suppliedPin === expectedPin);
+  return requireAdmin(request) === null;
 }
 
 function clean(value: unknown) {

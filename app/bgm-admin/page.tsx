@@ -121,14 +121,25 @@ export default function BgmAdminPage() {
   const [uploadingGymLogo, setUploadingGymLogo] = useState(false);
 
   useEffect(() => {
-    const savedPin = window.sessionStorage.getItem("bgmAdminPin");
+    async function checkAdminSession() {
+      try {
+        const response = await fetch("/api/admin/auth", {
+          cache: "no-store",
+        });
 
-    if (savedPin) {
-      setPin(savedPin);
-      setUnlocked(true);
-      loadAnnouncements(savedPin);
-      loadGyms(savedPin);
+        const data = await response.json();
+
+        if (data.authenticated) {
+          setUnlocked(true);
+          loadAnnouncements("");
+          loadGyms("");
+        }
+      } catch {
+        setUnlocked(false);
+      }
     }
+
+    checkAdminSession();
   }, []);
 
   async function contentFetch(options?: RequestInit, overridePin?: string) {
@@ -138,7 +149,6 @@ export default function BgmAdminPage() {
       ...options,
       headers: {
         "Content-Type": "application/json",
-        "x-admin-pin": activePin,
         ...(options?.headers || {}),
       },
       cache: "no-store",
@@ -152,7 +162,6 @@ export default function BgmAdminPage() {
       ...options,
       headers: {
         "Content-Type": "application/json",
-        "x-admin-pin": activePin,
         ...(options?.headers || {}),
       },
       cache: "no-store",
@@ -162,19 +171,27 @@ export default function BgmAdminPage() {
   async function unlockAdmin() {
     setStatus("Checking PIN…");
 
-    const response = await contentFetch(undefined, pin);
+    const response = await fetch("/api/admin/auth", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ pin }),
+    });
+
+    const data = await response.json();
 
     if (!response.ok) {
-      setStatus("Incorrect PIN or admin API not ready.");
+      setStatus(data.error || "Incorrect PIN.");
       return;
     }
 
-    window.sessionStorage.setItem("bgmAdminPin", pin);
     setUnlocked(true);
+    setPin("");
     setStatus("Admin unlocked.");
 
-    loadAnnouncements(pin);
-    loadGyms(pin);
+    loadAnnouncements("");
+    loadGyms("");
   }
 
   async function loadAnnouncements(activePin = pin) {
@@ -201,7 +218,6 @@ export default function BgmAdminPage() {
     const response = await fetch("/api/admin/upload", {
       method: "POST",
       headers: {
-        "x-admin-pin": pin,
       },
       body: formData,
     });
@@ -415,7 +431,6 @@ export default function BgmAdminPage() {
     const response = await fetch("/api/admin/gym-logo-upload", {
       method: "POST",
       headers: {
-        "x-admin-pin": pin,
       },
       body: formData,
     });
@@ -752,7 +767,7 @@ export default function BgmAdminPage() {
               <button
                 type="button"
                 onClick={() => {
-                  window.sessionStorage.removeItem("bgmAdminPin");
+                  fetch("/api/admin/auth", { method: "DELETE" });
                   setUnlocked(false);
                   setPin("");
                   setStatus("");

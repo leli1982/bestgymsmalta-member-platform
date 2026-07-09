@@ -118,7 +118,6 @@ export default function MembersAdmin({ pin }: { pin: string }) {
       ...options,
       headers: {
         "Content-Type": "application/json",
-        "x-admin-pin": pin,
         ...(options?.headers || {}),
       },
       cache: "no-store",
@@ -312,8 +311,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
       const response = await fetch("/api/admin/members/import", {
         method: "POST",
         headers: {
-          "x-admin-pin": pin,
-        },
+          },
         body: formData,
       });
 
@@ -346,8 +344,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
 
       const response = await fetch("/api/admin/members/export", {
         headers: {
-          "x-admin-pin": pin,
-        },
+          },
       });
 
       if (!response.ok) {

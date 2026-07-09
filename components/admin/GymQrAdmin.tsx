@@ -41,7 +41,6 @@ export default function GymQrAdmin({ pin }: { pin: string }) {
   async function adminFetch(url: string) {
     return fetch(url, {
       headers: {
-        "x-admin-pin": pin,
       },
       cache: "no-store",
     });

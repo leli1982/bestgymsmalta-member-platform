@@ -66,8 +66,7 @@ export default function AdminCheckinsViewer({ pin }: { pin: string }) {
 
       const response = await fetch("/api/admin/checkins?limit=300", {
         headers: {
-          "x-admin-pin": pin,
-        },
+          },
         cache: "no-store",
       });
 

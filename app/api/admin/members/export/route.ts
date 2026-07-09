@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { isAdminRequest, requireAdmin } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -29,11 +30,8 @@ function csvEscape(value: unknown) {
 
 export async function GET(request: NextRequest) {
   try {
-    const pin = request.headers.get("x-admin-pin") || "";
-
-    if (!process.env.BGM_ADMIN_PIN || pin !== process.env.BGM_ADMIN_PIN) {
-      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-    }
+    const adminError = requireAdmin(request);
+    if (adminError) return adminError;
 
     const supabase = getSupabaseAdmin();
 
