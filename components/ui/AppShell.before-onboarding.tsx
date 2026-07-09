@@ -2,7 +2,6 @@ import { ReactNode } from "react";
 import BottomNav from "@/components/BottomNav";
 import MotionPage from "@/components/ui/MotionPage";
 import TopBar from "@/components/ui/TopBar";
-import FirstTimeOnboarding from "@/components/onboarding/FirstTimeOnboarding";
 
 type AppShellProps = {
   children: ReactNode;
@@ -62,7 +61,6 @@ export default function AppShell({
         </div>
       </MotionPage>
 
-      <FirstTimeOnboarding />
       <BottomNav />
     </main>
   );
