@@ -10,6 +10,7 @@ import {
   Stamp,
   UserCircle,
   Video,
+  HeartPulse,
 } from "lucide-react";
 
 const quickLinks = [
@@ -33,6 +34,13 @@ const quickLinks = [
     icon: Bot,
     description: "AI workout plan",
     image: "/visuals/trainer.jpg",
+  },
+  {
+    label: "Mobility",
+    href: "/mobility-stretch",
+    icon: HeartPulse,
+    description: "Stretch guide",
+    image: "/images/mobility-stretch-card.png",
   },
   {
     label: "Progress",
