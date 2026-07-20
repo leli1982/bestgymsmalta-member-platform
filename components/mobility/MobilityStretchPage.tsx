@@ -109,14 +109,6 @@ const stretchCategories: Record<string, StretchCategory> = {
         note: "Keep breathing slowly.",
       },
       {
-        name: "Seated Spinal Twist",
-        area: "Upper and lower back",
-        hold: "20–30 seconds per side",
-        instructions:
-          "Sit tall, cross one leg over the other and gently rotate your torso towards the raised knee.",
-        note: "Rotate gently, do not yank the body around.",
-      },
-      {
         name: "Thread the Needle",
         area: "Upper back and shoulders",
         hold: "20–30 seconds per side",
@@ -334,14 +326,6 @@ const stretchCategories: Record<string, StretchCategory> = {
         note: "Keep your ribs down and avoid arching hard.",
       },
       {
-        name: "Seated Spinal Twist",
-        area: "Back",
-        hold: "20 seconds per side",
-        instructions:
-          "Sit tall, place one hand on the opposite knee and rotate gently.",
-        note: "Twist slowly and stay comfortable.",
-      },
-      {
         name: "Wrist and Forearm Stretch",
         area: "Wrists and forearms",
         hold: "15–20 seconds per side",
@@ -405,6 +389,14 @@ export default function MobilityStretchPage() {
             </div>
           </section>
 
+          <section className="mt-5 rounded-[1.5rem] border border-yellow-500/20 bg-yellow-500/10 p-4 text-sm leading-6 text-yellow-100">
+            <div className="mb-2 flex items-center gap-2 font-bold">
+              <AlertTriangle className="h-4 w-4" />
+              Important
+            </div>
+            These are general stretching suggestions. Stop if you feel pain, numbness, dizziness or sharp discomfort. Always consult with a medical professional before starting any stretching or exercise routine, especially if you have an injury, medical condition or ongoing pain.
+          </section>
+
           <section className="mt-5 rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-4">
             <label className="mb-2 block text-sm font-semibold text-neutral-200">
               Choose stretch area
@@ -462,13 +454,6 @@ export default function MobilityStretchPage() {
             </div>
           </section>
 
-          <section className="mt-5 rounded-[1.5rem] border border-yellow-500/20 bg-yellow-500/10 p-4 text-sm leading-6 text-yellow-100">
-            <div className="mb-2 flex items-center gap-2 font-bold">
-              <AlertTriangle className="h-4 w-4" />
-              Important
-            </div>
-            These are general stretching suggestions. Stop if you feel pain, numbness or sharp discomfort. Members with injuries should ask a qualified professional before training or stretching.
-          </section>
         </div>
       </div>
     </AppShell>
