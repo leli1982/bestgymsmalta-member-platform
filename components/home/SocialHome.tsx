@@ -6,6 +6,7 @@ import MemberCard from "@/components/member/MemberCard";
 import ClosestGymCard from "@/components/home/ClosestGymCard";
 import LiveUpdates from "@/components/home/LiveUpdates";
 import VisualQuickLinks from "@/components/home/VisualQuickLinks";
+import HomeAnnouncementCard from "@/components/home/HomeAnnouncementCard";
 
 export default function SocialHome() {
   return (
@@ -18,6 +19,7 @@ export default function SocialHome() {
 
       <LiveUpdates />
 
+      <HomeAnnouncementCard />
       <VisualQuickLinks />
 
       <footer className="rounded-[2rem] border border-white/10 bg-black/25 p-6 text-center">

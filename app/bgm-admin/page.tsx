@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState } from "react";
 import {
   Building2,
   Image as ImageIcon,
@@ -18,12 +20,14 @@ import {
   Upload,
   Users,
   X,
+  BarChart3,
 } from "lucide-react";
 import GymQrAdmin from "@/components/admin/GymQrAdmin";
 import AdminCheckinsViewer from "@/components/admin/AdminCheckinsViewer";
 import MembersAdmin from "@/components/admin/MembersAdmin";
+import AdminAnalytics from "@/components/admin/AdminAnalytics";
 
-type AdminTab = "announcements" | "gyms" | "checkins" | "members";
+type AdminTab = "announcements" | "analytics" | "gyms" | "checkins" | "members";
 
 type Announcement = {
   id?: string;
@@ -696,7 +700,7 @@ export default function BgmAdminPage() {
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
               <button
                 type="button"
                 onClick={() => setActiveTab("announcements")}
@@ -708,6 +712,19 @@ export default function BgmAdminPage() {
               >
                 <Megaphone size={17} strokeWidth={3} />
                 News
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("analytics")}
+                className={
+                  activeTab === "analytics"
+                    ? "flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-4 py-4 text-sm font-black text-black"
+                    : "flex items-center justify-center gap-2 rounded-full border border-white/10 bg-black/35 px-4 py-4 text-sm font-black text-white/70 backdrop-blur-md"
+                }
+              >
+                <BarChart3 size={17} strokeWidth={3} />
+                Analytics
               </button>
 
               <button
@@ -1514,6 +1531,8 @@ export default function BgmAdminPage() {
             ) : null}
           </>
         ) : null}
+
+        {activeTab === "analytics" ? <AdminAnalytics /> : null}
 
         {activeTab === "checkins" ? (
           <div className="space-y-6">
