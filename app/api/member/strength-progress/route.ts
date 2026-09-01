@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireMemberSession } from "@/lib/memberAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +45,9 @@ export async function GET(request: NextRequest) {
         entries: [],
       });
     }
+
+    const authError = requireMemberSession(request, memberId);
+    if (authError) return authError;
 
     const supabase = getSupabaseAdmin();
 
@@ -95,6 +99,9 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    const authError = requireMemberSession(request, memberId);
+    if (authError) return authError;
 
     if (entries.length === 0) {
       return NextResponse.json(
@@ -178,6 +185,9 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const authError = requireMemberSession(request, memberId);
+    if (authError) return authError;
 
     const deleteResult = await supabase
       .from("bgm_strength_progress")
