@@ -1,9 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
   createMemberSessionToken,
   getClearedMemberSessionCookieOptions,
   getMemberSessionCookieOptions,
   resolveMemberSessionSecret,
+  verifyMemberRequestToken,
+  type MemberServerSession,
 } from "@/lib/memberServerSession";
 
 const MEMBER_COOKIE_NAME = "bgm_member_session";
@@ -21,6 +23,28 @@ function getMemberSecret() {
   }
 
   return secret;
+}
+
+export function getMemberRequestSession(
+  request: NextRequest,
+  requestedMemberId?: string
+): MemberServerSession | null {
+  const token = request.cookies.get(MEMBER_COOKIE_NAME)?.value;
+  return verifyMemberRequestToken(token, getMemberSecret(), requestedMemberId);
+}
+
+export function requireMemberSession(
+  request: NextRequest,
+  requestedMemberId?: string
+) {
+  const session = getMemberRequestSession(request, requestedMemberId);
+
+  if (session) return null;
+
+  return NextResponse.json(
+    { error: "Member session required. Please log in again." },
+    { status: 401 }
+  );
 }
 
 export function setMemberSessionCookie(
