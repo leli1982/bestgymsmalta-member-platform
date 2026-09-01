@@ -28,6 +28,7 @@ test("declares the Phase 2 granular permission vocabulary", () => {
     "orders.sundries.history",
     "orders.bar.submit",
     "orders.bar.history",
+    "orders.manage",
     "announcements.manage",
     "analytics.view",
     "members.export",
