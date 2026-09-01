@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   createMemberSessionToken,
+  getClearedMemberSessionCookieOptions,
   getMemberSessionCookieOptions,
   resolveMemberSessionSecret,
 } from "@/lib/memberServerSession";
@@ -34,6 +35,16 @@ export function setMemberSessionCookie(
     MEMBER_COOKIE_NAME,
     token,
     getMemberSessionCookieOptions(process.env.NODE_ENV === "production")
+  );
+
+  return response;
+}
+
+export function clearMemberSessionCookie(response: NextResponse) {
+  response.cookies.set(
+    MEMBER_COOKIE_NAME,
+    "",
+    getClearedMemberSessionCookieOptions(process.env.NODE_ENV === "production")
   );
 
   return response;
