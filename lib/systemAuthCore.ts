@@ -6,12 +6,16 @@ export type SystemSessionIdentity = {
   username: string;
   displayName: string;
   isSuperAdmin: boolean;
-  permissions: string[];
 };
 
 export type SystemSession = SystemSessionIdentity & {
   issuedAt: number;
   expiresAt: number;
+};
+
+export type SystemAuthorization = {
+  isSuperAdmin: boolean;
+  permissions: string[];
 };
 
 type CreateOptions = {
@@ -80,8 +84,6 @@ export function verifySystemSessionToken(
       !parsed.username ||
       typeof parsed.displayName !== "string" ||
       typeof parsed.isSuperAdmin !== "boolean" ||
-      !Array.isArray(parsed.permissions) ||
-      !parsed.permissions.every((item) => typeof item === "string") ||
       typeof parsed.issuedAt !== "number" ||
       typeof parsed.expiresAt !== "number" ||
       parsed.expiresAt <= now
@@ -98,7 +100,6 @@ export function verifySystemSessionToken(
       username: parsed.username,
       displayName: parsed.displayName,
       isSuperAdmin: parsed.isSuperAdmin,
-      permissions: parsed.permissions,
       issuedAt: parsed.issuedAt,
       expiresAt: parsed.expiresAt,
     };
@@ -108,9 +109,9 @@ export function verifySystemSessionToken(
 }
 
 export function hasSystemPermission(
-  identity: Pick<SystemSessionIdentity, "isSuperAdmin" | "permissions">,
+  authorization: SystemAuthorization,
   permissionKey: string
 ) {
-  if (identity.isSuperAdmin) return true;
-  return identity.permissions.includes(permissionKey);
+  if (authorization.isSuperAdmin) return true;
+  return authorization.permissions.includes(permissionKey);
 }
