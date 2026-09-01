@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { setMemberSessionCookie } from "@/lib/memberAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -85,9 +86,11 @@ export async function POST(request: NextRequest) {
       })
       .eq("id", member.id);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       member: publicMember(member),
     });
+
+    return setMemberSessionCookie(response, String(member.id));
   } catch (error) {
     console.error(error);
 
