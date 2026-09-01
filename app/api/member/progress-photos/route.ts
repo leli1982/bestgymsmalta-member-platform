@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { requireMemberSession } from "@/lib/memberAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +92,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ photos: [] });
     }
 
+    const authError = requireMemberSession(request, memberId);
+    if (authError) return authError;
+
     const supabase = getSupabaseAdmin();
 
     const result = await supabase
@@ -132,6 +136,9 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    const authError = requireMemberSession(request, memberId);
+    if (authError) return authError;
 
     const activeMember = await getActiveMember(memberId);
 
@@ -211,6 +218,9 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const authError = requireMemberSession(request, memberId);
+    if (authError) return authError;
 
     const supabase = getSupabaseAdmin();
 
