@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
-import { resolveMemberSessionSecret } from "@/lib/memberServerSession";
+import {
+  createMemberSessionToken,
+  getMemberSessionCookieOptions,
+  resolveMemberSessionSecret,
+} from "@/lib/memberServerSession";
+
+const MEMBER_COOKIE_NAME = "bgm_member_session";
+const MEMBER_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 function getMemberSecret() {
   const secret = resolveMemberSessionSecret({
@@ -17,8 +24,17 @@ function getMemberSecret() {
 
 export function setMemberSessionCookie(
   response: NextResponse,
-  _memberId: string
+  memberId: string
 ) {
-  getMemberSecret();
+  const token = createMemberSessionToken(memberId, getMemberSecret(), {
+    ttlMs: MEMBER_SESSION_TTL_MS,
+  });
+
+  response.cookies.set(
+    MEMBER_COOKIE_NAME,
+    token,
+    getMemberSessionCookieOptions(process.env.NODE_ENV === "production")
+  );
+
   return response;
 }
