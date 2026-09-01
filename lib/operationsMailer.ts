@@ -4,6 +4,7 @@ import { resolveOperationsMailConfig } from "@/lib/operationsMailConfig";
 import type { OperationalOrderItem, OperationalOrderType } from "@/lib/operationalOrdersCore";
 
 type SendOperationalOrderInput = {
+  recipient: string;
   orderType: OperationalOrderType;
   orderId: string;
   gymName: string;
@@ -14,7 +15,6 @@ type SendOperationalOrderInput = {
 
 export async function sendOperationalOrderEmail(input: SendOperationalOrderInput) {
   const config = resolveOperationsMailConfig({
-    BGM_ORDERS_MANAGER_EMAIL: process.env.BGM_ORDERS_MANAGER_EMAIL,
     GMAIL_USER: process.env.GMAIL_USER,
     GMAIL_APP_PASSWORD: process.env.GMAIL_APP_PASSWORD,
     GMAIL_FROM: process.env.GMAIL_FROM,
@@ -22,6 +22,11 @@ export async function sendOperationalOrderEmail(input: SendOperationalOrderInput
 
   if (!config) {
     throw new Error("Operational order email is not configured.");
+  }
+
+  const recipient = input.recipient.trim();
+  if (!recipient) {
+    throw new Error("Operational order recipient is not configured.");
   }
 
   const email = buildOperationalOrderEmail(input);
@@ -37,7 +42,7 @@ export async function sendOperationalOrderEmail(input: SendOperationalOrderInput
 
   await transporter.sendMail({
     from: config.from,
-    to: config.recipient,
+    to: recipient,
     subject: email.subject,
     html: email.html,
     text: email.text,
