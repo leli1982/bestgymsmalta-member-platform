@@ -1,10 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  createMemberSessionToken,
-  resolveMemberSessionSecret,
-} from "@/lib/memberServerSession";
-
-const MEMBER_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+import { resolveMemberSessionSecret } from "@/lib/memberServerSession";
 
 function getMemberSecret() {
   const secret = resolveMemberSessionSecret(process.env);
@@ -18,11 +13,8 @@ function getMemberSecret() {
 
 export function setMemberSessionCookie(
   response: NextResponse,
-  memberId: string
+  _memberId: string
 ) {
-  createMemberSessionToken(memberId, getMemberSecret(), {
-    ttlMs: MEMBER_SESSION_TTL_MS,
-  });
-
+  getMemberSecret();
   return response;
 }
