@@ -16,6 +16,12 @@ type VerifySessionOptions = {
   now?: number;
 };
 
+type MemberSessionEnvironment = {
+  BGM_MEMBER_SESSION_SECRET?: string;
+  BGM_ADMIN_SESSION_SECRET?: string;
+  BGM_ADMIN_PIN?: string;
+};
+
 function sign(payload: string, secret: string) {
   return createHmac("sha256", secret).update(payload).digest("base64url");
 }
@@ -111,4 +117,15 @@ export function getMemberSessionCookieOptions(isProduction: boolean) {
     path: "/",
     maxAge: 30 * 24 * 60 * 60,
   };
+}
+
+export function resolveMemberSessionSecret(
+  env: MemberSessionEnvironment
+): string | null {
+  return (
+    env.BGM_MEMBER_SESSION_SECRET ||
+    env.BGM_ADMIN_SESSION_SECRET ||
+    env.BGM_ADMIN_PIN ||
+    null
+  );
 }
