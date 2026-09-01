@@ -28,6 +28,12 @@ type VerifyOptions = {
   now?: number;
 };
 
+type SystemSessionEnvironment = {
+  BGM_SYSTEM_SESSION_SECRET?: string;
+  BGM_ADMIN_SESSION_SECRET?: string;
+  BGM_ADMIN_PIN?: string;
+};
+
 function sign(payload: string, secret: string) {
   return createHmac("sha256", secret).update(payload).digest("base64url");
 }
@@ -114,4 +120,32 @@ export function hasSystemPermission(
 ) {
   if (authorization.isSuperAdmin) return true;
   return authorization.permissions.includes(permissionKey);
+}
+
+export function resolveSystemSessionSecret(
+  env: SystemSessionEnvironment
+): string | null {
+  return (
+    env.BGM_SYSTEM_SESSION_SECRET ||
+    env.BGM_ADMIN_SESSION_SECRET ||
+    env.BGM_ADMIN_PIN ||
+    null
+  );
+}
+
+export function getSystemSessionCookieOptions(isProduction: boolean) {
+  return {
+    httpOnly: true,
+    sameSite: "strict" as const,
+    secure: Boolean(isProduction),
+    path: "/",
+    maxAge: 8 * 60 * 60,
+  };
+}
+
+export function getClearedSystemSessionCookieOptions(isProduction: boolean) {
+  return {
+    ...getSystemSessionCookieOptions(isProduction),
+    maxAge: 0,
+  };
 }
