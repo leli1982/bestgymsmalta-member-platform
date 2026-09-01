@@ -4,6 +4,9 @@ import {
   createSystemSessionToken,
   verifySystemSessionToken,
   hasSystemPermission,
+  resolveSystemSessionSecret,
+  getSystemSessionCookieOptions,
+  getClearedSystemSessionCookieOptions,
 } from "../lib/systemAuthCore.ts";
 
 const identity = {
@@ -79,4 +82,43 @@ test("Super Admin bypasses individual permission checks", () => {
     ),
     true
   );
+});
+
+test("system sessions prefer a dedicated secret and use secure strict cookies", () => {
+  assert.equal(
+    resolveSystemSessionSecret({
+      BGM_SYSTEM_SESSION_SECRET: "system-secret",
+      BGM_ADMIN_SESSION_SECRET: "admin-secret",
+      BGM_ADMIN_PIN: "1234",
+    }),
+    "system-secret"
+  );
+  assert.equal(
+    resolveSystemSessionSecret({ BGM_ADMIN_SESSION_SECRET: "admin-secret" }),
+    "admin-secret"
+  );
+  assert.equal(resolveSystemSessionSecret({ BGM_ADMIN_PIN: "1234" }), "1234");
+  assert.equal(resolveSystemSessionSecret({}), null);
+
+  assert.deepEqual(getSystemSessionCookieOptions(true), {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: true,
+    path: "/",
+    maxAge: 8 * 60 * 60,
+  });
+  assert.deepEqual(getSystemSessionCookieOptions(false), {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: false,
+    path: "/",
+    maxAge: 8 * 60 * 60,
+  });
+  assert.deepEqual(getClearedSystemSessionCookieOptions(true), {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: true,
+    path: "/",
+    maxAge: 0,
+  });
 });
