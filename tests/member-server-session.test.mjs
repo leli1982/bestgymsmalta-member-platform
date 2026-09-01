@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   createMemberSessionToken,
   getMemberSessionCookieOptions,
+  resolveMemberSessionSecret,
   verifyMemberRequestToken,
   verifyMemberSessionToken,
 } from "../lib/memberServerSession.ts";
@@ -104,4 +105,30 @@ test("uses HttpOnly strict cookies and only marks them Secure in production", ()
     path: "/",
     maxAge: 30 * 24 * 60 * 60,
   });
+});
+
+test("prefers a dedicated member session secret and only falls back to existing server secrets", () => {
+  assert.equal(
+    resolveMemberSessionSecret({
+      BGM_MEMBER_SESSION_SECRET: "member-secret",
+      BGM_ADMIN_SESSION_SECRET: "admin-secret",
+      BGM_ADMIN_PIN: "1234",
+    }),
+    "member-secret"
+  );
+
+  assert.equal(
+    resolveMemberSessionSecret({
+      BGM_ADMIN_SESSION_SECRET: "admin-secret",
+      BGM_ADMIN_PIN: "1234",
+    }),
+    "admin-secret"
+  );
+
+  assert.equal(
+    resolveMemberSessionSecret({ BGM_ADMIN_PIN: "1234" }),
+    "1234"
+  );
+
+  assert.equal(resolveMemberSessionSecret({}), null);
 });
