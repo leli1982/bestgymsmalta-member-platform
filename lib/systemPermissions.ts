@@ -13,6 +13,7 @@ export const SYSTEM_PERMISSION_KEYS = [
   "orders.sundries.history",
   "orders.bar.submit",
   "orders.bar.history",
+  "orders.manage",
   "announcements.manage",
   "analytics.view",
   "members.export",
