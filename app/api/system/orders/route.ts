@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { getSystemContext, requireSystemPermission } from "@/lib/systemAuth";
+import { requireSystemPermission } from "@/lib/systemAuth";
 import {
   canTransitionOrderStatus,
   normalizeOrderItems,
@@ -9,6 +9,7 @@ import {
   type OperationalOrderStatus,
 } from "@/lib/operationalOrdersCore";
 import { sendOperationalOrderEmail } from "@/lib/operationsMailer";
+import { sendOperationalOrderPush } from "@/lib/pushNotifications";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -51,11 +52,33 @@ async function writeAudit({
   }
 }
 
+async function loadOrderNotificationSettings() {
+  const supabase = getSupabaseAdmin();
+  const result = await supabase
+    .from("bgm_notification_settings")
+    .select("orders_email, email_enabled, push_enabled")
+    .eq("id", "orders")
+    .maybeSingle();
+
+  if (result.error) throw result.error;
+
+  return (
+    result.data || {
+      orders_email: "info@bestgymsmalta.com",
+      email_enabled: true,
+      push_enabled: true,
+    }
+  );
+}
+
 export async function GET(request: NextRequest) {
   try {
     const orderType = normalizeOrderType(request.nextUrl.searchParams.get("type"));
     if (!orderType) {
-      return NextResponse.json({ error: "Order type must be sundries or bar." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Order type must be sundries or bar." },
+        { status: 400 }
+      );
     }
 
     const auth = await requireSystemPermission(
@@ -68,7 +91,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from("bgm_operational_orders")
       .select(
-        "id, order_type, gym_id, staff_name, status, notes, submitted_at, ordered_at, completed_at, cancelled_at, notification_status, notification_sent_at, created_at, updated_at"
+        "id, order_type, gym_id, staff_name, status, notes, submitted_at, ordered_at, completed_at, cancelled_at, notification_status, notification_sent_at, email_notification_status, email_notification_sent_at, email_notification_error, push_notification_status, push_notification_sent_at, push_notification_error, created_at, updated_at"
       )
       .eq("order_type", orderType)
       .order("submitted_at", { ascending: false })
@@ -76,7 +99,10 @@ export async function GET(request: NextRequest) {
 
     if (!auth.context.isSuperAdmin) {
       if (!auth.context.gymId) {
-        return NextResponse.json({ error: "This account is not assigned to a gym." }, { status: 400 });
+        return NextResponse.json(
+          { error: "This account is not assigned to a gym." },
+          { status: 400 }
+        );
       }
       query = query.eq("gym_id", auth.context.gymId);
     } else {
@@ -89,7 +115,9 @@ export async function GET(request: NextRequest) {
 
     const orders = orderResult.data || [];
     const orderIds = orders.map((order) => order.id);
-    const gymIds = Array.from(new Set(orders.map((order) => order.gym_id).filter(Boolean)));
+    const gymIds = Array.from(
+      new Set(orders.map((order) => order.gym_id).filter(Boolean))
+    );
 
     const [itemsResult, gymsResult] = await Promise.all([
       orderIds.length
@@ -100,7 +128,10 @@ export async function GET(request: NextRequest) {
             .order("sort_order", { ascending: true })
         : Promise.resolve({ data: [], error: null }),
       gymIds.length
-        ? supabase.from("bgm_gyms").select("id, name, short_name").in("id", gymIds)
+        ? supabase
+            .from("bgm_gyms")
+            .select("id, name, short_name")
+            .in("id", gymIds)
         : Promise.resolve({ data: [], error: null }),
     ]);
 
@@ -115,7 +146,10 @@ export async function GET(request: NextRequest) {
     }
 
     const gymById = new Map(
-      (gymsResult.data || []).map((gym) => [gym.id, gym.name || gym.short_name || gym.id])
+      (gymsResult.data || []).map((gym) => [
+        gym.id,
+        gym.name || gym.short_name || gym.id,
+      ])
     );
 
     return NextResponse.json({
@@ -127,7 +161,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Could not load operational orders." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Could not load operational orders." },
+      { status: 500 }
+    );
   }
 }
 
@@ -136,7 +173,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const orderType = normalizeOrderType(body.orderType);
     if (!orderType) {
-      return NextResponse.json({ error: "Order type must be sundries or bar." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Order type must be sundries or bar." },
+        { status: 400 }
+      );
     }
 
     const auth = await requireSystemPermission(
@@ -152,10 +192,16 @@ export async function POST(request: NextRequest) {
     const items = normalizeOrderItems(body.items);
 
     if (!staffName) {
-      return NextResponse.json({ error: "Staff Name is required." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Staff Name is required." },
+        { status: 400 }
+      );
     }
     if (!items.length) {
-      return NextResponse.json({ error: "Add at least one valid order item." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Add at least one valid order item." },
+        { status: 400 }
+      );
     }
 
     const gymId = auth.context.isSuperAdmin
@@ -163,7 +209,10 @@ export async function POST(request: NextRequest) {
       : auth.context.gymId || "";
 
     if (!gymId) {
-      return NextResponse.json({ error: "A gym is required for this order." }, { status: 400 });
+      return NextResponse.json(
+        { error: "A gym is required for this order." },
+        { status: 400 }
+      );
     }
 
     const supabase = getSupabaseAdmin();
@@ -178,6 +227,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Gym not found." }, { status: 404 });
     }
 
+    const notificationSettings = await loadOrderNotificationSettings();
     const orderResult = await supabase
       .from("bgm_operational_orders")
       .insert({
@@ -188,6 +238,12 @@ export async function POST(request: NextRequest) {
         status: "submitted",
         notes: notes || null,
         notification_status: "pending",
+        email_notification_status: notificationSettings.email_enabled
+          ? "pending"
+          : "disabled",
+        push_notification_status: notificationSettings.push_enabled
+          ? "pending"
+          : "disabled",
       })
       .select(
         "id, order_type, gym_id, staff_name, status, notes, submitted_at, notification_status"
@@ -227,66 +283,139 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    let notificationStatus: "sent" | "failed" = "sent";
-    let notificationError: string | null = null;
+    const gymName =
+      gymResult.data.name || gymResult.data.short_name || gymId;
 
-    try {
-      await sendOperationalOrderEmail({
-        orderType,
-        orderId: order.id,
-        gymName: gymResult.data.name || gymResult.data.short_name || gymId,
-        staffName,
-        notes: notes || null,
-        items,
-      });
+    let emailStatus: "sent" | "failed" | "disabled" =
+      notificationSettings.email_enabled ? "failed" : "disabled";
+    let emailSentAt: string | null = null;
+    let emailError: string | null = null;
 
-      const sentAt = new Date().toISOString();
-      const notificationResult = await supabase
-        .from("bgm_operational_orders")
-        .update({
-          notification_status: "sent",
-          notification_sent_at: sentAt,
-          notification_error: null,
-          updated_at: sentAt,
-        })
-        .eq("id", order.id);
-      if (notificationResult.error) throw notificationResult.error;
-    } catch (mailError) {
-      notificationStatus = "failed";
-      notificationError =
-        mailError instanceof Error ? mailError.message.slice(0, 500) : "Email delivery failed.";
-
-      const failedAt = new Date().toISOString();
-      const failureResult = await supabase
-        .from("bgm_operational_orders")
-        .update({
-          notification_status: "failed",
-          notification_error: notificationError,
-          updated_at: failedAt,
-        })
-        .eq("id", order.id);
-
-      if (failureResult.error) {
-        console.error("Could not record order email failure:", failureResult.error);
+    if (notificationSettings.email_enabled) {
+      try {
+        await sendOperationalOrderEmail({
+          recipient: notificationSettings.orders_email,
+          orderType,
+          orderId: order.id,
+          gymName,
+          staffName,
+          notes: notes || null,
+          items,
+        });
+        emailStatus = "sent";
+        emailSentAt = new Date().toISOString();
+      } catch (error) {
+        emailStatus = "failed";
+        emailError =
+          error instanceof Error
+            ? error.message.slice(0, 500)
+            : "Email delivery failed.";
+        console.error("Operational order email failed:", error);
       }
-      console.error("Operational order email failed:", mailError);
+    }
+
+    let pushStatus:
+      | "sent"
+      | "failed"
+      | "disabled"
+      | "not_configured" = notificationSettings.push_enabled
+      ? "not_configured"
+      : "disabled";
+    let pushSentAt: string | null = null;
+    let pushError: string | null = null;
+
+    if (notificationSettings.push_enabled) {
+      try {
+        const pushResult = await sendOperationalOrderPush({
+          orderType,
+          orderId: order.id,
+          gymName,
+          staffName,
+          itemCount: items.length,
+        });
+        pushStatus = pushResult.status;
+        if (pushResult.status === "sent") {
+          pushSentAt = new Date().toISOString();
+          if (pushResult.failed > 0) {
+            pushError = `${pushResult.failed} subscribed device(s) failed.`;
+          }
+        } else if (pushResult.status === "failed") {
+          pushError = "Push delivery failed on all subscribed devices.";
+        }
+      } catch (error) {
+        pushStatus = "failed";
+        pushError =
+          error instanceof Error
+            ? error.message.slice(0, 500)
+            : "Push delivery failed.";
+        console.error("Operational order push failed:", error);
+      }
+    }
+
+    const anySent = emailStatus === "sent" || pushStatus === "sent";
+    const anyFailure =
+      emailStatus === "failed" ||
+      pushStatus === "failed" ||
+      pushStatus === "not_configured";
+    const overallNotificationStatus = anySent
+      ? "sent"
+      : anyFailure
+      ? "failed"
+      : "sent";
+    const overallError = [
+      emailError ? `Email: ${emailError}` : "",
+      pushError ? `Push: ${pushError}` : "",
+    ]
+      .filter(Boolean)
+      .join(" | ")
+      .slice(0, 500);
+
+    const notificationUpdatedAt = new Date().toISOString();
+    const notificationResult = await supabase
+      .from("bgm_operational_orders")
+      .update({
+        notification_status: overallNotificationStatus,
+        notification_sent_at: anySent ? notificationUpdatedAt : null,
+        notification_error: overallError || null,
+        email_notification_status: emailStatus,
+        email_notification_sent_at: emailSentAt,
+        email_notification_error: emailError,
+        push_notification_status: pushStatus,
+        push_notification_sent_at: pushSentAt,
+        push_notification_error: pushError,
+        updated_at: notificationUpdatedAt,
+      })
+      .eq("id", order.id);
+
+    if (notificationResult.error) {
+      console.error(
+        "Could not record operational order notification result:",
+        notificationResult.error
+      );
     }
 
     return NextResponse.json(
       {
         order: {
           ...order,
-          gym_name: gymResult.data.name || gymResult.data.short_name || gymId,
+          gym_name: gymName,
           items,
-          notification_status: notificationStatus,
+          notification_status: overallNotificationStatus,
+          email_notification_status: emailStatus,
+          push_notification_status: pushStatus,
         },
-        notificationStatus,
+        notificationStatus: overallNotificationStatus,
+        emailNotificationStatus: emailStatus,
+        pushNotificationStatus: pushStatus,
       },
       { status: 201 }
     );
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Could not submit operational order." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Could not submit operational order." },
+      { status: 500 }
+    );
   }
 }
 
@@ -306,14 +435,20 @@ export async function PATCH(request: NextRequest) {
     ];
 
     if (!orderId || !validStatuses.includes(nextStatus)) {
-      return NextResponse.json({ error: "Order and valid status are required." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Order and valid status are required." },
+        { status: 400 }
+      );
     }
 
     const staffNameInput = clean(body.staffName);
     const staffName =
       staffNameInput || (auth.context.isSuperAdmin ? "Super Admin" : "");
     if (!staffName) {
-      return NextResponse.json({ error: "Staff Name is required." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Staff Name is required." },
+        { status: 400 }
+      );
     }
 
     const supabase = getSupabaseAdmin();
@@ -324,7 +459,10 @@ export async function PATCH(request: NextRequest) {
 
     if (!auth.context.isSuperAdmin) {
       if (!auth.context.gymId) {
-        return NextResponse.json({ error: "This account is not assigned to a gym." }, { status: 400 });
+        return NextResponse.json(
+          { error: "This account is not assigned to a gym." },
+          { status: 400 }
+        );
       }
       query = query.eq("gym_id", auth.context.gymId);
     }
@@ -339,7 +477,9 @@ export async function PATCH(request: NextRequest) {
     const currentStatus = existing.status as OperationalOrderStatus;
     if (!canTransitionOrderStatus(currentStatus, nextStatus)) {
       return NextResponse.json(
-        { error: `Cannot change an order from ${currentStatus} to ${nextStatus}.` },
+        {
+          error: `Cannot change an order from ${currentStatus} to ${nextStatus}.`,
+        },
         { status: 409 }
       );
     }
@@ -361,7 +501,7 @@ export async function PATCH(request: NextRequest) {
       .update(update)
       .eq("id", orderId)
       .select(
-        "id, order_type, gym_id, staff_name, status, submitted_at, ordered_at, completed_at, cancelled_at, notification_status"
+        "id, order_type, gym_id, staff_name, status, submitted_at, ordered_at, completed_at, cancelled_at, notification_status, email_notification_status, push_notification_status"
       )
       .single();
 
@@ -380,6 +520,9 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ order: updateResult.data });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Could not update operational order." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Could not update operational order." },
+      { status: 500 }
+    );
   }
 }
