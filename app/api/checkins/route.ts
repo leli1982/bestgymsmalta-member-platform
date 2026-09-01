@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireMemberSession } from "@/lib/memberAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
@@ -143,6 +144,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const authError = requireMemberSession(request, memberId);
+    if (authError) return authError;
+
     const supabase = getSupabaseAdmin();
 
     const checkinsResult = await supabase
@@ -220,6 +224,9 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    const authError = requireMemberSession(request, memberId);
+    if (authError) return authError;
 
     if (!gymId) {
       return NextResponse.json({ error: "Missing gym ID." }, { status: 400 });
