@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   createMemberSessionToken,
+  getMemberSessionCookieOptions,
   verifyMemberRequestToken,
   verifyMemberSessionToken,
 } from "../lib/memberServerSession.mjs";
@@ -85,4 +86,22 @@ test("rejects a valid member session when it is used for another member id", () 
       expiresAt: 61_000,
     }
   );
+});
+
+test("uses HttpOnly strict cookies and only marks them Secure in production", () => {
+  assert.deepEqual(getMemberSessionCookieOptions(true), {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: true,
+    path: "/",
+    maxAge: 30 * 24 * 60 * 60,
+  });
+
+  assert.deepEqual(getMemberSessionCookieOptions(false), {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: false,
+    path: "/",
+    maxAge: 30 * 24 * 60 * 60,
+  });
 });
