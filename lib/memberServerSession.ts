@@ -119,6 +119,13 @@ export function getMemberSessionCookieOptions(isProduction: boolean) {
   };
 }
 
+export function getClearedMemberSessionCookieOptions(isProduction: boolean) {
+  return {
+    ...getMemberSessionCookieOptions(isProduction),
+    maxAge: 0,
+  };
+}
+
 export function resolveMemberSessionSecret(
   env: MemberSessionEnvironment
 ): string | null {
