@@ -5,7 +5,7 @@ import {
   getMemberSessionCookieOptions,
   verifyMemberRequestToken,
   verifyMemberSessionToken,
-} from "../lib/memberServerSession.mjs";
+} from "../lib/memberServerSession.ts";
 
 test("creates a signed member session that verifies to the same member id", () => {
   const token = createMemberSessionToken("member-123", "test-secret", {
