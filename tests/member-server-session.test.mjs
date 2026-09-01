@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   createMemberSessionToken,
+  getClearedMemberSessionCookieOptions,
   getMemberSessionCookieOptions,
   resolveMemberSessionSecret,
   verifyMemberRequestToken,
@@ -104,6 +105,16 @@ test("uses HttpOnly strict cookies and only marks them Secure in production", ()
     secure: false,
     path: "/",
     maxAge: 30 * 24 * 60 * 60,
+  });
+});
+
+test("expires the member session cookie on logout", () => {
+  assert.deepEqual(getClearedMemberSessionCookieOptions(true), {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: true,
+    path: "/",
+    maxAge: 0,
   });
 });
 
