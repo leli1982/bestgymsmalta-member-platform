@@ -7,7 +7,7 @@ import {
 } from "../lib/systemPermissions.ts";
 
 test("normalizes shared gym usernames consistently", () => {
-  assert.equal(normalizeSystemUsername("  BirkirkaraFitness  "), "birkarafitness".replace("kara", "kara"));
+  assert.equal(normalizeSystemUsername("  BirkirkaraFitness  "), "birkirkarafitness");
   assert.equal(normalizeSystemUsername("Sliema Fitness"), "sliemafitness");
   assert.equal(normalizeSystemUsername("Marsa-Fitness"), "marsafitness");
 });
