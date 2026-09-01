@@ -12,15 +12,23 @@ function normalizeCardUid(value: unknown) {
   return clean(value).replace(/\s+/g, "").toUpperCase();
 }
 
-async function audit(
-  systemUserId: string,
-  gymId: string | null,
-  staffName: string,
-  actionKey: string,
-  memberId: string,
-  entityId: string,
-  afterData: unknown
-) {
+async function audit({
+  systemUserId,
+  gymId,
+  staffName,
+  actionKey,
+  memberId,
+  entityId,
+  afterData,
+}: {
+  systemUserId: string;
+  gymId: string | null;
+  staffName: string;
+  actionKey: string;
+  memberId: string;
+  entityId: string;
+  afterData: unknown;
+}) {
   const supabase = getSupabaseAdmin();
   const result = await supabase.from("bgm_audit_log").insert({
     system_user_id: systemUserId,
@@ -32,7 +40,6 @@ async function audit(
     member_id: memberId,
     after_data: afterData,
   });
-
   if (result.error) throw result.error;
 }
 
@@ -42,9 +49,7 @@ export async function GET(request: NextRequest) {
     if (auth.error || !auth.context) return auth.error;
 
     const memberId = clean(request.nextUrl.searchParams.get("memberId"));
-    if (!memberId) {
-      return NextResponse.json({ cards: [] });
-    }
+    if (!memberId) return NextResponse.json({ cards: [] });
 
     const supabase = getSupabaseAdmin();
     const result = await supabase
@@ -54,7 +59,6 @@ export async function GET(request: NextRequest) {
       .order("assigned_at", { ascending: false });
 
     if (result.error) throw result.error;
-
     return NextResponse.json({ cards: result.data || [] });
   } catch (error) {
     console.error(error);
@@ -83,10 +87,9 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseAdmin();
     const memberResult = await supabase
       .from("bgm_members")
-      .select("id, member_number, full_name")
+      .select("id")
       .eq("id", memberId)
       .maybeSingle();
-
     if (memberResult.error) throw memberResult.error;
     if (!memberResult.data) {
       return NextResponse.json({ error: "Member not found." }, { status: 404 });
@@ -94,11 +97,10 @@ export async function POST(request: NextRequest) {
 
     const activeResult = await supabase
       .from("bgm_nfc_cards")
-      .select("id, card_uid")
+      .select("id")
       .eq("member_id", memberId)
       .eq("status", "active")
       .maybeSingle();
-
     if (activeResult.error) throw activeResult.error;
     if (activeResult.data) {
       return NextResponse.json(
@@ -123,23 +125,20 @@ export async function POST(request: NextRequest) {
 
     if (insertResult.error) {
       if (insertResult.error.code === "23505") {
-        return NextResponse.json(
-          { error: "That NFC card is already assigned." },
-          { status: 409 }
-        );
+        return NextResponse.json({ error: "That NFC card is already assigned." }, { status: 409 });
       }
       throw insertResult.error;
     }
 
-    await audit(
-      auth.context.systemUserId,
-      auth.context.gymId,
+    await audit({
+      systemUserId: auth.context.systemUserId,
+      gymId: auth.context.gymId,
       staffName,
-      "nfc_card.assigned",
+      actionKey: "nfc_card.assigned",
       memberId,
-      insertResult.data.id,
-      { cardUid: insertResult.data.card_uid }
-    );
+      entityId: insertResult.data.id,
+      afterData: { cardUid: insertResult.data.card_uid },
+    });
 
     return NextResponse.json({ card: insertResult.data }, { status: 201 });
   } catch (error) {
@@ -152,8 +151,10 @@ export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
     const action = clean(body.action).toLowerCase();
-    const permission = action === "replace" ? "nfc.replace" : "nfc.assign";
-    const auth = await requireSystemPermission(request, permission);
+    const auth = await requireSystemPermission(
+      request,
+      action === "replace" ? "nfc.replace" : "nfc.assign"
+    );
     if (auth.error || !auth.context) return auth.error;
 
     const cardId = clean(body.cardId);
@@ -166,7 +167,6 @@ export async function PATCH(request: NextRequest) {
         { status: 400 }
       );
     }
-
     if (action === "replace" && !newCardUid) {
       return NextResponse.json({ error: "New NFC card UID is required." }, { status: 400 });
     }
@@ -177,18 +177,17 @@ export async function PATCH(request: NextRequest) {
       .select("id, card_uid, member_id, status")
       .eq("id", cardId)
       .maybeSingle();
-
     if (existingResult.error) throw existingResult.error;
+
     const existing = existingResult.data;
-    if (!existing) {
-      return NextResponse.json({ error: "NFC card not found." }, { status: 404 });
-    }
+    if (!existing) return NextResponse.json({ error: "NFC card not found." }, { status: 404 });
     if (existing.status !== "active") {
       return NextResponse.json({ error: "Only an active NFC card can be changed." }, { status: 409 });
     }
 
+    const now = new Date().toISOString();
+
     if (action === "disable") {
-      const now = new Date().toISOString();
       const updateResult = await supabase
         .from("bgm_nfc_cards")
         .update({
@@ -201,11 +200,31 @@ export async function PATCH(request: NextRequest) {
         .eq("id", cardId)
         .select("id, card_uid, member_id, status, disabled_at")
         .single();
-
       if (updateResult.error) throw updateResult.error;
-      await audit(auth.context.systemUserId, auth.context.gymId, staffName, "nfc_card.disabled", existing.member_id, cardId, { cardUid: existing.card_uid });
+
+      await audit({
+        systemUserId: auth.context.systemUserId,
+        gymId: auth.context.gymId,
+        staffName,
+        actionKey: "nfc_card.disabled",
+        memberId: existing.member_id,
+        entityId: cardId,
+        afterData: { cardUid: existing.card_uid },
+      });
       return NextResponse.json({ card: updateResult.data });
     }
+
+    const retireResult = await supabase
+      .from("bgm_nfc_cards")
+      .update({
+        status: "replaced",
+        disabled_at: now,
+        disabled_by_system_user_id: auth.context.systemUserId,
+        disabled_staff_name: staffName,
+        updated_at: now,
+      })
+      .eq("id", cardId);
+    if (retireResult.error) throw retireResult.error;
 
     const newCardResult = await supabase
       .from("bgm_nfc_cards")
@@ -221,31 +240,43 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (newCardResult.error) {
+      await supabase
+        .from("bgm_nfc_cards")
+        .update({
+          status: "active",
+          disabled_at: null,
+          disabled_by_system_user_id: null,
+          disabled_staff_name: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", cardId);
+
       if (newCardResult.error.code === "23505") {
         return NextResponse.json({ error: "That NFC card is already assigned." }, { status: 409 });
       }
       throw newCardResult.error;
     }
 
-    const now = new Date().toISOString();
-    const oldCardResult = await supabase
+    const linkResult = await supabase
       .from("bgm_nfc_cards")
-      .update({
-        status: "replaced",
-        replacement_card_id: newCardResult.data.id,
-        disabled_at: now,
-        disabled_by_system_user_id: auth.context.systemUserId,
-        disabled_staff_name: staffName,
-        updated_at: now,
-      })
+      .update({ replacement_card_id: newCardResult.data.id, updated_at: new Date().toISOString() })
       .eq("id", cardId);
 
-    if (oldCardResult.error) {
-      await supabase.from("bgm_nfc_cards").delete().eq("id", newCardResult.data.id);
-      throw oldCardResult.error;
-    }
+    if (linkResult.error) throw linkResult.error;
 
-    await audit(auth.context.systemUserId, auth.context.gymId, staffName, "nfc_card.replaced", existing.member_id, cardId, { oldCardUid: existing.card_uid, newCardUid: newCardUid, replacementCardId: newCardResult.data.id });
+    await audit({
+      systemUserId: auth.context.systemUserId,
+      gymId: auth.context.gymId,
+      staffName,
+      actionKey: "nfc_card.replaced",
+      memberId: existing.member_id,
+      entityId: cardId,
+      afterData: {
+        oldCardUid: existing.card_uid,
+        newCardUid,
+        replacementCardId: newCardResult.data.id,
+      },
+    });
 
     return NextResponse.json({ card: newCardResult.data });
   } catch (error) {
