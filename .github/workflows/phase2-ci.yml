@@ -6,9 +6,6 @@ on:
       - phase-2-operations-nfc-redesign
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -23,21 +20,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-
-      - name: Regenerate dependency lockfile
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-
-      - name: Commit generated lockfile if changed
-        run: |
-          git add package-lock.json
-          if git diff --cached --quiet; then
-            echo "Lockfile already in sync."
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "chore: sync package lock for web push"
-            git push origin HEAD:phase-2-operations-nfc-redesign
-          fi
 
       - name: Install dependencies
         run: npm ci
