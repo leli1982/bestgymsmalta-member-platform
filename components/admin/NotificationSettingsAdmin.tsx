@@ -21,7 +21,9 @@ function urlBase64ToUint8Array(base64String: string) {
     .replace(/-/g, "+")
     .replace(/_/g, "/");
   const rawData = window.atob(base64);
-  return Uint8Array.from([...rawData].map((character) => character.charCodeAt(0)));
+  return Uint8Array.from(
+    rawData.split("").map((character) => character.charCodeAt(0))
+  );
 }
 
 export default function NotificationSettingsAdmin() {
