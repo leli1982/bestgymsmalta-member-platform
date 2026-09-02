@@ -35,6 +35,7 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: "1"
 
+      # Redeploy trigger after Preview environment update.
       - name: Probe Preview system auth health
         run: |
           URL="https://bestgymsmalta-member-platfor-git-e7efcd-leliapap-2558s-projects.vercel.app/api/system/health"
