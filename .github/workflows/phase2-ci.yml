@@ -38,17 +38,13 @@ jobs:
       - name: Probe Preview system auth runtime
         run: |
           URL="https://bestgymsmalta-member-platfor-git-e7efcd-leliapap-2558s-projects.vercel.app/api/system/auth"
-          for attempt in 1 2 3 4 5 6; do
-            echo "Runtime probe attempt $attempt"
-            body_file="$(mktemp)"
-            status="$(curl -sS -o "$body_file" -w '%{http_code}' "$URL" || true)"
-            echo "HTTP $status"
-            cat "$body_file"
-            echo
-            rm -f "$body_file"
-            if [ "$status" = "200" ]; then
-              exit 0
-            fi
-            sleep 10
-          done
-          exit 1
+          body_file="$(mktemp)"
+          result="$(curl -L -sS -o "$body_file" -w '%{http_code} %{url_effective}' "$URL" || true)"
+          echo "Runtime probe: $result"
+          cat "$body_file"
+          echo
+          rm -f "$body_file"
+          status="${result%% *}"
+          if [ "$status" != "200" ]; then
+            exit 1
+          fi
