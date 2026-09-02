@@ -6,6 +6,7 @@ import {
   getSystemContext,
   setSystemSessionCookie,
 } from "@/lib/systemAuth";
+import { classifySystemLoginError } from "@/lib/systemLoginError";
 import { normalizeSystemUsername } from "@/lib/systemPermissions";
 
 export const dynamic = "force-dynamic";
@@ -130,8 +131,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error(error);
+    const classified = classifySystemLoginError(error);
     return NextResponse.json(
-      { error: "System login failed." },
+      { error: classified.message, code: classified.code },
       { status: 500 }
     );
   }
