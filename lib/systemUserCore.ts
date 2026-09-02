@@ -2,7 +2,7 @@ import {
   isSystemPermissionKey,
   normalizeSystemUsername,
   type SystemPermissionKey,
-} from "@/lib/systemPermissions";
+} from "./systemPermissions.ts";
 
 type SystemUserDraft = {
   gymId?: string | null;
