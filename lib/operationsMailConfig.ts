@@ -1,15 +1,23 @@
 export type OperationsMailConfig = {
-  apiKey: string;
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
+  user: string;
   from: string;
 };
 
 export function resolveOperationsMailConfig(
   env: Record<string, string | undefined>
 ): OperationsMailConfig | null {
-  const apiKey = String(env.RESEND_API_KEY || "").trim();
-  const from = String(env.RESEND_FROM || "").trim();
+  const clientId = String(env.GMAIL_API_CLIENT_ID || "").trim();
+  const clientSecret = String(env.GMAIL_API_CLIENT_SECRET || "").trim();
+  const refreshToken = String(env.GMAIL_API_REFRESH_TOKEN || "").trim();
+  const user = String(env.GMAIL_USER || "").trim();
+  const from = String(env.GMAIL_FROM || "").trim();
 
-  if (!apiKey || !from) return null;
+  if (!clientId || !clientSecret || !refreshToken || !user || !from) {
+    return null;
+  }
 
-  return { apiKey, from };
+  return { clientId, clientSecret, refreshToken, user, from };
 }
