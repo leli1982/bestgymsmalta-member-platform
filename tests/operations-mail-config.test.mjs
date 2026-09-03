@@ -2,13 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { resolveOperationsMailConfig } from "../lib/operationsMailConfig.ts";
 
-test("requires complete Gmail API OAuth credentials", () => {
+test("requires Gmail SMTP user and app password", () => {
   assert.equal(resolveOperationsMailConfig({}), null);
+
   assert.equal(
     resolveOperationsMailConfig({
-      GMAIL_API_CLIENT_ID: "client-id",
-      GMAIL_API_CLIENT_SECRET: "client-secret",
-      GMAIL_API_REFRESH_TOKEN: "refresh-token",
       GMAIL_USER: "bgm.members.app@gmail.com",
     }),
     null
@@ -21,10 +19,8 @@ test("requires complete Gmail API OAuth credentials", () => {
     }),
     null
   );
-});
 
-test("resolves Gmail API configuration without a hard-coded recipient", () => {
-  assert.deepEqual(
+  assert.equal(
     resolveOperationsMailConfig({
       GMAIL_API_CLIENT_ID: "client-id",
       GMAIL_API_CLIENT_SECRET: "client-secret",
@@ -32,12 +28,35 @@ test("resolves Gmail API configuration without a hard-coded recipient", () => {
       GMAIL_USER: "bgm.members.app@gmail.com",
       GMAIL_FROM: "BestGymsMalta <bgm.members.app@gmail.com>",
     }),
+    null
+  );
+});
+
+test("normalizes the Gmail App Password and uses the BGM sender fallback", () => {
+  assert.deepEqual(
+    resolveOperationsMailConfig({
+      GMAIL_USER: " bgm.members.app@gmail.com ",
+      GMAIL_APP_PASSWORD: "abcd efgh ijkl mnop",
+    }),
     {
-      clientId: "client-id",
-      clientSecret: "client-secret",
-      refreshToken: "refresh-token",
       user: "bgm.members.app@gmail.com",
+      appPassword: "abcdefghijklmnop",
       from: "BestGymsMalta <bgm.members.app@gmail.com>",
+    }
+  );
+});
+
+test("honors an explicit Gmail From value without a hard-coded recipient", () => {
+  assert.deepEqual(
+    resolveOperationsMailConfig({
+      GMAIL_USER: "bgm.members.app@gmail.com",
+      GMAIL_APP_PASSWORD: "abcdefghijklmnop",
+      GMAIL_FROM: " BGM Orders <bgm.members.app@gmail.com> ",
+    }),
+    {
+      user: "bgm.members.app@gmail.com",
+      appPassword: "abcdefghijklmnop",
+      from: "BGM Orders <bgm.members.app@gmail.com>",
     }
   );
 });
