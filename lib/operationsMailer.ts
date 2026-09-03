@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { buildOperationalOrderEmail } from "@/lib/operationalOrderEmail";
 import { resolveOperationsMailConfig } from "@/lib/operationsMailConfig";
 import type { OperationalOrderItem, OperationalOrderType } from "@/lib/operationalOrdersCore";
@@ -15,9 +15,8 @@ type SendOperationalOrderInput = {
 
 export async function sendOperationalOrderEmail(input: SendOperationalOrderInput) {
   const config = resolveOperationsMailConfig({
-    GMAIL_USER: process.env.GMAIL_USER,
-    GMAIL_APP_PASSWORD: process.env.GMAIL_APP_PASSWORD,
-    GMAIL_FROM: process.env.GMAIL_FROM,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    RESEND_FROM: process.env.RESEND_FROM,
   });
 
   if (!config) {
@@ -30,21 +29,16 @@ export async function sendOperationalOrderEmail(input: SendOperationalOrderInput
   }
 
   const email = buildOperationalOrderEmail(input);
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: {
-      user: config.user,
-      pass: config.pass,
-    },
-  });
-
-  await transporter.sendMail({
+  const resend = new Resend(config.apiKey);
+  const result = await resend.emails.send({
     from: config.from,
     to: recipient,
     subject: email.subject,
     html: email.html,
     text: email.text,
   });
+
+  if (result.error) {
+    throw new Error(result.error.message || "Resend email delivery failed.");
+  }
 }
