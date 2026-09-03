@@ -1,19 +1,15 @@
 export type OperationsMailConfig = {
-  user: string;
-  pass: string;
+  apiKey: string;
   from: string;
 };
 
 export function resolveOperationsMailConfig(
   env: Record<string, string | undefined>
 ): OperationsMailConfig | null {
-  const user = String(env.GMAIL_USER || "").trim();
-  const pass = String(env.GMAIL_APP_PASSWORD || "").trim();
+  const apiKey = String(env.RESEND_API_KEY || "").trim();
+  const from = String(env.RESEND_FROM || "").trim();
 
-  if (!user || !pass) return null;
+  if (!apiKey || !from) return null;
 
-  const from =
-    String(env.GMAIL_FROM || "").trim() || `BestGymsMalta <${user}>`;
-
-  return { user, pass, from };
+  return { apiKey, from };
 }
