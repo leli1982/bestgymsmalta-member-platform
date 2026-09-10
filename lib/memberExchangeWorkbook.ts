@@ -120,7 +120,8 @@ export async function parseMemberExchangeXlsx(
   buffer: Buffer
 ): Promise<ParsedMemberExchangeFile> {
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(buffer);
+  // ExcelJS 4's Buffer declaration predates Node's generic Buffer type.
+  await workbook.xlsx.load(buffer as never);
   const sheet = workbook.worksheets[0];
   if (!sheet) throw new Error("Membership XLSX does not contain a worksheet.");
 
