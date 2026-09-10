@@ -262,8 +262,9 @@ export default function StaffLoginPage() {
             enabled={user.isSuperAdmin || user.permissions.includes("members.view")}
           />
           <FeatureCard
-            title="Reception / NFC"
-            enabled={user.isSuperAdmin || user.permissions.includes("nfc.scan")}
+            title="Reception / Barcode"
+            enabled={user.isSuperAdmin || user.permissions.includes("barcode.scan")}
+            href="/staff/reception"
           />
           <FeatureCard
             title="Sundries"
@@ -310,19 +311,37 @@ export default function StaffLoginPage() {
   );
 }
 
-function FeatureCard({ title, enabled }: { title: string; enabled: boolean }) {
-  return (
-    <div
-      className={`rounded-2xl border p-5 ${
-        enabled
-          ? "border-zinc-200 bg-white"
-          : "border-zinc-200 bg-zinc-200/60 opacity-60"
-      }`}
-    >
+function FeatureCard({
+  title,
+  enabled,
+  href,
+}: {
+  title: string;
+  enabled: boolean;
+  href?: string;
+}) {
+  const className = `rounded-2xl border p-5 ${
+    enabled
+      ? "border-zinc-200 bg-white"
+      : "border-zinc-200 bg-zinc-200/60 opacity-60"
+  }`;
+
+  const content = (
+    <>
       <p className="font-bold">{title}</p>
       <p className="mt-1 text-sm text-zinc-500">
         {enabled ? "Available to this account" : "Not permitted"}
       </p>
-    </div>
+    </>
   );
+
+  if (enabled && href) {
+    return (
+      <a href={href} className={className}>
+        {content}
+      </a>
+    );
+  }
+
+  return <div className={className}>{content}</div>;
 }
