@@ -90,6 +90,7 @@ export default function MemberLoginPage() {
   const [username, setUsername] = useState("");
   const [activatePassword, setActivatePassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [forgotMemberNumber, setForgotMemberNumber] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotMessage, setForgotMessage] = useState("");
 
@@ -154,8 +155,8 @@ export default function MemberLoginPage() {
     setError("");
     setForgotMessage("");
 
-    if (!forgotEmail.trim()) {
-      setError("Enter your registered email address.");
+    if (!forgotMemberNumber.trim() || !forgotEmail.trim()) {
+      setError("Enter your membership number and registered email address.");
       return;
     }
 
@@ -168,6 +169,7 @@ export default function MemberLoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          memberNumber: forgotMemberNumber.trim(),
           email: forgotEmail.trim(),
         }),
       });
@@ -179,7 +181,8 @@ export default function MemberLoginPage() {
       }
 
       setForgotMessage(
-        data.message || "If that email is registered, we have sent a password reset link."
+        data.message ||
+          "If those membership details are registered, we have sent a password reset link."
       );
     } catch (error) {
       setError(error instanceof Error ? error.message : "Could not send reset email.");
@@ -612,8 +615,8 @@ export default function MemberLoginPage() {
             </div>
 
             <p className="text-sm font-bold leading-6 text-white/45">
-              Enter your registered membership email address. If it exists in
-              the system, we will send you a secure reset link.
+              Enter your permanent BGM membership number and registered email
+              address. If those details match, we will send you a secure reset link.
             </p>
 
             {forgotMessage ? (
@@ -623,9 +626,26 @@ export default function MemberLoginPage() {
             ) : null}
 
             <label className="grid gap-2">
-              <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
-                Registered Email
-              </span>
+    <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+      Membership Number
+    </span>
+
+    <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3">
+      <CreditCard className="text-white/30" size={18} strokeWidth={3} />
+      <input
+        value={forgotMemberNumber}
+        onChange={(event) => setForgotMemberNumber(event.target.value)}
+        placeholder="BGM0000001"
+        autoCapitalize="characters"
+        className="w-full bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/25"
+      />
+    </div>
+  </label>
+
+  <label className="grid gap-2">
+    <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+      Registered Email
+    </span>
 
               <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3">
                 <Mail className="text-white/30" size={18} strokeWidth={3} />
@@ -695,7 +715,7 @@ export default function MemberLoginPage() {
                 <input
                   value={memberNumber}
                   onChange={(event) => setMemberNumber(event.target.value)}
-                  placeholder="Example: BGM001"
+                  placeholder="Example: BGM0000001"
                   className="w-full bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/25"
                 />
               </div>
