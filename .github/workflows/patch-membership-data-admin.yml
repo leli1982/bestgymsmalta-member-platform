@@ -1,0 +1,75 @@
+name: Patch Membership Data Admin
+
+on:
+  push:
+    branches:
+      - phase-2-operations-nfc-redesign
+    paths:
+      - .github/workflows/patch-membership-data-admin.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase-2-operations-nfc-redesign
+          fetch-depth: 0
+      - name: Patch MembersAdmin
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('components/admin/MembersAdmin.tsx')
+          text = path.read_text()
+
+          text = text.replace(
+              'import { useEffect, useMemo, useState } from "react";\n\nimport {',
+              'import { useEffect, useMemo, useState } from "react";\nimport MembershipDataAdmin from "@/components/admin/MembershipDataAdmin";\n\nimport {'
+          )
+          text = text.replace('  Download,\n', '')
+          text = text.replace('  Upload,\n', '')
+          text = text.replace('  const [importingMembers, setImportingMembers] = useState(false);\n', '')
+          text = text.replace('  const [importSummary, setImportSummary] = useState("");\n', '')
+
+          text, count = re.subn(
+              r'\n\n  function downloadMembersTemplate\(\) \{.*?\n  const filteredMembers = useMemo\(',
+              '\n\n  const filteredMembers = useMemo(',
+              text,
+              count=1,
+              flags=re.S,
+          )
+          if count != 1:
+              raise SystemExit(f'Expected to remove one old import/export function block, got {count}')
+
+          start = '''        <div className="mt-5 rounded-[1.7rem] border border-[#fcb415]/25 bg-[#fcb415]/10 p-4">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+            CSV Import
+          </p>'''
+          start_index = text.find(start)
+          if start_index < 0:
+              raise SystemExit('Old CSV panel start not found')
+          next_block = '        <div className="mt-5 grid gap-3">'
+          end_index = text.find(next_block, start_index)
+          if end_index < 0:
+              raise SystemExit('Member search block not found after old CSV panel')
+          text = text[:start_index] + '        <MembershipDataAdmin onApplied={loadMembers} />\n\n' + text[end_index:]
+
+          for forbidden in ['downloadMembersTemplate', 'importMembersCsv', 'exportMembersCsv', 'Members not included in the CSV will be removed']:
+              if forbidden in text:
+                  raise SystemExit(f'Forbidden legacy import marker remains: {forbidden}')
+
+          path.write_text(text)
+          PY
+      - name: Commit integration
+        run: |
+          git config user.name "leli1982"
+          git config user.email "133102486+leli1982@users.noreply.github.com"
+          git add components/admin/MembersAdmin.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "feat: integrate safe membership data admin"
+          git push origin HEAD:phase-2-operations-nfc-redesign
