@@ -7,7 +7,7 @@ import {
   type MemberExchangeValues,
   type ParsedMemberExchangeFile,
   type ParsedMemberExchangeRow,
-} from "./memberExchangeCore";
+} from "./memberExchangeCore.ts";
 
 function pad(value: number) {
   return String(value).padStart(2, "0");
