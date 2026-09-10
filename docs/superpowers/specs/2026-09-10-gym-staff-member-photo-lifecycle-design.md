@@ -30,7 +30,7 @@ The Gym Staff experience exposes the daily front-desk tools only:
 
 The existing granular permission engine remains internally as route/API authorization infrastructure. A canonical server-side Gym Staff bundle is assigned to gym accounts automatically. The UI must not present permission editing for gym accounts.
 
-Normal Gym Staff does not receive analytics, system-user management, notification settings, imports/exports, global order management or order-status management.
+Normal Gym Staff does not receive analytics, system-user management, notification settings, imports/exports, global order management or order-status management. The previously designed offline emergency roster is not part of the normal Gym Staff dashboard or fixed daily-access bundle unless it is separately re-approved.
 
 ### Super Admin
 
@@ -134,15 +134,17 @@ A migrated member keeps their permanent BGM membership number regardless of phot
 
 When reception scans an identified member whose `official_photo_path` is empty:
 
-- the normal membership access decision is still calculated from membership state;
-- the reception UI must add a prominent `PHOTO REQUIRED` state;
+- the membership state is calculated, but an active member does not yet receive a completed green `ACCESS GRANTED` result;
+- no normal barcode check-in is created yet;
+- the reception UI shows a prominent `PHOTO REQUIRED` state;
 - for an active member, staff is guided immediately into camera capture on the front-desk tablet;
 - the captured photo is reviewed with `Use Photo` / `Retake` controls;
-- once confirmed, it is stored privately and attached to that existing permanent member identity.
+- once confirmed, it is stored privately and attached to that existing permanent member identity;
+- the server then re-validates the membership state and, if still active, finalizes the green access result and creates the canonical barcode check-in.
 
-The intended operational policy is that an active member with no photo must have the photo captured before reception completes that visit's identity verification. The member is not issued a new number and no duplicate member record is created.
+This makes photo capture part of the first successful identity-verification visit rather than an optional task performed after entry. The member is not issued a new number and no duplicate member record is created.
 
-For an expired existing member with no photo, the RENEWAL workflow requires photo capture before the renewed membership can be activated.
+For an expired existing member with no photo, the scan remains denied and creates no normal check-in. The RENEWAL workflow requires photo capture before the renewed membership can be activated.
 
 This approach progressively cleans the active database through ordinary visits instead of requiring a separate mass photo-registration campaign.
 
@@ -181,17 +183,17 @@ RENEWAL always reuses the existing permanent member identity and number.
 
 ## Reception Barcode API & UI
 
-The barcode lookup/access route continues to determine membership state and record access/check-in events.
+The barcode lookup/access route determines membership state and records access/check-in events only after any required photo step is satisfied.
 
-For identified members, its response should additionally provide a secure, short-lived representation of the official photo rather than only the private storage path.
+For identified members with a photo, its response provides a secure, short-lived representation of the official photo rather than only the private storage path.
 
 The UI must retain a placeholder only as a fallback for missing/unavailable images. It must not use the member initial as the normal photo experience once an official photo exists.
 
 The scanner must distinguish these cases clearly:
 
-- ACTIVE + photo available: green access result with photo
-- ACTIVE + no photo: active membership result plus mandatory `PHOTO REQUIRED` capture workflow
-- EXPIRED/INACTIVE + photo available: red denied result with photo
+- ACTIVE + photo available: green access result with photo and canonical barcode check-in
+- ACTIVE + no photo: `PHOTO REQUIRED`; no normal check-in until capture succeeds and access is revalidated
+- EXPIRED/INACTIVE + photo available: red denied result with photo and no normal check-in
 - EXPIRED/INACTIVE + no photo: red denied result plus photo-required marker; renewal captures photo before activation
 - unknown barcode: no member photo and no normal check-in
 
@@ -203,12 +205,13 @@ The scanner must distinguish these cases clearly:
 - Couples members remain separate permanent identities, each with their own number and photo.
 - A photo is linked to the permanent member identity, not to one membership period; renewals retain the same official photo unless replaced.
 - Legacy photo matching must never be performed from ambiguous identifiers.
+- A missing-photo capture must not create duplicate access/check-in events when the access decision is finalized after capture.
 
 ## Error Handling
 
-- Camera permission denied: keep the application/member in photo-required state and offer Retry; do not silently bypass a mandatory new-member/renewal photo.
-- Upload fails: retain the local preview long enough to retry where practical; do not activate a new/renewed membership that requires a photo until storage succeeds.
-- Signed photo URL fails at reception: show a clear photo-unavailable fallback without changing the membership access result; allow staff to retry/re-capture if the stored photo is genuinely missing.
+- Camera permission denied: keep the application/member in photo-required state and offer Retry; do not silently bypass a mandatory new-member/renewal/first-visit photo.
+- Upload fails: retain the local preview long enough to retry where practical; do not activate a new/renewed membership that requires a photo, or finalize a first-visit check-in, until storage succeeds.
+- Signed photo URL fails for a member whose photo path exists: show a clear photo-unavailable fallback without changing the underlying membership state; allow staff to retry and flag/re-capture a genuinely missing/corrupt asset. Do not silently treat a failed image download as proof that no photo exists.
 - Activation transaction fails: preserve the awaiting-payment application and application photo; do not consume a permanent number outside the transaction.
 - Legacy photo match ambiguous: report for review and leave the permanent member without a photo rather than guessing.
 
@@ -227,6 +230,8 @@ Tests must cover at least:
 - activation transfers the approved application photo to the new permanent member
 - renewal reuses the existing permanent number and photo
 - missing-photo migrated member enters `PHOTO REQUIRED` workflow after barcode identification
+- active missing-photo scan creates no normal check-in before capture
+- successful capture revalidates access and creates exactly one canonical barcode check-in
 - barcode response never exposes a public raw photo path as the display mechanism
 - expired identified member still displays their photo when available
 - unknown barcode never creates a normal check-in
