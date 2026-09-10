@@ -46,15 +46,14 @@ jobs:
           if count != 1:
               raise SystemExit(f'Expected to remove one old import/export function block, got {count}')
 
-          start = '''        <div className="mt-5 rounded-[1.7rem] border border-[#fcb415]/25 bg-[#fcb415]/10 p-4">
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
-            CSV Import
-          </p>'''
-          start_index = text.find(start)
+          marker_index = text.find('CSV Import')
+          if marker_index < 0:
+              raise SystemExit('CSV Import marker not found')
+          start_index = text.rfind('        <div className="mt-5 rounded-[1.7rem]', 0, marker_index)
           if start_index < 0:
-              raise SystemExit('Old CSV panel start not found')
+              raise SystemExit('Old CSV panel container not found')
           next_block = '        <div className="mt-5 grid gap-3">'
-          end_index = text.find(next_block, start_index)
+          end_index = text.find(next_block, marker_index)
           if end_index < 0:
               raise SystemExit('Member search block not found after old CSV panel')
           text = text[:start_index] + '        <MembershipDataAdmin onApplied={loadMembers} />\n\n' + text[end_index:]
@@ -62,6 +61,8 @@ jobs:
           for forbidden in ['downloadMembersTemplate', 'importMembersCsv', 'exportMembersCsv', 'Members not included in the CSV will be removed']:
               if forbidden in text:
                   raise SystemExit(f'Forbidden legacy import marker remains: {forbidden}')
+          if '<MembershipDataAdmin onApplied={loadMembers} />' not in text:
+              raise SystemExit('New membership data component was not inserted')
 
           path.write_text(text)
           PY
