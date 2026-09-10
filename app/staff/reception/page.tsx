@@ -1,7 +1,7 @@
-import NfcReceptionPage from "@/components/staff/NfcReceptionPage";
+import BarcodeReceptionPage from "@/components/staff/BarcodeReceptionPage";
 
 export const dynamic = "force-dynamic";
 
 export default function StaffReceptionPage() {
-  return <NfcReceptionPage />;
+  return <BarcodeReceptionPage />;
 }
