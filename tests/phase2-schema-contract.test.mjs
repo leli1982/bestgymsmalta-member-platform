@@ -13,6 +13,11 @@ const operationsMigrationPath = path.join(
   "supabase/migrations/20260901_130000_phase2_nfc_orders_offline.sql"
 );
 
+const identityMigrationPath = path.join(
+  process.cwd(),
+  "supabase/migrations/20260909_140000_membership_identity_exchange.sql"
+);
+
 function readMigration(filePath, label) {
   assert.equal(fs.existsSync(filePath), true, `${label} migration must exist`);
   return fs.readFileSync(filePath, "utf8");
@@ -24,6 +29,10 @@ function foundationSql() {
 
 function operationsSql() {
   return readMigration(operationsMigrationPath, "Phase 2 NFC/orders/offline");
+}
+
+function identitySql() {
+  return readMigration(identityMigrationPath, "Phase 2 membership identity/exchange");
 }
 
 test("Phase 2 foundation migration declares required operational tables and RLS", () => {
@@ -117,6 +126,42 @@ test("existing members are extended additively with enrollment/profile fields", 
   }
 });
 
+test("membership identity exchange migration preserves legacy fields and staged imports", () => {
+  const sql = identitySql();
+
+  for (const column of [
+    "legacy_gym",
+    "legacy_pk_customer",
+    "company_name",
+    "town",
+    "gender",
+    "telephone_no_1",
+    "telephone_no_2",
+    "mobile",
+  ]) {
+    assert.match(sql, new RegExp(`add column if not exists ${column}\\b`, "i"));
+  }
+
+  for (const table of [
+    "bgm_member_number_state",
+    "bgm_member_import_batches",
+    "bgm_member_import_rows",
+  ]) {
+    assert.match(
+      sql,
+      new RegExp(`(?:create|alter) table(?: if not exists)? public\\.${table}`, "i")
+    );
+    assert.match(
+      sql,
+      new RegExp(`alter table public\\.${table} enable row level security`, "i")
+    );
+  }
+
+  assert.match(sql, /alter column member_number set default public\.bgm_next_member_number\(\)/i);
+  assert.match(sql, /alter column email drop not null/i);
+  assert.match(sql, /drop constraint if exists bgm_members_email_key/i);
+});
+
 test("NFC cards and access scans have explicit lifecycle and access-result contracts", () => {
   const sql = operationsSql();
 
@@ -149,6 +194,16 @@ test("NFC cards and access scans have explicit lifecycle and access-result contr
     sql,
     /checkin_id uuid references public\.bgm_member_checkins\(id\)/i
   );
+});
+
+test("access scan extension supports both NFC and barcode credentials", () => {
+  const sql = identitySql();
+  assert.match(sql, /credential_type text not null default 'nfc'/i);
+  assert.match(sql, /credential_value text/i);
+  assert.match(sql, /credential_type in \('nfc', 'barcode'\)/i);
+  assert.match(sql, /'unknown_member'/i);
+  assert.match(sql, /'invalid_barcode'/i);
+  assert.doesNotMatch(sql, /drop table(?: if exists)? public\.bgm_nfc_cards/i);
 });
 
 test("operational orders support sundries and bar lists with Staff Name attribution", () => {
