@@ -5,7 +5,7 @@ import {
   type MemberExchangeValues,
   type ParsedMemberExchangeFile,
   type ParsedMemberExchangeRow,
-} from "./memberExchangeCore";
+} from "./memberExchangeCore.ts";
 
 type CsvRecord = {
   fields: string[];
