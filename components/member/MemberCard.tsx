@@ -4,44 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { BadgeCheck, CreditCard, LogIn, ShieldCheck } from "lucide-react";
 import { getSavedMember, type AppMember } from "@/lib/memberSession";
-
-function NfcMark() {
-  return (
-    <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2">
-      <svg
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-        className="text-[#fcb415]"
-      >
-        <path
-          d="M7 8.5C8.8 10.3 8.8 13.7 7 15.5"
-          stroke="currentColor"
-          strokeWidth="2.3"
-          strokeLinecap="round"
-        />
-        <path
-          d="M10.5 6C13.7 9.2 13.7 14.8 10.5 18"
-          stroke="currentColor"
-          strokeWidth="2.3"
-          strokeLinecap="round"
-        />
-        <path
-          d="M14 3.5C18.9 8.4 18.9 15.6 14 20.5"
-          stroke="currentColor"
-          strokeWidth="2.3"
-          strokeLinecap="round"
-        />
-      </svg>
-
-      <span className="text-[10px] font-black uppercase tracking-[.2em] text-white/60">
-        NFC
-      </span>
-    </div>
-  );
-}
+import MemberBarcode from "@/components/member/MemberBarcode";
 
 export default function MemberCard() {
   const [member, setMember] = useState<AppMember | null>(null);
@@ -104,7 +67,7 @@ export default function MemberCard() {
       aria-label="Flip membership card"
     >
       <div
-        className="relative min-h-[285px] transition-transform duration-700"
+        className="relative min-h-[390px] transition-transform duration-700"
         style={{
           transformStyle: "preserve-3d",
           transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
@@ -121,30 +84,36 @@ export default function MemberCard() {
             <CreditCard size={120} strokeWidth={1.5} />
           </div>
 
-          <div className="relative flex min-h-[245px] flex-col justify-between">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
-                  BestGymsMalta
-                </p>
+          <div className="relative flex min-h-[350px] flex-col justify-between">
+            <div>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                    BestGymsMalta
+                  </p>
 
-                <h2 className="mt-4 text-3xl font-black leading-tight text-white">
-                  {member.fullName || member.username}
-                </h2>
+                  <h2 className="mt-4 text-3xl font-black leading-tight text-white">
+                    {member.fullName || member.username}
+                  </h2>
 
-                <p className="mt-2 text-sm font-black uppercase tracking-[.18em] text-white/45">
-                  Member No. {member.memberNumber}
-                </p>
+                  <p className="mt-2 text-sm font-black uppercase tracking-[.18em] text-white/45">
+                    Member No. {member.memberNumber}
+                  </p>
+                </div>
+
+                <div className="relative h-16 w-20 shrink-0">
+                  <Image
+                    src="/bgm-logo.png"
+                    alt="BestGymsMalta"
+                    fill
+                    priority
+                    className="object-contain"
+                  />
+                </div>
               </div>
 
-              <div className="relative h-16 w-20 shrink-0">
-                <Image
-                  src="/bgm-logo.png"
-                  alt="BestGymsMalta"
-                  fill
-                  priority
-                  className="object-contain"
-                />
+              <div className="mt-5">
+                <MemberBarcode memberNumber={member.memberNumber} />
               </div>
             </div>
 
@@ -166,11 +135,9 @@ export default function MemberCard() {
                     Valid until {expiryText}
                   </p>
                 </div>
-
-                <NfcMark />
               </div>
 
-              <p className="mt-5 text-center text-[10px] font-black uppercase tracking-[.22em] text-white/30">
+              <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[.22em] text-white/30">
                 Tap card to flip
               </p>
             </div>
@@ -188,14 +155,12 @@ export default function MemberCard() {
           <div className="absolute -left-16 -top-16 h-52 w-52 rounded-full bg-[#fcb415]/20 blur-3xl" />
           <div className="absolute -bottom-20 right-8 h-44 w-44 rounded-full bg-[#fcb415]/10 blur-3xl" />
 
-          <div className="relative flex min-h-[245px] flex-col justify-between">
+          <div className="relative flex min-h-[350px] flex-col justify-between">
             <div>
               <div className="flex items-center justify-between gap-4">
                 <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
                   Member Details
                 </p>
-
-                <NfcMark />
               </div>
 
               <div className="mt-5 grid gap-3">
