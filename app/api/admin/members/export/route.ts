@@ -1,99 +1,134 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  MEMBER_EXCHANGE_HEADERS,
+  emptyMemberExchangeValues,
+  type ParsedMemberExchangeRow,
+} from "@/lib/memberExchangeCore";
+import { serializeMemberExchangeCsv } from "@/lib/memberExchangeCsv";
+import {
+  buildMemberExchangeXlsx,
+  exchangeValuesRow,
+} from "@/lib/memberExchangeWorkbook";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { isAdminRequest, requireAdmin } from "@/lib/adminAuth";
+import { requireSystemPermission } from "@/lib/systemAuth";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-function formatDateForCsv(value: unknown) {
-  const text = String(value || "").trim();
+const PAGE_SIZE = 1000;
+const MEMBER_EXPORT_SELECT =
+  "member_number, legacy_gym, legacy_pk_customer, full_name, company_name, address_line_1, address_line_2, town, postcode, gender, telephone_no_1, telephone_no_2, mobile, email, membership_expiry, status";
 
-  if (!text) return "";
+type ExportMember = {
+  member_number: string;
+  legacy_gym: string | null;
+  legacy_pk_customer: string | null;
+  full_name: string | null;
+  company_name: string | null;
+  address_line_1: string | null;
+  address_line_2: string | null;
+  town: string | null;
+  postcode: string | null;
+  gender: string | null;
+  telephone_no_1: string | null;
+  telephone_no_2: string | null;
+  mobile: string | null;
+  email: string | null;
+  membership_expiry: string | null;
+  status: string | null;
+};
 
-  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
-
-  if (isoMatch) {
-    return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
-  }
-
-  return text;
+function text(value: unknown) {
+  return value == null ? "" : String(value);
 }
 
-function csvEscape(value: unknown) {
-  const text = String(value ?? "");
+function toExchangeRow(member: ExportMember, rowNumber: number) {
+  const values = emptyMemberExchangeValues();
+  values.MembershipNumber = text(member.member_number);
+  values.Gym = text(member.legacy_gym);
+  values.pkCustomer = text(member.legacy_pk_customer);
+  values.CustomerName = text(member.full_name);
+  values.CompanyName = text(member.company_name);
+  values.Address1 = text(member.address_line_1);
+  values.Address2 = text(member.address_line_2);
+  values.Town = text(member.town);
+  values.PostCode = text(member.postcode);
+  values.Gender = text(member.gender);
+  values.TelephoneNo1 = text(member.telephone_no_1);
+  values.TelephoneNo2 = text(member.telephone_no_2);
+  values.Mobile = text(member.mobile);
+  values.Email = text(member.email);
+  values.ExpiryDate1 = text(member.membership_expiry);
+  values.ValidYN = member.status === "active" ? "Valid" : "Not Valid";
+  return exchangeValuesRow(values, rowNumber);
+}
 
-  if (/[",\n\r]/.test(text)) {
-    return `"${text.replace(/"/g, '""')}"`;
+async function loadAllMembers(): Promise<ParsedMemberExchangeRow[]> {
+  const supabase = getSupabaseAdmin();
+  const rows: ParsedMemberExchangeRow[] = [];
+
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const result = await supabase
+      .from("bgm_members")
+      .select(MEMBER_EXPORT_SELECT)
+      .order("member_number", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (result.error) throw result.error;
+    const page = (result.data || []) as ExportMember[];
+    page.forEach((member) => rows.push(toExchangeRow(member, rows.length + 2)));
+    if (page.length < PAGE_SIZE) break;
   }
 
-  return text;
+  return rows;
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const adminError = requireAdmin(request);
-    if (adminError) return adminError;
+    const auth = await requireSystemPermission(request, "members.export");
+    if (auth.error) return auth.error;
 
-    const supabase = getSupabaseAdmin();
+    const requestedFormat = request.nextUrl.searchParams.get("format") || "xlsx";
+    const format = requestedFormat.toLowerCase();
+    if (format !== "xlsx" && format !== "csv") {
+      return NextResponse.json(
+        { error: "Export format must be xlsx or csv." },
+        { status: 400 }
+      );
+    }
 
-    const result = await supabase
-      .from("bgm_members")
-      .select(
-        "member_number, full_name, email, phone, status, enrollment_date, membership_period, membership_expiry, app_enrolled, username, notes, created_at, updated_at"
-      )
-      .order("member_number", { ascending: true });
+    // Keep the approved exchange contract explicit here as well as in the
+    // shared writers. This prevents the export route drifting to a private
+    // admin-only column layout in future.
+    if (MEMBER_EXCHANGE_HEADERS.length !== 16) {
+      throw new Error("Unexpected membership exchange contract.");
+    }
 
-    if (result.error) throw result.error;
+    const rows = await loadAllMembers();
+    const date = new Date().toISOString().slice(0, 10);
 
-    const headers = [
-      "memberNumber",
-      "fullName",
-      "email",
-      "phone",
-      "status",
-      "enrollmentDate",
-      "membershipPeriod",
-      "membershipExpiry",
-      "appEnrolled",
-      "username",
-      "notes",
-      "createdAt",
-      "updatedAt",
-    ];
+    if (format === "csv") {
+      const csv = serializeMemberExchangeCsv(rows);
+      return new NextResponse(csv, {
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="bgm-members-${date}.csv"`,
+          "Cache-Control": "no-store",
+        },
+      });
+    }
 
-    const rows = (result.data || []).map((member) => [
-      member.member_number,
-      member.full_name,
-      member.email,
-      member.phone,
-      member.status,
-      formatDateForCsv(member.enrollment_date),
-      member.membership_period,
-      formatDateForCsv(member.membership_expiry),
-      member.app_enrolled ? "yes" : "no",
-      member.username,
-      member.notes,
-      member.created_at,
-      member.updated_at,
-    ]);
-
-    const csv = [
-      headers.map(csvEscape).join(","),
-      ...rows.map((row) => row.map(csvEscape).join(",")),
-    ].join("\n");
-
-    const filename = `bgm-members-export-${new Date()
-      .toISOString()
-      .slice(0, 10)}.csv`;
-
-    return new NextResponse(csv, {
+    const workbook = await buildMemberExchangeXlsx(rows);
+    return new NextResponse(new Uint8Array(workbook), {
       headers: {
-        "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="bgm-members-${date}.xlsx"`,
+        "Cache-Control": "no-store",
       },
     });
   } catch (error) {
-    console.error(error);
-
+    console.error("Membership export failed:", error);
     return NextResponse.json(
       { error: "Could not export members." },
       { status: 500 }
