@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved architectural refinement for Phase 2. This spec supersedes the configurable-per-gym staff permission model and expands the official member photo design. It also incorporates the later decision that operational membership/card numbers come from preprinted physical cards scanned by reception rather than from a generated `BGMxxxxxxx` sequence.
+Approved architectural refinement for Phase 2. This spec supersedes the configurable-per-gym staff permission model and expands the official member photo design. It also incorporates the decision that operational membership/card numbers come from preprinted physical cards scanned by reception rather than from a generated `BGMxxxxxxx` sequence.
 
 It does not authorize a Production merge or Production database migration.
 
@@ -15,6 +15,7 @@ It does not authorize a Production merge or Production database migration.
 5. Give migrated members with no usable photo a low-friction way to obtain one during normal visits.
 6. Make photo capture mandatory for new memberships before activation.
 7. Keep photo identity attached to the permanent internal member record even if the member's physical card/barcode is later replaced.
+8. Require a card scan on every renewal so reception explicitly confirms whether the member keeps the existing card or receives a replacement.
 
 ## Account Model
 
@@ -28,8 +29,11 @@ The Gym Staff experience exposes the daily front-desk tools only:
 
 - Memberships: NEW MEMBERSHIP and RENEWAL, including payment activation
 - Reception / Barcode
+- Issue New Card
 - Sundries Order: fill and submit
 - Bar List: fill and submit
+
+`Issue New Card` is available for lost, stolen or damaged cards and always works against an already verified permanent member identity.
 
 The existing granular permission engine remains internally as route/API authorization infrastructure. A canonical server-side Gym Staff bundle is assigned to gym accounts automatically. The UI must not present permission editing for gym accounts.
 
@@ -63,12 +67,13 @@ The following membership actions require an entered human Staff Name:
 - NEW MEMBERSHIP application submission
 - RENEWAL application submission
 - `PAYMENT RECEIVED — ACTIVATE`
+- standalone `ISSUE NEW CARD` confirmation
 
 Application Staff Name and Activation Staff Name remain separate audit fields because they may be different people.
 
 Sundries and Bar submissions retain their existing required Staff Name fields.
 
-Barcode scanning itself does not require a Staff Name because it is an access event rather than a business approval action.
+Ordinary access scanning itself does not require a Staff Name because it is an access event rather than a business approval action.
 
 There is no staff photograph anywhere in the system.
 
@@ -186,7 +191,7 @@ After a new application is submitted from the tablet, the gym's main staff/recep
 
 Opening that action must show the applicant's name and official photo so staff can verify which person is being assigned the card.
 
-Staff scans an unused preprinted physical membership card with the reception barcode reader. The exact decoded barcode value is reserved for that application/participant after the server verifies that it is not already active/reserved for another person/application.
+Staff scans an unused preprinted physical membership card with the reception barcode reader. The exact decoded barcode value is reserved for that application/participant after the server verifies that it is not already active/reserved/retired for another person.
 
 For Couples, the screen assigns one physical card to each participant and clearly pairs each scan with that participant's name and photo.
 
@@ -210,16 +215,43 @@ If activation fails, the application remains awaiting payment/retry and does not
 
 ## Renewal Photo and Card Flow
 
-RENEWAL always reuses the existing permanent member UUID.
+RENEWAL always reuses the existing permanent member UUID and always requires reception to scan a physical card before activation.
 
-- The existing active card/barcode is used to identify the member quickly and can be scanned to open the renewal.
-- Normal renewal keeps the same physical card and same barcode; no new card scan is required merely because membership expired.
+The required renewal card scan is a deliberate verification step:
+
+- If the scanned barcode exactly matches the member's current active card, the renewal keeps that same card and same barcode.
+- If the scanned barcode is a different unused preprinted card, the UI clearly treats this as `NEW CARD ON RENEWAL` and asks staff to confirm the replacement.
+- The old card is not retired merely because a different card was scanned during an unfinished renewal. It is retired permanently only when the renewal successfully activates with the confirmed replacement card.
+- At successful replacement renewal, the old barcode becomes `retired`, the new barcode becomes active for the same permanent member UUID, and the member app switches to the new barcode.
+- If the different scanned barcode is already reserved, active, or retired for another member/card history, the scan is rejected.
+
+The member can initially be found through their old/current card, their virtual card, or fallback member search, but the explicit renewal card scan remains mandatory before activation.
+
+Photo behavior during renewal:
+
 - If the member already has an official photo, show it to staff for identity confirmation and keep it unless a replacement is intentionally captured.
 - If there is no official photo, Take Photo becomes mandatory before renewal activation.
-- A replacement photo creates a new versioned object and updates `official_photo_path`; it does not change the member UUID or card barcode.
-- If the physical card is lost/stolen/damaged, replacement-card handling is a separate credential action: scan the new preprinted card, retire the old barcode and attach the new barcode to the same permanent member UUID.
+- A replacement photo creates a new versioned object and updates `official_photo_path`; it does not change the member UUID or card barcode by itself.
 
-An expired membership therefore does not retire the card credential. The card still identifies the member but access is denied until renewal; after successful renewal the same card works again.
+An expired membership does not automatically retire its card. The card can still identify the member but access is denied until renewal. After successful renewal, either the re-scanned existing card becomes usable again or the confirmed new card becomes the active credential.
+
+## Standalone `Issue New Card`
+
+Gym Staff has a dedicated `Issue New Card` action for a member whose current card is lost, stolen or damaged outside the renewal flow.
+
+Flow:
+
+1. Find/verify the existing member.
+2. Show the official photo, current card number and membership status.
+3. Enter required Staff Name.
+4. Scan a new unused preprinted card.
+5. Show old card -> new card and require explicit confirmation.
+6. Atomically retire the old barcode and activate the new barcode for the same permanent member UUID.
+7. Update the member app's virtual card to use the new active barcode immediately on its next authenticated refresh/request.
+
+The old barcode is permanently retired and must never grant access or be silently reassigned to another member.
+
+Card replacement does not renew, extend or otherwise change membership dates/status. It changes only the access credential.
 
 ## Member App Virtual Card
 
@@ -232,8 +264,10 @@ Rules:
 - The app must obtain the currently active card credential from the authenticated server/member session.
 - Do not derive a new `BGMxxxxxxx` barcode for the app.
 - Do not rely on stale localStorage as the source of truth for the barcode.
-- Renewal keeps the same virtual barcode when the same physical card remains active.
-- Card replacement automatically causes the virtual card to use the new active barcode; the retired barcode must no longer grant access.
+- A renewal that re-scans the same card leaves the virtual barcode unchanged.
+- A renewal that confirms a replacement card updates the virtual card to the new barcode.
+- A standalone `Issue New Card` action updates the virtual card to the new barcode.
+- Retired barcodes must no longer grant access.
 - If a migrated member has not yet had a physical card barcode linked, the virtual card must not fabricate one. Show a clear `CARD NOT LINKED — ASK RECEPTION` state until assignment is completed.
 
 The virtual barcode may be rendered as Code 128 using the exact decoded physical-card payload, provided reception hardware testing confirms the scanners reliably read it from phone screens.
@@ -260,8 +294,11 @@ The scanner must distinguish these cases clearly:
 - The permanent person identity is the member UUID, not the physical card barcode.
 - Physical card barcode values are opaque text credentials; preserve the exact scanned payload including leading zeroes.
 - A currently active/reserved barcode cannot be assigned to two people/applications.
-- Once an issued card is retired/replaced, its barcode is never silently reassigned to another person.
-- Renewal never creates a replacement member record and normally retains the same active card.
+- Once an issued card is retired/replaced, its barcode is permanently retired and never silently reassigned to another person.
+- Every renewal requires a card scan before activation.
+- Re-scanning the current card on renewal preserves the same card relationship.
+- A replacement-card renewal retires the old card only inside the successful activation boundary.
+- Standalone card replacement changes credentials only and does not alter membership dates.
 - Couples members remain separate permanent identities, each with their own card credential and photo.
 - A photo is linked to the permanent member UUID, not to one membership period or replaceable card.
 - Legacy photo/card matching must never be performed from ambiguous identifiers.
@@ -271,10 +308,12 @@ The scanner must distinguish these cases clearly:
 
 - Camera permission denied: keep the application/member in photo-required state and offer Retry; do not silently bypass a mandatory new-member/renewal/first-visit photo.
 - Upload fails: retain the local preview long enough to retry where practical; do not activate a new/renewed membership that requires a photo, or finalize a first-visit check-in, until storage succeeds.
-- Card already assigned/reserved: reject the scan clearly and do not modify either member/application.
+- Card already assigned/reserved/retired incompatibly: reject the scan clearly and do not modify either member/application.
 - Wrong card scanned before activation: allow staff to release/correct the unactivated reservation and rescan.
+- Different card scanned on renewal: require explicit replacement confirmation; do not retire the current card until activation succeeds.
 - Signed photo URL fails for a member whose photo path exists: show a clear photo-unavailable fallback without changing the underlying membership state; allow staff to retry and flag/re-capture a genuinely missing/corrupt asset.
-- Activation transaction fails: preserve the awaiting-payment application, photo and safe card reservation state; do not leave a partially activated credential.
+- Activation transaction fails: preserve the awaiting-payment application, photo and existing active card; do not leave a partially activated credential.
+- Standalone replacement fails: preserve the old active card unless the entire replacement transaction commits successfully.
 - Legacy photo/card match ambiguous: report for review rather than guessing.
 
 ## Testing & Verification
@@ -290,10 +329,14 @@ Tests must cover at least:
 - new application cannot activate without required photo/card assignment
 - photo capture does not activate a member or assign a fabricated BGM number
 - scanned preprinted card payload is preserved exactly
-- duplicate/reserved card assignment is rejected
+- duplicate/reserved/retired card assignment is rejected appropriately
 - activation attaches the approved application photo and reserved card to the correct permanent member UUID
 - Couples activation requires and preserves separate photo/card assignment per participant
-- renewal reuses the same member UUID, card and photo unless intentionally replaced
+- renewal always requires a card scan
+- renewal with the same card keeps the same member UUID and barcode
+- renewal with a different unused card retires the old barcode only after successful activation and activates the new one
+- failed/cancelled replacement renewal leaves the old card active
+- standalone `Issue New Card` keeps the same member UUID and membership dates while retiring the old barcode
 - replacement retires the old barcode and updates the member app to the new active barcode
 - member app virtual barcode payload equals the exact active physical-card payload
 - member app never fabricates a barcode when no card is linked
