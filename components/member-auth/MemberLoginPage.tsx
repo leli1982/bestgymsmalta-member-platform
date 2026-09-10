@@ -114,7 +114,7 @@ export default function MemberLoginPage() {
     setError("");
 
     if (!loginUsername.trim() || !loginPassword.trim()) {
-      setError("Enter your username and password.");
+      setError("Enter your username or membership number and password.");
       return;
     }
 
@@ -195,8 +195,8 @@ export default function MemberLoginPage() {
     event.preventDefault();
     setError("");
 
-    if (!memberNumber.trim() || !email.trim() || !username.trim()) {
-      setError("Enter your member number, email and username.");
+    if (!memberNumber.trim() || !username.trim()) {
+      setError("Enter your member number and username.");
       return;
     }
 
@@ -537,7 +537,7 @@ export default function MemberLoginPage() {
 
             <label className="grid gap-2">
               <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
-                Username
+                Username or Membership Number
               </span>
 
               <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3">
@@ -545,7 +545,7 @@ export default function MemberLoginPage() {
                 <input
                   value={loginUsername}
                   onChange={(event) => setLoginUsername(event.target.value)}
-                  placeholder="Your username"
+                  placeholder="Username or BGM0000001"
                   className="w-full bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/25"
                 />
               </div>
@@ -723,7 +723,7 @@ export default function MemberLoginPage() {
 
             <label className="grid gap-2">
               <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
-                Email
+                Registered Email (if available)
               </span>
 
               <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3">
