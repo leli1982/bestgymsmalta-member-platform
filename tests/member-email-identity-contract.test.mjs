@@ -59,6 +59,14 @@ test("blank-email members are safely directed to reception before activation", (
   assert.match(registerRoute, /No email is registered for this membership/i);
 });
 
+test("activation UI lets blank-email members reach the safe server path", () => {
+  assert.doesNotMatch(
+    loginUi,
+    /!memberNumber\.trim\(\)\s*\|\|\s*!email\.trim\(\)\s*\|\|\s*!username\.trim\(\)/
+  );
+  assert.match(loginUi, /Registered Email \(if available\)/);
+});
+
 test("activation still verifies the registered email when one exists", () => {
   assert.match(registerRoute, /email\s*!==\s*registeredEmail/);
 });
