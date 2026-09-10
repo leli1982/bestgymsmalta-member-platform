@@ -36,6 +36,8 @@ test("fallback search does not use one raw OR expression or assume legacy PK is 
 test("search returns candidate identity details and gates official photos", () => {
   const route = source();
   assert.match(route, /memberNumber/);
+  assert.match(route, /firstName/);
+  assert.match(route, /lastName/);
   assert.match(route, /fullName/);
   assert.match(route, /membershipExpiry/);
   assert.match(route, /officialPhoto/);
