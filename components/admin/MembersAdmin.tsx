@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import MembershipDataAdmin from "@/components/admin/MembershipDataAdmin";
 
 import {
-  Download,
   RefreshCw,
   Save,
   Trash2,
-  Upload,
   UserPlus,
   X,
 } from "lucide-react";
@@ -103,8 +102,6 @@ export default function MembersAdmin({ pin }: { pin: string }) {
   const [members, setMembers] = useState<AdminMember[]>([]);
   const [memberSearch, setMemberSearch] = useState("");
   const [memberFilter, setMemberFilter] = useState("all");
-  const [importingMembers, setImportingMembers] = useState(false);
-  const [importSummary, setImportSummary] = useState("");
   const [form, setForm] = useState<AdminMember>(emptyMember);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [status, setStatus] = useState("");
@@ -279,95 +276,6 @@ export default function MembersAdmin({ pin }: { pin: string }) {
   const expiryPreview = form.membershipExpiry;
   const statusPreview = calculateStatus(expiryPreview);
 
-
-  function downloadMembersTemplate() {
-    const csv = [
-      "memberNumber,fullName,email,phone,enrollmentDate,membershipPeriod,membershipExpiry,status,notes",
-      "BGM00125,John Borg,john@email.com,99123456,07/07/2026,6_months,07/01/2027,active,Optional notes",
-    ].join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "bgm-members-import-template.csv";
-    link.click();
-
-    URL.revokeObjectURL(url);
-  }
-
-  async function importMembersCsv(file?: File) {
-    if (!file) return;
-
-    try {
-      setImportingMembers(true);
-      setImportSummary("");
-      setStatus("Importing members CSV…");
-
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/admin/members/import", {
-        method: "POST",
-        headers: {
-          },
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Could not import members.");
-      }
-
-      setImportSummary(
-        `Synced ${data.imported || 0} member${data.imported === 1 ? "" : "s"}.${
-          data.removed ? ` Removed ${data.removed} member${data.removed === 1 ? "" : "s"} not in CSV.` : ""
-        }${
-          data.skipped ? ` Skipped ${data.skipped} incomplete row${data.skipped === 1 ? "" : "s"}.` : ""
-        }`
-      );
-
-      setStatus("Members imported.");
-      await loadMembers();
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not import members.");
-    } finally {
-      setImportingMembers(false);
-    }
-  }
-
-  async function exportMembersCsv() {
-    try {
-      setStatus("Preparing members export…");
-
-      const response = await fetch("/api/admin/members/export", {
-        headers: {
-          },
-      });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || "Could not export members.");
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `bgm-members-export-${new Date()
-        .toISOString()
-        .slice(0, 10)}.csv`;
-      link.click();
-
-      URL.revokeObjectURL(url);
-      setStatus("Members CSV exported.");
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not export members.");
-    }
-  }
 
   const filteredMembers = useMemo(() => {
     const query = memberSearch.trim().toLowerCase();
@@ -660,56 +568,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
           </div>
         ) : null}
 
-        <div className="mt-5 rounded-[1.7rem] border border-[#fcb415]/25 bg-[#fcb415]/10 p-4">
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
-            CSV Import
-          </p>
-
-          <h3 className="mt-1 text-xl font-black text-white">
-            Import members CSV
-          </h3>
-
-          <p className="mt-2 text-sm font-bold leading-6 text-white/55">
-            Sync members exactly from your CSV file. Members not included in the CSV will be removed from the admin member list.
-            Existing app login details for matching members are kept.
-          </p>
-
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={downloadMembersTemplate}
-              className="rounded-full border border-white/10 bg-black/25 px-4 py-3 text-xs font-black uppercase tracking-[.12em] text-white"
-            >
-              Template
-            </button>
-
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-full bg-[#fcb415] px-4 py-3 text-xs font-black uppercase tracking-[.12em] text-black">
-              <Upload size={15} strokeWidth={3} />
-              {importingMembers ? "Importing…" : "Import CSV"}
-              <input
-                type="file"
-                accept=".csv,text/csv"
-                className="hidden"
-                onChange={(event) => importMembersCsv(event.target.files?.[0])}
-              />
-            </label>
-          </div>
-
-          <button
-            type="button"
-            onClick={exportMembersCsv}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-black/25 px-4 py-3 text-xs font-black uppercase tracking-[.12em] text-white"
-          >
-            <Download size={15} strokeWidth={3} />
-            Export CSV
-          </button>
-
-          {importSummary ? (
-            <p className="mt-3 rounded-2xl border border-white/10 bg-black/25 p-3 text-sm font-bold leading-6 text-white/60">
-              {importSummary}
-            </p>
-          ) : null}
-        </div>
+        <MembershipDataAdmin onApplied={loadMembers} />
 
         <div className="mt-5 grid gap-3">
           <input
