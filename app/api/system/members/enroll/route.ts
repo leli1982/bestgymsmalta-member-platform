@@ -40,7 +40,7 @@ function isIsoDate(value: string) {
 }
 
 function makeApplicationReference() {
-  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
+  const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
   return `BGMAPP-${stamp}-${randomUUID().slice(0, 8).toUpperCase()}`;
 }
 
