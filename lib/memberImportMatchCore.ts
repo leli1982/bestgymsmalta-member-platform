@@ -242,6 +242,17 @@ export function classifyMemberImportRow({
       return classifyMatched(incoming, byMembershipNumber[0]);
     }
 
+    if (legacyCandidates.length > 0) {
+      const legacyCandidate = chooseLegacyCandidate(incoming, legacyCandidates);
+      return {
+        action: "conflict",
+        matchedMemberId:
+          legacyCandidate && legacyCandidate !== undefined ? legacyCandidate.id : null,
+        issue:
+          "This legacy gym and pkCustomer reference already exists under another BGM membership number. Review rather than assigning a second permanent number.",
+      };
+    }
+
     return { action: "new", matchedMemberId: null, issue: "" };
   }
 
