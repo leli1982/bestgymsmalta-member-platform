@@ -1,96 +1,223 @@
-# BestGymsMalta Membership Number, XLSX Transition & Barcode Access — Design
+# BestGymsMalta Member Identity, Preprinted Card, XLSX Transition & Barcode Access — Design
 
 ## Status
 
-Approved design for Phase 2 on branch `phase-2-operations-nfc-redesign`.
+Approved Phase 2 design on branch `phase-2-operations-nfc-redesign`.
 
-This design supersedes the launch-time NFC access assumptions and the legacy destructive CSV member-sync behavior in the earlier Phase 2 design. Existing NFC schema/code may remain dormant for possible future use, but NFC is not part of the initial rollout.
+This revision supersedes the earlier generated `BGM0000001` membership-number model. BestGymsMalta currently uses physical membership cards with preprinted barcodes. New operational card/membership numbers therefore come from the exact barcode scanned from the physical card at reception.
+
+Existing NFC schema/code may remain dormant for possible future use, but NFC is not part of the initial rollout. Production remains untouched until explicit Preview approval.
 
 ## Goal
 
-Create one permanent BestGymsMalta member identity that survives expiry and renewal, migrate the existing membership database safely from the current system, support a staged one-gym-at-a-time rollout, and use a phone-displayed barcode for reception check-in.
+Create one permanent internal BestGymsMalta member identity that survives expiry, renewal and card replacement; migrate the existing membership database safely; support a staged one-gym-at-a-time rollout; use preprinted physical-card barcodes as the operational access credential; and mirror the currently active physical-card barcode in the member app so the phone can be scanned when the physical card is forgotten.
 
-The design must support a transition period where one BGM gym uses the new platform while other gyms continue using the old membership system. During this period, current membership data will be exchanged through XLSX files.
+## Permanent Person Identity
 
-## Permanent BGM Membership Number
+Every person has one permanent internal member identity: `bgm_members.id` (UUID).
 
-Every person has one permanent BGM membership number for life.
+That UUID is the canonical identity for:
 
-Format:
+- member profile/contact data
+- official member photo
+- legacy references
+- member-app account/session linkage
+- membership history
+- check-ins/access history
+- progress/trainer/other member data
+- current and historical physical-card credentials
 
-`BGM0000001`
+Expiry, renewal, a lost card or a replacement card never creates a new person record merely to change access credentials.
+
+## Physical Card Barcode as Operational Membership/Card Number
+
+The value decoded from the preprinted physical membership card is the visible operational membership/card number used at reception and on the member's virtual card.
 
 Rules:
 
-- Prefix is exactly `BGM`.
-- Numeric portion is exactly seven digits, zero-padded.
-- Membership numbers are stored as text so leading zeroes are preserved.
-- Numbers are globally unique across the entire BGM network.
-- A number is never recycled or reassigned to another person.
-- Expiry does not release the number.
-- Renewal reuses the same number.
-- The member barcode encodes the exact membership number.
-- New numbers are allocated server-side / transaction-safely so concurrent enrollments cannot collide.
-- The sequence continues upward and never searches for expired numbers to reuse.
-- A draft/submitted application does not consume a permanent number. The number is allocated atomically when the new member identity is activated/committed. Once allocated, it is never returned to the pool, even if that membership later expires or the member is archived.
-- A confirmed historical/bulk import allocates permanent numbers at import-apply time, not at preview time.
+- Treat the scanned barcode payload as opaque text.
+- Preserve the exact decoded value, including leading zeroes and any valid letters.
+- Do not manufacture a `BGM` prefix or generate a sequential number for new members.
+- Do not allocate a card value during tablet data entry.
+- A card value must be captured by scanning the actual preprinted card at the reception/main staff screen.
+- An active/reserved card value must be globally unique across BGM.
+- A normal renewal keeps the same card and barcode.
+- A lost/stolen/damaged card may be replaced without changing the permanent member UUID or historical data.
+- A retired/replaced issued barcode must not silently become another person's card later.
 
-Example:
+The existing `bgm_members.member_number` field may remain temporarily as a compatibility mirror of the current active card barcode while Phase 2 code is transitioned, but the long-term card lifecycle should be modeled separately so replacements retain history rather than overwriting identity.
 
-John Smith receives `BGM0000001`. His one-year membership expires. `BGM0000001` remains permanently reserved for John. If he returns years later, his renewal reactivates the same member identity and the same barcode.
+## Card Credential Lifecycle
 
-## Person Identity vs Membership Period
+Introduce/normalize a card-credential model linked to the permanent member UUID.
 
-The system distinguishes the person from the time-limited membership contract.
+Conceptual record fields include:
 
-### Person
+- card record ID
+- exact `barcode_value`
+- member UUID when issued
+- pending application/participant reference when reserved before activation
+- status such as `reserved`, `active`, `retired`
+- assigned/reserved timestamp
+- activated timestamp
+- retired timestamp/reason
+- gym/system-user audit context
 
-`bgm_members` is the permanent person/member identity and owns:
+Only one active physical-card barcode is expected per member for launch.
 
-- permanent BGM membership number
-- name and contact/profile data
-- legacy old-system references
-- app enrollment/login identity
-- official member photo
-- barcode identity
-- permanent historical linkage to check-ins, progress, plans and other member data
+### Wrong Card Before Activation
 
-### Membership Period
+If staff accidentally scans the wrong unused card while a membership is still awaiting activation, the unactivated reservation may be corrected/rescanned. The system must clearly show the applicant name/photo and the scanned barcode before activation.
 
-`bgm_memberships` stores renewable membership periods/contracts, including:
+### Replacement Card
 
-- membership type
-- duration
-- start date
+For a lost, stolen or damaged issued card:
+
+1. Staff verifies the existing member.
+2. Staff scans a new unused preprinted card.
+3. Server verifies the new barcode is not already reserved/active/retired in a conflicting way.
+4. Old card becomes `retired` / replaced and stops granting access.
+5. New card becomes the active credential for the same permanent member UUID.
+6. Member app automatically displays the new barcode on its virtual card.
+
+## New Membership Flow
+
+The front-desk tablet and main staff screen work together.
+
+### Tablet
+
+1. Choose `NEW MEMBERSHIP`.
+2. Select membership type/duration.
+3. Enter all member details.
+4. Take mandatory official member photo.
+5. Review application.
+6. Enter Application Staff Name.
+7. Submit application.
+
+The tablet does not invent or assign a membership/card number.
+
+### Main Staff/Reception Screen
+
+After submission, the gym's main staff screen receives a prominent pending action:
+
+`NEW MEMBERSHIP READY — SCAN CARD`
+
+Opening it shows the applicant's name and photo.
+
+Staff scans an unused preprinted card. The exact barcode value is checked for uniqueness and reserved to the correct application participant.
+
+For Couples memberships, each person has their own permanent member UUID, official photo and physical card. The main screen must pair Card 1/Card 2 clearly with each participant's name/photo.
+
+### Activation
+
+When photo(s) and card assignment(s) are complete, staff enters Activation Staff Name and presses:
+
+`PAYMENT RECEIVED — ACTIVATE`
+
+Activation atomically creates/activates the member identity/membership period as appropriate and promotes the reserved physical card to that member's active credential. Printing never activates a membership.
+
+If activation fails, the system must not leave a partially active member/card relationship.
+
+## Renewal
+
+Renewal reuses the existing permanent member UUID and normally the same existing card barcode.
+
+The member can be found by:
+
+1. scanning the current physical card barcode;
+2. scanning the virtual barcode from the member app;
+3. fallback search by name/mobile/email/legacy references, followed by explicit confirmation.
+
+Renewal flow:
+
+- identify and verify the existing member;
+- show official photo/current card barcode/current expiry;
+- choose new duration/start/expiry;
+- capture a photo only when missing or intentionally replacing it;
+- enter Application Staff Name;
+- submit/review;
+- enter Activation Staff Name;
+- press `PAYMENT RECEIVED — ACTIVATE`;
+- create a new membership period while keeping the same permanent member and current card.
+
+An expired membership does not automatically retire the card. The barcode can still identify the member but access is denied until renewal. After successful renewal the same card works again.
+
+## Member App Virtual Card
+
+The member app's virtual card must display the exact currently active physical-card barcode payload assigned to that member.
+
+The virtual barcode is not a second credential and not a generated alternative membership number. It is a digital presentation of the same credential stored for the physical card.
+
+The virtual card displays:
+
+- member name
+- membership status
 - expiry date
-- status
-- payment/activation context
-- joining/enrollment gym context
-- staff attribution
+- current operational card/membership number
+- scannable barcode generated from the exact active physical-card payload
 
-A person may have multiple historical membership periods but only one BGM membership number.
+If the member forgets the physical card, reception scans the phone and receives the same member/access result.
 
-## New Membership vs Renewal
+Rules:
 
-The enrollment/reception workflow begins with two primary choices.
+- The authenticated server/member session is the source of truth for the active barcode.
+- Do not trust stale client-side/localStorage member data as the canonical barcode source.
+- Normal renewal leaves the virtual barcode unchanged.
+- Card replacement updates the virtual card to the new barcode automatically.
+- Retired barcode values stop granting access immediately.
+- A migrated member with no linked card must not receive a fabricated app barcode. Show `CARD NOT LINKED — ASK RECEPTION` until a physical card is linked.
+- The virtual barcode may use Code 128 to encode the exact card payload, provided hardware Preview testing confirms the reception scanners reliably read it from phone screens.
 
-### New Membership
+The physical barcode's printed symbology does not have to be visually reproduced pixel-for-pixel in the app; what must match exactly is the decoded credential payload that the scanner sends to the system.
 
-- Create a genuinely new enrollment/application.
-- Capture required details and official photo.
-- Create the first membership period/application data.
-- When payment/activation commits the new person identity, generate the next permanent BGM membership number transaction-safely.
-- From that point onward, the member owns that BGM number permanently.
+## Reception Barcode Access
 
-### Renewal
+Preferred hardware is a standard USB/Bluetooth barcode reader operating in keyboard-emulation mode.
 
-- Search the existing BGM database first.
-- Prefer membership number / barcode search.
-- Fall back to name, mobile, email and legacy-reference search when needed.
-- Staff confirms the correct person before renewal.
-- Reuse the existing BGM membership number and barcode.
-- Create a new membership period / renewal history entry.
-- Never create a replacement member identity merely because the prior membership expired.
+Access flow:
+
+`scanned payload -> active/known card record -> permanent member UUID -> current membership state -> photo verification -> access decision -> canonical check-in`
+
+Granted scan:
+
+- show official member photo
+- full name
+- current card/membership number
+- expiry
+- large green `ACTIVE`
+- success sound
+- create canonical check-in with `source = 'barcode'`
+
+Expired/inactive scan:
+
+- show identified member/photo when available
+- large red `EXPIRED` / inactive state
+- expiry/reason
+- warning sound
+- no granted check-in
+- offer renewal/member actions as permitted
+
+Retired/replaced card:
+
+- red `CARD REPLACED` / disabled state
+- no normal check-in
+- preserve auditable lookup/history rather than treating the old credential as reusable stock
+
+Unknown barcode:
+
+- clear `MEMBER/CARD NOT FOUND`
+- no normal check-in
+- log attempt where appropriate
+
+## Official Photo Interaction
+
+Official photos are private and belong to the permanent member UUID, not the replaceable card.
+
+For a migrated active member with a linked card but no photo, barcode access pauses at `PHOTO REQUIRED`; no normal check-in is finalized until staff captures the official photo and access is revalidated.
+
+For an expired member with no photo, access remains denied and renewal requires photo capture before activation.
+
+The detailed photo lifecycle is defined in `2026-09-10-gym-staff-member-photo-lifecycle-design.md`.
 
 ## Legacy `pkCustomer`
 
@@ -99,12 +226,11 @@ The enrollment/reception workflow begins with two primary choices.
 Rules:
 
 - Preserve `pkCustomer` as a legacy reference.
-- Do not use `pkCustomer` alone as the BGM member key.
-- Imported legacy records retain their old-system context so duplicate PK values cannot merge unrelated people.
-- The permanent BGM membership number becomes the primary identity once assigned.
-- All new BGM operations use the BGM member ID / membership number, not `pkCustomer`.
-
-Where needed during transition, legacy matching may use a composite of old-system context such as source gym plus `pkCustomer`, alongside other identifying fields. Ambiguous matches must be sent to review rather than guessed.
+- Do not use `pkCustomer` alone as the permanent person key.
+- Imported legacy records retain old-system context so duplicate PK values cannot merge unrelated people.
+- Internal UUID becomes the canonical BGM person identity.
+- Card barcode becomes the operational access/member number when safely linked.
+- Ambiguous matches are sent to review rather than guessed.
 
 ## Source Workbook
 
@@ -126,13 +252,13 @@ The received old-system workbook contains one member-data sheet with these 15 co
 14. `ExpiryDate1`
 15. `ValidYN`
 
-The importer must preserve these source values and tolerate legacy inconsistencies without silently merging or deleting members.
+The supplied 15-column workbook does not itself establish a physical-card barcode. The importer must not fabricate one.
 
 ## BGM Transition Workbook
 
-The BGM migration/exchange workbook adds one leading column:
+The BGM migration/exchange workbook keeps the legacy fields and adds one leading BGM-managed field:
 
-1. `MembershipNumber`
+1. `CardBarcode`
 2. `Gym`
 3. `pkCustomer`
 4. `CustomerName`
@@ -149,255 +275,126 @@ The BGM migration/exchange workbook adds one leading column:
 15. `ExpiryDate1`
 16. `ValidYN`
 
-This 16-column layout is the standard transition format used by BGM export and import.
+`CardBarcode` is stored/exported as text so leading zeroes are preserved. It may legitimately be blank for migrated members whose existing physical card has not yet been safely linked.
 
-## Initial Historical Numbering
+This revised 16-column BGM exchange contract supersedes the earlier leading `MembershipNumber` column.
 
-On the controlled first import, all safely accepted historical people receive a permanent BGM membership number, including expired / not-valid historical members.
+## Existing-Member Migration
 
-The initial allocation is deterministic in accepted workbook row order:
+The controlled migration creates/preserves permanent internal member UUIDs without generating artificial BGM membership numbers.
 
-- first accepted imported person -> `BGM0000001`
-- second accepted imported person -> `BGM0000002`
-- and so on
+For each safely accepted historical member:
 
-Once assigned, the numbers are persisted permanently and are not regenerated by later exports/imports.
+- import their member/profile/legacy data;
+- preserve expiry/status information;
+- import/link an existing card barcode only when a trustworthy source provides an unambiguous mapping;
+- otherwise leave `CardBarcode` blank;
+- import a legacy photo only when the match is deterministic;
+- otherwise leave official photo blank and collect it through the approved first-visit/renewal flow.
 
-A source row is treated as a candidate person record, not blindly assumed unique. If the migration can safely identify two source records as the same already-known BGM person, they must not receive two permanent identities. If the source cannot safely establish whether a row is distinct or duplicated, the ambiguous row is held for review instead of consuming or overwriting another person's identity incorrectly.
+If the existing system can later export a deterministic member-to-card-barcode mapping, Super Admin may reconcile it in a controlled import. Otherwise the card is linked at reception on the member's next visit by identifying the member and scanning their existing physical card.
 
-## Pilot Rollout Strategy
+No mass reissue of cards is required merely because BGM changed software.
 
-The platform will initially run operationally in one gym while other gyms continue using the old system.
+## Migration/Transition Import Safety
 
-During this transition:
-
-1. The pilot gym may create new members directly in BGM; BGM allocates permanent numbers when those new members are activated.
-2. Other gyms continue creating/updating members in the old system.
-3. A later current XLSX export from the old system is reconciled into the BGM transition workbook.
-4. Existing rows keep their previously assigned `MembershipNumber` values.
-5. New old-system rows may have blank `MembershipNumber` values.
-6. On confirmed upload, BGM allocates safe next numbers for genuinely new blank-number rows at the exact import time.
-7. This avoids collisions with numbers that may have been allocated by the pilot gym since the spreadsheet was downloaded.
-8. Once every gym is using the new platform, XLSX/CSV import/export remains available as a controlled bulk-data and backup facility.
-
-Manual pre-allocation of new numbers in Excel is not required and should not be the normal path. Blank new membership numbers are safer because the server allocates them against the current live sequence. If an uploaded row contains an explicit membership number, it must be validated strictly and must never overwrite or reassign another person's permanent number.
-
-## Import Formats
-
-Super Admin supports:
-
-- Upload XLSX using the approved 16-column BGM transition layout.
-- Upload CSV using the same 16 headers and field order.
-
-The original 15-column old-system workbook is accepted only through the controlled initial/legacy migration flow where membership numbers have not yet been assigned. Normal ongoing transition imports use the 16-column BGM layout.
-
-## Export Formats
-
-Super Admin supports:
-
-- Download XLSX — primary transition format.
-- Download CSV — same 16 columns, same order.
-
-The exported XLSX must preserve membership numbers as text, retain leading zeroes, use real date cells for expiry dates where possible, and be suitable for opening/editing/re-uploading in Excel.
-
-CSV export preserves the exact membership-number text and the same header order.
-
-## Import Safety Model
-
-The existing destructive CSV sync behavior is retired.
-
-Normal import is staged and non-destructive:
+Normal import remains staged and non-destructive:
 
 `Upload -> Parse -> Validate -> Match -> Preview -> Confirm -> Apply`
 
-Before applying anything, Super Admin sees a summary such as:
+Before applying anything, Super Admin sees at least:
 
 - total rows read
 - existing members matched
 - unchanged rows
 - rows to update
-- new rows requiring BGM numbers
+- new legacy people
+- safely linked card barcodes
+- blank/unlinked card barcodes
 - conflicts / ambiguous rows
 - invalid rows
 - deletions: always zero for normal import
 
-Rows omitted from an uploaded workbook are never automatically deleted, archived or deactivated.
+Rows omitted from a workbook are never automatically deleted, archived or deactivated.
 
-Archiving/deactivation is a separate explicit privileged action.
+### Matching Rules
 
-## Matching Rules
+1. If `CardBarcode` is present, it can be used as a strong operational credential match only if it is already known to the same permanent member or can be safely linked from deterministic legacy evidence.
+2. A barcode belonging/reserved to another member/application is a conflict and must never be moved automatically.
+3. If `CardBarcode` is blank, use stored legacy linkage/context and supporting identifying data to find/reconcile the person; do not create a duplicate solely because there is no card link.
+4. If matching remains ambiguous, mark `Conflict` / `Needs review` and make no destructive change.
 
-Matching is conservative.
+## Pilot Rollout Strategy
 
-### 1. Membership number present
+The platform may initially operate at one gym while others continue using the old system.
 
-- `MembershipNumber` is the primary identity.
-- If it exists and belongs to that member, update/reconcile that same person.
-- If it belongs to another person or conflicts materially with the row, stop the row for review.
-- An existing BGM number is never moved between people.
+During transition:
 
-### 2. Membership number blank, legacy record already known
+1. New pilot-gym members complete tablet enrollment and receive an unused preprinted card scanned by reception.
+2. Other gyms may continue creating/updating members in the old system.
+3. Later old-system XLSX exports are reconciled conservatively into the BGM transition data.
+4. Existing BGM members keep their internal UUID and existing linked card barcode.
+5. New legacy rows without known card barcodes are imported with blank `CardBarcode` and linked later at reception.
+6. Barcode uniqueness is enforced against the live database at card assignment/import-apply time.
+7. Once every gym uses the new platform, XLSX/CSV import/export remains available as a controlled bulk-data/backup facility.
 
-- Use stored legacy linkage/context and supporting identifying data to find the existing BGM member.
-- Retain the member's existing BGM membership number.
-- Never create a duplicate merely because the spreadsheet lacks the membership-number cell.
+The previous concern about concurrent generated-number sequences is removed because new BGM card numbers are not generated by software; they come from physical preprinted cards and are validated for uniqueness when scanned.
 
-### 3. Membership number blank, genuinely new legacy record
+## Import Formats
 
-- Mark as `New` in preview.
-- Allocate the next permanent BGM number only when the confirmed import is applied.
+Super Admin supports:
 
-### 4. Ambiguous match
+- controlled initial legacy XLSX/CSV using the approved 15-column source layout;
+- ongoing BGM exchange XLSX/CSV using the revised 16-column layout with leading `CardBarcode`.
 
-- Do not guess.
-- Mark as `Conflict` / `Needs review`.
-- Do not modify existing member records until resolved.
+Formula cells must be flagged/handled safely rather than evaluated as arbitrary server code.
+
+## Export Formats
+
+Super Admin supports XLSX and CSV using the revised 16-column BGM exchange layout.
+
+The export must preserve `CardBarcode` exactly as text, including leading zeroes, and leave the field blank when no card is linked.
 
 ## Field Preservation and Normalization
 
-Import separates source preservation from internal normalized fields.
-
 - Preserve source workbook values needed for faithful re-export/reconciliation.
 - Normalize data internally for application use where appropriate.
-- Gym spelling/casing variants may map to canonical BGM gym IDs for reporting, without overwriting the preserved source text unnecessarily.
-- Dates are normalized internally while remaining exportable in the approved workbook format.
-- Phone, mobile, postcode, email and other historically inconsistent values must not be silently moved between fields based only on guesswork.
-- Formula cells from uploaded XLSX are treated as input values only after safe workbook parsing; formulas must not be executed by the server as arbitrary code.
-
-## Barcode Access
-
-NFC is deferred for initial rollout.
-
-The member's permanent BGM membership number is encoded as a Code 128 barcode.
-
-Example payload:
-
-`BGM0001023`
-
-### Member App
-
-The virtual membership card displays:
-
-- member name
-- permanent BGM membership number
-- membership status
-- expiry date
-- scannable Code 128 barcode
-
-The existing NFC visual mark is replaced for launch with barcode-focused UI.
-
-The barcode remains the same across renewals because it represents the permanent person identity, not a membership period.
-
-### Reception
-
-Preferred scanner hardware is a standard USB/Bluetooth barcode scanner operating in keyboard-emulation mode.
-
-Flow:
-
-`barcode -> membership number -> member -> current membership status -> access decision -> check-in`
-
-The reception screen is optimized for immediate scanning and automatically returns to scan-ready state.
-
-Granted scan:
-
-- show official member photo when available
-- full name
-- membership number
-- expiry
-- large green `ACTIVE`
-- success sound
-- create canonical normal check-in
-
-Expired/inactive scan:
-
-- show identified member/photo when available
-- large red `EXPIRED` / inactive status
-- expiry/reason
-- warning sound
-- no granted check-in
-- offer renewal/member actions according to permissions
-
-Unknown barcode:
-
-- clear `MEMBER NOT FOUND` state
-- no check-in
-- log attempt where appropriate
-
-Barcode check-ins should use a source such as `barcode` so analytics can distinguish the access channel while still feeding the same canonical check-in history/passport system.
+- Gym spelling/casing variants may map to canonical BGM gym IDs for reporting.
+- Dates are normalized internally while remaining exportable.
+- Phone/mobile/postcode/email data must not be silently moved between fields based only on guesswork.
+- Card barcode values are never numerically coerced; they remain text.
 
 ## NFC Future Compatibility
 
-Do not delete the Phase 2 NFC database work solely because barcode is the initial rollout method.
+Existing NFC work may remain dormant.
 
-- NFC tables/routes may remain dormant and inaccessible from normal launch UI.
-- No NFC assignment is required during enrollment for launch.
-- If NFC is introduced later, an NFC credential may point to the same permanent BGM member identity.
-- Barcode and NFC can coexist later without changing permanent membership numbers.
-
-## Enrollment UX Changes
-
-The tablet/reception enrollment flow becomes:
-
-1. Choose `NEW MEMBERSHIP` or `RENEWAL`.
-2. For new: select membership type/duration and complete enrollment.
-3. For renewal: find and verify the existing member first, then select the new membership period.
-4. Capture/update official photo where required.
-5. Complete printable membership form.
-6. Submit for reception review.
-7. Confirm payment / `PAYMENT RECEIVED — ACTIVATE`.
-8. For a genuinely new member, activation atomically creates/commits the permanent person identity and allocates the next BGM number. A cancelled pre-activation application has no permanent member number to recycle.
-9. Member can enroll in/login to the app and display the permanent barcode.
-
-Printing never activates a membership.
-
-No NFC-assignment step is required for initial rollout.
-
-## Offline Emergency Roster
-
-The existing offline-roster design remains compatible because it already uses permanent member number + full name.
-
-The roster continues to contain only active members and only:
-
-- membership number
-- full name
-
-Barcode support does not add photos/contact data to the offline emergency roster.
-
-## Permissions
-
-Existing member import/export permissions remain applicable. Super Admin is the primary operator for migration.
-
-Normal gym accounts must not be able to perform bulk migration/import unless explicitly granted the relevant privileged permission.
-
-Barcode reception uses the launch access permission in place of the NFC-specific UI. Existing NFC permission keys may remain for future use; a barcode-specific scan permission may be introduced rather than overloading `nfc.scan`.
+If NFC is added later, an NFC credential can point to the same permanent member UUID alongside the barcode-card model. Adding NFC must not change member UUIDs or historical memberships.
 
 ## Audit Requirements
 
-Audit bulk imports and meaningful identity changes.
+Audit at least:
 
-For each confirmed import batch record:
+- application submission and Staff Name
+- card reservation/assignment
+- wrong-card correction before activation
+- membership activation and Activation Staff Name
+- renewal
+- card replacement/retirement
+- bulk imports and conflict outcomes
+- critical member identity/status changes
 
-- authenticated Super Admin/system account
-- timestamp
-- filename
-- format (XLSX/CSV)
-- row counts by outcome
-- generated membership-number range/count
-- conflicts
-- import batch ID
-
-Member-level audit should record permanent number assignment and critical identity/expiry changes without exposing secret credentials.
+For card actions record the exact credential value in protected audit context where appropriate, the system user/gym, timestamp, affected member/application and action reason.
 
 ## Error Handling
 
-- Reject files with missing/incorrect mandatory headers before mutation.
-- Reject malformed membership-number formats.
-- Reject duplicate membership numbers within the upload.
-- Reject/review attempts to assign one membership number to different people.
-- Do not partially guess through ambiguous legacy matches.
+- Reject duplicate/reserved card assignment immediately.
+- Reject attempts to silently move an issued barcode between members.
+- Preserve leading zeroes and exact scanned text.
+- Do not fabricate a barcode for blank legacy rows or unlinked member-app accounts.
+- Do not guess through ambiguous legacy matches.
 - Do not delete omitted members.
-- Prefer an all-or-controlled-batch application strategy so a failed import cannot leave membership-number allocation half-applied without an auditable record.
-- Surface row numbers and human-readable reasons for conflicts/errors.
+- Failed activation must not produce a partially active card/member relationship.
+- A replacement operation must retire the old card and activate the new card consistently.
 
 ## Testing Requirements
 
@@ -405,49 +402,53 @@ Implementation is test-first.
 
 Minimum automated coverage:
 
-- `BGM` + seven-digit formatting
-- monotonic next-number allocation
-- draft/cancelled application does not consume a permanent number
-- expired number is never reusable by a different person
-- renewal keeps the same membership number
-- concurrent/new-number collision protection
-- exact 16-column XLSX/CSV header contract
+- internal member UUID survives expiry, renewal and card replacement
+- scanned preprinted barcode payload is preserved exactly
+- leading zeroes are preserved
+- duplicate/reserved barcode is rejected
+- tablet application creates no fabricated BGM number
+- new membership cannot activate without required card assignment
+- Couples requires distinct card assignment for both members
+- renewal keeps same member UUID and same card by default
+- expired card still identifies member but does not grant access until renewal
+- replacement retires old barcode and activates new barcode against same member
+- retired barcode never grants a normal check-in
+- member app virtual barcode equals exact currently active physical-card payload
+- member app updates after card replacement
+- member app shows no fabricated barcode if no card is linked
+- exact revised 16-column `CardBarcode` XLSX/CSV contract
 - initial 15-column legacy import path
 - XLSX parsing of dates/text/blank fields
 - CSV quoting/commas/newlines
-- leading zero preservation
-- explicit number conflict rejection
-- blank new row receives a number only at apply time
-- known legacy row with blank number keeps prior BGM number
 - omitted rows cause zero deletions
 - ambiguous legacy match stops for review
-- export/import round trip for the transition format
-- barcode payload equals exact membership number
+- export/import round trip preserves card barcode text
 - barcode access grants active member and denies expired/inactive member
-- barcode check-in uses canonical check-in pipeline
+- barcode check-in uses the canonical check-in pipeline
 - NFC remains dormant without breaking build/schema
 
-Preview testing must include a controlled copy of the supplied workbook shape before any production migration.
+Preview testing must include actual preprinted membership cards and at least one representative phone displaying the virtual barcode to verify reception reader compatibility before Production rollout.
 
 ## Deployment Safety
 
 - Work only on `phase-2-operations-nfc-redesign`.
 - Do not write directly to `main`.
-- Database schema changes are authored as migrations and reviewed/tested before application.
+- Schema changes are authored/tested as migrations in Development first.
+- The existing development-only generated-number allocator must be retired through a reviewed migration; do not patch Production ad hoc.
 - Normal import never deletes members.
-- Production merge occurs only after Preview testing is explicitly accepted.
-- The supplied real membership workbook is treated as sensitive operational data and is never committed to the public GitHub repository.
+- Production merge/migration occurs only after explicit Preview acceptance.
+- The real membership workbook remains sensitive operational data and is never committed to the public repository.
 
 ## Success Criteria
 
 The design is successful when:
 
-1. Every activated/imported person owns one permanent `BGM` + seven-digit membership number for life.
-2. Expiry and renewal never transfer or regenerate that person's identity.
-3. Historical old-system members are safely assigned permanent BGM identities.
-4. The pilot gym can create members while other gyms remain on the old system without number collisions.
-5. Super Admin can download and upload the standard XLSX transition workbook and equivalent CSV.
-6. Imports are previewed, conservative and non-destructive.
-7. The member app displays a reliable barcode based on the permanent membership number.
-8. Reception can scan the phone barcode and obtain immediate active/expired access feedback plus canonical check-in behavior.
-9. NFC can be added later without redesigning member identity.
+1. Every person has one permanent internal member identity independent of a physical card.
+2. New members receive the exact barcode from the preprinted card staff scans at reception.
+3. Renewals keep the same member/card unless replacement is intentionally required.
+4. Lost/damaged cards can be replaced without losing history, with the old barcode retired.
+5. Existing members can migrate without fabricated numbers and can link current cards progressively.
+6. The member app shows the exact currently active card barcode so a phone can substitute for a forgotten physical card.
+7. Reception gives immediate photo-backed active/expired feedback and canonical check-in behavior.
+8. XLSX/CSV transition remains conservative, non-destructive and preserves barcode values as text.
+9. NFC can be added later without redesigning permanent member identity.
