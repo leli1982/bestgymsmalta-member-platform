@@ -21,6 +21,16 @@ test("explicit number attached to materially different person is conflict", () =
   assert.equal(result.action, "conflict");
 });
 
+test("a new explicit number cannot be assigned to a known legacy member", () => {
+  const result = classifyMemberImportRow({
+    incoming: { membershipNumber: "BGM0000999", gym: "QROQQ", pkCustomer: "12", customerName: "John Borg", email: "john@example.com" },
+    byMembershipNumber: [],
+    legacyCandidates: [{ id: "m1", memberNumber: "BGM0000042", legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "john@example.com" }],
+  });
+  assert.equal(result.action, "conflict");
+  assert.equal(result.matchedMemberId, "m1");
+});
+
 test("blank number with one strong legacy match keeps existing member", () => {
   const result = classifyMemberImportRow({
     incoming: { membershipNumber: "", gym: "QROQQ", pkCustomer: "12", customerName: "John Borg", email: "john@example.com" },
