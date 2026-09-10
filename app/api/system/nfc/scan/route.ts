@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { recordCanonicalCheckin } from "@/lib/checkinService";
 import { evaluateNfcAccess } from "@/lib/nfcAccessCore";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
@@ -17,46 +18,6 @@ function todayString() {
   return new Date().toISOString().slice(0, 10);
 }
 
-async function refreshMemberStats(memberId: string) {
-  const supabase = getSupabaseAdmin();
-  const checkinsResult = await supabase
-    .from("bgm_member_checkins")
-    .select("gym_id, checkin_at")
-    .eq("member_id", memberId)
-    .order("checkin_at", { ascending: false });
-
-  if (checkinsResult.error) throw checkinsResult.error;
-  const checkins = checkinsResult.data || [];
-  const passportStamps = new Set(checkins.map((item) => item.gym_id)).size;
-  const payload = {
-    member_id: memberId,
-    workouts_completed: checkins.length,
-    current_streak: 0,
-    passport_stamps: passportStamps,
-    last_checkin_at: checkins[0]?.checkin_at || null,
-    updated_at: new Date().toISOString(),
-  };
-
-  const existingResult = await supabase
-    .from("bgm_member_stats")
-    .select("id")
-    .eq("member_id", memberId)
-    .maybeSingle();
-
-  if (existingResult.error) throw existingResult.error;
-
-  if (existingResult.data?.id) {
-    const result = await supabase
-      .from("bgm_member_stats")
-      .update(payload)
-      .eq("id", existingResult.data.id);
-    if (result.error) throw result.error;
-  } else {
-    const result = await supabase.from("bgm_member_stats").insert(payload);
-    if (result.error) throw result.error;
-  }
-}
-
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireSystemPermission(request, "nfc.scan");
@@ -69,7 +30,10 @@ export async function POST(request: NextRequest) {
     const gymId = auth.context.gymId || requestedGymId;
 
     if (!cardUid) {
-      return NextResponse.json({ error: "NFC card UID is required." }, { status: 400 });
+      return NextResponse.json(
+        { error: "NFC card UID is required." },
+        { status: 400 }
+      );
     }
 
     if (!gymId) {
@@ -88,7 +52,10 @@ export async function POST(request: NextRequest) {
 
     if (gymResult.error) throw gymResult.error;
     if (!gymResult.data || gymResult.data.status !== "active") {
-      return NextResponse.json({ error: "Active gym not found." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Active gym not found." },
+        { status: 404 }
+      );
     }
 
     const cardResult = await supabase
@@ -104,7 +71,9 @@ export async function POST(request: NextRequest) {
     if (card?.member_id) {
       const memberResult = await supabase
         .from("bgm_members")
-        .select("id, member_number, full_name, status, membership_expiry, enrollment_gym_id, official_photo_path")
+        .select(
+          "id, member_number, full_name, status, membership_expiry, enrollment_gym_id, official_photo_path"
+        )
         .eq("id", card.member_id)
         .maybeSingle();
       if (memberResult.error) throw memberResult.error;
@@ -126,32 +95,13 @@ export async function POST(request: NextRequest) {
     let duplicate = false;
 
     if (decision.granted && member) {
-      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-      const recentResult = await supabase
-        .from("bgm_member_checkins")
-        .select("id, checkin_at")
-        .eq("member_id", member.id)
-        .eq("gym_id", gymId)
-        .gte("checkin_at", twoHoursAgo)
-        .order("checkin_at", { ascending: false })
-        .limit(1);
-
-      if (recentResult.error) throw recentResult.error;
-
-      if ((recentResult.data || []).length > 0) {
-        duplicate = true;
-        checkinId = recentResult.data?.[0]?.id || null;
-      } else {
-        const insertResult = await supabase
-          .from("bgm_member_checkins")
-          .insert({ member_id: member.id, gym_id: gymId, source: "nfc" })
-          .select("id")
-          .single();
-        if (insertResult.error) throw insertResult.error;
-        checkinId = insertResult.data.id;
-      }
-
-      await refreshMemberStats(member.id);
+      const checkin = await recordCanonicalCheckin({
+        memberId: member.id,
+        gymId,
+        source: "nfc",
+      });
+      checkinId = checkin.checkinId;
+      duplicate = checkin.duplicate;
     }
 
     const scanResult = await supabase
@@ -159,6 +109,8 @@ export async function POST(request: NextRequest) {
       .insert({
         card_id: card?.id || null,
         card_uid: cardUid,
+        credential_type: "nfc",
+        credential_value: cardUid,
         member_id: member?.id || null,
         gym_id: gymId,
         system_user_id: auth.context.systemUserId,
@@ -206,6 +158,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Could not process NFC scan." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Could not process NFC scan." },
+      { status: 500 }
+    );
   }
 }
