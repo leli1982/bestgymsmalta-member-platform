@@ -1,0 +1,81 @@
+name: Patch Task 9 Member Auth UI
+
+on:
+  push:
+    branches:
+      - phase-2-operations-nfc-redesign
+    paths:
+      - .github/workflows/patch-task9-member-auth-ui.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase-2-operations-nfc-redesign
+          fetch-depth: 0
+      - name: Patch member authentication UI
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('components/member-auth/MemberLoginPage.tsx')
+          text = path.read_text()
+
+          replacements = [
+              (
+                  '      setError("Enter your username and password.");',
+                  '      setError("Enter your username or membership number and password.");',
+              ),
+              (
+                  '    if (!memberNumber.trim() || !email.trim() || !username.trim()) {\n      setError("Enter your member number, email and username.");',
+                  '    if (!memberNumber.trim() || !username.trim()) {\n      setError("Enter your member number and username.");',
+              ),
+              (
+                  '                Username\n              </span>\n\n              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3">\n                <User className="text-white/30" size={18} strokeWidth={3} />\n                <input\n                  value={loginUsername}\n                  onChange={(event) => setLoginUsername(event.target.value)}\n                  placeholder="Your username"',
+                  '                Username or Membership Number\n              </span>\n\n              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3">\n                <User className="text-white/30" size={18} strokeWidth={3} />\n                <input\n                  value={loginUsername}\n                  onChange={(event) => setLoginUsername(event.target.value)}\n                  placeholder="Username or BGM0000001"',
+              ),
+              (
+                  '                Email\n              </span>\n\n              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3">\n                <Mail className="text-white/30" size={18} strokeWidth={3} />\n                <input\n                  type="email"\n                  value={email}',
+                  '                Registered Email (if available)\n              </span>\n\n              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3">\n                <Mail className="text-white/30" size={18} strokeWidth={3} />\n                <input\n                  type="email"\n                  value={email}',
+              ),
+          ]
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected exactly one match, got {count}: {old[:100]!r}')
+              text = text.replace(old, new, 1)
+
+          required = [
+              'Username or Membership Number',
+              'Username or BGM0000001',
+              'Registered Email (if available)',
+              'if (!memberNumber.trim() || !username.trim())',
+          ]
+          for marker in required:
+              if marker not in text:
+                  raise SystemExit(f'Missing required marker after patch: {marker}')
+
+          forbidden = [
+              'if (!memberNumber.trim() || !email.trim() || !username.trim())',
+              'placeholder="Your username"',
+          ]
+          for marker in forbidden:
+              if marker in text:
+                  raise SystemExit(f'Forbidden marker remains after patch: {marker}')
+
+          path.write_text(text)
+          PY
+      - name: Commit UI change
+        run: |
+          git config user.name "leli1982"
+          git config user.email "133102486+leli1982@users.noreply.github.com"
+          git add components/member-auth/MemberLoginPage.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "fix: align member auth UI with permanent identity"
+          git push origin HEAD:phase-2-operations-nfc-redesign
