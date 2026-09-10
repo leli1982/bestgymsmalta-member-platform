@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireMemberSession } from "@/lib/memberAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { recordCanonicalCheckin } from "@/lib/checkinService";
 
 export const dynamic = "force-dynamic";
 
@@ -75,55 +76,6 @@ async function getActiveMember(memberId: string) {
     error: "",
     member,
   };
-}
-
-async function refreshMemberStats(memberId: string) {
-  const supabase = getSupabaseAdmin();
-
-  const checkinsResult = await supabase
-    .from("bgm_member_checkins")
-    .select("gym_id, checkin_at")
-    .eq("member_id", memberId)
-    .order("checkin_at", { ascending: false });
-
-  if (checkinsResult.error) throw checkinsResult.error;
-
-  const checkins = checkinsResult.data || [];
-  const passportStamps = new Set(checkins.map((item) => item.gym_id)).size;
-
-  const payload = {
-    member_id: memberId,
-    workouts_completed: checkins.length,
-    current_streak: 0,
-    passport_stamps: passportStamps,
-    last_checkin_at: checkins[0]?.checkin_at || null,
-    updated_at: new Date().toISOString(),
-  };
-
-  const existingResult = await supabase
-    .from("bgm_member_stats")
-    .select("id")
-    .eq("member_id", memberId)
-    .maybeSingle();
-
-  if (existingResult.error) throw existingResult.error;
-
-  if (existingResult.data?.id) {
-    const updateResult = await supabase
-      .from("bgm_member_stats")
-      .update(payload)
-      .eq("id", existingResult.data.id);
-
-    if (updateResult.error) throw updateResult.error;
-  } else {
-    const insertResult = await supabase
-      .from("bgm_member_stats")
-      .insert(payload);
-
-    if (insertResult.error) throw insertResult.error;
-  }
-
-  return payload;
 }
 
 export async function GET(request: NextRequest) {
@@ -258,21 +210,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const checkin = await recordCanonicalCheckin({
+      memberId,
+      gymId,
+      source: "qr",
+    });
 
-    const recentResult = await supabase
-      .from("bgm_member_checkins")
-      .select("id, checkin_at")
-      .eq("member_id", memberId)
-      .eq("gym_id", gymId)
-      .gte("checkin_at", twoHoursAgo)
-      .limit(1);
-
-    if (recentResult.error) throw recentResult.error;
-
-    if ((recentResult.data || []).length > 0) {
-      await refreshMemberStats(memberId);
-
+    if (checkin.duplicate) {
       return NextResponse.json({
         ok: true,
         duplicate: true,
@@ -281,27 +225,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const insertResult = await supabase
-      .from("bgm_member_checkins")
-      .insert({
-        member_id: memberId,
-        gym_id: gymId,
-        source: "qr",
-      })
-      .select()
-      .single();
-
-    if (insertResult.error) throw insertResult.error;
-
-    const stats = await refreshMemberStats(memberId);
-
     return NextResponse.json({
       ok: true,
       duplicate: false,
       message: `Checked in at ${gymResult.data.name}.`,
       gym: gymResult.data,
-      checkin: insertResult.data,
-      stats,
+      checkin: checkin.checkin,
+      stats: checkin.stats,
     });
   } catch (error) {
     console.error(error);
