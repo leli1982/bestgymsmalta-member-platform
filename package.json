@@ -16,6 +16,7 @@
     "bcryptjs": "^3.0.3",
     "eslint": "latest",
     "eslint-config-next": "latest",
+    "exceljs": "^4.4.0",
     "framer-motion": "^12.42.0",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "latest",
