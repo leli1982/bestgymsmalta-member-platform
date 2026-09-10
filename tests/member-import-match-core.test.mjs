@@ -75,12 +75,61 @@ test("blank name and company is invalid rather than fabricated", () => {
   assert.equal(result.action, "invalid");
 });
 
-test("unchanged is returned when compared fields already match", () => {
+const completeIncoming = {
+  membershipNumber: "BGM0000042",
+  gym: "QROQQ",
+  pkCustomer: "12",
+  customerName: "John Borg",
+  companyName: "",
+  address1: "1 Main Street",
+  address2: "",
+  town: "Naxxar",
+  postcode: "NXR 1000",
+  gender: "M",
+  telephoneNo1: "",
+  telephoneNo2: "99112233",
+  mobile: "",
+  email: "john@example.com",
+  expiryDate: "2027-09-03",
+  status: "active",
+};
+
+const completeExisting = {
+  id: "m1",
+  memberNumber: "BGM0000042",
+  legacyGym: "QROQQ",
+  legacyPkCustomer: "12",
+  fullName: "John Borg",
+  companyName: "",
+  address1: "1 Main Street",
+  address2: "",
+  town: "Naxxar",
+  postcode: "NXR 1000",
+  gender: "M",
+  telephoneNo1: "",
+  telephoneNo2: "99112233",
+  mobile: "",
+  email: "john@example.com",
+  membershipExpiry: "2027-09-03",
+  status: "active",
+};
+
+test("unchanged requires all imported fields to match", () => {
   const result = classifyMemberImportRow({
-    incoming: { membershipNumber: "BGM0000042", gym: "QROQQ", pkCustomer: "12", customerName: "John Borg", email: "john@example.com", expiryDate: "2027-09-03", status: "active" },
-    byMembershipNumber: [{ id: "m1", memberNumber: "BGM0000042", legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "john@example.com", membershipExpiry: "2027-09-03", status: "active" }],
+    incoming: completeIncoming,
+    byMembershipNumber: [completeExisting],
     legacyCandidates: [],
   });
   assert.equal(result.action, "unchanged");
+  assert.equal(result.matchedMemberId, "m1");
+});
+
+test("profile changes such as address are classified as update", () => {
+  const result = classifyMemberImportRow({
+    incoming: { ...completeIncoming, address1: "2 New Street" },
+    byMembershipNumber: [completeExisting],
+    legacyCandidates: [],
+  });
+  assert.equal(result.action, "update");
   assert.equal(result.matchedMemberId, "m1");
 });
