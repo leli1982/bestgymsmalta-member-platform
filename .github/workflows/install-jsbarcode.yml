@@ -1,0 +1,36 @@
+name: Install Member Barcode Renderer
+
+on:
+  push:
+    branches:
+      - phase-2-operations-nfc-redesign
+    paths:
+      - .github/workflows/install-jsbarcode.yml
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase-2-operations-nfc-redesign
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install barcode dependencies
+        run: |
+          npm install jsbarcode
+          npm install --save-dev @types/jsbarcode
+      - name: Commit dependency metadata
+        run: |
+          git config user.name "leli1982"
+          git config user.email "133102486+leli1982@users.noreply.github.com"
+          git add package.json package-lock.json
+          git diff --cached --quiet && exit 0
+          git commit -m "build: add member barcode renderer"
+          git push origin HEAD:phase-2-operations-nfc-redesign
