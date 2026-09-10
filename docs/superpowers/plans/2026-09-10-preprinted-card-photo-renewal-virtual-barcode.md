@@ -2,67 +2,84 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace generated BGM membership numbers with scanned preprinted card barcodes while preserving permanent member identity, mandatory photo capture, renewal card verification, safe card replacement, reception access, and a member-app virtual barcode that exactly mirrors the currently active physical card.
+**Goal:** Replace generated BGM membership numbers with scanned preprinted card barcodes while preserving permanent member identity, mandatory official-photo capture, renewal card verification, safe card replacement, reception access, and a member-app virtual barcode that exactly mirrors the current physical card.
 
-**Architecture:** `bgm_members.id` remains the immutable person identity. A new card-credential lifecycle table owns opaque barcode values and their `reserved -> active -> retired` state; membership activation/renewal and card replacement reference the same permanent member UUID. Official member photos stay in private Supabase Storage and reception/member APIs expose only authorized short-lived delivery URLs. The staff UI has one fixed Gym Staff capability bundle, while Super Admin retains unrestricted access.
+**Architecture:** `bgm_members.id` remains the immutable person identity. `bgm_member_card_credentials` owns opaque barcode values and their `reserved -> active -> retired` lifecycle. New membership and renewal continue through application-first/payment activation; every renewal requires a card scan, and a different unused barcode becomes a replacement only when activation commits. Official photos stay private in Supabase Storage. The member app reads the active card from an authenticated member API, never from stale localStorage.
 
-**Tech Stack:** Next.js 16 / React / TypeScript / Tailwind, Supabase Postgres + private Storage, existing system-session auth, Code 128 barcode rendering, GitHub Actions CI.
+**Tech Stack:** Next.js 16, React, TypeScript, Tailwind, Supabase Postgres + private Storage, existing system/member session auth, Code 128 rendering, GitHub Actions.
 
-**Spec:** `docs/superpowers/specs/2026-09-10-gym-staff-member-photo-lifecycle-design.md`, `docs/superpowers/specs/2026-09-09-membership-number-xlsx-barcode-transition-design.md`, `docs/superpowers/specs/2026-09-10-membership-enrollment-activation-design.md`
+**Specs:**
+- `docs/superpowers/specs/2026-09-10-gym-staff-member-photo-lifecycle-design.md`
+- `docs/superpowers/specs/2026-09-09-membership-number-xlsx-barcode-transition-design.md`
+- `docs/superpowers/specs/2026-09-10-membership-enrollment-activation-design.md`
 
 ## Global Constraints
 
-- Work only on branch `phase-2-operations-nfc-redesign`.
-- Do not commit directly to `main`.
-- Do not migrate or deploy Production until Preview testing is explicitly approved.
-- Development Supabase project only for schema/storage verification.
-- Permanent member identity is `bgm_members.id`; card barcode is a replaceable credential, never the person primary key.
-- Preserve scanned barcode payload exactly as text, including leading zeroes and letters.
-- New membership: tablet captures details + mandatory official photo, then main reception screen assigns a preprinted card by scan.
-- Renewal: the member must scan a card again before activation. Same active barcode means keep the card; a different unused barcode means replacement at activation and permanent retirement of the old card.
-- Staff must also have a separate `Issue New Card` workflow for lost/stolen/damaged cards; this must not renew or extend membership.
-- The member app virtual card must render the exact currently active physical-card barcode from the authenticated server-side member identity.
-- Official member photos are private; never make the Storage bucket public.
-- Application Staff Name and Activation Staff Name remain separately mandatory on NEW MEMBERSHIP and RENEWAL.
-- Exact activation button copy: `PAYMENT RECEIVED — ACTIVATE`.
-- Normal Gym Staff is a fixed role; no arbitrary permission editor for gym accounts.
-- Super Admin has full access.
-- Barcode access creates the canonical check-in only when access is granted and all required identity-photo gating is satisfied.
-- Retired card barcodes must never grant access and must never be silently reassigned.
+- Work only on `phase-2-operations-nfc-redesign`; never commit to `main`.
+- Production Supabase and Production Vercel stay untouched until explicit Preview approval.
+- Development Supabase project is `jsuolemirhivqhjbjetv`.
+- Permanent person identity is `bgm_members.id`; barcode is a replaceable credential.
+- Preserve scanned barcode payload as text, including leading zeroes and valid letters. Strip only scanner terminator whitespace.
+- New membership requires details, photo, main-screen card scan, Application Staff Name, Activation Staff Name, and `PAYMENT RECEIVED — ACTIVATE`.
+- Every renewal requires a card scan. Same active barcode = keep card. Different unused barcode = replace on successful renewal activation; old card becomes permanently retired.
+- `Issue New Card` is a separate staff action for lost/stolen/damaged cards and must never extend membership dates.
+- Member app virtual card renders the exact active physical-card payload; replacement updates the app barcode automatically.
+- Official member photos stay private and are shown to authenticated staff for identity verification.
+- Normal Gym Staff uses one fixed operational role; Super Admin remains unrestricted.
+- Granted barcode access creates exactly one canonical check-in with `source='barcode'`; denied/retired/unknown/photo-incomplete access does not.
+- Retired issued barcodes are never reassigned.
 
 ---
 
 ## File Map
 
-### Existing files to modify
+### Existing files
+- `lib/systemPermissions.ts` — canonical fixed Gym Staff permission bundle.
+- `lib/systemUserCore.ts` — normalize server-side Gym Staff role behavior.
+- `app/api/admin/system-users/route.ts` — enforce fixed Gym Staff permissions.
+- `components/admin/SystemUsersAdmin.tsx` — remove gym permission checkbox editor.
+- `components/staff/StaffLoginPage.tsx` — daily staff tools and pending membership/card actions.
+- `components/staff/MembershipEnrollmentPage.tsx` — tablet/application flow, renewal card scan, photo state.
+- `components/staff/BarcodeReceptionPage.tsx` — reception scan, photo, active/expired/replaced/photo-required states.
+- `app/api/system/members/enroll/route.ts` — application creation and activation request.
+- `app/api/system/members/search/route.ts` — safe renewal/member lookup.
+- `app/api/system/barcode/scan/route.ts` — access decision and check-in.
+- `components/member/MemberCard.tsx` — virtual membership card.
+- `components/member/MemberBarcode.tsx` — Code 128 renderer.
+- `lib/memberSession.ts` — current client member cache; no longer barcode source of truth.
+- `lib/memberServerSession.ts` — authenticated member identity for member APIs.
+- `lib/memberExchangeCore.ts`, `lib/memberExchangeCsv.ts`, `lib/memberExchangeWorkbook.ts`, `lib/memberImportMatchCore.ts`, `lib/memberImportServer.ts` — transition data pipeline.
+- `app/api/admin/members/import/preview/route.ts`, `app/api/admin/members/import/apply/route.ts`, `app/api/admin/members/export/route.ts` — transition APIs.
+- `supabase/migrations/20260909_140000_membership_identity_exchange.sql` — existing generated-number schema, superseded by follow-up migrations.
+- `supabase/migrations/20260909_143000_apply_member_import_batch.sql` — existing import apply behavior, superseded where it allocates numbers.
+- `supabase/migrations/20260910_100000_membership_enrollment_activation.sql` — existing activation transaction, superseded for card-based activation.
 
-- `lib/systemPermissions.ts` — define canonical Gym Staff permission bundle.
-- `app/api/admin/system-users/route.ts` — enforce fixed Gym Staff permissions server-side.
-- `components/admin/SystemUsersAdmin.tsx` — remove arbitrary gym permission editing and show fixed-role summary.
-- `components/staff/StaffLoginPage.tsx` — expose only approved daily Gym Staff tools and link Memberships to enrollment.
-- `components/staff/MembershipEnrollmentPage.tsx` — finish route wiring; add mandatory photo capture state, main-screen handoff status, renewal card-scan requirement, and card replacement outcome.
-- `app/api/system/members/enroll/route.ts` — persist photo/card requirements and reject activation until the correct preconditions are met.
-- `app/api/system/members/search/route.ts` — return first/last names and current active card metadata needed by renewal.
-- `app/api/system/barcode/scan/route.ts` — resolve active/retired credentials rather than member_number-only lookup; return secure member photo URL/state and photo-required gating.
-- `components/staff/BarcodeReceptionPage.tsx` — show official photo; handle PHOTO REQUIRED and CARD REPLACED states.
-- member virtual-card component/page found in current member-card flow — switch barcode source to authenticated active card credential.
-- import/export code for current 16-column BGM transition workbook — rename/use leading `CardBarcode` and stop fabricating generated BGM values.
-
-### New focused files to create
-
-- `supabase/migrations/<timestamp>_member_card_credentials_and_photos.sql` — card credential schema, photo metadata/provenance, revised activation transaction, and retirement rules.
-- `lib/memberCardCredentialCore.ts` — pure validation/state-decision helpers for scan/renewal/replacement.
-- `app/api/system/members/card/assign/route.ts` — reserve/verify a preprinted card for a pending new/renewal application.
-- `app/api/system/members/card/replace/route.ts` — standalone Issue New Card transaction for lost/stolen/damaged cards.
-- `app/api/system/members/photo/route.ts` — authorized official-photo capture/update endpoint and private Storage coordination.
-- `app/api/system/members/photo/[memberId]/route.ts` or equivalent secure photo delivery endpoint — authenticated short-lived delivery only.
-- `app/api/member/card/route.ts` — authenticated member-side source of truth for current membership state and active barcode.
-- `app/staff/members/enroll/page.tsx` — route wrapper for existing enrollment component.
-- focused tests described below.
+### New files
+- `lib/memberCardCredentialCore.ts`
+- `app/api/system/members/card/assign/route.ts`
+- `app/api/system/members/card/replace/route.ts`
+- `app/api/system/members/photo/route.ts`
+- `app/api/system/members/photo/[memberId]/route.ts`
+- `app/api/member/card/route.ts`
+- `app/staff/members/enroll/page.tsx`
+- `supabase/migrations/20260910_111000_member_card_credentials.sql`
+- `supabase/migrations/20260910_112000_member_photo_provenance.sql`
+- `supabase/migrations/20260910_113000_membership_card_activation.sql`
+- `supabase/migrations/20260910_114000_card_replacement.sql`
+- `supabase/migrations/20260910_115000_member_import_card_barcode.sql`
+- `tests/gym-staff-role.test.mjs`
+- `tests/member-card-credential-core.test.mjs`
+- `tests/member-card-schema.test.mjs`
+- `tests/member-photo-contract.test.mjs`
+- `tests/member-card-assignment-contract.test.mjs`
+- `tests/membership-renewal-card-contract.test.mjs`
+- `tests/member-card-replacement-contract.test.mjs`
+- `tests/member-virtual-card-contract.test.mjs`
+- `tests/member-card-migration-contract.test.mjs`
 
 ---
 
-### Task 1: Finish the existing enrollment UI GREEN cycle without changing business semantics
+### Task 1: Finish the existing membership enrollment GREEN cycle
 
 **Files:**
 - Create: `app/staff/members/enroll/page.tsx`
@@ -72,20 +89,11 @@
 - Test: `tests/membership-enrollment-search-contract.test.mjs`
 
 **Interfaces:**
-- Consumes: existing `MembershipEnrollmentPage` and current enrollment/search API.
-- Produces: `/staff/members/enroll` route, Members tile link, renewal search records containing explicit `firstName` and `lastName`.
+- Produces `/staff/members/enroll` and renewal candidates with `firstName`, `lastName`, `fullName`, member UUID, status/expiry and current card display field.
 
-- [ ] **Step 1: Update the existing UI contract test to require the real route and Members link.**
-
-Add assertions that `app/staff/members/enroll/page.tsx` imports/returns `MembershipEnrollmentPage` and `StaffLoginPage` uses `href="/staff/members/enroll"` for the Members tool.
-
-- [ ] **Step 2: Run the focused UI/search tests and verify RED for the missing route/link or missing explicit name fields.**
-
-Run: `node --test tests/membership-enrollment-ui-contract.test.mjs tests/membership-enrollment-search-contract.test.mjs`
-
-Expected: FAIL only on the newly asserted missing behavior.
-
-- [ ] **Step 3: Add the route wrapper and Members link.**
+- [ ] **Step 1: Extend the existing UI/search tests to require the route, Members link and explicit first/last names.**
+- [ ] **Step 2: Run `node --test tests/membership-enrollment-ui-contract.test.mjs tests/membership-enrollment-search-contract.test.mjs` and verify RED only for the new assertions.**
+- [ ] **Step 3: Create `app/staff/members/enroll/page.tsx`:**
 
 ```tsx
 import MembershipEnrollmentPage from "@/components/staff/MembershipEnrollmentPage";
@@ -95,462 +103,262 @@ export default function StaffMembershipEnrollmentRoute() {
 }
 ```
 
-- [ ] **Step 4: Return `firstName` and `lastName` explicitly from renewal search instead of splitting `fullName` client-side.**
-
-Keep `fullName` for display compatibility but add server-derived normalized first/last fields from `bgm_members.first_name` and `last_name`.
-
-- [ ] **Step 5: Run focused tests and then full current CI test command.**
-
-Expected: enrollment UI/search tests PASS; no regression in existing tests/typecheck/build.
-
-- [ ] **Step 6: Commit.**
-
-```bash
-git add app/staff/members/enroll/page.tsx components/staff/StaffLoginPage.tsx app/api/system/members/search/route.ts tests/membership-enrollment-ui-contract.test.mjs tests/membership-enrollment-search-contract.test.mjs
-git commit -m "feat: finish staff membership enrollment entry point"
-```
+- [ ] **Step 4: Link the Members feature in `StaffLoginPage.tsx` to `/staff/members/enroll`.**
+- [ ] **Step 5: Select/return `first_name` and `last_name` explicitly in member search; keep `fullName` for display compatibility.**
+- [ ] **Step 6: Re-run focused tests, then the repository's full test/typecheck/build commands.**
+- [ ] **Step 7: Commit `feat: finish staff membership enrollment entry point`.**
 
 ---
 
-### Task 2: Lock Gym Staff to one fixed operational role
+### Task 2: Enforce the fixed Gym Staff role
 
 **Files:**
 - Modify: `lib/systemPermissions.ts`
+- Modify: `lib/systemUserCore.ts`
 - Modify: `app/api/admin/system-users/route.ts`
 - Modify: `components/admin/SystemUsersAdmin.tsx`
 - Modify: `components/staff/StaffLoginPage.tsx`
-- Test: `tests/system-user-permissions.test.mjs`
-- Test: `tests/gym-staff-role.test.mjs`
+- Modify: `tests/system-permissions.test.mjs`
+- Modify: `tests/system-user-core.test.mjs`
+- Create: `tests/gym-staff-role.test.mjs`
 
 **Interfaces:**
-- Produces: `GYM_STAFF_PERMISSIONS: readonly SystemPermissionKey[]` and server-enforced fixed assignment for all non-Super-Admin gym logins.
-
-- [ ] **Step 1: Write failing tests for fixed Gym Staff access.**
-
-Assert the canonical bundle includes only route capabilities required for Memberships, Reception/Barcode, official-photo view/capture, Sundries submit, and Bar submit, plus any minimal member view/search permissions those flows require. Assert it excludes analytics, imports/exports, system-user management, notification settings, order management/history, and arbitrary admin permissions.
-
-- [ ] **Step 2: Run RED.**
-
-Run: `node --test tests/gym-staff-role.test.mjs tests/system-user-permissions.test.mjs`
-
-- [ ] **Step 3: Implement `GYM_STAFF_PERMISSIONS` in `lib/systemPermissions.ts`.**
-
-The permission engine remains internally granular, but gym accounts always receive the canonical list server-side.
-
-- [ ] **Step 4: Make system-user create/update ignore client-selected permissions for gym accounts and persist the canonical bundle.**
-
-Super Admin accounts continue to use `isSuperAdmin` bypass.
-
-- [ ] **Step 5: Remove the permission checkbox editor for gym accounts.**
-
-Show a read-only “Gym Staff” access summary instead. Keep gym selection, password reset/change, active/disabled controls, and Super Admin account creation.
-
-- [ ] **Step 6: Simplify the normal staff home to the approved daily tools.**
-
-Keep Memberships, Reception / Barcode, Sundries Order, Bar List. Super Admin management surfaces remain separate.
-
-- [ ] **Step 7: Run tests and commit.**
-
-```bash
-git add lib/systemPermissions.ts app/api/admin/system-users/route.ts components/admin/SystemUsersAdmin.tsx components/staff/StaffLoginPage.tsx tests/system-user-permissions.test.mjs tests/gym-staff-role.test.mjs
-git commit -m "feat: enforce fixed gym staff role"
+```ts
+export const GYM_STAFF_PERMISSIONS: readonly SystemPermissionKey[];
 ```
+
+The bundle must provide only what Memberships, Reception/Barcode, official-photo view/capture, Sundries submit and Bar submit need. It must exclude analytics, user management, notification settings, imports/exports, global order history/manage, announcements management and gym management.
+
+- [ ] **Step 1: Write failing role tests proving the allowed and excluded capabilities.**
+- [ ] **Step 2: Run `node --test tests/system-permissions.test.mjs tests/system-user-core.test.mjs tests/gym-staff-role.test.mjs` and verify RED.**
+- [ ] **Step 3: Add `GYM_STAFF_PERMISSIONS` and make non-Super-Admin gym-user create/update always use it, ignoring arbitrary client permission arrays.**
+- [ ] **Step 4: Remove the permission checkbox grid for Gym Staff from `SystemUsersAdmin.tsx`; show a read-only role summary.**
+- [ ] **Step 5: Keep normal staff home limited to Memberships, Reception / Barcode, Sundries Order and Bar List.**
+- [ ] **Step 6: Re-run focused/full CI and commit `feat: enforce fixed gym staff role`.**
 
 ---
 
-### Task 3: Introduce card-credential lifecycle and retire generated BGM allocation
+### Task 3: Add the card credential lifecycle and retire generated-number allocation
 
 **Files:**
 - Create: `lib/memberCardCredentialCore.ts`
 - Create: `tests/member-card-credential-core.test.mjs`
-- Create: `supabase/migrations/<generated>_member_card_credentials_and_photos.sql`
-- Modify: `supabase/migrations/20260910_100000_membership_enrollment_activation.sql` only if required for source-history consistency; otherwise supersede behavior in the new follow-up migration.
-- Test: `tests/membership-enrollment-schema.test.mjs`
-- Test: `tests/member-card-schema.test.mjs`
+- Create: `tests/member-card-schema.test.mjs`
+- Modify: `tests/member-number-core.test.mjs`
+- Modify: `tests/member-number-schema.test.mjs`
+- Create: `supabase/migrations/20260910_111000_member_card_credentials.sql`
 
 **Interfaces:**
-- Produces conceptual card states `reserved | active | retired` and decision helpers such as:
-
 ```ts
 export type CardCredentialStatus = "reserved" | "active" | "retired";
-
 export function normalizeBarcodePayload(raw: string): string;
-export function decideRenewalCardAction(currentBarcode: string | null, scannedBarcode: string): "keep" | "replace";
+export function decideRenewalCardAction(
+  currentBarcode: string | null,
+  scannedBarcode: string
+): "keep" | "replace";
 ```
 
-`normalizeBarcodePayload` may trim scanner terminator whitespace but must not numeric-coerce, uppercase, pad, prefix, or otherwise change the actual credential characters.
+`bgm_member_card_credentials` fields: `id`, `barcode_value`, `member_id`, `application_member_id`, `status`, `reserved_at`, `activated_at`, `retired_at`, `retired_reason`, `created_by_system_user_id`, `updated_at`.
 
-- [ ] **Step 1: Write RED unit tests for exact payload preservation and renewal decisions.**
-
-Examples:
-
-```ts
-assert.equal(normalizeBarcodePayload("0012345\n"), "0012345");
-assert.equal(decideRenewalCardAction("0012345", "0012345"), "keep");
-assert.equal(decideRenewalCardAction("0012345", "0099999"), "replace");
-```
-
-- [ ] **Step 2: Run RED and implement minimal pure helpers.**
-
-- [ ] **Step 3: Write RED schema contract tests.**
-
-Require a card-credential table linked to `bgm_members.id`, optional pending application participant reference, unique barcode value, status constraint, retired timestamp/reason, and indexes for barcode/member/status lookup. Require generated BGM number default/allocation to be disabled for new operational members.
-
-- [ ] **Step 4: Create the Supabase migration using the current Supabase CLI/MCP migration workflow.**
-
-The migration must:
-- create the credential lifecycle table;
-- preserve existing internal member UUIDs;
-- remove the automatic `bgm_next_member_number()` default from `bgm_members.member_number` or otherwise prevent it from being used for new operational identity;
-- retain `member_number` temporarily only as a compatibility mirror of the active card barcode where existing code still requires it;
-- add any necessary application-participant card reservation linkage;
-- add photo provenance fields or a focused provenance table;
-- keep exposed-schema tables protected with RLS/revoked direct browser access where appropriate.
-
-- [ ] **Step 5: Verify schema only in Development Supabase.**
-
-Check constraints, uniqueness, RLS, function grants, and that no Production project is touched.
-
-- [ ] **Step 6: Run focused tests/full CI and commit.**
-
-```bash
-git add lib/memberCardCredentialCore.ts tests/member-card-credential-core.test.mjs tests/member-card-schema.test.mjs tests/membership-enrollment-schema.test.mjs supabase/migrations
-git commit -m "feat: add preprinted card credential lifecycle"
-```
+- [ ] **Step 1: Write RED core tests, including `normalizeBarcodePayload("0012345\n") === "0012345"`, same-card => `keep`, different-card => `replace`.**
+- [ ] **Step 2: Implement the minimal pure helpers and verify GREEN.**
+- [ ] **Step 3: Write RED schema tests requiring globally unique `barcode_value`, member/application linkage, state constraint and indexes.**
+- [ ] **Step 4: Add `20260910_111000_member_card_credentials.sql` to create the card table and remove the `bgm_next_member_number()` default from `bgm_members.member_number`. Keep `member_number` temporarily nullable as a compatibility mirror of the current active card.**
+- [ ] **Step 5: Revoke direct `anon`/`authenticated` table access and enable RLS as defense in depth. Do not expose privileged card mutation functions to browser roles.**
+- [ ] **Step 6: Apply/verify this migration only in Development `jsuolemirhivqhjbjetv`; verify generated BGM allocation is no longer the default for new operational members.**
+- [ ] **Step 7: Re-run focused/full CI and commit `feat: add preprinted card credential lifecycle`.**
 
 ---
 
-### Task 4: Add private official-photo capture and secure delivery
+### Task 4: Add private official-photo capture, provenance and secure staff delivery
 
 **Files:**
+- Create: `supabase/migrations/20260910_112000_member_photo_provenance.sql`
 - Create: `app/api/system/members/photo/route.ts`
-- Create: secure member-photo delivery route under `app/api/system/members/photo/...`
+- Create: `app/api/system/members/photo/[memberId]/route.ts`
 - Modify: `components/staff/MembershipEnrollmentPage.tsx`
-- Modify: `components/staff/BarcodeReceptionPage.tsx`
 - Modify: `app/api/system/barcode/scan/route.ts`
-- Test: `tests/member-photo-contract.test.mjs`
-- Test: `tests/barcode-reception-photo.test.mjs`
+- Modify: `components/staff/BarcodeReceptionPage.tsx`
+- Create: `tests/member-photo-contract.test.mjs`
+- Modify: `tests/barcode-reception-contract.test.mjs`
 
 **Interfaces:**
-- Photo upload endpoint accepts authenticated staff context plus application participant or permanent member identity and returns private object-path metadata, not a public URL.
-- Secure display route returns/redirects to a short-lived signed representation only after system authorization.
+- POST `/api/system/members/photo` accepts authenticated staff context plus exactly one target: pending `applicationMemberId` or permanent `memberId`, plus captured image form data.
+- GET `/api/system/members/photo/[memberId]` requires authenticated system permission and serves/redirects through a short-lived signed private-storage URL.
 
-- [ ] **Step 1: Write RED tests for privacy and mandatory photo state.**
-
-Assert new application activation cannot proceed without participant photo(s); raw object paths are not treated as public browser URLs; barcode response exposes a secure display URL/reference and `photoRequired` state.
-
-- [ ] **Step 2: Create/verify the private `bgm-member-photos` Storage bucket in Development and the required server-only/RLS access model.**
-
-Use current Supabase Storage docs. Never mark the bucket public.
-
-- [ ] **Step 3: Implement tablet camera capture UI.**
-
-Use browser media capture suitable for the front-desk tablet, show preview with `Use Photo` and `Retake`, and compress/normalize to a reasonable web image format before upload when practical.
-
-- [ ] **Step 4: Store pre-activation photos against application/participant identity.**
-
-After permanent member creation/activation, move/copy or logically re-home the current official photo under an immutable member UUID-based path such as `<member-uuid>/official/<timestamp>.webp` and update `official_photo_path` atomically/safely.
-
-- [ ] **Step 5: Implement migrated-member `PHOTO REQUIRED` gating.**
-
-Active member + no photo: no canonical barcode check-in yet; capture photo; revalidate membership; create exactly one canonical check-in if still active.
-
-- [ ] **Step 6: Render the real official photo on reception.**
-
-Use the secure URL/reference with placeholder only for genuinely missing/unavailable photos.
-
-- [ ] **Step 7: Run focused tests/full CI and commit.**
-
-```bash
-git add app/api/system/members/photo components/staff/MembershipEnrollmentPage.tsx components/staff/BarcodeReceptionPage.tsx app/api/system/barcode/scan/route.ts tests/member-photo-contract.test.mjs tests/barcode-reception-photo.test.mjs
-git commit -m "feat: add private official member photo workflow"
-```
+- [ ] **Step 1: Write RED tests for mandatory new-member photo, private paths, authorized delivery and `photoRequired`.**
+- [ ] **Step 2: In Development, create/verify private bucket `bgm-member-photos`; never mark it public.**
+- [ ] **Step 3: Add photo provenance fields/table with source values `legacy_import | new_membership | renewal | reception_capture`, timestamp and system/gym context.**
+- [ ] **Step 4: Add tablet camera capture in `MembershipEnrollmentPage.tsx` using browser camera input/media capture, with visible preview and exact actions `Use Photo` / `Retake`. Couples require one accepted photo per participant.**
+- [ ] **Step 5: Upload pending photos under application-participant paths; after activation, write the current official photo under `<member-uuid>/official/<timestamp>.webp` and update `official_photo_path`.**
+- [ ] **Step 6: Implement secure photo delivery and change `BarcodeReceptionPage.tsx` from the initial placeholder to the actual official photo whenever available.**
+- [ ] **Step 7: Active migrated member with no photo must return `PHOTO REQUIRED`, create zero normal check-ins, capture photo, revalidate membership, then create exactly one granted check-in.**
+- [ ] **Step 8: Run focused/full CI and commit `feat: add private official member photo workflow`.**
 
 ---
 
-### Task 5: Add new-membership main-screen card assignment and notification
+### Task 5: Add main-screen card assignment for new memberships
 
 **Files:**
 - Create: `app/api/system/members/card/assign/route.ts`
-- Modify: `components/staff/StaffLoginPage.tsx` or the existing staff notification/pending-action surface
+- Modify: `components/staff/StaffLoginPage.tsx`
 - Modify: `components/staff/MembershipEnrollmentPage.tsx`
 - Modify: `app/api/system/members/enroll/route.ts`
-- Modify: existing activation RPC through the new follow-up migration
-- Test: `tests/member-card-assignment-contract.test.mjs`
-- Test: `tests/membership-enrollment-contract.test.mjs`
+- Create: `supabase/migrations/20260910_113000_membership_card_activation.sql`
+- Create: `tests/member-card-assignment-contract.test.mjs`
+- Modify: `tests/membership-enrollment-contract.test.mjs`
+- Modify: `tests/membership-enrollment-schema.test.mjs`
 
 **Interfaces:**
-- `assign` action reserves an unused card barcode to a pending application participant.
-- Activation requires all new participants to have photo + reserved card.
+- Staff home queries/receives pending membership applications for its own gym and shows `NEW MEMBERSHIP READY — SCAN CARD`.
+- POST card assign reserves an exact unused barcode to one application participant.
+- Activation requires accepted photo + reserved card for every new participant.
 
-- [ ] **Step 1: Write RED tests for `NEW MEMBERSHIP READY — SCAN CARD`.**
-
-Require pending new applications to appear to the authenticated gym account's main screen with applicant name/photo context and unresolved card status.
-
-- [ ] **Step 2: Write RED API tests for card reservation.**
-
-Reject blank barcode, active/reserved/retired conflicting barcode, wrong gym/application access, or attempting to assign one barcode to two Couples participants.
-
-- [ ] **Step 3: Implement card reservation API and main-screen scanner state.**
-
-Scanner input must preserve exact decoded payload and show applicant name/photo + scanned value before confirmation.
-
-- [ ] **Step 4: Allow pre-activation correction.**
-
-A wrong unused card may be released/replaced while still merely reserved. An issued/active card may not be silently reassigned.
-
-- [ ] **Step 5: Update activation to promote reserved card(s) atomically.**
-
-Activation creates/activates member identity/membership and turns each reservation into the active credential for the corresponding permanent member UUID. Mirror current barcode into compatibility field only if still needed by current code.
-
-- [ ] **Step 6: Run tests/full CI and commit.**
-
-```bash
-git add app/api/system/members/card/assign/route.ts components/staff/StaffLoginPage.tsx components/staff/MembershipEnrollmentPage.tsx app/api/system/members/enroll/route.ts tests/member-card-assignment-contract.test.mjs tests/membership-enrollment-contract.test.mjs supabase/migrations
-git commit -m "feat: assign preprinted cards from reception"
-```
+- [ ] **Step 1: Write RED tests for pending main-screen action and card reservation uniqueness.**
+- [ ] **Step 2: Add pending application/card status to `StaffLoginPage.tsx`; opening it shows applicant name + secure photo and focuses scanner input.**
+- [ ] **Step 3: Implement card reservation endpoint. Reject blank, active, reserved or retired issued barcodes and cross-gym unauthorized application access.**
+- [ ] **Step 4: Allow correction of a merely reserved wrong card before activation; never silently move an active/retired issued card.**
+- [ ] **Step 5: Replace `bgm_activate_membership_application` in the new migration so new activation creates the member/membership and promotes each reserved card to active in one transaction. Mirror active barcode into nullable `bgm_members.member_number` only for compatibility.**
+- [ ] **Step 6: Couples activation requires two photos + two distinct reserved cards mapped to the correct participant.**
+- [ ] **Step 7: Verify Development transaction behavior, run focused/full CI and commit `feat: assign preprinted cards from reception`.**
 
 ---
 
-### Task 6: Make renewal require a card scan and safely replace cards when the scanned card differs
+### Task 6: Require a card scan on every renewal
 
 **Files:**
 - Modify: `components/staff/MembershipEnrollmentPage.tsx`
-- Modify: `app/api/system/members/enroll/route.ts`
+- Modify: `app/api/system/members/search/route.ts`
 - Modify: `app/api/system/members/card/assign/route.ts`
-- Modify: activation RPC/migration as required
-- Test: `tests/membership-renewal-card-contract.test.mjs`
+- Modify: `app/api/system/members/enroll/route.ts`
+- Modify: `supabase/migrations/20260910_113000_membership_card_activation.sql` before it is applied, or create the next migration if Task 5 has already been applied in Development.
+- Create: `tests/membership-renewal-card-contract.test.mjs`
 
 **Interfaces:**
-- Renewal stores both the current active card and the staff-scanned renewal card decision.
-- Same payload => `keep`.
-- Different unused payload => `replace_on_activation`.
+- Renewal stores verified `scannedBarcode` and decision `keep | replace` before activation.
 
-- [ ] **Step 1: Write RED tests requiring a renewal card scan before activation.**
-
-Test same-card and new-card cases, including barcode entered from the member app because the phone barcode is the same credential payload.
-
-- [ ] **Step 2: Implement renewal UI scanner step.**
-
-After member identity confirmation, show current photo/current barcode and require `SCAN MEMBERSHIP CARD`. Do not allow renewal activation until the scan is validated.
-
-- [ ] **Step 3: Implement same-card validation.**
-
-If scanned barcode equals current active credential, record verification and leave credential history unchanged.
-
-- [ ] **Step 4: Implement replacement-on-renewal reservation.**
-
-If scanned barcode differs and is unused, reserve it as the proposed replacement. Do not retire the old card until renewal activation commits.
-
-- [ ] **Step 5: Update atomic activation.**
-
-On successful renewal activation with replacement: retire old credential with reason `renewal_replacement`, activate new credential, keep same `bgm_members.id`, photo/history/app identity, and create the new membership period.
-
-If activation fails, old card remains active/known and the replacement does not become active.
-
-- [ ] **Step 6: Run tests/full CI and commit.**
-
-```bash
-git add components/staff/MembershipEnrollmentPage.tsx app/api/system/members/enroll/route.ts app/api/system/members/card/assign/route.ts tests/membership-renewal-card-contract.test.mjs supabase/migrations
-git commit -m "feat: require card verification on renewal"
-```
+- [ ] **Step 1: Write RED tests proving renewal cannot activate without a validated card scan.**
+- [ ] **Step 2: In renewal UI, after member confirmation show photo, current active barcode and `SCAN MEMBERSHIP CARD`; accept either the physical card or member-app barcode because both decode to the same payload.**
+- [ ] **Step 3: Same scanned active barcode records verification only and leaves credential history unchanged.**
+- [ ] **Step 4: Different unused barcode becomes a reserved `replace_on_activation` credential. The old card remains current until payment activation succeeds.**
+- [ ] **Step 5: On successful renewal activation with replacement, retire old card with reason `renewal_replacement`, activate the new card, keep the same member UUID/photo/history, and create the new membership period atomically.**
+- [ ] **Step 6: On activation failure, leave old card unchanged and new card unactivated.**
+- [ ] **Step 7: Run focused/full CI and commit `feat: require card verification on renewal`.**
 
 ---
 
-### Task 7: Add standalone `Issue New Card` for lost/stolen/damaged cards
+### Task 7: Add standalone `Issue New Card`
 
 **Files:**
 - Create: `app/api/system/members/card/replace/route.ts`
-- Create or modify staff UI component for member/card actions
-- Modify: `components/staff/StaffLoginPage.tsx` and/or reception member actions
-- Test: `tests/member-card-replacement-contract.test.mjs`
+- Create: `supabase/migrations/20260910_114000_card_replacement.sql`
+- Modify: `components/staff/BarcodeReceptionPage.tsx`
+- Modify: `components/staff/StaffLoginPage.tsx`
+- Create: `tests/member-card-replacement-contract.test.mjs`
 
 **Interfaces:**
-- Request: member UUID, exact new barcode payload, replacement reason (`lost | stolen | damaged | other`), authenticated system user/gym context.
-- Result: same member UUID, old credential retired, new credential active, unchanged membership dates/status.
+- POST replacement request includes `memberId`, `barcode`, `reason: "lost" | "stolen" | "damaged" | "other"`.
+- Result keeps membership dates/status unchanged and switches only the active credential for the same member UUID.
 
-- [ ] **Step 1: Write RED tests proving replacement does not renew membership.**
-
-Assert expiry/start/status values are unchanged; only credential records/current compatibility mirror change.
-
-- [ ] **Step 2: Implement `Issue New Card` UI.**
-
-Staff searches/scans the member, sees name/photo/current card/status, chooses reason, scans a new preprinted card, verifies assignment, confirms replacement.
-
-- [ ] **Step 3: Implement replacement transaction.**
-
-Lock current active credential and new barcode, reject any conflicting/retired issued barcode, retire old and activate new in one database transaction, and audit the replacement reason/system account.
-
-- [ ] **Step 4: Verify retired card immediately denies reception access.**
-
-No canonical check-in may be created from the retired barcode.
-
-- [ ] **Step 5: Run tests/full CI and commit.**
-
-```bash
-git add app/api/system/members/card/replace/route.ts components/staff tests/member-card-replacement-contract.test.mjs supabase/migrations
-git commit -m "feat: add staff issue-new-card workflow"
-```
+- [ ] **Step 1: Write RED tests proving replacement does not renew/extend membership and retired barcode cannot grant access.**
+- [ ] **Step 2: Add visible staff action `Issue New Card` from member/reception actions. Show name, photo, current barcode/status, reason selector and scanner input.**
+- [ ] **Step 3: Implement a transaction that locks current/new credentials, rejects any barcode ever issued/retired in conflict, retires old card and activates new card atomically, then audits reason/system user/gym.**
+- [ ] **Step 4: Mirror the new active card into compatibility `member_number`; do not alter member UUID, membership start, expiry or status.**
+- [ ] **Step 5: Run focused/full CI and commit `feat: add staff issue-new-card workflow`.**
 
 ---
 
-### Task 8: Resolve reception scans through the card credential lifecycle
+### Task 8: Route reception access through card credentials
 
 **Files:**
+- Modify: `lib/barcodeAccessCore.ts`
 - Modify: `app/api/system/barcode/scan/route.ts`
 - Modify: `components/staff/BarcodeReceptionPage.tsx`
-- Test: `tests/barcode-access-contract.test.mjs`
-- Test: `tests/barcode-reception-photo.test.mjs`
+- Modify: `tests/barcode-access-core.test.mjs`
+- Modify: `tests/barcode-reception-contract.test.mjs`
 
 **Interfaces:**
-- Scan lookup becomes `barcode_value -> card credential -> member UUID -> membership state -> photo gate -> access decision`.
+`scanned payload -> card credential -> member UUID -> current membership -> photo gate -> access result -> check-in`
 
-- [ ] **Step 1: Write RED tests for active, retired, expired, inactive, photo-required and unknown cards.**
-
-- [ ] **Step 2: Replace member_number-only lookup with credential lookup.**
-
-Active card resolves member. Retired card resolves enough history for `CARD REPLACED` but never grants. Unknown barcode remains unknown.
-
-- [ ] **Step 3: Preserve exactly-one canonical check-in behavior.**
-
-Active + photo available => one `source='barcode'` check-in. Active + missing photo => zero until photo capture/revalidation, then exactly one. Expired/inactive/retired/unknown => zero.
-
-- [ ] **Step 4: Update reception UI.**
-
-Show large real photo and green/red states, including `CARD REPLACED` and `PHOTO REQUIRED`.
-
-- [ ] **Step 5: Run tests/full CI and commit.**
-
-```bash
-git add app/api/system/barcode/scan/route.ts components/staff/BarcodeReceptionPage.tsx tests/barcode-access-contract.test.mjs tests/barcode-reception-photo.test.mjs
-git commit -m "feat: resolve reception access through card credentials"
-```
+- [ ] **Step 1: Write RED cases for active, expired, inactive, retired/replaced, unknown and photo-required scans.**
+- [ ] **Step 2: Resolve barcode against `bgm_member_card_credentials`, not directly against `bgm_members.member_number`.**
+- [ ] **Step 3: Active + photo => green `ACCESS GRANTED`, secure photo, exactly one canonical check-in.**
+- [ ] **Step 4: Expired/inactive => red denied result with member photo where available, zero normal check-ins.**
+- [ ] **Step 5: Retired => red `CARD REPLACED`, zero check-ins. Unknown => `MEMBER/CARD NOT FOUND`, zero check-ins.**
+- [ ] **Step 6: Re-run focused/full CI and commit `feat: resolve reception access through card credentials`.**
 
 ---
 
-### Task 9: Make the member-app virtual card mirror the active physical barcode
+### Task 9: Make the member-app virtual card mirror the active physical card
 
 **Files:**
 - Create: `app/api/member/card/route.ts`
-- Modify: the existing member-card component/page that currently renders the launch barcode
-- Modify: member-side typed data model as needed
-- Test: `tests/member-virtual-card-contract.test.mjs`
+- Modify: `components/member/MemberCard.tsx`
+- Modify: `components/member/MemberBarcode.tsx`
+- Modify: `lib/memberServerSession.ts` only if a reusable current-member resolver is needed.
+- Modify: `tests/member-barcode-contract.test.mjs`
+- Create: `tests/member-virtual-card-contract.test.mjs`
 
 **Interfaces:**
-- Authenticated member-side endpoint derives member UUID from signed member session and returns current membership state + active card barcode.
-
-Example response shape:
+GET `/api/member/card` derives member UUID from signed member session and returns:
 
 ```ts
 {
-  memberNumber: string | null;
   barcodeValue: string | null;
   membershipStatus: "active" | "expired" | "inactive";
   expiryDate: string | null;
 }
 ```
 
-`memberNumber` may be the same display value as `barcodeValue` during compatibility transition.
-
-- [ ] **Step 1: Write RED tests that virtual barcode equals exact active physical-card payload.**
-
-Include leading-zero payload and replacement update. Assert no fabricated barcode when no card is linked.
-
-- [ ] **Step 2: Implement authenticated `/api/member/card`.**
-
-Do not accept arbitrary `memberId` from the client as authorization. Derive the member from the signed member session.
-
-- [ ] **Step 3: Switch virtual membership card to server barcode source.**
-
-Render Code 128 using the exact current active payload. Show `CARD NOT LINKED — ASK RECEPTION` when no active card exists.
-
-- [ ] **Step 4: Ensure replacement is reflected without a new member identity/login.**
-
-After normal refresh/re-fetch, the app displays the replacement barcode because the server resolves the same member UUID to the new active credential.
-
-- [ ] **Step 5: Run tests/full CI and commit.**
-
-```bash
-git add app/api/member/card/route.ts components app tests/member-virtual-card-contract.test.mjs
-git commit -m "feat: mirror active physical barcode in member app"
-```
+- [ ] **Step 1: Write RED tests for exact payload, leading zeroes, replacement update and no-card state.**
+- [ ] **Step 2: Implement authenticated `/api/member/card`; reject unauthenticated requests and never authorize from a client-supplied member ID.**
+- [ ] **Step 3: Change `MemberCard.tsx` so barcode/status/expiry come from this authenticated endpoint. `getSavedMember()` may remain for non-security-critical display fallback such as name, but never for barcode source of truth.**
+- [ ] **Step 4: Pass exact `barcodeValue` to `MemberBarcode.tsx`; render Code 128 without changing the payload.**
+- [ ] **Step 5: When no active card exists show `CARD NOT LINKED — ASK RECEPTION`; never fabricate `BGMxxxxxxx`.**
+- [ ] **Step 6: Verify that same-card renewal leaves the app barcode unchanged and card replacement changes it after normal re-fetch/refresh without a new login identity.**
+- [ ] **Step 7: Run focused/full CI and commit `feat: mirror active physical barcode in member app`.**
 
 ---
 
-### Task 10: Revise migration/import/export to use optional `CardBarcode`
+### Task 10: Revise migration/import/export around optional `CardBarcode`
 
 **Files:**
-- Modify: existing member XLSX/CSV import core and API routes
-- Modify: existing export core/API routes
-- Modify: import-apply database RPC/migration if it still allocates BGM numbers
-- Test: existing migration/import/export contract tests plus new `tests/member-card-migration-contract.test.mjs`
+- Modify: `lib/memberExchangeCore.ts`
+- Modify: `lib/memberExchangeCsv.ts`
+- Modify: `lib/memberExchangeWorkbook.ts`
+- Modify: `lib/memberImportMatchCore.ts`
+- Modify: `lib/memberImportServer.ts`
+- Modify: `app/api/admin/members/import/preview/route.ts`
+- Modify: `app/api/admin/members/import/apply/route.ts`
+- Modify: `app/api/admin/members/export/route.ts`
+- Create: `supabase/migrations/20260910_115000_member_import_card_barcode.sql`
+- Modify: `tests/member-exchange-core.test.mjs`
+- Modify: `tests/member-exchange-csv.test.mjs`
+- Modify: `tests/member-exchange-workbook.test.mjs`
+- Modify: `tests/member-import-match-core.test.mjs`
+- Modify: `tests/member-import-apply-schema.test.mjs`
+- Modify: `tests/member-export-contract.test.mjs`
+- Create: `tests/member-card-migration-contract.test.mjs`
 
 **Interfaces:**
-- Revised 16-column BGM exchange header begins with `CardBarcode` instead of `MembershipNumber`.
-- `CardBarcode` may be blank.
+Revised BGM 16-column header begins with exact text `CardBarcode`; original 15-column legacy layout remains accepted only by the controlled legacy path.
 
-- [ ] **Step 1: Write RED tests for exact revised 16-column contract.**
-
-Require text preservation including leading zeroes; blank barcode does not fabricate a credential.
-
-- [ ] **Step 2: Remove generated-number allocation from import apply.**
-
-New legacy person rows receive permanent internal UUIDs only. Card credential is created only when a deterministic card barcode is supplied or later scanned at reception.
-
-- [ ] **Step 3: Preserve conservative matching rules.**
-
-Existing legacy linkage remains primary for blank-barcode records. A provided barcode conflicting with another member is `Conflict / Needs review`, never reassigned.
-
-- [ ] **Step 4: Add migration reporting counts.**
-
-Report safely linked cards, blank/unlinked cards, photo-linked/photo-missing/manual-review counts where source material supports them.
-
-- [ ] **Step 5: Run round-trip XLSX/CSV tests and full CI, then commit.**
-
-```bash
-git add lib app supabase/migrations tests
-git commit -m "feat: migrate members with optional preprinted card barcodes"
-```
+- [ ] **Step 1: Write RED tests requiring `CardBarcode` as text, preserving leading zeroes and allowing blank.**
+- [ ] **Step 2: Replace `MembershipNumber` semantics in exchange parse/export with optional `CardBarcode`; do not numeric-coerce it.**
+- [ ] **Step 3: Remove generated BGM number allocation from `bgm_apply_member_import_batch` via the new migration. New imported people get internal UUIDs; only deterministic supplied card barcodes create/link credentials.**
+- [ ] **Step 4: Preserve conservative matching: blank card uses legacy linkage; conflicting card is `Conflict / Needs review`; omitted rows never delete members.**
+- [ ] **Step 5: Add/report counts for safely linked cards, unlinked cards, safely linked photos, missing photos and ambiguous/manual-review records when the source provides those assets.**
+- [ ] **Step 6: Run XLSX/CSV round-trip tests, import safety tests and full CI. Commit `feat: migrate members with optional preprinted card barcodes`.**
 
 ---
 
-### Task 11: Preview verification and safety gate
+### Task 11: Preview verification and Production safety gate
 
-**Files:**
-- No Production changes.
-- Tests/fixtures may be added only if needed to capture verified scanner behavior.
+**Files:** no Production mutation.
 
-**Interfaces:**
-- Produces a verified development-branch build and Preview-ready behavior; does not merge.
-
-- [ ] **Step 1: Run the complete automated suite, typecheck and production build command used by existing CI.**
-
-All tests must pass. Capture the exact run/commit evidence.
-
-- [ ] **Step 2: Verify Development Supabase.**
-
-Check card uniqueness, active/retired transitions, RLS/private photo bucket, activation transaction, and that old generated allocator is no longer used by new workflows.
-
-- [ ] **Step 3: Controlled manual card tests.**
-
-Use representative preprinted cards to test:
-- new member card assignment;
-- renewal with same card;
-- renewal with replacement card;
-- standalone Issue New Card;
-- old retired card denied;
-- active card granted;
-- expired card identified but denied;
-- missing-photo gating.
-
-- [ ] **Step 4: Phone-screen barcode compatibility test.**
-
-Test at least one real member-app virtual barcode on a representative phone against the actual reception barcode reader. Confirm scanner decodes the exact same payload as the physical card.
-
-- [ ] **Step 5: Verify branch/main/Production isolation.**
-
-Confirm `phase-2-operations-nfc-redesign` contains all work, `main` has not moved because of this implementation, and Production database/deployment was not changed.
-
-- [ ] **Step 6: Stop for explicit Preview/user approval.**
-
-Do not merge or deploy Production automatically.
+- [ ] **Step 1: Run the complete automated test suite, TypeScript typecheck and production build used by CI; record exact commit/run evidence.**
+- [ ] **Step 2: Run Supabase verification/advisors on Development after all migrations. Confirm card uniqueness, active/retired transitions, RLS, private photo bucket, activation/renewal/replacement transactions and retired generated allocator behavior.**
+- [ ] **Step 3: Manually test representative preprinted cards: new assignment, renewal same card, renewal new card, standalone `Issue New Card`, old retired card denial, active grant, expired denial and missing-photo gate.**
+- [ ] **Step 4: Test a real member-app Code 128 barcode on at least one representative phone with the actual reception scanner and verify decoded payload equals the physical card payload exactly.**
+- [ ] **Step 5: Re-fetch `phase-2-operations-nfc-redesign` and `main`; confirm implementation stayed on the branch and Production database/deployment remained untouched.**
+- [ ] **Step 6: Stop for explicit user Preview approval. Do not merge or deploy Production automatically.**
