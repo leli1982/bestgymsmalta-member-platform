@@ -223,7 +223,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const rawParticipants = Array.isArray(body.participants) ? body.participants : [];
+    const rawParticipants: any[] = Array.isArray(body.participants)
+      ? body.participants
+      : [];
     const expectedParticipants = membershipType === "couples" ? 2 : 1;
     if (rawParticipants.length !== expectedParticipants) {
       return NextResponse.json(
@@ -316,8 +318,6 @@ export async function POST(request: NextRequest) {
       );
 
     if (participantResult.error) {
-      // Submission is not the permanent identity transaction, but avoid leaving
-      // an unusable shell application if its participant snapshot cannot save.
       await supabase
         .from("bgm_membership_applications")
         .delete()
