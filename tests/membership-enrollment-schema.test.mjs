@@ -19,6 +19,13 @@ test("membership applications distinguish new memberships from renewals", () => 
   assert.match(migration, /references\s+public\.bgm_members\s*\(id\)/i);
 });
 
+test("membership application stores explicit start and expiry dates without inventing duration arithmetic", () => {
+  const migration = migrationSource();
+  assert.match(migration, /add\s+column\s+if\s+not\s+exists\s+start_date\s+date/i);
+  assert.match(migration, /add\s+column\s+if\s+not\s+exists\s+expiry_date\s+date/i);
+  assert.match(migration, /expiry_date\s*>?=\s*start_date/i);
+});
+
 test("activation is a single transactional database function with required Activation Staff Name", () => {
   const migration = migrationSource();
   assert.match(migration, /create\s+or\s+replace\s+function\s+public\.bgm_activate_membership_application/i);
