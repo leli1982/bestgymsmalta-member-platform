@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { setMemberSessionCookie } from "@/lib/memberAuth";
+import {
+  normalizeMembershipNumber,
+  parseMembershipNumber,
+} from "@/lib/memberNumberCore";
 
 export const dynamic = "force-dynamic";
 
@@ -33,13 +38,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await supabase
-      .from("bgm_members")
-      .select("*")
-      .or(
-        `username.eq.${login},email.eq.${login},member_number.eq.${login.toUpperCase()}`
-      )
-      .maybeSingle();
+    const normalizedMemberNumber = normalizeMembershipNumber(login);
+    const isMembershipNumber =
+      parseMembershipNumber(normalizedMemberNumber) !== null;
+    const memberQuery = supabase.from("bgm_members").select("*");
+    const result = isMembershipNumber
+      ? await memberQuery
+          .eq("member_number", normalizedMemberNumber)
+          .maybeSingle()
+      : await memberQuery.eq("username", login).maybeSingle();
 
     if (result.error) throw result.error;
 
@@ -85,9 +92,11 @@ export async function POST(request: NextRequest) {
       })
       .eq("id", member.id);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       member: publicMember(member),
     });
+
+    return setMemberSessionCookie(response, String(member.id));
   } catch (error) {
     console.error(error);
 

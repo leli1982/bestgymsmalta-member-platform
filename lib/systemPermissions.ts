@@ -1,0 +1,53 @@
+export const SYSTEM_PERMISSION_KEYS = [
+  "members.view",
+  "members.create",
+  "members.edit",
+  "members.renew",
+  "members.photos.view",
+  "members.photos.capture",
+  "membership.activate",
+  "cards.assign",
+  "cards.replace",
+  "nfc.scan",
+  "nfc.assign",
+  "nfc.replace",
+  "barcode.scan",
+  "checkins.view",
+  "orders.sundries.submit",
+  "orders.sundries.history",
+  "orders.bar.submit",
+  "orders.bar.history",
+  "orders.manage",
+  "announcements.manage",
+  "analytics.view",
+  "members.import",
+  "members.export",
+  "members.archive",
+  "gyms.manage",
+  "system_users.manage",
+  "offline_roster.view",
+] as const;
+
+export type SystemPermissionKey = (typeof SYSTEM_PERMISSION_KEYS)[number];
+
+export const GYM_STAFF_PERMISSIONS = [
+  "members.view",
+  "members.create",
+  "members.renew",
+  "members.photos.view",
+  "members.photos.capture",
+  "membership.activate",
+  "cards.assign",
+  "cards.replace",
+  "barcode.scan",
+  "orders.sundries.submit",
+  "orders.bar.submit",
+] as const satisfies readonly SystemPermissionKey[];
+
+export function isSystemPermissionKey(value: string): value is SystemPermissionKey {
+  return (SYSTEM_PERMISSION_KEYS as readonly string[]).includes(value);
+}
+
+export function normalizeSystemUsername(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+}

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
+import {
+  normalizeMembershipNumber,
+  parseMembershipNumber,
+} from "@/lib/memberNumberCore";
 
 export const dynamic = "force-dynamic";
 
@@ -90,9 +94,13 @@ export async function POST(request: NextRequest) {
 
       const membershipExpiry = clean(member.membershipExpiry) || null;
       const incomingStatus = clean(member.status) || "active";
+      const requestedMemberNumber = normalizeMembershipNumber(member.memberNumber);
+      const explicitPermanentNumber =
+        parseMembershipNumber(requestedMemberNumber) === null
+          ? ""
+          : requestedMemberNumber;
 
       const payload = {
-        member_number: clean(member.memberNumber).toUpperCase(),
         full_name: clean(member.fullName),
         email: clean(member.email).toLowerCase(),
         phone: clean(member.phone) || null,
@@ -103,13 +111,6 @@ export async function POST(request: NextRequest) {
         notes: clean(member.notes) || null,
         updated_at: new Date().toISOString(),
       };
-
-      if (!payload.member_number) {
-        return NextResponse.json(
-          { error: "Member number is required." },
-          { status: 400 }
-        );
-      }
 
       if (!payload.full_name) {
         return NextResponse.json(
@@ -126,9 +127,13 @@ export async function POST(request: NextRequest) {
       }
 
       if (mode === "create") {
+        const createPayload = explicitPermanentNumber
+          ? { ...payload, member_number: explicitPermanentNumber }
+          : payload;
+
         const result = await supabase
           .from("bgm_members")
-          .insert(payload)
+          .insert(createPayload)
           .select("*")
           .single();
 
@@ -146,9 +151,13 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      const updatePayload = explicitPermanentNumber
+        ? { ...payload, member_number: explicitPermanentNumber }
+        : payload;
+
       const result = await supabase
         .from("bgm_members")
-        .update(payload)
+        .update(updatePayload)
         .eq("id", id)
         .select("*")
         .single();
@@ -213,7 +222,7 @@ export async function POST(request: NextRequest) {
 
     const message =
       error?.code === "23505"
-        ? "Member number or email already exists."
+        ? "Member number already exists."
         : "Member admin action failed.";
 
     return NextResponse.json({ error: message }, { status: 500 });

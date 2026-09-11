@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { normalizeMembershipNumber } from "@/lib/memberNumberCore";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -67,22 +68,25 @@ async function sendResetEmail({
 
 export async function POST(request: NextRequest) {
   const genericResponse = {
-    message: "If that email is registered, we have sent a password reset link.",
+    message:
+      "If those membership details are registered, we have sent a password reset link.",
   };
 
   try {
     const supabase = getSupabaseAdmin();
     const body = await request.json();
 
+    const memberNumber = normalizeMembershipNumber(body.memberNumber);
     const email = String(body.email || "").trim().toLowerCase();
 
-    if (!email) {
+    if (!memberNumber || !email) {
       return NextResponse.json(genericResponse);
     }
 
     const memberResult = await supabase
       .from("bgm_members")
       .select("id, email, full_name, app_enrolled, password_hash")
+      .eq("member_number", memberNumber)
       .eq("email", email)
       .maybeSingle();
 

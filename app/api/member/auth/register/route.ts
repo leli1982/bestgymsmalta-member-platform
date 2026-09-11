@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { setMemberSessionCookie } from "@/lib/memberAuth";
+import { normalizeMembershipNumber } from "@/lib/memberNumberCore";
 
 export const dynamic = "force-dynamic";
 
@@ -23,14 +25,14 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseAdmin();
     const body = await request.json();
 
-    const memberNumber = String(body.memberNumber || "").trim().toUpperCase();
+    const memberNumber = normalizeMembershipNumber(body.memberNumber);
     const email = String(body.email || "").trim().toLowerCase();
     const username = String(body.username || "").trim().toLowerCase();
     const password = String(body.password || "");
 
-    if (!memberNumber || !email || !username || !password) {
+    if (!memberNumber || !username || !password) {
       return NextResponse.json(
-        { error: "All fields are required." },
+        { error: "Member number, username and password are required." },
         { status: 400 }
       );
     }
@@ -46,7 +48,6 @@ export async function POST(request: NextRequest) {
       .from("bgm_members")
       .select("*")
       .eq("member_number", memberNumber)
-      .eq("email", email)
       .maybeSingle();
 
     if (memberResult.error) throw memberResult.error;
@@ -54,6 +55,25 @@ export async function POST(request: NextRequest) {
     const member = memberResult.data;
 
     if (!member) {
+      return NextResponse.json(
+        { error: "No member found with that membership number." },
+        { status: 404 }
+      );
+    }
+
+    const registeredEmail = String(member.email || "").trim().toLowerCase();
+
+    if (!registeredEmail) {
+      return NextResponse.json(
+        {
+          error:
+            "No email is registered for this membership. Please ask reception to verify and add an email before activating the app.",
+        },
+        { status: 409 }
+      );
+    }
+
+    if (!email || email !== registeredEmail) {
       return NextResponse.json(
         { error: "No active member found with that member number and email." },
         { status: 404 }
@@ -107,9 +127,11 @@ export async function POST(request: NextRequest) {
 
     if (updateResult.error) throw updateResult.error;
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       member: publicMember(updateResult.data),
     });
+
+    return setMemberSessionCookie(response, String(updateResult.data.id));
   } catch (error) {
     console.error(error);
 

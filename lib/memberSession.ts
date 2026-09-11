@@ -35,6 +35,11 @@ export function saveMember(member: AppMember) {
 export function clearSavedMember() {
   if (typeof window === "undefined") return;
 
+  void fetch("/api/member/auth/logout", {
+    method: "DELETE",
+    keepalive: true,
+  }).catch(() => undefined);
+
   window.localStorage.removeItem(MEMBER_SESSION_KEY);
   window.dispatchEvent(new Event("bgmMemberChanged"));
 }
