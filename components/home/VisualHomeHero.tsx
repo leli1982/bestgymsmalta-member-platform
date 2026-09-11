@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CreditCard, MapPinned } from "lucide-react";
+import { Bell, CreditCard, MapPin } from "lucide-react";
 import { getSavedMember, type AppMember } from "@/lib/memberSession";
 
 export default function VisualHomeHero() {
@@ -20,62 +20,64 @@ export default function VisualHomeHero() {
     };
   }, []);
 
-  const welcomeName = member?.username || member?.fullName?.split(" ")[0] || "Member";
+  const welcomeName = member?.fullName?.split(" ")[0] || member?.username || "Member";
 
   return (
     <section
-      className="relative min-h-[410px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
+      className="relative min-h-[414px] overflow-hidden bg-black bg-cover bg-[68%_center] text-white sm:min-h-[430px]"
       style={{
         backgroundImage:
-          "linear-gradient(90deg, rgba(0,0,0,.92) 0%, rgba(0,0,0,.74) 48%, rgba(0,0,0,.20) 100%), linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.64)), url('/visuals/home-hero.jpg')",
+          "linear-gradient(90deg, rgba(0,0,0,.97) 0%, rgba(0,0,0,.84) 34%, rgba(0,0,0,.22) 72%, rgba(0,0,0,.14) 100%), linear-gradient(180deg, rgba(0,0,0,.08) 0%, rgba(0,0,0,.06) 58%, rgba(0,0,0,.58) 100%), url('/visuals/home-hero-duo.jpg')",
       }}
     >
-      <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-orange-500/20 blur-3xl" />
-      <div className="absolute -bottom-24 left-4 h-52 w-52 rounded-full bg-orange-500/10 blur-3xl" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(255,90,10,.15),transparent_35%)]" />
 
-      <div className="relative flex min-h-[360px] flex-col justify-between">
-        <div className="flex items-start justify-between gap-4">
+      <div className="relative flex min-h-[414px] flex-col px-5 pb-5 pt-6 sm:min-h-[430px] sm:px-6">
+        <div className="flex items-start justify-between gap-3">
           <img
             src="/brand/bgm-logo-white-horizontal.png"
             alt="BestGymsMalta"
-            className="h-auto w-[220px] max-w-[68%] object-contain object-left drop-shadow-xl"
+            className="h-auto w-[205px] max-w-[67%] object-contain object-left drop-shadow-lg"
           />
-          <span className="rounded-full border border-white/15 bg-black/35 px-3 py-2 text-[9px] font-black uppercase tracking-[.2em] text-orange-400 backdrop-blur-md">
-            Member
+          <span className="relative mt-1 flex h-10 w-10 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm">
+            <Bell size={22} strokeWidth={2.3} />
+            <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-[#ff5a0a]" />
           </span>
         </div>
 
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[.24em] text-orange-400">
-            Be the best... Beat the rest
-          </p>
+        <div
+          className="absolute left-[45%] top-[84px] -rotate-6 text-[25px] font-bold leading-[0.9] text-[#ff5a0a] drop-shadow-lg sm:left-[47%] sm:text-[28px]"
+          style={{ fontFamily: '"Brush Script MT", "Segoe Script", cursive' }}
+        >
+          More<br />Than Gyms
+          <span className="mt-1 block h-[3px] w-24 -rotate-3 rounded-full bg-[#ff5a0a]" />
+        </div>
 
-          <h1 className="mt-3 max-w-[320px] text-5xl font-black leading-[0.95] text-white drop-shadow-2xl">
+        <div className="mt-auto max-w-[62%] pb-[76px]">
+          <h1 className="text-[31px] font-black leading-[0.98] tracking-[-0.035em] drop-shadow-xl sm:text-[34px]">
             Welcome back,
-            <span className="block text-orange-500">{welcomeName}</span>
+            <span className="mt-1 block text-[42px] text-[#ff5a0a] sm:text-[46px]">{welcomeName}</span>
           </h1>
-
-          <p className="mt-4 max-w-[290px] text-sm font-bold leading-6 text-white/70">
-            Your membership, gyms, AI training and progress tools in one place.
+          <p className="mt-3 whitespace-nowrap text-[16px] font-medium tracking-[-0.02em] text-white/88 sm:text-[17px]">
+            be the best...beat the rest
           </p>
+        </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <a
-              href="/card"
-              className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-4 text-sm font-black text-white shadow-lg shadow-orange-950/25"
-            >
-              <CreditCard size={18} strokeWidth={3} />
-              Show Card
-            </a>
-
-            <a
-              href="/gyms"
-              className="flex items-center justify-center gap-2 rounded-full border border-orange-500/70 bg-black/45 px-4 py-4 text-sm font-black text-white backdrop-blur-md"
-            >
-              <MapPinned className="text-orange-400" size={18} strokeWidth={3} />
-              Find Gyms
-            </a>
-          </div>
+        <div className="absolute bottom-5 left-5 right-5 grid grid-cols-2 gap-3 sm:left-6 sm:right-6">
+          <a
+            href="/card"
+            className="flex min-h-[58px] items-center justify-center gap-2.5 rounded-[1.25rem] bg-[#ff5a0a] px-3 text-[15px] font-black text-white shadow-[0_10px_28px_rgba(255,90,10,.25)] transition active:scale-[0.98]"
+          >
+            <CreditCard size={20} strokeWidth={2.8} />
+            Show Card
+          </a>
+          <a
+            href="/gyms"
+            className="flex min-h-[58px] items-center justify-center gap-2.5 rounded-[1.25rem] border-2 border-[#ff5a0a] bg-black/60 px-3 text-[15px] font-black text-white backdrop-blur-sm transition active:scale-[0.98]"
+          >
+            <MapPin className="text-[#ff5a0a]" size={21} strokeWidth={3} />
+            Find Gyms
+          </a>
         </div>
       </div>
     </section>
