@@ -165,3 +165,15 @@ test("member export derives CardBarcode from the active credential lifecycle", (
   assert.match(source, /CardBarcode/);
   assert.match(source, /bgm_member_card_credentials/);
 });
+
+test("membership data admin describes CardBarcode and no longer promises generated numbers", () => {
+  const source = fs.readFileSync(
+    new URL("../components/admin/MembershipDataAdmin.tsx", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(source, /CardBarcode/);
+  assert.match(source, /Card barcode/i);
+  assert.doesNotMatch(source, /Generated .*permanent membership number/s);
+  assert.doesNotMatch(source, /MembershipNumber first/);
+});
