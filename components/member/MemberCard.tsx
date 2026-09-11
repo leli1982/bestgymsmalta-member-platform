@@ -69,26 +69,27 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
   if (!member) {
     if (variant === "home") {
       return (
-        <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 text-zinc-950 shadow-sm">
+        <section
+          data-home-membership="compact-strip"
+          className="rounded-[1.45rem] border border-zinc-200/80 bg-white p-3 text-zinc-950 shadow-[0_6px_20px_rgba(15,23,42,0.06)]"
+        >
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
-              <CreditCard size={25} strokeWidth={3} />
+            <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-[1rem] bg-zinc-950 p-2.5">
+              <img src="/brand/bgm-logo-white-horizontal.png" alt="BestGymsMalta" className="h-full w-full object-contain" />
             </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[.22em] text-orange-600">Membership</p>
-              <h2 className="mt-1 text-xl font-black">Login to show your card</h2>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-bold text-slate-500">Membership</p>
+              <h2 className="mt-0.5 text-[15px] font-black">Login to show your card</h2>
+              <p className="mt-1 text-[10px] font-semibold text-slate-400">Your live barcode appears here.</p>
             </div>
+            <a
+              href="/member-login"
+              className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#ff5a0a] px-3 py-2 text-[10px] font-black text-white"
+            >
+              <LogIn size={14} strokeWidth={3} />
+              Login
+            </a>
           </div>
-          <p className="mt-3 text-sm font-bold leading-6 text-zinc-500">
-            Your live digital card and current barcode appear here when you log in.
-          </p>
-          <a
-            href="/member-login"
-            className="mt-4 flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-3.5 text-sm font-black text-white"
-          >
-            <LogIn size={17} strokeWidth={3} />
-            Login / Activate
-          </a>
         </section>
       );
     }
@@ -124,83 +125,73 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
     return (
       <button
         type="button"
+        data-home-membership="compact-strip"
         onClick={() => setFlipped((value) => !value)}
         className="block w-full text-left"
         style={{ perspective: "1200px" }}
         aria-label="Flip membership card"
       >
         <div
-          className="relative min-h-[270px] transition-transform duration-700"
+          className="relative min-h-[142px] transition-transform duration-700"
           style={{
             transformStyle: "preserve-3d",
             transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
           }}
         >
           <section
-            className="absolute inset-0 overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-5 text-zinc-950 shadow-sm"
+            className="absolute inset-0 overflow-hidden rounded-[1.45rem] border border-zinc-200/80 bg-white p-3 text-zinc-950 shadow-[0_7px_24px_rgba(15,23,42,0.07)]"
             style={{ backfaceVisibility: "hidden" }}
           >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[.22em] text-orange-600">Membership</p>
-                <div className="mt-2 flex items-center gap-2">
-                  <BadgeCheck className="text-emerald-500" size={20} strokeWidth={3} />
-                  <p className="text-sm font-black capitalize text-emerald-600">{member.status || "Active"}</p>
-                </div>
-                <h2 className="mt-3 text-2xl font-black leading-tight">{member.fullName || member.username}</h2>
+            <div className="grid h-full grid-cols-[72px_minmax(0,.9fr)_minmax(108px,1.2fr)] items-center gap-3">
+              <div className="flex h-[72px] w-[72px] items-center justify-center rounded-[1rem] bg-zinc-950 p-2.5">
+                <img src="/brand/bgm-logo-white-horizontal.png" alt="BestGymsMalta" className="h-full w-full object-contain" />
               </div>
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-zinc-950 text-orange-400">
-                <CreditCard size={24} strokeWidth={3} />
+
+              <div className="min-w-0 border-r border-slate-200 pr-2">
+                <p className="text-[10px] font-bold text-slate-500">Membership</p>
+                <p className="mt-1 flex items-center gap-1.5 text-[13px] font-black capitalize text-emerald-600">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  {member.status || "Active"}
+                </p>
+                <p className="mt-2 text-[9px] font-semibold text-slate-400">Valid until</p>
+                <p className="truncate text-[10px] font-black text-zinc-900">{expiryText}</p>
+              </div>
+
+              <div className="min-w-0 text-center">
+                {cardLinked === null ? (
+                  <div className="flex h-[62px] items-center justify-center rounded-xl bg-zinc-50 text-[9px] font-bold text-slate-400">
+                    Refreshing…
+                  </div>
+                ) : cardLinked && cardBarcode ? (
+                  <div className="[&>div]:p-0 [&_p]:mt-0 [&_p]:text-[8px] [&_p]:tracking-[.08em] [&_svg]:max-h-[48px]">
+                    <MemberBarcode memberNumber={cardBarcode} />
+                  </div>
+                ) : (
+                  <div className="rounded-xl bg-amber-50 px-2 py-2 text-center">
+                    <p className="text-[9px] font-black text-amber-700">CARD NOT LINKED</p>
+                    <p className="mt-1 text-[8px] font-semibold text-slate-400">Ask reception</p>
+                  </div>
+                )}
+                <p className="mt-1 text-[8px] font-semibold text-slate-400">Tap to enlarge</p>
               </div>
             </div>
-
-            <div className="mt-4">
-              {cardLinked === null ? (
-                <div className="rounded-xl bg-zinc-100 p-4 text-center text-sm font-bold text-zinc-500">Refreshing current card…</div>
-              ) : cardLinked && cardBarcode ? (
-                <MemberBarcode memberNumber={cardBarcode} />
-              ) : (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
-                  <p className="text-sm font-black text-amber-700">CARD NOT LINKED</p>
-                  <p className="mt-1 text-xs font-bold leading-5 text-zinc-500">Ask reception to link your physical BGM card.</p>
-                </div>
-              )}
-              {cardError ? <p className="mt-2 text-center text-xs font-bold text-red-600">{cardError}</p> : null}
-            </div>
-
-            <p className="mt-3 text-center text-[9px] font-black uppercase tracking-[.2em] text-zinc-300">Tap for member details</p>
+            {cardError ? <p className="absolute bottom-1 left-3 right-3 text-center text-[8px] font-bold text-red-600">{cardError}</p> : null}
           </section>
 
           <section
-            className="absolute inset-0 overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-5 text-zinc-950 shadow-sm"
+            className="absolute inset-0 overflow-hidden rounded-[1.45rem] border border-zinc-200/80 bg-white p-4 text-zinc-950 shadow-[0_7px_24px_rgba(15,23,42,0.07)]"
             style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
           >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[.22em] text-orange-600">Member Details</p>
-                <h2 className="mt-2 text-xl font-black">{member.fullName || member.username}</h2>
+            <div className="flex h-full items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[9px] font-black uppercase tracking-[.16em] text-[#ff5a0a]">Member Details</p>
+                <h2 className="mt-1 truncate text-base font-black">{member.fullName || member.username}</h2>
+                <p className="mt-2 text-[9px] font-semibold text-slate-400">Current Card</p>
+                <p className="truncate text-xs font-black">{cardLinked && cardBarcode ? cardBarcode : "Not linked"}</p>
+                <p className="mt-1 text-[9px] font-semibold text-slate-400">Valid until {expiryText}</p>
               </div>
-              <ShieldCheck className="text-orange-500" size={25} strokeWidth={3} />
+              <ShieldCheck className="shrink-0 text-[#ff5a0a]" size={29} strokeWidth={3} />
             </div>
-
-            <div className="mt-4 grid gap-3">
-              <div className="rounded-2xl bg-zinc-50 p-3">
-                <p className="text-[10px] font-black uppercase tracking-[.16em] text-zinc-400">Current Card</p>
-                <p className="mt-1 break-all text-base font-black text-zinc-950">{cardLinked && cardBarcode ? cardBarcode : "Not linked"}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl bg-zinc-50 p-3">
-                  <p className="text-[10px] font-black uppercase tracking-[.16em] text-zinc-400">Valid until</p>
-                  <p className="mt-1 text-sm font-black">{expiryText}</p>
-                </div>
-                <div className="rounded-2xl bg-zinc-50 p-3">
-                  <p className="text-[10px] font-black uppercase tracking-[.16em] text-zinc-400">Email</p>
-                  <p className="mt-1 truncate text-xs font-bold text-zinc-600">{member.email}</p>
-                </div>
-              </div>
-            </div>
-
-            <p className="mt-4 text-center text-[9px] font-black uppercase tracking-[.2em] text-zinc-300">Tap to return to barcode</p>
           </section>
         </div>
       </button>
