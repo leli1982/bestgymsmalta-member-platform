@@ -25,6 +25,8 @@ export default function PendingMembershipActions() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [openId, setOpenId] = useState("");
   const [barcodes, setBarcodes] = useState<Record<string, string>>({});
+  const [activationStaffNames, setActivationStaffNames] = useState<Record<string, string>>({});
+  const [activatingId, setActivatingId] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -67,6 +69,53 @@ export default function PendingMembershipActions() {
     await load();
   }
 
+  async function activateApplication(application: Application) {
+    const activationStaffName = (activationStaffNames[application.id] || "").trim();
+    const readyToActivate = application.participants.every(
+      (participant) => participant.hasPhoto && Boolean(participant.reservedBarcode)
+    );
+
+    if (!readyToActivate) {
+      setError("Every participant needs an official photo and reserved membership card before activation.");
+      return;
+    }
+
+    if (!activationStaffName) {
+      setError("Activation Staff Name is required before payment can be confirmed.");
+      return;
+    }
+
+    setActivatingId(application.id);
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/system/members/enroll", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "activate",
+          applicationId: application.id,
+          activationStaffName,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error || "Could not activate membership.");
+        return;
+      }
+
+      setMessage(`${application.reference} activated successfully.`);
+      setOpenId("");
+      setActivationStaffNames((current) => ({ ...current, [application.id]: "" }));
+      await load();
+    } catch {
+      setError("Could not activate membership.");
+    } finally {
+      setActivatingId("");
+    }
+  }
+
   if (applications.length === 0) return null;
 
   return (
@@ -83,28 +132,66 @@ export default function PendingMembershipActions() {
       {message && <div className="mt-4 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-700">{message}</div>}
 
       <div className="mt-4 space-y-3">
-        {applications.map((application) => (
-          <div key={application.id} className="rounded-xl border border-orange-200 bg-white p-4">
-            <button type="button" onClick={() => setOpenId(openId === application.id ? "" : application.id)} className="flex w-full items-center justify-between gap-4 text-left">
-              <div><p className="font-black">{application.reference}</p><p className="text-sm text-zinc-500">{application.participants.map((participant) => participant.fullName).join(" + ")}</p></div>
-              <span className="text-sm font-bold text-orange-700">{openId === application.id ? "Close" : "Open"}</span>
-            </button>
+        {applications.map((application) => {
+          const readyToActivate = application.participants.every(
+            (participant) => participant.hasPhoto && Boolean(participant.reservedBarcode)
+          );
 
-            {openId === application.id && (
-              <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                {application.participants.map((participant) => (
-                  <div key={participant.id} className="rounded-xl border border-zinc-200 p-4">
-                    <p className="font-black">{participant.fullName}</p>
-                    {participant.hasPhoto && participant.photoUrl ? <img src={participant.photoUrl} alt={`${participant.fullName} official photo`} className="mt-3 aspect-square w-32 rounded-xl object-cover" /> : <div className="mt-3"><OfficialMemberPhotoCapture applicationMemberId={participant.id} staffName={application.staffName} onSaved={() => void load()} /></div>}
-                    <div className="mt-4">
-                      {participant.reservedBarcode ? <div className="rounded-xl bg-green-50 p-3 text-sm font-bold text-green-700">Card reserved: {participant.reservedBarcode}</div> : <div className="flex gap-2"><input autoFocus inputMode="text" value={barcodes[participant.id] || ""} onChange={(event) => setBarcodes((current) => ({ ...current, [participant.id]: event.target.value }))} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void reserveCard(participant.id); } }} placeholder="Scan card barcode" className="min-w-0 flex-1 rounded-xl border border-zinc-300 px-3 py-2 font-mono" /><button type="button" onClick={() => void reserveCard(participant.id)} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-bold text-white">Reserve Card</button></div>}
+          return (
+            <div key={application.id} className="rounded-xl border border-orange-200 bg-white p-4">
+              <button type="button" onClick={() => setOpenId(openId === application.id ? "" : application.id)} className="flex w-full items-center justify-between gap-4 text-left">
+                <div><p className="font-black">{application.reference}</p><p className="text-sm text-zinc-500">{application.participants.map((participant) => participant.fullName).join(" + ")}</p></div>
+                <span className="text-sm font-bold text-orange-700">{openId === application.id ? "Close" : "Open"}</span>
+              </button>
+
+              {openId === application.id && (
+                <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                  {application.participants.map((participant) => (
+                    <div key={participant.id} className="rounded-xl border border-zinc-200 p-4">
+                      <p className="font-black">{participant.fullName}</p>
+                      {participant.hasPhoto && participant.photoUrl ? <img src={participant.photoUrl} alt={`${participant.fullName} official photo`} className="mt-3 aspect-square w-32 rounded-xl object-cover" /> : <div className="mt-3"><OfficialMemberPhotoCapture applicationMemberId={participant.id} staffName={application.staffName} onSaved={() => void load()} /></div>}
+                      <div className="mt-4">
+                        {participant.reservedBarcode ? <div className="rounded-xl bg-green-50 p-3 text-sm font-bold text-green-700">Card reserved: {participant.reservedBarcode}</div> : <div className="flex gap-2"><input autoFocus inputMode="text" value={barcodes[participant.id] || ""} onChange={(event) => setBarcodes((current) => ({ ...current, [participant.id]: event.target.value }))} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void reserveCard(participant.id); } }} placeholder="Scan card barcode" className="min-w-0 flex-1 rounded-xl border border-zinc-300 px-3 py-2 font-mono" /><button type="button" onClick={() => void reserveCard(participant.id)} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-bold text-white">Reserve Card</button></div>}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+                  ))}
+                </div>
+              )}
+
+              {openId === application.id && (
+                <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+                  <label className="block text-sm font-bold">
+                    Activation Staff Name
+                    <input
+                      value={activationStaffNames[application.id] || ""}
+                      onChange={(event) =>
+                        setActivationStaffNames((current) => ({
+                          ...current,
+                          [application.id]: event.target.value,
+                        }))
+                      }
+                      placeholder="Staff member receiving payment"
+                      className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2"
+                    />
+                  </label>
+                  {!readyToActivate && (
+                    <p className="mt-3 text-sm font-semibold text-amber-700">
+                      Complete every official photo and card reservation before activation.
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    disabled={activatingId === application.id || !readyToActivate || !(activationStaffNames[application.id] || "").trim()}
+                    onClick={() => void activateApplication(application)}
+                    className="mt-4 w-full rounded-xl bg-green-600 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {activatingId === application.id ? "Activating…" : "PAYMENT RECEIVED — ACTIVATE"}
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
