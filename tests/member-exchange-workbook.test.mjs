@@ -24,7 +24,7 @@ const legacyHeaders = [
   "ValidYN",
 ];
 
-const exchangeHeaders = ["MembershipNumber", ...legacyHeaders];
+const exchangeHeaders = ["CardBarcode", ...legacyHeaders];
 
 test("XLSX recognizes the 15-column legacy contract and real dates", async () => {
   const workbook = new ExcelJS.Workbook();
@@ -52,7 +52,7 @@ test("XLSX recognizes the 15-column legacy contract and real dates", async () =>
   const parsed = await parseMemberExchangeXlsx(buffer);
   assert.equal(parsed.mode, "legacy_15");
   assert.equal(parsed.rows.length, 1);
-  assert.equal(parsed.rows[0].values.MembershipNumber, "");
+  assert.equal(parsed.rows[0].values.CardBarcode, "");
   assert.equal(parsed.rows[0].values.ExpiryDate1, "2027-09-03");
 });
 
@@ -61,7 +61,7 @@ test("formula cells are flagged instead of executed or trusted", async () => {
   const sheet = workbook.addWorksheet("AllCustomers");
   sheet.addRow(exchangeHeaders);
   const row = sheet.addRow([
-    "BGM0000001",
+    "0012345",
     "QROQQ",
     "100",
     "John Borg",
@@ -89,13 +89,13 @@ test("formula cells are flagged instead of executed or trusted", async () => {
   assert.equal(parsed.rows[0].issues[0].column, "TelephoneNo2");
 });
 
-test("XLSX writer preserves permanent membership number as text and expiry as a date", async () => {
+test("XLSX writer preserves CardBarcode as text and expiry as a date", async () => {
   const rows = [
     {
       rowNumber: 2,
       issues: [],
       values: {
-        MembershipNumber: "BGM0000001",
+        CardBarcode: "0012345",
         Gym: "QROQQ",
         pkCustomer: "100",
         CustomerName: "John Borg",
@@ -121,7 +121,7 @@ test("XLSX writer preserves permanent membership number as text and expiry as a 
   const sheet = workbook.worksheets[0];
 
   assert.deepEqual(sheet.getRow(1).values.slice(1), exchangeHeaders);
-  assert.equal(sheet.getCell("A2").value, "BGM0000001");
+  assert.equal(sheet.getCell("A2").value, "0012345");
   assert.equal(sheet.getCell("A2").numFmt, "@");
   assert.ok(sheet.getCell("O2").value instanceof Date);
   assert.equal(sheet.getCell("O2").numFmt, "dd/mm/yyyy");

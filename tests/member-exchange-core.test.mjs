@@ -27,9 +27,9 @@ test("legacy format is exactly the supplied 15 columns", () => {
   ]);
 });
 
-test("exchange format prepends MembershipNumber and changes nothing else", () => {
+test("exchange format prepends CardBarcode and changes nothing else", () => {
   assert.deepEqual(MEMBER_EXCHANGE_HEADERS, [
-    "MembershipNumber",
+    "CardBarcode",
     ...LEGACY_MEMBER_HEADERS,
   ]);
 });

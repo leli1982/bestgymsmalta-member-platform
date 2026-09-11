@@ -17,10 +17,10 @@ export const runtime = "nodejs";
 
 const PAGE_SIZE = 1000;
 const MEMBER_EXPORT_SELECT =
-  "member_number, legacy_gym, legacy_pk_customer, full_name, company_name, address_line_1, address_line_2, town, postcode, gender, telephone_no_1, telephone_no_2, mobile, email, membership_expiry, status";
+  "id, legacy_gym, legacy_pk_customer, full_name, company_name, address_line_1, address_line_2, town, postcode, gender, telephone_no_1, telephone_no_2, mobile, email, membership_expiry, status";
 
 type ExportMember = {
-  member_number: string;
+  id: string;
   legacy_gym: string | null;
   legacy_pk_customer: string | null;
   full_name: string | null;
@@ -38,13 +38,22 @@ type ExportMember = {
   status: string | null;
 };
 
+type ActiveCardRow = {
+  member_id: string | null;
+  barcode_value: string;
+};
+
 function text(value: unknown) {
   return value == null ? "" : String(value);
 }
 
-function toExchangeRow(member: ExportMember, rowNumber: number) {
+function toExchangeRow(
+  member: ExportMember,
+  cardBarcode: string,
+  rowNumber: number
+) {
   const values = emptyMemberExchangeValues();
-  values.MembershipNumber = text(member.member_number);
+  values.CardBarcode = cardBarcode;
   values.Gym = text(member.legacy_gym);
   values.pkCustomer = text(member.legacy_pk_customer);
   values.CustomerName = text(member.full_name);
@@ -63,20 +72,52 @@ function toExchangeRow(member: ExportMember, rowNumber: number) {
   return exchangeValuesRow(values, rowNumber);
 }
 
+async function loadActiveCardMap() {
+  const supabase = getSupabaseAdmin();
+  const activeCardByMemberId = new Map<string, string>();
+
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const result = await supabase
+      .from("bgm_member_card_credentials")
+      .select("member_id, barcode_value")
+      .eq("status", "active")
+      .order("id", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (result.error) throw result.error;
+    const page = (result.data || []) as ActiveCardRow[];
+    for (const card of page) {
+      if (card.member_id) activeCardByMemberId.set(card.member_id, card.barcode_value);
+    }
+    if (page.length < PAGE_SIZE) break;
+  }
+
+  return activeCardByMemberId;
+}
+
 async function loadAllMembers(): Promise<ParsedMemberExchangeRow[]> {
   const supabase = getSupabaseAdmin();
+  const activeCardByMemberId = await loadActiveCardMap();
   const rows: ParsedMemberExchangeRow[] = [];
 
   for (let from = 0; ; from += PAGE_SIZE) {
     const result = await supabase
       .from("bgm_members")
       .select(MEMBER_EXPORT_SELECT)
-      .order("member_number", { ascending: true })
+      .order("id", { ascending: true })
       .range(from, from + PAGE_SIZE - 1);
 
     if (result.error) throw result.error;
     const page = (result.data || []) as ExportMember[];
-    page.forEach((member) => rows.push(toExchangeRow(member, rows.length + 2)));
+    page.forEach((member) =>
+      rows.push(
+        toExchangeRow(
+          member,
+          activeCardByMemberId.get(member.id) || "",
+          rows.length + 2
+        )
+      )
+    );
     if (page.length < PAGE_SIZE) break;
   }
 
@@ -97,10 +138,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Keep the approved exchange contract explicit here as well as in the
-    // shared writers. This prevents the export route drifting to a private
-    // admin-only column layout in future.
-    if (MEMBER_EXCHANGE_HEADERS.length !== 16) {
+    if (
+      MEMBER_EXCHANGE_HEADERS.length !== 16 ||
+      MEMBER_EXCHANGE_HEADERS[0] !== "CardBarcode"
+    ) {
       throw new Error("Unexpected membership exchange contract.");
     }
 

@@ -10,16 +10,13 @@ import {
 } from "@/lib/memberExchangeCore";
 import { parseMemberExchangeCsv } from "@/lib/memberExchangeCsv";
 import { parseMemberExchangeXlsx } from "@/lib/memberExchangeWorkbook";
+import { normalizeBarcodePayload } from "@/lib/memberCardCredentialCore";
 import {
   classifyMemberImportRow,
   type ExistingMemberForMatch,
   type IncomingMemberForMatch,
   type MemberImportAction,
 } from "@/lib/memberImportMatchCore";
-import {
-  normalizeMembershipNumber,
-  parseMembershipNumber,
-} from "@/lib/memberNumberCore";
 
 const PAGE_SIZE = 1000;
 const STAGING_CHUNK_SIZE = 500;
@@ -27,7 +24,7 @@ const STAGING_CHUNK_SIZE = 500;
 export type MemberImportIssuePreview = {
   rowNumber: number;
   action: "conflict" | "invalid";
-  membershipNumber: string;
+  cardBarcode: string;
   customerName: string;
   gym: string;
   pkCustomer: string;
@@ -45,12 +42,13 @@ export type MemberImportPreviewResult = {
   unchangedRows: number;
   conflictRows: number;
   invalidRows: number;
+  cardRows: number;
+  blankCardRows: number;
   issues: MemberImportIssuePreview[];
 };
 
 type ExistingMemberDbRow = {
   id: string;
-  member_number: string | null;
   full_name: string | null;
   email: string | null;
   legacy_gym: string | null;
@@ -68,10 +66,16 @@ type ExistingMemberDbRow = {
   status: string | null;
 };
 
+type ExistingCardCredentialDbRow = {
+  barcode_value: string;
+  member_id: string | null;
+  status: "reserved" | "active" | "retired";
+};
+
 type StagedImportRow = {
   batch_id: string;
   row_number: number;
-  membership_number: string | null;
+  card_barcode: string | null;
   gym: string | null;
   pk_customer: string | null;
   customer_name: string | null;
@@ -116,10 +120,13 @@ function fingerprint(row: ParsedMemberExchangeRow) {
   return createHash("sha256").update(JSON.stringify(orderedValues)).digest("hex");
 }
 
-function dbMemberToMatch(row: ExistingMemberDbRow): ExistingMemberForMatch {
+function dbMemberToMatch(
+  row: ExistingMemberDbRow,
+  activeCardByMemberId: Map<string, string>
+): ExistingMemberForMatch {
   return {
     id: row.id,
-    memberNumber: row.member_number,
+    cardBarcode: activeCardByMemberId.get(row.id) || null,
     legacyGym: row.legacy_gym,
     legacyPkCustomer: row.legacy_pk_customer,
     fullName: row.full_name,
@@ -141,7 +148,7 @@ function dbMemberToMatch(row: ExistingMemberDbRow): ExistingMemberForMatch {
 function incomingFromRow(row: ParsedMemberExchangeRow): IncomingMemberForMatch {
   const values = row.values;
   return {
-    membershipNumber: normalizeMembershipNumber(values.MembershipNumber),
+    cardBarcode: normalizeBarcodePayload(values.CardBarcode),
     gym: values.Gym,
     pkCustomer: values.pkCustomer,
     customerName: values.CustomerName,
@@ -186,7 +193,7 @@ async function loadExistingMembers(supabase: SupabaseClient) {
     const result = await supabase
       .from("bgm_members")
       .select(
-        "id, member_number, full_name, email, legacy_gym, legacy_pk_customer, company_name, address_line_1, address_line_2, town, postcode, gender, telephone_no_1, telephone_no_2, mobile, membership_expiry, status"
+        "id, full_name, email, legacy_gym, legacy_pk_customer, company_name, address_line_1, address_line_2, town, postcode, gender, telephone_no_1, telephone_no_2, mobile, membership_expiry, status"
       )
       .order("id", { ascending: true })
       .range(from, from + PAGE_SIZE - 1);
@@ -200,17 +207,50 @@ async function loadExistingMembers(supabase: SupabaseClient) {
   return rows;
 }
 
-function createMemberIndexes(existing: ExistingMemberDbRow[]) {
-  const byNumber = new Map<string, ExistingMemberForMatch[]>();
+async function loadExistingCardCredentials(supabase: SupabaseClient) {
+  const rows: ExistingCardCredentialDbRow[] = [];
+
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const result = await supabase
+      .from("bgm_member_card_credentials")
+      .select("barcode_value, member_id, status")
+      .order("id", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (result.error) throw result.error;
+    const page = (result.data || []) as ExistingCardCredentialDbRow[];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+  }
+
+  return rows;
+}
+
+function createMemberIndexes(
+  existing: ExistingMemberDbRow[],
+  credentials: ExistingCardCredentialDbRow[]
+) {
+  const byCardBarcode = new Map<string, ExistingMemberForMatch[]>();
   const byLegacy = new Map<string, ExistingMemberForMatch[]>();
+  const occupiedBarcodes = new Set<string>();
+  const activeCardByMemberId = new Map<string, string>();
+
+  for (const credential of credentials) {
+    const barcode = normalizeBarcodePayload(credential.barcode_value);
+    if (!barcode) continue;
+    occupiedBarcodes.add(barcode);
+    if (credential.status === "active" && credential.member_id) {
+      activeCardByMemberId.set(credential.member_id, barcode);
+    }
+  }
 
   for (const raw of existing) {
-    const member = dbMemberToMatch(raw);
-    const number = normalizeMembershipNumber(member.memberNumber);
-    if (number) {
-      const list = byNumber.get(number) || [];
+    const member = dbMemberToMatch(raw, activeCardByMemberId);
+    const cardBarcode = clean(member.cardBarcode);
+    if (cardBarcode) {
+      const list = byCardBarcode.get(cardBarcode) || [];
       list.push(member);
-      byNumber.set(number, list);
+      byCardBarcode.set(cardBarcode, list);
     }
 
     const key = legacyKey(member.legacyGym, member.legacyPkCustomer);
@@ -221,7 +261,7 @@ function createMemberIndexes(existing: ExistingMemberDbRow[]) {
     }
   }
 
-  return { byNumber, byLegacy };
+  return { byCardBarcode, byLegacy, occupiedBarcodes };
 }
 
 function fileFormulaIssue(row: ParsedMemberExchangeRow) {
@@ -236,11 +276,11 @@ function classifyRows(
   batchId: string,
   indexes: ReturnType<typeof createMemberIndexes>
 ) {
-  const explicitNumberCounts = new Map<string, number>();
+  const explicitCardCounts = new Map<string, number>();
   for (const row of parsed.rows) {
-    const number = normalizeMembershipNumber(row.values.MembershipNumber);
-    if (number) {
-      explicitNumberCounts.set(number, (explicitNumberCounts.get(number) || 0) + 1);
+    const barcode = normalizeBarcodePayload(row.values.CardBarcode);
+    if (barcode) {
+      explicitCardCounts.set(barcode, (explicitCardCounts.get(barcode) || 0) + 1);
     }
   }
 
@@ -253,34 +293,39 @@ function classifyRows(
     conflict: 0,
     invalid: 0,
   };
+  let cardRows = 0;
+  let blankCardRows = 0;
 
   for (const row of parsed.rows) {
     const values = row.values;
-    const normalizedNumber = normalizeMembershipNumber(values.MembershipNumber);
+    const cardBarcode = normalizeBarcodePayload(values.CardBarcode);
     const incoming = incomingFromRow(row);
     let action: MemberImportAction;
     let matchedMemberId: string | null = null;
     let issue = fileFormulaIssue(row);
 
+    if (cardBarcode) cardRows += 1;
+    else blankCardRows += 1;
+
     if (issue) {
       action = "invalid";
     } else if (
-      parsed.mode === "exchange_16" &&
-      normalizedNumber &&
-      parseMembershipNumber(normalizedNumber) === null
-    ) {
-      action = "invalid";
-      issue = "MembershipNumber must be BGM followed by exactly seven digits.";
-    } else if (
-      normalizedNumber &&
-      (explicitNumberCounts.get(normalizedNumber) || 0) > 1
+      cardBarcode &&
+      (explicitCardCounts.get(cardBarcode) || 0) > 1
     ) {
       action = "conflict";
-      issue = `MembershipNumber ${normalizedNumber} appears more than once in this upload.`;
+      issue = `CardBarcode ${cardBarcode} appears more than once in this upload.`;
+    } else if (
+      cardBarcode &&
+      indexes.occupiedBarcodes.has(cardBarcode) &&
+      (indexes.byCardBarcode.get(cardBarcode) || []).length === 0
+    ) {
+      action = "conflict";
+      issue = `CardBarcode ${cardBarcode} has already been issued or reserved and cannot be reassigned.`;
     } else {
       const classification = classifyMemberImportRow({
         incoming,
-        byMembershipNumber: indexes.byNumber.get(normalizedNumber) || [],
+        byCardBarcode: indexes.byCardBarcode.get(cardBarcode) || [],
         legacyCandidates:
           indexes.byLegacy.get(legacyKey(values.Gym, values.pkCustomer)) || [],
       });
@@ -294,7 +339,7 @@ function classifyRows(
     const stagedRow: StagedImportRow = {
       batch_id: batchId,
       row_number: row.rowNumber,
-      membership_number: nullable(normalizedNumber),
+      card_barcode: nullable(cardBarcode),
       gym: nullable(values.Gym),
       pk_customer: nullable(values.pkCustomer),
       customer_name: nullable(values.CustomerName),
@@ -321,7 +366,7 @@ function classifyRows(
       issues.push({
         rowNumber: row.rowNumber,
         action,
-        membershipNumber: normalizedNumber,
+        cardBarcode,
         customerName: clean(values.CustomerName) || clean(values.CompanyName),
         gym: clean(values.Gym),
         pkCustomer: clean(values.pkCustomer),
@@ -330,7 +375,7 @@ function classifyRows(
     }
   }
 
-  return { staged, issues, counts };
+  return { staged, issues, counts, cardRows, blankCardRows };
 }
 
 async function insertStagingRows(
@@ -376,8 +421,15 @@ export async function previewMemberImport({
   const batchId = String(batchResult.data.id);
 
   try {
-    const existing = await loadExistingMembers(supabase);
-    const classified = classifyRows(parsed, batchId, createMemberIndexes(existing));
+    const [existing, credentials] = await Promise.all([
+      loadExistingMembers(supabase),
+      loadExistingCardCredentials(supabase),
+    ]);
+    const classified = classifyRows(
+      parsed,
+      batchId,
+      createMemberIndexes(existing, credentials)
+    );
     await insertStagingRows(supabase, classified.staged);
 
     const updateResult = await supabase
@@ -403,6 +455,8 @@ export async function previewMemberImport({
       unchangedRows: classified.counts.unchanged,
       conflictRows: classified.counts.conflict,
       invalidRows: classified.counts.invalid,
+      cardRows: classified.cardRows,
+      blankCardRows: classified.blankCardRows,
       issues: classified.issues,
     };
   } catch (error) {

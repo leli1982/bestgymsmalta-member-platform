@@ -6,7 +6,7 @@ import { Download, FileSpreadsheet, RefreshCw, Upload } from "lucide-react";
 type PreviewIssue = {
   rowNumber: number;
   action: "conflict" | "invalid";
-  membershipNumber: string;
+  cardBarcode: string;
   customerName: string;
   gym: string;
   pkCustomer: string;
@@ -24,6 +24,8 @@ type ImportPreview = {
   unchangedRows: number;
   conflictRows: number;
   invalidRows: number;
+  cardRows: number;
+  blankCardRows: number;
   issues: PreviewIssue[];
 };
 
@@ -34,9 +36,8 @@ type ApplyResult = {
   newRows?: number;
   updateRows?: number;
   unchangedRows?: number;
-  generatedCount?: number;
-  firstGenerated?: string | null;
-  lastGenerated?: string | null;
+  linkedCardCount?: number;
+  blankCardRows?: number;
 };
 
 export default function MembershipDataAdmin({
@@ -112,7 +113,7 @@ export default function MembershipDataAdmin({
 
       setApplied(data);
       setMessage(
-        `Import applied. ${data.newRows || 0} new, ${data.updateRows || 0} updated, ${data.unchangedRows || 0} unchanged.`
+        `Import applied. ${data.newRows || 0} new, ${data.updateRows || 0} updated, ${data.unchangedRows || 0} unchanged, ${data.linkedCardCount || 0} card${data.linkedCardCount === 1 ? "" : "s"} newly linked.`
       );
       await onApplied?.();
     } catch (err) {
@@ -178,7 +179,7 @@ export default function MembershipDataAdmin({
           </button>
         </div>
         <p className="mt-3 text-xs font-bold text-white/40">
-          Accepted formats: the original 15-column legacy XLSX/CSV or the BGM 16-column exchange format with MembershipNumber first.
+          Accepted formats: the original 15-column legacy XLSX/CSV or the BGM 16-column exchange format with CardBarcode first. CardBarcode is optional; blank means no physical card will be linked by this import.
         </p>
       </div>
 
@@ -213,18 +214,20 @@ export default function MembershipDataAdmin({
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-9">
             <SummaryCard label="Rows" value={preview.totalRows} />
             <SummaryCard label="New" value={preview.newRows} />
             <SummaryCard label="Updates" value={preview.updateRows} />
             <SummaryCard label="Unchanged" value={preview.unchangedRows} />
+            <SummaryCard label="With card" value={preview.cardRows} />
+            <SummaryCard label="No card" value={preview.blankCardRows} />
             <SummaryCard label="Conflicts" value={preview.conflictRows} danger={preview.conflictRows > 0} />
             <SummaryCard label="Invalid" value={preview.invalidRows} danger={preview.invalidRows > 0} />
             <SummaryCard label="Deletions" value={0} />
           </div>
 
           <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-xs font-bold leading-5 text-emerald-100/80">
-            This import is non-destructive. Members omitted from the uploaded file are not deleted or archived.
+            This import is non-destructive. Members omitted from the uploaded file are not deleted or archived. A different active card is never replaced by import; it is flagged for review instead.
           </div>
 
           {preview.issues.length > 0 && (
@@ -238,7 +241,7 @@ export default function MembershipDataAdmin({
                     <tr>
                       <th className="px-3 py-2">Row</th>
                       <th className="px-3 py-2">Type</th>
-                      <th className="px-3 py-2">Membership</th>
+                      <th className="px-3 py-2">Card barcode</th>
                       <th className="px-3 py-2">Member</th>
                       <th className="px-3 py-2">Gym / PK</th>
                       <th className="px-3 py-2">Reason</th>
@@ -249,7 +252,7 @@ export default function MembershipDataAdmin({
                       <tr key={`${issue.rowNumber}-${issue.action}`} className="border-t border-white/5 bg-black/20 align-top text-white/70">
                         <td className="px-3 py-3 font-black">{issue.rowNumber}</td>
                         <td className="px-3 py-3 font-black uppercase text-red-300">{issue.action}</td>
-                        <td className="px-3 py-3">{issue.membershipNumber || "—"}</td>
+                        <td className="px-3 py-3">{issue.cardBarcode || "—"}</td>
                         <td className="px-3 py-3">{issue.customerName || "—"}</td>
                         <td className="px-3 py-3">{issue.gym || "—"}{issue.pkCustomer ? ` · ${issue.pkCustomer}` : ""}</td>
                         <td className="px-3 py-3">{issue.issue}</td>
@@ -258,14 +261,6 @@ export default function MembershipDataAdmin({
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
-
-          {applied && (applied.generatedCount || 0) > 0 && (
-            <div className="rounded-2xl border border-[#fcb415]/25 bg-[#fcb415]/10 p-4 text-sm font-bold text-[#ffe3a0]">
-              Generated {applied.generatedCount} permanent membership number{applied.generatedCount === 1 ? "" : "s"}
-              {applied.firstGenerated ? ` from ${applied.firstGenerated}` : ""}
-              {applied.lastGenerated && applied.lastGenerated !== applied.firstGenerated ? ` to ${applied.lastGenerated}` : ""}.
             </div>
           )}
         </div>

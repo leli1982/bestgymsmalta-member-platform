@@ -30,8 +30,9 @@ export async function POST(request: NextRequest) {
         message.includes("unresolved") ||
         message.includes("not awaiting apply") ||
         message.includes("not found") ||
-        message.includes("already owned") ||
-        message.includes("Invalid permanent membership number");
+        message.includes("CardBarcode") ||
+        message.includes("different active card") ||
+        message.includes("already issued or reserved");
 
       return NextResponse.json(
         {

@@ -14,3 +14,10 @@ test("membership export supports XLSX and CSV exchange formats", () => {
   assert.match(source, /members\.export/);
   assert.doesNotMatch(source, /memberNumber,fullName,email,phone,status/);
 });
+
+test("membership export writes optional CardBarcode from active credentials", () => {
+  assert.match(source, /CardBarcode/);
+  assert.match(source, /bgm_member_card_credentials/);
+  assert.match(source, /status.*active/s);
+  assert.doesNotMatch(source, /values\.MembershipNumber/);
+});

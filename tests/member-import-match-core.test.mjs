@@ -2,40 +2,59 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { classifyMemberImportRow } from "../lib/memberImportMatchCore.ts";
 
-test("explicit permanent number wins when it belongs to that member", () => {
+test("active card wins when it belongs to that member", () => {
   const result = classifyMemberImportRow({
-    incoming: { membershipNumber: "BGM0000042", gym: "QROQQ", pkCustomer: "12", customerName: "John Borg", email: "john@example.com" },
-    byMembershipNumber: [{ id: "m1", memberNumber: "BGM0000042", legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "john@example.com" }],
+    incoming: { cardBarcode: "0012345", gym: "QROQQ", pkCustomer: "12", customerName: "John Borg", email: "john@example.com" },
+    byCardBarcode: [{ id: "m1", cardBarcode: "0012345", legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "john@example.com" }],
     legacyCandidates: [],
   });
   assert.equal(result.action, "update");
   assert.equal(result.matchedMemberId, "m1");
 });
 
-test("explicit number attached to materially different person is conflict", () => {
+test("card attached to materially different person is conflict", () => {
   const result = classifyMemberImportRow({
-    incoming: { membershipNumber: "BGM0000042", gym: "Marsa", pkCustomer: "999", customerName: "Mary Vella", email: "mary@example.com" },
-    byMembershipNumber: [{ id: "m1", memberNumber: "BGM0000042", legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "john@example.com" }],
+    incoming: { cardBarcode: "0012345", gym: "Marsa", pkCustomer: "999", customerName: "Mary Vella", email: "mary@example.com" },
+    byCardBarcode: [{ id: "m1", cardBarcode: "0012345", legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "john@example.com" }],
     legacyCandidates: [],
   });
   assert.equal(result.action, "conflict");
 });
 
-test("a new explicit number cannot be assigned to a known legacy member", () => {
+test("unused incoming card can be linked to a known legacy member without a card", () => {
   const result = classifyMemberImportRow({
-    incoming: { membershipNumber: "BGM0000999", gym: "QROQQ", pkCustomer: "12", customerName: "John Borg", email: "john@example.com" },
-    byMembershipNumber: [],
-    legacyCandidates: [{ id: "m1", memberNumber: "BGM0000042", legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "john@example.com" }],
+    incoming: { cardBarcode: "0099999", gym: "QROQQ", pkCustomer: "12", customerName: "John Borg", email: "john@example.com" },
+    byCardBarcode: [],
+    legacyCandidates: [{ id: "m1", cardBarcode: null, legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "john@example.com" }],
+  });
+  assert.equal(result.action, "update");
+  assert.equal(result.matchedMemberId, "m1");
+});
+
+test("unused incoming card cannot silently replace a known member active card", () => {
+  const result = classifyMemberImportRow({
+    incoming: { cardBarcode: "0099999", gym: "QROQQ", pkCustomer: "12", customerName: "John Borg", email: "john@example.com" },
+    byCardBarcode: [],
+    legacyCandidates: [{ id: "m1", cardBarcode: "0012345", legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "john@example.com" }],
   });
   assert.equal(result.action, "conflict");
   assert.equal(result.matchedMemberId, "m1");
 });
 
-test("blank number with one strong legacy match keeps existing member", () => {
+test("card owner and conflicting legacy owner is conflict", () => {
   const result = classifyMemberImportRow({
-    incoming: { membershipNumber: "", gym: "QROQQ", pkCustomer: "12", customerName: "John Borg", email: "john@example.com" },
-    byMembershipNumber: [],
-    legacyCandidates: [{ id: "m1", memberNumber: "BGM0000042", legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "john@example.com" }],
+    incoming: { cardBarcode: "0012345", gym: "QROQQ", pkCustomer: "12", customerName: "John Borg", email: "john@example.com" },
+    byCardBarcode: [{ id: "m2", cardBarcode: "0012345", legacyGym: "Marsa", legacyPkCustomer: "1", fullName: "Other Person", email: "other@example.com" }],
+    legacyCandidates: [{ id: "m1", cardBarcode: null, legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "john@example.com" }],
+  });
+  assert.equal(result.action, "conflict");
+});
+
+test("blank card with one strong legacy match keeps existing member", () => {
+  const result = classifyMemberImportRow({
+    incoming: { cardBarcode: "", gym: "QROQQ", pkCustomer: "12", customerName: "John Borg", email: "john@example.com" },
+    byCardBarcode: [],
+    legacyCandidates: [{ id: "m1", cardBarcode: "0012345", legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "john@example.com" }],
   });
   assert.equal(result.action, "update");
   assert.equal(result.matchedMemberId, "m1");
@@ -43,11 +62,11 @@ test("blank number with one strong legacy match keeps existing member", () => {
 
 test("ambiguous duplicate legacy key is conflict rather than guessed", () => {
   const result = classifyMemberImportRow({
-    incoming: { membershipNumber: "", gym: "QROQQ", pkCustomer: "12", customerName: "John Borg", email: "" },
-    byMembershipNumber: [],
+    incoming: { cardBarcode: "", gym: "QROQQ", pkCustomer: "12", customerName: "John Borg", email: "" },
+    byCardBarcode: [],
     legacyCandidates: [
-      { id: "m1", memberNumber: "BGM0000042", legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "" },
-      { id: "m2", memberNumber: "BGM0000043", legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "" },
+      { id: "m1", cardBarcode: null, legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "" },
+      { id: "m2", cardBarcode: null, legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "" },
     ],
   });
   assert.equal(result.action, "conflict");
@@ -55,21 +74,21 @@ test("ambiguous duplicate legacy key is conflict rather than guessed", () => {
 
 test("duplicate legacy key can be reduced by exact nonblank email", () => {
   const result = classifyMemberImportRow({
-    incoming: { membershipNumber: "", gym: "QROQQ", pkCustomer: "12", customerName: "John Borg", email: "john@example.com" },
-    byMembershipNumber: [],
+    incoming: { cardBarcode: "", gym: "QROQQ", pkCustomer: "12", customerName: "John Borg", email: "john@example.com" },
+    byCardBarcode: [],
     legacyCandidates: [
-      { id: "m1", memberNumber: "BGM0000042", legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "john@example.com" },
-      { id: "m2", memberNumber: "BGM0000043", legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "other@example.com" },
+      { id: "m1", cardBarcode: null, legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "john@example.com" },
+      { id: "m2", cardBarcode: null, legacyGym: "QROQQ", legacyPkCustomer: "12", fullName: "John Borg", email: "other@example.com" },
     ],
   });
   assert.equal(result.action, "update");
   assert.equal(result.matchedMemberId, "m1");
 });
 
-test("no permanent or legacy match is new", () => {
+test("no card or legacy match is new", () => {
   const result = classifyMemberImportRow({
-    incoming: { membershipNumber: "", gym: "Marsa", pkCustomer: "500", customerName: "New Person", email: "" },
-    byMembershipNumber: [],
+    incoming: { cardBarcode: "", gym: "Marsa", pkCustomer: "500", customerName: "New Person", email: "" },
+    byCardBarcode: [],
     legacyCandidates: [],
   });
   assert.equal(result.action, "new");
@@ -78,15 +97,15 @@ test("no permanent or legacy match is new", () => {
 
 test("blank name and company is invalid rather than fabricated", () => {
   const result = classifyMemberImportRow({
-    incoming: { membershipNumber: "", gym: "Marsa", pkCustomer: "500", customerName: "", companyName: "", email: "" },
-    byMembershipNumber: [],
+    incoming: { cardBarcode: "", gym: "Marsa", pkCustomer: "500", customerName: "", companyName: "", email: "" },
+    byCardBarcode: [],
     legacyCandidates: [],
   });
   assert.equal(result.action, "invalid");
 });
 
 const completeIncoming = {
-  membershipNumber: "BGM0000042",
+  cardBarcode: "0012345",
   gym: "QROQQ",
   pkCustomer: "12",
   customerName: "John Borg",
@@ -106,7 +125,7 @@ const completeIncoming = {
 
 const completeExisting = {
   id: "m1",
-  memberNumber: "BGM0000042",
+  cardBarcode: "0012345",
   legacyGym: "QROQQ",
   legacyPkCustomer: "12",
   fullName: "John Borg",
@@ -124,10 +143,10 @@ const completeExisting = {
   status: "active",
 };
 
-test("unchanged requires all imported fields to match", () => {
+test("unchanged requires all imported profile fields and current card to match", () => {
   const result = classifyMemberImportRow({
     incoming: completeIncoming,
-    byMembershipNumber: [completeExisting],
+    byCardBarcode: [completeExisting],
     legacyCandidates: [],
   });
   assert.equal(result.action, "unchanged");
@@ -137,7 +156,7 @@ test("unchanged requires all imported fields to match", () => {
 test("profile changes such as address are classified as update", () => {
   const result = classifyMemberImportRow({
     incoming: { ...completeIncoming, address1: "2 New Street" },
-    byMembershipNumber: [completeExisting],
+    byCardBarcode: [completeExisting],
     legacyCandidates: [],
   });
   assert.equal(result.action, "update");

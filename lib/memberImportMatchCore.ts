@@ -6,7 +6,7 @@ export type MemberImportAction =
   | "invalid";
 
 export type IncomingMemberForMatch = {
-  membershipNumber?: string | null;
+  cardBarcode?: string | null;
   gym?: string | null;
   pkCustomer?: string | null;
   customerName?: string | null;
@@ -26,7 +26,7 @@ export type IncomingMemberForMatch = {
 
 export type ExistingMemberForMatch = {
   id: string;
-  memberNumber?: string | null;
+  cardBarcode?: string | null;
   legacyGym?: string | null;
   legacyPkCustomer?: string | null;
   fullName?: string | null;
@@ -168,6 +168,21 @@ function classifyMatched(
     };
   }
 
+  const incomingCard = clean(incoming.cardBarcode);
+  const existingCard = clean(existing.cardBarcode);
+  if (incomingCard && existingCard && incomingCard !== existingCard) {
+    return {
+      action: "conflict",
+      matchedMemberId: existing.id,
+      issue:
+        "This member already has a different active card. Card replacement must be completed through the staff replacement workflow.",
+    };
+  }
+
+  if (incomingCard && !existingCard) {
+    return { action: "update", matchedMemberId: existing.id, issue: "" };
+  }
+
   return {
     action: allImportedValuesMatch(incoming, existing) ? "unchanged" : "update",
     matchedMemberId: existing.id,
@@ -213,11 +228,11 @@ function chooseLegacyCandidate(
 
 export function classifyMemberImportRow({
   incoming,
-  byMembershipNumber,
+  byCardBarcode,
   legacyCandidates,
 }: {
   incoming: IncomingMemberForMatch;
-  byMembershipNumber: ExistingMemberForMatch[];
+  byCardBarcode: ExistingMemberForMatch[];
   legacyCandidates: ExistingMemberForMatch[];
 }): MemberImportClassification {
   if (!incomingName(incoming)) {
@@ -228,29 +243,51 @@ export function classifyMemberImportRow({
     };
   }
 
-  const membershipNumber = clean(incoming.membershipNumber).toUpperCase();
-  if (membershipNumber) {
-    if (byMembershipNumber.length > 1) {
+  const cardBarcode = clean(incoming.cardBarcode);
+  if (cardBarcode) {
+    if (byCardBarcode.length > 1) {
       return {
         action: "conflict",
         matchedMemberId: null,
-        issue: "More than one existing member matched the permanent membership number.",
+        issue: "More than one member matched this card barcode. Review before importing.",
       };
     }
 
-    if (byMembershipNumber.length === 1) {
-      return classifyMatched(incoming, byMembershipNumber[0]);
+    if (byCardBarcode.length === 1) {
+      const cardOwner = byCardBarcode[0];
+      if (legacyCandidates.length > 0) {
+        const legacyCandidate = chooseLegacyCandidate(incoming, legacyCandidates);
+        if (legacyCandidate === undefined) {
+          return {
+            action: "conflict",
+            matchedMemberId: null,
+            issue:
+              "The legacy reference is ambiguous and cannot safely confirm the owner of this card.",
+          };
+        }
+        if (legacyCandidate && legacyCandidate.id !== cardOwner.id) {
+          return {
+            action: "conflict",
+            matchedMemberId: cardOwner.id,
+            issue:
+              "This card is already linked to a different member than the legacy reference. Review before importing.",
+          };
+        }
+      }
+      return classifyMatched(incoming, cardOwner);
     }
 
     if (legacyCandidates.length > 0) {
       const legacyCandidate = chooseLegacyCandidate(incoming, legacyCandidates);
-      return {
-        action: "conflict",
-        matchedMemberId:
-          legacyCandidate && legacyCandidate !== undefined ? legacyCandidate.id : null,
-        issue:
-          "This legacy gym and pkCustomer reference already exists under another BGM membership number. Review rather than assigning a second permanent number.",
-      };
+      if (legacyCandidate === undefined) {
+        return {
+          action: "conflict",
+          matchedMemberId: null,
+          issue:
+            "The legacy gym and pkCustomer reference matches multiple members and the supporting details do not identify exactly one person.",
+        };
+      }
+      if (legacyCandidate) return classifyMatched(incoming, legacyCandidate);
     }
 
     return { action: "new", matchedMemberId: null, issue: "" };
