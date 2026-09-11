@@ -3,7 +3,7 @@ import SocialHome from "@/components/home/SocialHome";
 
 export default function HomePage() {
   return (
-    <AppShell>
+    <AppShell navVariant="light">
       <SocialHome />
     </AppShell>
   );
