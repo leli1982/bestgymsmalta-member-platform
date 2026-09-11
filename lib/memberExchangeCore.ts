@@ -17,7 +17,7 @@ export const LEGACY_MEMBER_HEADERS = [
 ] as const;
 
 export const MEMBER_EXCHANGE_HEADERS = [
-  "MembershipNumber",
+  "CardBarcode",
   ...LEGACY_MEMBER_HEADERS,
 ] as const;
 
