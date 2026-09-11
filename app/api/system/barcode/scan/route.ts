@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { evaluateBarcodeAccess } from "@/lib/barcodeAccessCore";
 import { recordCanonicalCheckin } from "@/lib/checkinService";
-import {
-  normalizeMembershipNumber,
-  parseMembershipNumber,
-} from "@/lib/memberNumberCore";
+import { normalizeBarcodePayload } from "@/lib/memberCardCredentialCore";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
 
 export const dynamic = "force-dynamic";
 
 function clean(value: unknown) {
-  return String(value || "").trim();
+  return String(value ?? "").trim();
 }
 
 function todayString() {
@@ -24,8 +21,8 @@ export async function POST(request: NextRequest) {
     if (auth.error || !auth.context) return auth.error;
 
     const body = await request.json();
-    const rawMembershipNumber = clean(body.membershipNumber);
-    const membershipNumber = normalizeMembershipNumber(rawMembershipNumber);
+    const rawMembershipNumber = clean(body.barcode ?? body.membershipNumber);
+    const membershipNumber = normalizeBarcodePayload(rawMembershipNumber);
     const deviceId = clean(body.deviceId);
     const requestedGymId = clean(body.gymId);
     const gymId = auth.context.gymId || requestedGymId;
@@ -52,33 +49,79 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const validBarcode = parseMembershipNumber(membershipNumber) !== null;
     let member: any = null;
+    let card: any = null;
 
-    if (validBarcode) {
-      const memberResult = await supabase
-        .from("bgm_members")
-        .select(
-          "id, member_number, full_name, status, membership_expiry, enrollment_gym_id, official_photo_path"
-        )
-        .eq("member_number", membershipNumber)
+    if (membershipNumber) {
+      const cardResult = await supabase
+        .from("bgm_member_card_credentials")
+        .select("id, barcode_value, member_id, status")
+        .eq("barcode_value", membershipNumber)
         .maybeSingle();
+      if (cardResult.error) throw cardResult.error;
+      card = cardResult.data;
 
-      if (memberResult.error) throw memberResult.error;
-      member = memberResult.data;
+      if (card?.member_id) {
+        const memberResult = await supabase
+          .from("bgm_members")
+          .select(
+            "id, member_number, full_name, status, membership_expiry, enrollment_gym_id, official_photo_path"
+          )
+          .eq("id", card.member_id)
+          .maybeSingle();
+        if (memberResult.error) throw memberResult.error;
+        member = memberResult.data;
+      } else if (!card) {
+        // Transitional fallback for migrated members whose current issued card is
+        // still mirrored only in member_number. Never guess if the mirror is ambiguous.
+        const compatibilityResult = await supabase
+          .from("bgm_members")
+          .select(
+            "id, member_number, full_name, status, membership_expiry, enrollment_gym_id, official_photo_path"
+          )
+          .eq("member_number", membershipNumber)
+          .limit(2);
+        if (compatibilityResult.error) throw compatibilityResult.error;
+        if ((compatibilityResult.data || []).length === 1) {
+          member = compatibilityResult.data?.[0] || null;
+        }
+      }
     }
 
-    const decision = validBarcode
-      ? evaluateBarcodeAccess({
-          member: member
-            ? {
-                status: member.status,
-                membershipExpiry: member.membership_expiry,
-              }
-            : null,
-          today: todayString(),
-        })
-      : { result: "invalid_barcode" as const, granted: false };
+    let decision: {
+      result:
+        | "granted"
+        | "expired"
+        | "inactive"
+        | "unknown_member"
+        | "unknown_card"
+        | "disabled_card"
+        | "invalid_barcode"
+        | "photo_required";
+      granted: boolean;
+    };
+
+    if (!membershipNumber) {
+      decision = { result: "invalid_barcode", granted: false };
+    } else if (card && card.status !== "active") {
+      decision = { result: "disabled_card", granted: false };
+    } else if (!member) {
+      decision = { result: "unknown_card", granted: false };
+    } else {
+      const membershipDecision = evaluateBarcodeAccess({
+        member: {
+          status: member.status,
+          membershipExpiry: member.membership_expiry,
+        },
+        today: todayString(),
+      });
+
+      if (membershipDecision.granted && !member.official_photo_path) {
+        decision = { result: "photo_required", granted: false };
+      } else {
+        decision = membershipDecision;
+      }
+    }
 
     let checkinId: string | null = null;
     let duplicate = false;
@@ -100,7 +143,7 @@ export async function POST(request: NextRequest) {
         card_id: null,
         card_uid: null,
         credential_type: "barcode",
-        credential_value: membershipNumber,
+        credential_value: membershipNumber || credentialValue,
         member_id: member?.id || null,
         gym_id: gymId,
         system_user_id: auth.context.systemUserId,
@@ -112,40 +155,7 @@ export async function POST(request: NextRequest) {
       .select("id, scanned_at")
       .single();
 
-    if (scanResult.error) {
-      // Keep a non-empty value available for malformed/blank input while retaining
-      // the exact normalized membership number for valid barcode scans.
-      if (!membershipNumber) {
-        const fallbackScan = await supabase
-          .from("bgm_access_scans")
-          .insert({
-            card_id: null,
-            card_uid: null,
-            credential_type: "barcode",
-            credential_value: credentialValue,
-            member_id: null,
-            gym_id: gymId,
-            system_user_id: auth.context.systemUserId,
-            device_id: deviceId || null,
-            result: decision.result,
-            membership_expiry_snapshot: null,
-            checkin_id: null,
-          })
-          .select("id, scanned_at")
-          .single();
-        if (fallbackScan.error) throw fallbackScan.error;
-        return NextResponse.json({
-          result: decision.result,
-          granted: false,
-          duplicate: false,
-          scanId: fallbackScan.data.id,
-          scannedAt: fallbackScan.data.scanned_at,
-          gym: { id: gymResult.data.id, name: gymResult.data.name },
-          member: null,
-        });
-      }
-      throw scanResult.error;
-    }
+    if (scanResult.error) throw scanResult.error;
 
     let enrollmentGymName = "";
     if (member?.enrollment_gym_id) {
@@ -159,23 +169,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const hasPhoto = Boolean(member?.official_photo_path);
+
     return NextResponse.json({
       result: decision.result,
       granted: decision.granted,
       duplicate,
       scanId: scanResult.data.id,
       scannedAt: scanResult.data.scanned_at,
+      scannedBarcode: membershipNumber || rawMembershipNumber,
+      cardStatus: card?.status || (member ? "legacy" : null),
       gym: { id: gymResult.data.id, name: gymResult.data.name },
       member: member
         ? {
             id: member.id,
-            memberNumber: member.member_number,
+            memberNumber: member.member_number || membershipNumber,
             fullName: member.full_name,
             status: member.status,
             membershipExpiry: member.membership_expiry,
             enrollmentGymId: member.enrollment_gym_id || null,
             enrollmentGymName,
-            officialPhotoPath: member.official_photo_path || null,
+            hasPhoto,
+            photoRequired: !hasPhoto,
+            photoUrl: hasPhoto
+              ? `/api/system/members/photo/${encodeURIComponent(member.id)}`
+              : null,
           }
         : null,
     });
