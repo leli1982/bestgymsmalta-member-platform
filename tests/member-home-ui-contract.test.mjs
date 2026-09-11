@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const root = new URL("..", import.meta.url).pathname;
@@ -10,6 +10,7 @@ const pagePath = join(root, "app/page.tsx");
 const shellPath = join(root, "components/ui/AppShell.tsx");
 const navPath = join(root, "components/BottomNav.tsx");
 const heroPath = join(root, "components/home/VisualHomeHero.tsx");
+const heroAssetPath = join(root, "public/visuals/home-hero-duo.jpg");
 const cardPath = join(root, "components/member/MemberCard.tsx");
 const closestGymPath = join(root, "components/home/ClosestGymCard.tsx");
 
@@ -33,6 +34,14 @@ test("approved hero keeps the exact BGM copy and duo artwork hook", () => {
   assert.match(hero, /Show Card/);
   assert.match(hero, /Find Gyms/);
   assert.match(hero, /\/visuals\/home-hero-duo\.jpg/);
+});
+
+test("approved duo hero asset is not a degraded thumbnail", () => {
+  assert.equal(existsSync(heroAssetPath), true, "duo hero artwork must exist");
+  assert.ok(
+    statSync(heroAssetPath).size > 50_000,
+    "duo hero artwork must retain enough source detail for a crisp mobile hero"
+  );
 });
 
 test("primary and secondary home tools use the approved 3 plus 4 tile layout", () => {
