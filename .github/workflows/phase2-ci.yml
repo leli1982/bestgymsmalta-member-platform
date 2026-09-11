@@ -1,9 +1,13 @@
 name: Phase 2 CI
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - phase-2-operations-nfc-redesign
+      - main
   workflow_dispatch:
 
 jobs:

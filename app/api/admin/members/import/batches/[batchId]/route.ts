@@ -30,7 +30,7 @@ export async function GET(
     const issueResult = await supabase
       .from("bgm_member_import_rows")
       .select(
-        "row_number, action, membership_number, customer_name, company_name, gym, pk_customer, issue"
+        "row_number, action, card_barcode, customer_name, company_name, gym, pk_customer, issue"
       )
       .eq("batch_id", batchId)
       .in("action", ["conflict", "invalid"])
@@ -58,7 +58,7 @@ export async function GET(
       issues: (issueResult.data || []).map((row) => ({
         rowNumber: row.row_number,
         action: row.action,
-        membershipNumber: row.membership_number || "",
+        cardBarcode: row.card_barcode || "",
         customerName: row.customer_name || row.company_name || "",
         gym: row.gym || "",
         pkCustomer: row.pk_customer || "",
