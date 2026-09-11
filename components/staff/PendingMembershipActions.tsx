@@ -10,11 +10,16 @@ type Participant = {
   hasPhoto: boolean;
   photoUrl: string | null;
   reservedBarcode: string | null;
+  currentBarcode: string | null;
+  cardVerified: boolean;
+  renewalCardAction: "keep" | "replace" | null;
+  scannedBarcode: string | null;
 };
 
 type Application = {
   id: string;
   reference: string;
+  kind: "new" | "renewal";
   membershipType: string;
   status: string;
   staffName: string;
@@ -46,37 +51,59 @@ export default function PendingMembershipActions() {
 
   useEffect(() => { void load(); }, []);
 
-  async function reserveCard(applicationMemberId: string) {
-    const barcode = (barcodes[applicationMemberId] || "").trim();
+  async function processCard(application: Application, participant: Participant) {
+    const barcode = (barcodes[participant.id] || "").trim();
     if (!barcode) {
-      setError("Scan the preprinted membership card first.");
+      setError(application.kind === "renewal" ? "Scan the membership card first." : "Scan the preprinted membership card first.");
       return;
     }
     setError("");
     setMessage("");
-    const response = await fetch("/api/system/members/card/assign", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ applicationMemberId, barcode }),
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      setError(data.error || "Could not reserve membership card.");
-      return;
+    try {
+      const response = await fetch("/api/system/members/card/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ applicationMemberId: participant.id, barcode }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error || "Could not process membership card.");
+        return;
+      }
+
+      if (data.verification) {
+        setMessage(
+          data.verification.renewalCardAction === "keep"
+            ? `Card ${data.verification.scannedBarcode} verified — current card will stay active.`
+            : `Card ${data.verification.scannedBarcode} reserved as the replacement card.`
+        );
+      } else {
+        setMessage(`Card ${data.reservation.barcodeValue} reserved.`);
+      }
+      setBarcodes((current) => ({ ...current, [participant.id]: "" }));
+      await load();
+    } catch {
+      setError("Could not process membership card.");
     }
-    setMessage(`Card ${data.reservation.barcodeValue} reserved.`);
-    setBarcodes((current) => ({ ...current, [applicationMemberId]: "" }));
-    await load();
+  }
+
+  function isReady(application: Application) {
+    return application.participants.every((participant) =>
+      participant.hasPhoto &&
+      (application.kind === "renewal" ? participant.cardVerified : Boolean(participant.reservedBarcode))
+    );
   }
 
   async function activateApplication(application: Application) {
     const activationStaffName = (activationStaffNames[application.id] || "").trim();
-    const readyToActivate = application.participants.every(
-      (participant) => participant.hasPhoto && Boolean(participant.reservedBarcode)
-    );
+    const readyToActivate = isReady(application);
 
     if (!readyToActivate) {
-      setError("Every participant needs an official photo and reserved membership card before activation.");
+      setError(
+        application.kind === "renewal"
+          ? "Every participant needs an official photo and verified membership card before activation."
+          : "Every participant needs an official photo and reserved membership card before activation."
+      );
       return;
     }
 
@@ -123,7 +150,7 @@ export default function PendingMembershipActions() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-700">Membership action required</p>
-          <h2 className="mt-1 text-xl font-black">NEW MEMBERSHIP READY — SCAN CARD</h2>
+          <h2 className="mt-1 text-xl font-black">MEMBERSHIP READY — CARD ACTION REQUIRED</h2>
         </div>
         <span className="rounded-full bg-orange-600 px-3 py-1 text-xs font-black text-white">{applications.length}</span>
       </div>
@@ -133,14 +160,19 @@ export default function PendingMembershipActions() {
 
       <div className="mt-4 space-y-3">
         {applications.map((application) => {
-          const readyToActivate = application.participants.every(
-            (participant) => participant.hasPhoto && Boolean(participant.reservedBarcode)
-          );
+          const renewal = application.kind === "renewal";
+          const readyToActivate = isReady(application);
 
           return (
             <div key={application.id} className="rounded-xl border border-orange-200 bg-white p-4">
               <button type="button" onClick={() => setOpenId(openId === application.id ? "" : application.id)} className="flex w-full items-center justify-between gap-4 text-left">
-                <div><p className="font-black">{application.reference}</p><p className="text-sm text-zinc-500">{application.participants.map((participant) => participant.fullName).join(" + ")}</p></div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wide text-orange-700">
+                    {renewal ? "RENEWAL READY — VERIFY CARD" : "NEW MEMBERSHIP READY — SCAN CARD"}
+                  </p>
+                  <p className="mt-1 font-black">{application.reference}</p>
+                  <p className="text-sm text-zinc-500">{application.participants.map((participant) => participant.fullName).join(" + ")}</p>
+                </div>
                 <span className="text-sm font-bold text-orange-700">{openId === application.id ? "Close" : "Open"}</span>
               </button>
 
@@ -149,10 +181,64 @@ export default function PendingMembershipActions() {
                   {application.participants.map((participant) => (
                     <div key={participant.id} className="rounded-xl border border-zinc-200 p-4">
                       <p className="font-black">{participant.fullName}</p>
-                      {participant.hasPhoto && participant.photoUrl ? <img src={participant.photoUrl} alt={`${participant.fullName} official photo`} className="mt-3 aspect-square w-32 rounded-xl object-cover" /> : <div className="mt-3"><OfficialMemberPhotoCapture applicationMemberId={participant.id} staffName={application.staffName} onSaved={() => void load()} /></div>}
-                      <div className="mt-4">
-                        {participant.reservedBarcode ? <div className="rounded-xl bg-green-50 p-3 text-sm font-bold text-green-700">Card reserved: {participant.reservedBarcode}</div> : <div className="flex gap-2"><input autoFocus inputMode="text" value={barcodes[participant.id] || ""} onChange={(event) => setBarcodes((current) => ({ ...current, [participant.id]: event.target.value }))} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void reserveCard(participant.id); } }} placeholder="Scan card barcode" className="min-w-0 flex-1 rounded-xl border border-zinc-300 px-3 py-2 font-mono" /><button type="button" onClick={() => void reserveCard(participant.id)} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-bold text-white">Reserve Card</button></div>}
-                      </div>
+                      {participant.hasPhoto && participant.photoUrl ? (
+                        <img src={participant.photoUrl} alt={`${participant.fullName} official photo`} className="mt-3 aspect-square w-32 rounded-xl object-cover" />
+                      ) : (
+                        <div className="mt-3">
+                          <OfficialMemberPhotoCapture
+                            applicationMemberId={participant.id}
+                            source={renewal ? "renewal" : undefined}
+                            staffName={application.staffName}
+                            onSaved={() => void load()}
+                          />
+                        </div>
+                      )}
+
+                      {renewal ? (
+                        <div className="mt-4 space-y-3">
+                          <div className="rounded-xl bg-zinc-50 p-3 text-sm">
+                            <p className="font-bold">Current card</p>
+                            <p className="mt-1 font-mono text-zinc-700">{participant.currentBarcode || "No active credential registered yet"}</p>
+                          </div>
+                          {participant.cardVerified && (
+                            <div className="rounded-xl bg-green-50 p-3 text-sm font-bold text-green-700">
+                              {participant.renewalCardAction === "keep"
+                                ? `Verified — keep ${participant.scannedBarcode}`
+                                : `Verified — replace with ${participant.reservedBarcode || participant.scannedBarcode}`}
+                            </div>
+                          )}
+                          <div className="flex gap-2">
+                            <input
+                              inputMode="text"
+                              value={barcodes[participant.id] || ""}
+                              onChange={(event) => setBarcodes((current) => ({ ...current, [participant.id]: event.target.value }))}
+                              onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void processCard(application, participant); } }}
+                              placeholder="SCAN MEMBERSHIP CARD"
+                              className="min-w-0 flex-1 rounded-xl border border-zinc-300 px-3 py-2 font-mono"
+                            />
+                            <button type="button" onClick={() => void processCard(application, participant)} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-bold text-white">Verify Card</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-4">
+                          {participant.reservedBarcode ? (
+                            <div className="rounded-xl bg-green-50 p-3 text-sm font-bold text-green-700">Card reserved: {participant.reservedBarcode}</div>
+                          ) : (
+                            <div className="flex gap-2">
+                              <input
+                                autoFocus
+                                inputMode="text"
+                                value={barcodes[participant.id] || ""}
+                                onChange={(event) => setBarcodes((current) => ({ ...current, [participant.id]: event.target.value }))}
+                                onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void processCard(application, participant); } }}
+                                placeholder="Scan card barcode"
+                                className="min-w-0 flex-1 rounded-xl border border-zinc-300 px-3 py-2 font-mono"
+                              />
+                              <button type="button" onClick={() => void processCard(application, participant)} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-bold text-white">Reserve Card</button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -164,19 +250,16 @@ export default function PendingMembershipActions() {
                     Activation Staff Name
                     <input
                       value={activationStaffNames[application.id] || ""}
-                      onChange={(event) =>
-                        setActivationStaffNames((current) => ({
-                          ...current,
-                          [application.id]: event.target.value,
-                        }))
-                      }
+                      onChange={(event) => setActivationStaffNames((current) => ({ ...current, [application.id]: event.target.value }))}
                       placeholder="Staff member receiving payment"
                       className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2"
                     />
                   </label>
                   {!readyToActivate && (
                     <p className="mt-3 text-sm font-semibold text-amber-700">
-                      Complete every official photo and card reservation before activation.
+                      {renewal
+                        ? "Complete every official photo and verify every membership card before activation."
+                        : "Complete every official photo and card reservation before activation."}
                     </p>
                   )}
                   <button
