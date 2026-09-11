@@ -1,4 +1,5 @@
 import {
+  GYM_STAFF_PERMISSIONS,
   isSystemPermissionKey,
   normalizeSystemUsername,
   type SystemPermissionKey,
@@ -24,6 +25,13 @@ export function sanitizeSystemPermissions(values: unknown): SystemPermissionKey[
   }
 
   return Array.from(seen);
+}
+
+export function resolveSystemUserPermissions(
+  isSuperAdmin: boolean,
+  _requestedPermissions?: unknown
+): SystemPermissionKey[] {
+  return isSuperAdmin ? [] : [...GYM_STAFF_PERMISSIONS];
 }
 
 export function validateSystemUserDraft(draft: SystemUserDraft) {

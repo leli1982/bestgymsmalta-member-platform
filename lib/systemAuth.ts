@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { GYM_STAFF_PERMISSIONS } from "@/lib/systemPermissions";
 import {
   createSystemSessionToken,
   getClearedSystemSessionCookieOptions,
@@ -76,20 +77,10 @@ export async function getSystemContext(
   const account = accountResult.data;
   if (!account || !account.active) return null;
 
-  let permissions: string[] = [];
-
-  if (!account.is_super_admin) {
-    const permissionResult = await supabase
-      .from("bgm_user_permissions")
-      .select("permission_key")
-      .eq("system_user_id", account.id)
-      .eq("allowed", true);
-
-    if (permissionResult.error) throw permissionResult.error;
-    permissions = (permissionResult.data || []).map(
-      (row) => row.permission_key as string
-    );
-  }
+  // Gym Staff is a fixed operational role. Do not trust historical per-user
+  // permission rows: old rows may contain management permissions that are no
+  // longer part of the approved role. Super Admin continues to bypass checks.
+  const permissions = account.is_super_admin ? [] : [...GYM_STAFF_PERMISSIONS];
 
   return {
     systemUserId: account.id,

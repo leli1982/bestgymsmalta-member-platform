@@ -4,7 +4,10 @@ export const SYSTEM_PERMISSION_KEYS = [
   "members.edit",
   "members.renew",
   "members.photos.view",
+  "members.photos.capture",
   "membership.activate",
+  "cards.assign",
+  "cards.replace",
   "nfc.scan",
   "nfc.assign",
   "nfc.replace",
@@ -26,6 +29,20 @@ export const SYSTEM_PERMISSION_KEYS = [
 ] as const;
 
 export type SystemPermissionKey = (typeof SYSTEM_PERMISSION_KEYS)[number];
+
+export const GYM_STAFF_PERMISSIONS = [
+  "members.view",
+  "members.create",
+  "members.renew",
+  "members.photos.view",
+  "members.photos.capture",
+  "membership.activate",
+  "cards.assign",
+  "cards.replace",
+  "barcode.scan",
+  "orders.sundries.submit",
+  "orders.bar.submit",
+] as const satisfies readonly SystemPermissionKey[];
 
 export function isSystemPermissionKey(value: string): value is SystemPermissionKey {
   return (SYSTEM_PERMISSION_KEYS as readonly string[]).includes(value);

@@ -9,7 +9,7 @@ import {
 export const dynamic = "force-dynamic";
 
 const MEMBER_SEARCH_FIELDS =
-  "id, member_number, full_name, status, membership_expiry, mobile, phone, email, legacy_pk_customer, legacy_gym, official_photo_path";
+  "id, member_number, first_name, last_name, full_name, status, membership_expiry, mobile, phone, email, legacy_pk_customer, legacy_gym, official_photo_path";
 
 function escapeLikePattern(value: string) {
   return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
@@ -19,6 +19,8 @@ function toCandidate(member: any, canViewOfficialPhoto: boolean) {
   return {
     id: member.id,
     memberNumber: member.member_number || "",
+    firstName: member.first_name || "",
+    lastName: member.last_name || "",
     fullName: member.full_name || "",
     status: member.status || "inactive",
     membershipExpiry: member.membership_expiry || "",
@@ -77,58 +79,25 @@ export async function GET(request: NextRequest) {
 
   const [nameResult, mobileResult, phoneResult, emailResult, legacyPkResult] =
     await Promise.all([
-      supabase
-        .from("bgm_members")
-        .select(MEMBER_SEARCH_FIELDS)
-        .ilike("full_name", pattern)
-        .limit(12),
-      supabase
-        .from("bgm_members")
-        .select(MEMBER_SEARCH_FIELDS)
-        .ilike("mobile", pattern)
-        .limit(12),
-      supabase
-        .from("bgm_members")
-        .select(MEMBER_SEARCH_FIELDS)
-        .ilike("phone", pattern)
-        .limit(12),
-      supabase
-        .from("bgm_members")
-        .select(MEMBER_SEARCH_FIELDS)
-        .ilike("email", pattern)
-        .limit(12),
-      supabase
-        .from("bgm_members")
-        .select(MEMBER_SEARCH_FIELDS)
-        .eq("legacy_pk_customer", query)
-        .limit(20),
+      supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).ilike("full_name", pattern).limit(12),
+      supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).ilike("mobile", pattern).limit(12),
+      supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).ilike("phone", pattern).limit(12),
+      supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).ilike("email", pattern).limit(12),
+      supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).eq("legacy_pk_customer", query).limit(20),
     ]);
 
-  const results = [
-    nameResult,
-    mobileResult,
-    phoneResult,
-    emailResult,
-    legacyPkResult,
-  ];
+  const results = [nameResult, mobileResult, phoneResult, emailResult, legacyPkResult];
   const failed = results.find((result) => result.error);
 
   if (failed?.error) {
     console.error(failed.error);
-    return NextResponse.json(
-      { error: "Could not search members." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Could not search members." }, { status: 500 });
   }
 
-  // Legacy identifiers and contact details can be duplicated. Always return
-  // candidates for explicit staff confirmation instead of auto-selecting one.
   const uniqueCandidates = new Map<string, any>();
   for (const result of results) {
     for (const member of result.data || []) {
-      if (!uniqueCandidates.has(member.id)) {
-        uniqueCandidates.set(member.id, member);
-      }
+      if (!uniqueCandidates.has(member.id)) uniqueCandidates.set(member.id, member);
     }
   }
 
