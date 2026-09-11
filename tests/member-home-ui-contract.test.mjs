@@ -13,52 +13,74 @@ const heroPath = join(root, "components/home/VisualHomeHero.tsx");
 const cardPath = join(root, "components/member/MemberCard.tsx");
 const closestGymPath = join(root, "components/home/ClosestGymCard.tsx");
 
-test("member home uses the approved hybrid dashboard hierarchy", () => {
+test("member home matches the approved mockup hierarchy", () => {
   const home = readFileSync(homePath, "utf8");
 
-  assert.match(home, /MemberHomePrimaryTools/);
-  assert.match(home, /MemberCard/);
-  assert.match(home, /ClosestGymCard/);
-  assert.match(home, /HomeAnnouncementCard/);
+  assert.match(home, /data-home-layout=["']approved-mockup["']/);
+  assert.match(home, /<VisualHomeHero/);
+  assert.match(home, /<MemberCard\s+variant=["']home["']/);
+  assert.match(home, /<MemberHomePrimaryTools/);
+  assert.match(home, /<ClosestGymCard/);
   assert.doesNotMatch(home, /VisualQuickLinks/);
-  assert.match(home, /bg-\[#f[457][f57][f57][f57]\]|bg-zinc-50|bg-stone-50/i);
 });
 
-test("AI trainer, mobility and progress are prominent first-class home tools", () => {
+test("approved hero keeps the exact BGM copy and duo artwork hook", () => {
+  const hero = readFileSync(heroPath, "utf8");
+
+  assert.match(hero, /\/brand\/bgm-logo-white-horizontal\.png/);
+  assert.match(hero, /More\s*<br\s*\/?>\s*Than Gyms|More Than Gyms/s);
+  assert.match(hero, /be the best\.\.\.beat the rest/i);
+  assert.match(hero, /Show Card/);
+  assert.match(hero, /Find Gyms/);
+  assert.match(hero, /\/visuals\/home-hero-duo\.jpg/);
+});
+
+test("primary and secondary home tools use the approved 3 plus 4 tile layout", () => {
   assert.equal(existsSync(toolsPath), true, "primary member tools component must exist");
   const tools = readFileSync(toolsPath, "utf8");
 
+  assert.match(tools, /grid-cols-3/);
   assert.match(tools, /AI Trainer/i);
   assert.match(tools, /\/trainer/);
   assert.match(tools, /Mobility\s*&\s*Stretch/i);
   assert.match(tools, /\/mobility-stretch/);
   assert.match(tools, /Progress/i);
   assert.match(tools, /\/progress/);
+  assert.match(tools, /grid-cols-4/);
+  assert.match(tools, /Passport/);
+  assert.match(tools, /Story Creator/);
+  assert.match(tools, /Gyms/);
+  assert.match(tools, /Announcements/);
 });
 
-test("only the member home opts into the light navigation treatment", () => {
+test("home membership card is the compact strip from the approved mockup", () => {
+  const card = readFileSync(cardPath, "utf8");
+
+  assert.match(card, /data-home-membership=["']compact-strip["']/);
+  assert.match(card, /fetch\(["']\/api\/member\/card["']/);
+  assert.match(card, /<MemberBarcode\s+memberNumber=\{cardBarcode\}/);
+  assert.match(card, /setFlipped/);
+});
+
+test("nearest gym keeps location behavior while using the compact mockup row", () => {
+  const closestGym = readFileSync(closestGymPath, "utf8");
+
+  assert.match(closestGym, /data-home-nearest=["']compact-row["']/);
+  assert.match(closestGym, /fetch\(["']\/api\/gyms["']/);
+  assert.match(closestGym, /navigator\.geolocation\.getCurrentPosition/);
+});
+
+test("member home uses the approved light five-item bottom navigation", () => {
   const page = readFileSync(pagePath, "utf8");
   const shell = readFileSync(shellPath, "utf8");
   const nav = readFileSync(navPath, "utf8");
 
   assert.match(page, /navVariant=["']light["']/);
-  assert.match(shell, /navVariant/);
+  assert.match(page, /useTopBar=\{false\}/);
   assert.match(shell, /<BottomNav\s+variant=\{navVariant\}/);
-  assert.match(nav, /variant.*light/s);
-});
-
-test("home redesign preserves card and nearest-gym functional contracts", () => {
-  const card = readFileSync(cardPath, "utf8");
-  const closestGym = readFileSync(closestGymPath, "utf8");
-
-  assert.match(card, /fetch\(["']\/api\/member\/card["']/);
-  assert.match(card, /<MemberBarcode\s+memberNumber=\{cardBarcode\}/);
-  assert.match(card, /setFlipped/);
-  assert.match(closestGym, /fetch\(["']\/api\/gyms["']/);
-  assert.match(closestGym, /navigator\.geolocation\.getCurrentPosition/);
-});
-
-test("home hero uses the official BestGymsMalta white logo asset", () => {
-  const hero = readFileSync(heroPath, "utf8");
-  assert.match(hero, /\/brand\/bgm-logo-white-horizontal\.png/);
+  assert.match(nav, /Home/);
+  assert.match(nav, /Gyms/);
+  assert.match(nav, /Workouts/);
+  assert.match(nav, /Community/);
+  assert.match(nav, /Profile/);
 });
