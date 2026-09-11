@@ -75,7 +75,7 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
         >
           <div className="flex items-center gap-3">
             <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-[1rem] bg-zinc-950 p-2.5">
-              <img src="/brand/bgm-logo-white-horizontal.png" alt="BestGymsMalta" className="h-full w-full object-contain" />
+              <img src="/bgm-logo.png" alt="BestGymsMalta" className="h-full w-full object-contain" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-bold text-slate-500">Membership</p>
@@ -144,7 +144,7 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
           >
             <div className="grid h-full grid-cols-[72px_minmax(0,.9fr)_minmax(108px,1.2fr)] items-center gap-3">
               <div className="flex h-[72px] w-[72px] items-center justify-center rounded-[1rem] bg-zinc-950 p-2.5">
-                <img src="/brand/bgm-logo-white-horizontal.png" alt="BestGymsMalta" className="h-full w-full object-contain" />
+                <img src="/bgm-logo.png" alt="BestGymsMalta" className="h-full w-full object-contain" />
               </div>
 
               <div className="min-w-0 border-r border-slate-200 pr-2">

@@ -24,10 +24,10 @@ export default function VisualHomeHero() {
 
   return (
     <section
-      className="relative min-h-[414px] overflow-hidden bg-black bg-cover bg-[68%_center] text-white sm:min-h-[430px]"
+      className="relative min-h-[414px] overflow-hidden bg-black bg-cover bg-[62%_center] text-white sm:min-h-[430px] sm:bg-[64%_center]"
       style={{
         backgroundImage:
-          "linear-gradient(90deg, rgba(0,0,0,.97) 0%, rgba(0,0,0,.84) 34%, rgba(0,0,0,.22) 72%, rgba(0,0,0,.14) 100%), linear-gradient(180deg, rgba(0,0,0,.08) 0%, rgba(0,0,0,.06) 58%, rgba(0,0,0,.58) 100%), url('/api/home-hero-artwork')",
+          "linear-gradient(90deg, rgba(0,0,0,.82) 0%, rgba(0,0,0,.58) 34%, rgba(0,0,0,.08) 72%, rgba(0,0,0,.04) 100%), linear-gradient(180deg, rgba(0,0,0,.04) 0%, rgba(0,0,0,.02) 58%, rgba(0,0,0,.48) 100%), url('/visuals/home-hero-duo.jpg')",
       }}
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(255,90,10,.15),transparent_35%)]" />
