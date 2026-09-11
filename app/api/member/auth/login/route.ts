@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { setMemberSessionCookie } from "@/lib/memberAuth";
-import {
-  normalizeMembershipNumber,
-  parseMembershipNumber,
-} from "@/lib/memberNumberCore";
+import { normalizeMembershipNumber } from "@/lib/memberNumberCore";
 
 export const dynamic = "force-dynamic";
 
@@ -28,29 +25,53 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseAdmin();
     const body = await request.json();
 
-    const login = String(body.login || "").trim().toLowerCase();
+    const rawLogin = String(body.login || "").trim();
+    const login = rawLogin.toLowerCase();
     const password = String(body.password || "");
 
-    if (!login || !password) {
+    if (!rawLogin || !password) {
       return NextResponse.json(
         { error: "Login and password are required." },
         { status: 400 }
       );
     }
 
-    const normalizedMemberNumber = normalizeMembershipNumber(login);
-    const isMembershipNumber =
-      parseMembershipNumber(normalizedMemberNumber) !== null;
-    const memberQuery = supabase.from("bgm_members").select("*");
-    const result = isMembershipNumber
-      ? await memberQuery
-          .eq("member_number", normalizedMemberNumber)
-          .maybeSingle()
-      : await memberQuery.eq("username", login).maybeSingle();
+    const usernameResult = await supabase
+      .from("bgm_members")
+      .select("*")
+      .eq("username", login)
+      .maybeSingle();
 
-    if (result.error) throw result.error;
+    if (usernameResult.error) throw usernameResult.error;
 
-    const member = result.data;
+    let member = usernameResult.data;
+
+    if (!member) {
+      const memberNumberResult = await supabase
+        .from("bgm_members")
+        .select("*")
+        .eq("member_number", rawLogin)
+        .maybeSingle();
+
+      if (memberNumberResult.error) throw memberNumberResult.error;
+      member = memberNumberResult.data;
+    }
+
+    // Backward compatibility for legacy BGM-prefixed identifiers entered in lowercase.
+    if (!member) {
+      const normalizedLegacyNumber = normalizeMembershipNumber(rawLogin);
+
+      if (normalizedLegacyNumber !== rawLogin) {
+        const legacyResult = await supabase
+          .from("bgm_members")
+          .select("*")
+          .eq("member_number", normalizedLegacyNumber)
+          .maybeSingle();
+
+        if (legacyResult.error) throw legacyResult.error;
+        member = legacyResult.data;
+      }
+    }
 
     if (!member || !member.password_hash || !member.app_enrolled) {
       return NextResponse.json(

@@ -1,38 +1,29 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
 import VisualHomeHero from "@/components/home/VisualHomeHero";
 import MemberCard from "@/components/member/MemberCard";
 import ClosestGymCard from "@/components/home/ClosestGymCard";
 import LiveUpdates from "@/components/home/LiveUpdates";
-import VisualQuickLinks from "@/components/home/VisualQuickLinks";
 import HomeAnnouncementCard from "@/components/home/HomeAnnouncementCard";
+import MemberHomePrimaryTools from "@/components/home/MemberHomePrimaryTools";
 
 export default function SocialHome() {
   return (
-    <div className="space-y-6">
+    <div data-home-layout="approved-mockup" className="-mx-5 -mt-8 bg-[#f5f5f6] text-zinc-950">
       <VisualHomeHero />
 
-      <ClosestGymCard />
+      <div className="relative -mt-3 rounded-t-[2.25rem] bg-[#f5f5f6] px-3 pb-8 pt-3 shadow-[0_-12px_36px_rgba(0,0,0,0.12)]">
+        <div className="space-y-3">
+          <MemberCard variant="home" />
+          <MemberHomePrimaryTools />
+          <ClosestGymCard />
 
-      <MemberCard />
-
-      <LiveUpdates />
-
-      <HomeAnnouncementCard />
-      <VisualQuickLinks />
-
-      <footer className="rounded-[2rem] border border-white/10 bg-black/25 p-6 text-center">
-        <Sparkles className="mx-auto text-[#fcb415]" size={30} strokeWidth={3} />
-
-        <p className="mt-4 text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
-          Be the best... Beat the rest
-        </p>
-
-        <p className="mt-2 text-sm font-bold text-white/40">
-          BestGymsMalta member app
-        </p>
-      </footer>
+          <section id="announcements" className="space-y-3 pt-1">
+            <HomeAnnouncementCard />
+            <LiveUpdates />
+          </section>
+        </div>
+      </div>
     </div>
   );
 }
