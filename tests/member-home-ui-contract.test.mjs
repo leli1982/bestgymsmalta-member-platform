@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const root = new URL("..", import.meta.url).pathname;
@@ -10,7 +10,8 @@ const pagePath = join(root, "app/page.tsx");
 const shellPath = join(root, "components/ui/AppShell.tsx");
 const navPath = join(root, "components/BottomNav.tsx");
 const heroPath = join(root, "components/home/VisualHomeHero.tsx");
-const heroAssetPath = join(root, "public/visuals/home-hero-duo.jpg");
+const heroSourcePath = join(root, "public/visuals/home-hero-duo-crisp.base64");
+const heroRoutePath = join(root, "app/api/home-hero-artwork/route.ts");
 const cardPath = join(root, "components/member/MemberCard.tsx");
 const closestGymPath = join(root, "components/home/ClosestGymCard.tsx");
 
@@ -25,7 +26,7 @@ test("member home matches the approved mockup hierarchy", () => {
   assert.doesNotMatch(home, /VisualQuickLinks/);
 });
 
-test("approved hero keeps the exact BGM copy and duo artwork hook", () => {
+test("approved hero keeps the exact BGM copy and crisp duo artwork hook", () => {
   const hero = readFileSync(heroPath, "utf8");
 
   assert.match(hero, /\/brand\/bgm-logo-white-horizontal\.png/);
@@ -33,15 +34,23 @@ test("approved hero keeps the exact BGM copy and duo artwork hook", () => {
   assert.match(hero, /be the best\.\.\.beat the rest/i);
   assert.match(hero, /Show Card/);
   assert.match(hero, /Find Gyms/);
-  assert.match(hero, /\/visuals\/home-hero-duo\.jpg/);
+  assert.match(hero, /\/api\/home-hero-artwork/);
+  assert.doesNotMatch(hero, /\/visuals\/home-hero-duo\.jpg/);
 });
 
-test("approved duo hero asset is not a degraded thumbnail", () => {
-  assert.equal(existsSync(heroAssetPath), true, "duo hero artwork must exist");
-  assert.ok(
-    statSync(heroAssetPath).size > 20_000,
-    "duo hero artwork must retain enough source detail for a crisp mobile hero"
-  );
+test("approved duo hero source retains enough detail and is served as jpeg", () => {
+  assert.equal(existsSync(heroSourcePath), true, "crisp duo hero source must exist");
+  assert.equal(existsSync(heroRoutePath), true, "crisp hero image route must exist");
+
+  const encoded = readFileSync(heroSourcePath, "utf8").replace(/\s+/g, "");
+  const decoded = Buffer.from(encoded, "base64");
+  const route = readFileSync(heroRoutePath, "utf8");
+
+  assert.ok(encoded.length > 25_000, "hero source must retain its encoded detail");
+  assert.ok(decoded.byteLength > 20_000, "decoded hero must not be a degraded thumbnail");
+  assert.match(route, /Buffer\.from\(encoded,\s*["']base64["']\)/);
+  assert.match(route, /["']Content-Type["']:\s*["']image\/jpeg["']/);
+  assert.match(route, /max-age=31536000, immutable/);
 });
 
 test("primary and secondary home tools use the approved 3 plus 4 tile layout", () => {
