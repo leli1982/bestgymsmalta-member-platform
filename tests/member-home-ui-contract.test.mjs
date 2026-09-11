@@ -28,7 +28,9 @@ test("member home matches the approved mockup hierarchy", () => {
 test("approved hero keeps the exact BGM copy and uses the visible duo artwork", () => {
   const hero = readFileSync(heroPath, "utf8");
 
-  assert.match(hero, /\/brand\/bgm-logo-white-horizontal\.png/);
+  assert.match(hero, /src=["']\/bgm-logo\.png["']/);
+  assert.match(hero, /WWW\.BESTGYMSMALTA\.COM/);
+  assert.doesNotMatch(hero, /\/brand\/bgm-logo-white-horizontal\.png/);
   assert.match(hero, /More\s*<br\s*\/?>\s*Than Gyms|More Than Gyms/s);
   assert.match(hero, /be the best\.\.\.beat the rest/i);
   assert.match(hero, /Show Card/);

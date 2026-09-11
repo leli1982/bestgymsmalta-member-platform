@@ -24,7 +24,7 @@ export default function VisualHomeHero() {
 
   return (
     <section
-      className="relative min-h-[414px] overflow-hidden bg-black bg-cover bg-[62%_center] text-white sm:min-h-[430px] sm:bg-[64%_center]"
+      className="relative min-h-[414px] overflow-hidden bg-black bg-cover bg-[38%_center] text-white sm:min-h-[430px] sm:bg-[40%_center]"
       style={{
         backgroundImage:
           "linear-gradient(90deg, rgba(0,0,0,.82) 0%, rgba(0,0,0,.58) 34%, rgba(0,0,0,.08) 72%, rgba(0,0,0,.04) 100%), linear-gradient(180deg, rgba(0,0,0,.04) 0%, rgba(0,0,0,.02) 58%, rgba(0,0,0,.48) 100%), url('/visuals/home-hero-duo.jpg')",
@@ -34,11 +34,16 @@ export default function VisualHomeHero() {
 
       <div className="relative flex min-h-[414px] flex-col px-5 pb-5 pt-6 sm:min-h-[430px] sm:px-6">
         <div className="flex items-start justify-between gap-3">
-          <img
-            src="/brand/bgm-logo-white-horizontal.png"
-            alt="BestGymsMalta"
-            className="h-auto w-[205px] max-w-[67%] object-contain object-left drop-shadow-lg"
-          />
+          <div className="flex min-w-0 items-center gap-2.5 drop-shadow-lg">
+            <img
+              src="/bgm-logo.png"
+              alt="BestGymsMalta"
+              className="h-11 w-11 shrink-0 object-contain"
+            />
+            <span className="truncate text-[11px] font-black tracking-[-0.02em] text-white sm:text-xs">
+              WWW.BESTGYMSMALTA.COM
+            </span>
+          </div>
           <span className="relative mt-1 flex h-10 w-10 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm">
             <Bell size={22} strokeWidth={2.3} />
             <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-[#ff5a0a]" />
