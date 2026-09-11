@@ -17,7 +17,7 @@ export default function SocialHome() {
 
       <div className="mt-5 rounded-t-[2.5rem] bg-zinc-50 px-5 pb-10 pt-5 text-zinc-950 shadow-[0_-16px_50px_rgba(0,0,0,0.18)]">
         <div className="space-y-4">
-          <MemberCard />
+          <MemberCard variant="home" />
 
           <MemberHomePrimaryTools />
 

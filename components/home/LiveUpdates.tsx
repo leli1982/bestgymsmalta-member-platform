@@ -45,12 +45,8 @@ export default function LiveUpdates() {
   useEffect(() => {
     async function loadAnnouncements() {
       try {
-        const response = await fetch("/api/content", {
-          cache: "no-store",
-        });
-
+        const response = await fetch("/api/content", { cache: "no-store" });
         const data = await response.json();
-
         setAnnouncements(data.announcements || []);
       } catch {
         setAnnouncements([]);
@@ -64,10 +60,10 @@ export default function LiveUpdates() {
 
   if (loading) {
     return (
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <div className="flex items-center gap-3 text-white/45">
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-3 text-zinc-400">
           <RefreshCw size={18} className="animate-spin" />
-          <p className="text-sm font-bold">Loading announcements…</p>
+          <p className="text-sm font-bold">Loading updates…</p>
         </div>
       </section>
     );
@@ -75,100 +71,73 @@ export default function LiveUpdates() {
 
   if (announcements.length === 0) {
     return (
-      <section
-        className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-cover bg-center p-5"
-        style={{
-          backgroundImage:
-            "linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.82)), linear-gradient(135deg, rgba(252,180,21,.22), rgba(0,0,0,.78)), url('/visuals/announcement-default.jpg')",
-        }}
-      >
-        <div className="relative">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fcb415] text-black">
-              <Megaphone size={24} strokeWidth={3} />
-            </div>
-
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
-                Announcements
-              </p>
-              <h2 className="mt-1 text-2xl font-black text-white">
-                Nothing new right now
-              </h2>
-            </div>
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 text-zinc-950 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
+            <Megaphone size={23} strokeWidth={3} />
           </div>
-
-          <p className="mt-4 text-sm font-bold leading-6 text-white/60">
-            Updates, gym news and member announcements will appear here.
-          </p>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[.22em] text-orange-600">BGM Updates</p>
+            <h2 className="mt-1 text-xl font-black">Nothing new right now</h2>
+          </div>
         </div>
+        <p className="mt-3 text-sm font-bold leading-6 text-zinc-500">
+          Gym news and member updates will appear here.
+        </p>
       </section>
     );
   }
 
   return (
-    <section className="space-y-3">
-      <div className="flex items-center justify-between px-1">
+    <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 text-zinc-950 shadow-sm">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
-            Announcements
-          </p>
-          <h2 className="mt-1 text-2xl font-black text-white">
-            Latest from BGM
-          </h2>
+          <p className="text-[10px] font-black uppercase tracking-[.22em] text-orange-600">BGM Updates</p>
+          <h2 className="mt-1 text-2xl font-black">Latest from BGM</h2>
         </div>
-
-        <Megaphone className="text-[#fcb415]" size={25} strokeWidth={3} />
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
+          <Megaphone size={22} strokeWidth={3} />
+        </div>
       </div>
 
-      {announcements.slice(0, 3).map((item, index) => {
-        const ctaUrl = getCtaUrl(item);
-        const ctaLabel = getCtaLabel(item);
+      <div className="mt-4 divide-y divide-zinc-100">
+        {announcements.slice(0, 3).map((item, index) => {
+          const ctaUrl = getCtaUrl(item);
+          const ctaLabel = getCtaLabel(item);
 
-        return (
-          <article
-            key={item.id || index}
-            className="relative min-h-[230px] overflow-hidden rounded-[2rem] border border-white/10 bg-cover bg-center p-5 shadow-2xl"
-            style={{
-              backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.86)), linear-gradient(135deg, rgba(252,180,21,.16), rgba(0,0,0,.78)), url('${getImage(
-                item
-              )}')`,
-            }}
-          >
-            <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-[#fcb415]/20 blur-3xl" />
-
-            <div className="relative flex min-h-[190px] flex-col justify-between">
-              <div>
-                <div className="inline-flex rounded-full bg-[#fcb415] px-4 py-2 text-[10px] font-black uppercase tracking-[.2em] text-black">
-                  BGM Update
+          const body = (
+            <article className="group flex gap-3 py-4 first:pt-0 last:pb-0">
+              <img
+                src={getImage(item)}
+                alt=""
+                className="h-16 w-16 shrink-0 rounded-2xl object-cover"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-base font-black leading-tight">{getTitle(item)}</h3>
+                  {ctaUrl ? (
+                    <ChevronRight className="shrink-0 text-zinc-300 transition group-hover:translate-x-1" size={18} strokeWidth={3} />
+                  ) : null}
                 </div>
-
-                <h3 className="mt-5 text-3xl font-black leading-tight text-white drop-shadow">
-                  {getTitle(item)}
-                </h3>
-
                 {getBody(item) ? (
-                  <p className="mt-3 text-sm font-bold leading-6 text-white/65">
-                    {getBody(item)}
-                  </p>
+                  <p className="mt-1 line-clamp-2 text-xs font-bold leading-5 text-zinc-500">{getBody(item)}</p>
+                ) : null}
+                {ctaUrl ? (
+                  <p className="mt-1.5 text-xs font-black text-orange-600">{ctaLabel || "Open update"}</p>
                 ) : null}
               </div>
+            </article>
+          );
 
-              {ctaUrl ? (
-                <a
-                  href={ctaUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-5 flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-black"
-                >
-                  {ctaLabel || "Open"}
-                  <ChevronRight size={17} strokeWidth={3} />
-                </a>
-              ) : null}
-            </div>
-          </article>
-        );
-      })}
+          return ctaUrl ? (
+            <a key={item.id || index} href={ctaUrl} target="_blank" rel="noreferrer" className="block">
+              {body}
+            </a>
+          ) : (
+            <div key={item.id || index}>{body}</div>
+          );
+        })}
+      </div>
     </section>
   );
 }

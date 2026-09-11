@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  LocateFixed,
-  MapPinned,
-  Navigation,
-  RefreshCw,
-  Route,
-} from "lucide-react";
+import { LocateFixed, MapPinned, Navigation, RefreshCw, Route } from "lucide-react";
 
 type Gym = {
   id: string;
@@ -31,42 +25,25 @@ type ClosestGym = Gym & {
 
 const LOCATION_STORAGE_KEY = "bgmLastLocation";
 
-function getDistanceKm(
-  fromLat: number,
-  fromLng: number,
-  toLat: number,
-  toLng: number
-) {
+function getDistanceKm(fromLat: number, fromLng: number, toLat: number, toLng: number) {
   const earthRadiusKm = 6371;
-
   const dLat = ((toLat - fromLat) * Math.PI) / 180;
   const dLng = ((toLng - fromLng) * Math.PI) / 180;
-
   const lat1 = (fromLat * Math.PI) / 180;
   const lat2 = (toLat * Math.PI) / 180;
-
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.sin(dLng / 2) *
-      Math.sin(dLng / 2) *
-      Math.cos(lat1) *
-      Math.cos(lat2);
-
+    Math.sin(dLng / 2) * Math.sin(dLng / 2) * Math.cos(lat1) * Math.cos(lat2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
   return earthRadiusKm * c;
 }
 
 function getMapsUrl(gym: Gym) {
   if (typeof gym.latitude === "number" && typeof gym.longitude === "number") {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-      `${gym.latitude},${gym.longitude}`
-    )}`;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${gym.latitude},${gym.longitude}`)}`;
   }
 
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    `${gym.name} ${gym.address || ""}`
-  )}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${gym.name} ${gym.address || ""}`)}`;
 }
 
 export default function ClosestGymCard() {
@@ -79,10 +56,7 @@ export default function ClosestGymCard() {
   useEffect(() => {
     async function loadGyms() {
       try {
-        const response = await fetch("/api/gyms", {
-          cache: "no-store",
-        });
-
+        const response = await fetch("/api/gyms", { cache: "no-store" });
         const data = await response.json();
         setGyms(data.gyms || []);
       } catch {
@@ -96,9 +70,7 @@ export default function ClosestGymCard() {
 
     try {
       const saved = window.localStorage.getItem(LOCATION_STORAGE_KEY);
-      if (saved) {
-        setLocation(JSON.parse(saved));
-      }
+      if (saved) setLocation(JSON.parse(saved));
     } catch {
       // Ignore saved location errors
     }
@@ -146,19 +118,12 @@ export default function ClosestGymCard() {
         };
 
         setLocation(nextLocation);
-
-        window.localStorage.setItem(
-          LOCATION_STORAGE_KEY,
-          JSON.stringify(nextLocation)
-        );
-
+        window.localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(nextLocation));
         setStatus("Closest gym found.");
         setFindingLocation(false);
       },
       () => {
-        setStatus(
-          "Location permission was not allowed. Enable location access to find your closest gym."
-        );
+        setStatus("Location permission was not allowed. Enable location access to find your closest gym.");
         setFindingLocation(false);
       },
       {
@@ -170,94 +135,69 @@ export default function ClosestGymCard() {
   }
 
   return (
-    <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+    <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 text-zinc-950 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
-            Closest Gym
-          </p>
-
-          <h2 className="mt-2 text-2xl font-black text-white">
-            Find your nearest BGM gym
-          </h2>
-
-          <p className="mt-3 text-sm font-bold leading-6 text-white/50">
-            Use your current location to quickly open directions to the nearest
-            active BestGymsMalta gym.
+          <p className="text-[10px] font-black uppercase tracking-[.22em] text-orange-600">Closest Gym</p>
+          <h2 className="mt-1 text-2xl font-black">{closestGym ? closestGym.name : "Find your nearest BGM gym"}</h2>
+          <p className="mt-2 text-sm font-bold leading-6 text-zinc-500">
+            {closestGym
+              ? closestGym.address || closestGym.city || "BGM gym location"
+              : "Use your location to find the nearest active BestGymsMalta gym."}
           </p>
         </div>
-
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#fcb415]/10 text-[#fcb415]">
-          <LocateFixed size={25} strokeWidth={3} />
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
+          <LocateFixed size={24} strokeWidth={3} />
         </div>
       </div>
 
       {loadingGyms ? (
-        <div className="mt-5 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-4 text-white/45">
+        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-zinc-50 p-4 text-zinc-500">
           <RefreshCw size={18} className="animate-spin" />
           <p className="text-sm font-bold">Loading gyms…</p>
         </div>
       ) : null}
 
       {closestGym ? (
-        <div className="mt-5 rounded-[1.5rem] border border-[#fcb415]/30 bg-[#fcb415]/10 p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
-                Nearest to you
-              </p>
-
-              <h3 className="mt-2 text-2xl font-black text-white">
-                {closestGym.name}
-              </h3>
-
-              <p className="mt-2 flex items-start gap-2 text-sm font-bold leading-6 text-white/55">
-                <MapPinned
-                  className="mt-0.5 shrink-0 text-[#fcb415]"
-                  size={17}
-                  strokeWidth={3}
-                />
-                {closestGym.address || closestGym.city || "BGM gym location"}
-              </p>
+        <div className="mt-4 rounded-[1.5rem] border border-zinc-100 bg-zinc-50 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              {closestGym.logo ? (
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white p-2 shadow-sm">
+                  <img src={closestGym.logo} alt="" className="h-full w-full object-contain" />
+                </div>
+              ) : (
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
+                  <MapPinned size={24} strokeWidth={3} />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-[.16em] text-emerald-600">Nearest to you</p>
+                <p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-zinc-500">
+                  <Route size={16} className="text-orange-500" strokeWidth={3} />
+                  {closestGym.distanceKm.toFixed(1)} km away
+                </p>
+              </div>
             </div>
-
-            {closestGym.logo ? (
-              <img
-                src={closestGym.logo}
-                alt=""
-                className="h-14 w-14 shrink-0 object-contain"
-              />
-            ) : null}
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-              <Route className="text-[#fcb415]" size={20} strokeWidth={3} />
-              <p className="mt-2 text-2xl font-black text-white">
-                {closestGym.distanceKm.toFixed(1)}km
-              </p>
-              <p className="mt-1 text-xs font-bold uppercase tracking-[.16em] text-white/35">
-                Away
-              </p>
-            </div>
-
             <a
               href={getMapsUrl(closestGym)}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center justify-center gap-2 rounded-2xl bg-[#fcb415] px-4 py-4 text-sm font-black text-black"
+              className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-3 text-sm font-black text-white"
             >
               <Navigation size={17} strokeWidth={3} />
               Directions
             </a>
+            <a
+              href={`/gyms/${closestGym.id}`}
+              className="flex items-center justify-center rounded-full border border-zinc-200 bg-white px-4 py-3 text-sm font-black text-zinc-700"
+            >
+              Gym Details
+            </a>
           </div>
-
-          <a
-            href={`/gyms/${closestGym.id}`}
-            className="mt-3 flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-black text-white"
-          >
-            View Gym Details
-          </a>
         </div>
       ) : null}
 
@@ -265,7 +205,11 @@ export default function ClosestGymCard() {
         type="button"
         onClick={findClosestGym}
         disabled={findingLocation || loadingGyms}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black disabled:opacity-40"
+        className={`flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-black disabled:opacity-40 ${
+          closestGym
+            ? "mt-3 border border-zinc-200 bg-white text-zinc-600"
+            : "mt-4 bg-orange-500 text-white"
+        }`}
       >
         {findingLocation ? (
           <RefreshCw size={17} strokeWidth={3} className="animate-spin" />
@@ -275,11 +219,7 @@ export default function ClosestGymCard() {
         {closestGym ? "Refresh My Location" : "Find Closest Gym"}
       </button>
 
-      {status ? (
-        <p className="mt-3 text-center text-xs font-bold leading-5 text-white/45">
-          {status}
-        </p>
-      ) : null}
+      {status ? <p className="mt-3 text-center text-xs font-bold leading-5 text-zinc-400">{status}</p> : null}
     </section>
   );
 }

@@ -12,7 +12,11 @@ type CardCredential = {
   source: "credential" | "legacy" | null;
 };
 
-export default function MemberCard() {
+type MemberCardProps = {
+  variant?: "full" | "home";
+};
+
+export default function MemberCard({ variant = "full" }: MemberCardProps) {
   const [member, setMember] = useState<AppMember | null>(null);
   const [flipped, setFlipped] = useState(false);
   const [cardLinked, setCardLinked] = useState<boolean | null>(null);
@@ -63,17 +67,39 @@ export default function MemberCard() {
   }, [loadCardCredential]);
 
   if (!member) {
+    if (variant === "home") {
+      return (
+        <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 text-zinc-950 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
+              <CreditCard size={25} strokeWidth={3} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[.22em] text-orange-600">Membership</p>
+              <h2 className="mt-1 text-xl font-black">Login to show your card</h2>
+            </div>
+          </div>
+          <p className="mt-3 text-sm font-bold leading-6 text-zinc-500">
+            Your live digital card and current barcode appear here when you log in.
+          </p>
+          <a
+            href="/member-login"
+            className="mt-4 flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-3.5 text-sm font-black text-white"
+          >
+            <LogIn size={17} strokeWidth={3} />
+            Login / Activate
+          </a>
+        </section>
+      );
+    }
+
     return (
       <section className="rounded-[2rem] border border-[#fcb415]/30 bg-[#fcb415]/10 p-5">
         <div className="flex items-center gap-3">
           <CreditCard className="text-[#fcb415]" size={26} strokeWidth={3} />
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
-              Digital Membership Card
-            </p>
-            <h2 className="mt-1 text-2xl font-black text-white">
-              Login to show your card
-            </h2>
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">Digital Membership Card</p>
+            <h2 className="mt-1 text-2xl font-black text-white">Login to show your card</h2>
           </div>
         </div>
         <p className="mt-3 text-sm font-bold leading-6 text-white/55">
@@ -93,6 +119,93 @@ export default function MemberCard() {
   const expiryText = member.membershipExpiry
     ? new Date(member.membershipExpiry).toLocaleDateString()
     : "Active member";
+
+  if (variant === "home") {
+    return (
+      <button
+        type="button"
+        onClick={() => setFlipped((value) => !value)}
+        className="block w-full text-left"
+        style={{ perspective: "1200px" }}
+        aria-label="Flip membership card"
+      >
+        <div
+          className="relative min-h-[270px] transition-transform duration-700"
+          style={{
+            transformStyle: "preserve-3d",
+            transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+          }}
+        >
+          <section
+            className="absolute inset-0 overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-5 text-zinc-950 shadow-sm"
+            style={{ backfaceVisibility: "hidden" }}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[.22em] text-orange-600">Membership</p>
+                <div className="mt-2 flex items-center gap-2">
+                  <BadgeCheck className="text-emerald-500" size={20} strokeWidth={3} />
+                  <p className="text-sm font-black capitalize text-emerald-600">{member.status || "Active"}</p>
+                </div>
+                <h2 className="mt-3 text-2xl font-black leading-tight">{member.fullName || member.username}</h2>
+              </div>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-zinc-950 text-orange-400">
+                <CreditCard size={24} strokeWidth={3} />
+              </div>
+            </div>
+
+            <div className="mt-4">
+              {cardLinked === null ? (
+                <div className="rounded-xl bg-zinc-100 p-4 text-center text-sm font-bold text-zinc-500">Refreshing current card…</div>
+              ) : cardLinked && cardBarcode ? (
+                <MemberBarcode memberNumber={cardBarcode} />
+              ) : (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
+                  <p className="text-sm font-black text-amber-700">CARD NOT LINKED</p>
+                  <p className="mt-1 text-xs font-bold leading-5 text-zinc-500">Ask reception to link your physical BGM card.</p>
+                </div>
+              )}
+              {cardError ? <p className="mt-2 text-center text-xs font-bold text-red-600">{cardError}</p> : null}
+            </div>
+
+            <p className="mt-3 text-center text-[9px] font-black uppercase tracking-[.2em] text-zinc-300">Tap for member details</p>
+          </section>
+
+          <section
+            className="absolute inset-0 overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-5 text-zinc-950 shadow-sm"
+            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[.22em] text-orange-600">Member Details</p>
+                <h2 className="mt-2 text-xl font-black">{member.fullName || member.username}</h2>
+              </div>
+              <ShieldCheck className="text-orange-500" size={25} strokeWidth={3} />
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              <div className="rounded-2xl bg-zinc-50 p-3">
+                <p className="text-[10px] font-black uppercase tracking-[.16em] text-zinc-400">Current Card</p>
+                <p className="mt-1 break-all text-base font-black text-zinc-950">{cardLinked && cardBarcode ? cardBarcode : "Not linked"}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-zinc-50 p-3">
+                  <p className="text-[10px] font-black uppercase tracking-[.16em] text-zinc-400">Valid until</p>
+                  <p className="mt-1 text-sm font-black">{expiryText}</p>
+                </div>
+                <div className="rounded-2xl bg-zinc-50 p-3">
+                  <p className="text-[10px] font-black uppercase tracking-[.16em] text-zinc-400">Email</p>
+                  <p className="mt-1 truncate text-xs font-bold text-zinc-600">{member.email}</p>
+                </div>
+              </div>
+            </div>
+
+            <p className="mt-4 text-center text-[9px] font-black uppercase tracking-[.2em] text-zinc-300">Tap to return to barcode</p>
+          </section>
+        </div>
+      </button>
+    );
+  }
 
   return (
     <button
@@ -123,32 +236,20 @@ export default function MemberCard() {
             <div>
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
-                    BestGymsMalta
-                  </p>
-                  <h2 className="mt-4 text-3xl font-black leading-tight text-white">
-                    {member.fullName || member.username}
-                  </h2>
+                  <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">BestGymsMalta</p>
+                  <h2 className="mt-4 text-3xl font-black leading-tight text-white">{member.fullName || member.username}</h2>
                   <p className="mt-2 text-sm font-black uppercase tracking-[.18em] text-white/45">
                     {cardLinked && cardBarcode ? `Card No. ${cardBarcode}` : "Card not linked"}
                   </p>
                 </div>
                 <div className="relative h-16 w-20 shrink-0">
-                  <Image
-                    src="/bgm-logo.png"
-                    alt="BestGymsMalta"
-                    fill
-                    priority
-                    className="object-contain"
-                  />
+                  <Image src="/bgm-logo.png" alt="BestGymsMalta" fill priority className="object-contain" />
                 </div>
               </div>
 
               <div className="mt-5">
                 {cardLinked === null ? (
-                  <div className="rounded-xl bg-white/10 p-5 text-center text-sm font-bold text-white/55">
-                    Refreshing current card…
-                  </div>
+                  <div className="rounded-xl bg-white/10 p-5 text-center text-sm font-bold text-white/55">Refreshing current card…</div>
                 ) : cardLinked && cardBarcode ? (
                   <MemberBarcode memberNumber={cardBarcode} />
                 ) : (
@@ -159,25 +260,17 @@ export default function MemberCard() {
                     </p>
                   </div>
                 )}
-                {cardError && (
-                  <p className="mt-2 text-center text-xs font-bold text-red-300">{cardError}</p>
-                )}
+                {cardError && <p className="mt-2 text-center text-xs font-bold text-red-300">{cardError}</p>}
               </div>
             </div>
 
             <div>
               <div className="flex items-center gap-2">
                 <BadgeCheck className="text-green-300" size={21} strokeWidth={3} />
-                <p className="text-xs font-black uppercase tracking-[.16em] text-green-300">
-                  {member.status || "Active"}
-                </p>
+                <p className="text-xs font-black uppercase tracking-[.16em] text-green-300">{member.status || "Active"}</p>
               </div>
-              <p className="mt-2 text-xs font-bold text-white/45">
-                Valid until {expiryText}
-              </p>
-              <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[.22em] text-white/30">
-                Tap card to flip
-              </p>
+              <p className="mt-2 text-xs font-bold text-white/45">Valid until {expiryText}</p>
+              <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[.22em] text-white/30">Tap card to flip</p>
             </div>
           </div>
         </section>
@@ -189,9 +282,7 @@ export default function MemberCard() {
           <div className="absolute -left-16 -top-16 h-52 w-52 rounded-full bg-[#fcb415]/20 blur-3xl" />
           <div className="relative flex min-h-[350px] flex-col justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
-                Member Details
-              </p>
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">Member Details</p>
               <div className="mt-5 grid gap-3">
                 <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
                   <p className="text-xs font-black uppercase tracking-[.18em] text-white/35">Name</p>
@@ -199,9 +290,7 @@ export default function MemberCard() {
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
                   <p className="text-xs font-black uppercase tracking-[.18em] text-white/35">Current Card Number</p>
-                  <p className="mt-2 break-all text-xl font-black text-[#fcb415]">
-                    {cardLinked && cardBarcode ? cardBarcode : "Not linked"}
-                  </p>
+                  <p className="mt-2 break-all text-xl font-black text-[#fcb415]">{cardLinked && cardBarcode ? cardBarcode : "Not linked"}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
@@ -218,9 +307,7 @@ export default function MemberCard() {
                 </div>
               </div>
             </div>
-            <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[.22em] text-white/30">
-              Tap card to return
-            </p>
+            <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[.22em] text-white/30">Tap card to return</p>
           </div>
         </section>
       </div>
