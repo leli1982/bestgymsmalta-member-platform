@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { LocateFixed, MapPinned, Navigation, RefreshCw, Route } from "lucide-react";
+import { ChevronRight, LocateFixed, MapPinned, RefreshCw } from "lucide-react";
 
 type Gym = {
   id: string;
@@ -12,6 +12,8 @@ type Gym = {
   latitude?: number | null;
   longitude?: number | null;
   logo?: string;
+  coverImage?: string;
+  cover_image?: string;
 };
 
 type UserLocation = {
@@ -25,6 +27,24 @@ type ClosestGym = Gym & {
 
 const LOCATION_STORAGE_KEY = "bgmLastLocation";
 
+const gymCoverImages: Record<string, string> = {
+  "bgm-birkirkara": "/visuals/gyms/birkirkara.jpg",
+  "bgm-birzebbuga": "/visuals/gyms/birzebbuga.jpg",
+  "bgm-build": "/visuals/gyms/build.jpg",
+  "bgm-kirkop": "/visuals/gyms/kirkop.jpg",
+  "bgm-marsa": "/visuals/gyms/marsa.jpg",
+  "bgm-marsascala": "/visuals/gyms/marsascala.jpg",
+  "bgm-neptunes": "/visuals/gyms/neptunes.jpg",
+  "bgm-pembroke": "/visuals/gyms/pembroke.jpg",
+  "bgm-sliema": "/visuals/gyms/sliema.jpg",
+  "bgm-talqroqq": "/visuals/gyms/talqroqq.jpg",
+  "bgm-birgu": "/visuals/gyms/birgu.jpg",
+};
+
+function getCoverImage(gym: Gym) {
+  return gym.coverImage || gym.cover_image || gymCoverImages[gym.id] || "/visuals/gyms.jpg";
+}
+
 function getDistanceKm(fromLat: number, fromLng: number, toLat: number, toLng: number) {
   const earthRadiusKm = 6371;
   const dLat = ((toLat - fromLat) * Math.PI) / 180;
@@ -36,14 +56,6 @@ function getDistanceKm(fromLat: number, fromLng: number, toLat: number, toLng: n
     Math.sin(dLng / 2) * Math.sin(dLng / 2) * Math.cos(lat1) * Math.cos(lat2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return earthRadiusKm * c;
-}
-
-function getMapsUrl(gym: Gym) {
-  if (typeof gym.latitude === "number" && typeof gym.longitude === "number") {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${gym.latitude},${gym.longitude}`)}`;
-  }
-
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${gym.name} ${gym.address || ""}`)}`;
 }
 
 export default function ClosestGymCard() {
@@ -72,7 +84,7 @@ export default function ClosestGymCard() {
       const saved = window.localStorage.getItem(LOCATION_STORAGE_KEY);
       if (saved) setLocation(JSON.parse(saved));
     } catch {
-      // Ignore saved location errors
+      // Ignore saved location errors.
     }
   }, []);
 
@@ -119,11 +131,11 @@ export default function ClosestGymCard() {
 
         setLocation(nextLocation);
         window.localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(nextLocation));
-        setStatus("Closest gym found.");
+        setStatus("");
         setFindingLocation(false);
       },
       () => {
-        setStatus("Location permission was not allowed. Enable location access to find your closest gym.");
+        setStatus("Enable location access to find your closest gym.");
         setFindingLocation(false);
       },
       {
@@ -134,92 +146,84 @@ export default function ClosestGymCard() {
     );
   }
 
+  if (loadingGyms) {
+    return (
+      <section
+        data-home-nearest="compact-row"
+        className="flex min-h-[104px] items-center justify-center rounded-[1.45rem] border border-zinc-200/80 bg-white shadow-[0_6px_20px_rgba(15,23,42,0.06)]"
+      >
+        <RefreshCw size={18} className="animate-spin text-[#ff5a0a]" />
+        <span className="ml-2 text-xs font-bold text-slate-500">Loading nearest gym…</span>
+      </section>
+    );
+  }
+
+  if (!closestGym) {
+    return (
+      <section
+        data-home-nearest="compact-row"
+        className="rounded-[1.45rem] border border-zinc-200/80 bg-white p-3 shadow-[0_6px_20px_rgba(15,23,42,0.06)]"
+      >
+        <button
+          type="button"
+          onClick={findClosestGym}
+          disabled={findingLocation}
+          className="flex w-full items-center gap-3 text-left disabled:opacity-50"
+        >
+          <span className="flex h-[72px] w-[92px] shrink-0 items-center justify-center rounded-[1rem] bg-zinc-950 text-[#ff5a0a]">
+            {findingLocation ? <RefreshCw size={24} className="animate-spin" /> : <LocateFixed size={25} strokeWidth={3} />}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[11px] font-bold text-slate-500">Nearest Gym</span>
+            <span className="mt-0.5 block text-[15px] font-black text-zinc-950">Find your closest BGM gym</span>
+            <span className="mt-1 block text-[10px] font-semibold text-slate-400">Tap to use your location</span>
+          </span>
+          <ChevronRight className="shrink-0 text-slate-400" size={21} strokeWidth={3} />
+        </button>
+        {status ? <p className="mt-2 text-center text-[10px] font-semibold text-slate-400">{status}</p> : null}
+      </section>
+    );
+  }
+
   return (
-    <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 text-zinc-950 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[.22em] text-orange-600">Closest Gym</p>
-          <h2 className="mt-1 text-2xl font-black">{closestGym ? closestGym.name : "Find your nearest BGM gym"}</h2>
-          <p className="mt-2 text-sm font-bold leading-6 text-zinc-500">
-            {closestGym
-              ? closestGym.address || closestGym.city || "BGM gym location"
-              : "Use your location to find the nearest active BestGymsMalta gym."}
-          </p>
-        </div>
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
-          <LocateFixed size={24} strokeWidth={3} />
+    <section
+      data-home-nearest="compact-row"
+      className="rounded-[1.45rem] border border-zinc-200/80 bg-white p-3 shadow-[0_6px_20px_rgba(15,23,42,0.06)]"
+    >
+      <div className="flex items-center gap-3">
+        <a href={`/gyms/${closestGym.id}`} className="h-[72px] w-[104px] shrink-0 overflow-hidden rounded-[1rem] bg-zinc-900">
+          <img src={getCoverImage(closestGym)} alt="" className="h-full w-full object-cover" />
+        </a>
+
+        <a href={`/gyms/${closestGym.id}`} className="min-w-0 flex-1">
+          <span className="block text-[11px] font-bold text-slate-500">Nearest Gym</span>
+          <span className="mt-0.5 block truncate text-[16px] font-black text-zinc-950">{closestGym.name}</span>
+          <span className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-slate-500">
+            <MapPinned size={13} className="text-slate-400" strokeWidth={3} />
+            {closestGym.distanceKm.toFixed(1)} km away
+          </span>
+        </a>
+
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="hidden rounded-full bg-emerald-100 px-3 py-1.5 text-[10px] font-black text-emerald-700 min-[390px]:inline-flex">
+            Active
+          </span>
+          <a href={`/gyms/${closestGym.id}`} aria-label={`Open ${closestGym.name}`} className="text-slate-400">
+            <ChevronRight size={22} strokeWidth={3} />
+          </a>
         </div>
       </div>
-
-      {loadingGyms ? (
-        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-zinc-50 p-4 text-zinc-500">
-          <RefreshCw size={18} className="animate-spin" />
-          <p className="text-sm font-bold">Loading gyms…</p>
-        </div>
-      ) : null}
-
-      {closestGym ? (
-        <div className="mt-4 rounded-[1.5rem] border border-zinc-100 bg-zinc-50 p-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              {closestGym.logo ? (
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white p-2 shadow-sm">
-                  <img src={closestGym.logo} alt="" className="h-full w-full object-contain" />
-                </div>
-              ) : (
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
-                  <MapPinned size={24} strokeWidth={3} />
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-[.16em] text-emerald-600">Nearest to you</p>
-                <p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-zinc-500">
-                  <Route size={16} className="text-orange-500" strokeWidth={3} />
-                  {closestGym.distanceKm.toFixed(1)} km away
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <a
-              href={getMapsUrl(closestGym)}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-3 text-sm font-black text-white"
-            >
-              <Navigation size={17} strokeWidth={3} />
-              Directions
-            </a>
-            <a
-              href={`/gyms/${closestGym.id}`}
-              className="flex items-center justify-center rounded-full border border-zinc-200 bg-white px-4 py-3 text-sm font-black text-zinc-700"
-            >
-              Gym Details
-            </a>
-          </div>
-        </div>
-      ) : null}
 
       <button
         type="button"
         onClick={findClosestGym}
-        disabled={findingLocation || loadingGyms}
-        className={`flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-black disabled:opacity-40 ${
-          closestGym
-            ? "mt-3 border border-zinc-200 bg-white text-zinc-600"
-            : "mt-4 bg-orange-500 text-white"
-        }`}
+        disabled={findingLocation}
+        className="mt-2 flex w-full items-center justify-center gap-1.5 text-[10px] font-bold text-slate-400 disabled:opacity-50"
       >
-        {findingLocation ? (
-          <RefreshCw size={17} strokeWidth={3} className="animate-spin" />
-        ) : (
-          <LocateFixed size={17} strokeWidth={3} />
-        )}
-        {closestGym ? "Refresh My Location" : "Find Closest Gym"}
+        {findingLocation ? <RefreshCw size={12} className="animate-spin" /> : <LocateFixed size={12} />}
+        Refresh my location
       </button>
-
-      {status ? <p className="mt-3 text-center text-xs font-bold leading-5 text-zinc-400">{status}</p> : null}
+      {status ? <p className="mt-1 text-center text-[10px] font-semibold text-slate-400">{status}</p> : null}
     </section>
   );
 }
