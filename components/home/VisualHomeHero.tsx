@@ -51,7 +51,7 @@ export default function VisualHomeHero() {
         </div>
 
         <div
-          className="absolute left-[45%] top-[84px] -rotate-6 text-[25px] font-bold leading-[0.9] text-[#ff5a0a] drop-shadow-lg sm:left-[47%] sm:text-[28px]"
+          className="absolute left-5 top-[84px] -rotate-6 text-[25px] font-bold leading-[0.9] text-[#ff5a0a] drop-shadow-lg sm:left-6 sm:text-[28px]"
           style={{ fontFamily: '"Brush Script MT", "Segoe Script", cursive' }}
         >
           More<br />Than Gyms
