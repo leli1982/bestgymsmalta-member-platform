@@ -26,10 +26,6 @@ type Gym = {
   virtual_tour_url?: string | null;
 };
 
-function getCoverImage(gym: Gym) {
-  return gym.coverImage || gym.cover_image || "/visuals/gyms.jpg";
-}
-
 function getMapsUrl(gym: Gym) {
   if (typeof gym.latitude === "number" && typeof gym.longitude === "number") {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
@@ -69,8 +65,8 @@ export default function GymTourPage({ gymId }: { gymId: string }) {
 
   if (loading) {
     return (
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <div className="flex items-center gap-3 text-white/45">
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
+        <div className="flex items-center gap-3 text-slate-500">
           <RefreshCw size={18} className="animate-spin" />
           <p className="text-sm font-bold">Loading 3D tour…</p>
         </div>
@@ -80,18 +76,18 @@ export default function GymTourPage({ gymId }: { gymId: string }) {
 
   if (!gym) {
     return (
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 text-center">
-        <Box className="mx-auto text-[#fcb415]" size={42} strokeWidth={3} />
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-6 text-center">
+        <Box className="mx-auto text-[#c2410c]" size={42} strokeWidth={3} />
 
-        <h1 className="mt-4 text-3xl font-black text-white">Tour not found</h1>
+        <h1 className="mt-4 text-3xl font-black text-zinc-950">Tour not found</h1>
 
-        <p className="mt-3 text-sm font-bold leading-6 text-white/50">
+        <p className="mt-3 text-sm font-bold leading-6 text-slate-600">
           This gym tour could not be found.
         </p>
 
         <a
           href="/gyms"
-          className="mt-5 flex items-center justify-center rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+          className="mt-5 flex items-center justify-center rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white"
         >
           Back to Gyms
         </a>
@@ -103,20 +99,20 @@ export default function GymTourPage({ gymId }: { gymId: string }) {
 
   if (!tourUrl) {
     return (
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 text-center">
-        <Box className="mx-auto text-[#fcb415]" size={42} strokeWidth={3} />
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-6 text-center">
+        <Box className="mx-auto text-[#c2410c]" size={42} strokeWidth={3} />
 
-        <h1 className="mt-4 text-3xl font-black text-white">
+        <h1 className="mt-4 text-3xl font-black text-zinc-950">
           3D tour coming soon
         </h1>
 
-        <p className="mt-3 text-sm font-bold leading-6 text-white/50">
+        <p className="mt-3 text-sm font-bold leading-6 text-slate-600">
           This location does not have a virtual tour yet.
         </p>
 
         <a
           href={`/gyms/${gym.id}`}
-          className="mt-5 flex items-center justify-center rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+          className="mt-5 flex items-center justify-center rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white"
         >
           Back to Gym
         </a>
@@ -128,54 +124,23 @@ export default function GymTourPage({ gymId }: { gymId: string }) {
     <div className="space-y-5">
       <a
         href={`/gyms/${gym.id}`}
-        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-white"
+        className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-3 text-sm font-black text-zinc-950"
       >
         <ArrowLeft size={17} strokeWidth={3} />
         Back to {gym.name}
       </a>
 
-      <section
-        className="relative overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-5 shadow-2xl"
-        style={{
-          backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.86)), linear-gradient(135deg, rgba(252,180,21,.18), rgba(0,0,0,.78)), url('${getCoverImage(
-            gym
-          )}')`,
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/25 to-black/88" />
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
 
-        <div className="relative">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
-                3D Virtual Tour
-              </p>
-
-              <h1 className="mt-3 text-4xl font-black leading-tight text-white drop-shadow-2xl">
-                Explore {gym.name}
-              </h1>
-            </div>
-
-            {gym.logo ? (
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-black/45 p-2 backdrop-blur-md">
-                <img src={gym.logo} alt="" className="h-full w-full object-contain" />
-              </div>
-            ) : null}
-          </div>
-
-          <p className="mt-4 flex items-start gap-2 text-sm font-bold leading-6 text-white/65">
-            <MapPinned
-              className="mt-0.5 shrink-0 text-[#fcb415]"
-              size={17}
-              strokeWidth={3}
-            />
-            {gym.address || gym.city || "BestGymsMalta location"}
-          </p>
-        </div>
+      <section className="rounded-[1.75rem] border border-zinc-200 bg-white p-5 shadow-sm">
+        <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#c2410c]">3D virtual tour</p>
+        <h1 className="mt-2 text-3xl font-black leading-tight tracking-tight text-zinc-950">Explore {gym.name}</h1>
+        <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-slate-600">
+          <MapPinned className="mt-1 shrink-0 text-[#ff5a0a]" size={17} />
+          {gym.address || gym.city || "BestGymsMalta location"}
+        </p>
       </section>
 
-      <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-black shadow-2xl">
+      <section className="overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)]">
         <div className="relative h-[68vh] min-h-[520px] w-full">
           <iframe
             src={tourUrl}
@@ -192,7 +157,7 @@ export default function GymTourPage({ gymId }: { gymId: string }) {
           href={getMapsUrl(gym)}
           target="_blank"
           rel="noreferrer"
-          className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+          className="flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white"
         >
           <Navigation size={17} strokeWidth={3} />
           Directions
@@ -202,7 +167,7 @@ export default function GymTourPage({ gymId }: { gymId: string }) {
           href={tourUrl}
           target="_blank"
           rel="noreferrer"
-          className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white"
+          className="flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white px-5 py-4 text-sm font-black text-zinc-950"
         >
           <ExternalLink size={17} strokeWidth={3} />
           Open Fullscreen

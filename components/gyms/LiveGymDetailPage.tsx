@@ -146,8 +146,8 @@ export default function LiveGymDetailPage(props: {
 
   if (loading) {
     return (
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-        <div className="flex items-center gap-3 text-white/45">
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
+        <div className="flex items-center gap-3 text-slate-500">
           <RefreshCw size={18} className="animate-spin" />
           <p className="text-sm font-bold">Loading gym…</p>
         </div>
@@ -157,15 +157,15 @@ export default function LiveGymDetailPage(props: {
 
   if (!gym) {
     return (
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 text-center">
-        <Dumbbell className="mx-auto text-[#fcb415]" size={42} strokeWidth={3} />
-        <h1 className="mt-4 text-3xl font-black text-white">Gym not found</h1>
-        <p className="mt-3 text-sm font-bold leading-6 text-white/50">
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-6 text-center">
+        <Dumbbell className="mx-auto text-[#c2410c]" size={42} strokeWidth={3} />
+        <h1 className="mt-4 text-3xl font-black text-zinc-950">Gym not found</h1>
+        <p className="mt-3 text-sm font-bold leading-6 text-slate-600">
           This location could not be found.
         </p>
         <a
           href="/gyms"
-          className="mt-5 flex items-center justify-center rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+          className="mt-5 flex items-center justify-center rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white"
         >
           Back to Gyms
         </a>
@@ -176,144 +176,58 @@ export default function LiveGymDetailPage(props: {
   const openingHours = getOpeningHours(gym);
   const tourUrl = getVirtualTourUrl(gym);
 
+
   return (
-    <div className="space-y-6">
-      <a
-        href="/gyms"
-        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-white"
-      >
-        <ArrowLeft size={17} strokeWidth={3} />
-        Back to Gyms
+    <div className="space-y-5">
+      <a href="/gyms" className="inline-flex items-center gap-2 text-sm font-bold text-slate-600">
+        <ArrowLeft size={17} /> All gyms
       </a>
-
-      <section
-        className="relative min-h-[430px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
-        style={{
-          backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.82)), linear-gradient(135deg, rgba(252,180,21,.18), rgba(0,0,0,.78)), url('${getCoverImage(
-            gym
-          )}')`,
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/88" />
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
-
-        <div className="relative flex min-h-[380px] flex-col justify-between">
-          <div className="flex items-start justify-between gap-4">
-            <span
-              className={`rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[.2em] ${
-                gym.status === "active"
-                  ? "bg-[#fcb415] text-black"
-                  : "border border-white/10 bg-black/45 text-white/70"
-              }`}
-            >
-              {statusLabel(gym.status)}
-            </span>
-
-            {gym.logo ? (
-              <div className="flex h-28 w-28 items-center justify-center">
-                <img src={gym.logo} alt="" className="h-full w-full object-contain drop-shadow-2xl" />
-              </div>
-            ) : null}
-          </div>
-
-          <div>
-            <p className="text-sm font-black uppercase tracking-[.24em] text-[#fcb415]">
-              BestGymsMalta Location
-            </p>
-
-            <h1 className="mt-4 text-5xl font-black leading-[0.95] text-white drop-shadow-2xl">
-              {gym.name}
-            </h1>
-
-            <p className="mt-5 flex items-start gap-2 text-sm font-bold leading-6 text-white/70">
-              <MapPinned
-                className="mt-0.5 shrink-0 text-[#fcb415]"
-                size={17}
-                strokeWidth={3}
-              />
-              {gym.address || gym.city || "BestGymsMalta location"}
-            </p>
-
-            <div className="mt-6 grid gap-3">
-              <a
-                href={getMapsUrl(gym)}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
-              >
-                <Navigation size={17} strokeWidth={3} />
-                Open Directions
-              </a>
-
-              {tourUrl ? (
-                <a
-                  href={`/gyms/${gym.id}/tour`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-4 text-sm font-black text-white backdrop-blur-md"
-                >
-                  <Box size={18} strokeWidth={3} />
-                  Start 3D Virtual Tour
-                </a>
-              ) : null}
-            </div>
-          </div>
+      <section className="overflow-hidden rounded-[1.75rem] border border-zinc-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)]">
+        <div className="relative">
+          <img src={getCoverImage(gym)} alt={gym.name} className="h-52 w-full object-cover" />
+          <span className={`absolute left-4 top-4 rounded-full bg-white px-3 py-1.5 text-xs font-bold shadow-sm ${gym.status === "active" ? "text-emerald-700" : "text-slate-600"}`}>{statusLabel(gym.status)}</span>
+          {gym.logo && <div className="absolute bottom-4 right-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/95 p-2 shadow-sm">
+            <img src={gym.logo} alt="" className="h-full w-full object-contain" />
+          </div>}
+        </div>
+        <div className="p-5">
+          <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#c2410c]">BestGymsMalta location</p>
+          <h1 className="mt-2 text-3xl font-black leading-tight tracking-tight text-zinc-950">{gym.name}</h1>
+          <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-slate-600">
+            <MapPinned className="mt-1 shrink-0 text-[#ff5a0a]" size={17} />
+            {gym.address || gym.city || "BestGymsMalta location"}
+          </p>
+          <a href={getMapsUrl(gym)} target="_blank" rel="noreferrer" className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-3 text-sm font-black text-white">
+            <Navigation size={17} /> Get directions
+          </a>
         </div>
       </section>
 
-      {tourUrl ? (
-        <section
-          className="relative overflow-hidden rounded-[2rem] border border-[#fcb415]/25 bg-cover bg-center p-5 shadow-2xl"
-          style={{
-            backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.86)), linear-gradient(135deg, rgba(252,180,21,.22), rgba(0,0,0,.78)), url('${getCoverImage(
-              gym
-            )}')`,
-          }}
-        >
-          <div className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-[#fcb415]/25 blur-3xl" />
-
-          <div className="relative">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fcb415] text-black">
-                <Box size={24} strokeWidth={3} />
-              </div>
-
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
-                  Explore before you visit
-                </p>
-
-                <h2 className="mt-1 text-2xl font-black text-white">
-                  Walk through this gym in 3D
-                </h2>
-              </div>
+      {tourUrl && (
+        <section className="rounded-[1.5rem] border border-orange-200 bg-orange-50 p-5">
+          <div className="flex items-center gap-3">
+            <Box size={27} className="shrink-0 text-[#c2410c]" />
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[.16em] text-[#c2410c]">Explore before you visit</p>
+              <h2 className="mt-1 text-xl font-black text-zinc-950">Step inside in 3D</h2>
             </div>
-
-            <p className="mt-4 text-sm font-bold leading-6 text-white/65">
-              Take a virtual look inside {gym.name} before you arrive and get a
-              feel for the space, layout and facilities.
-            </p>
-
-            <a
-              href={`/gyms/${gym.id}/tour`}
-              className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
-            >
-              <Box size={18} strokeWidth={3} />
-              Start 3D Virtual Tour
-            </a>
           </div>
+          <p className="mt-3 text-sm leading-6 text-slate-600">Take a look around {gym.name} and explore the space before your next session.</p>
+          <a href={`/gyms/${gym.id}/tour`} className="mt-4 flex items-center justify-center gap-2 rounded-full border border-orange-200 bg-white px-4 py-3 text-sm font-bold text-[#c2410c]">
+            <Box size={17} /> Start virtual tour
+          </a>
         </section>
-      ) : null}
+      )}
 
       {openingHours ? (
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+        <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
           <div className="flex items-start gap-3">
-            <Clock className="mt-0.5 shrink-0 text-[#fcb415]" size={23} strokeWidth={3} />
+            <Clock className="mt-0.5 shrink-0 text-[#c2410c]" size={23} strokeWidth={3} />
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#c2410c]">
                 Opening Hours
               </p>
-              <p className="mt-3 whitespace-pre-line text-sm font-bold leading-6 text-white/60">
+              <p className="mt-3 whitespace-pre-line text-sm font-bold leading-6 text-slate-600">
                 {openingHours}
               </p>
             </div>
@@ -325,26 +239,26 @@ export default function LiveGymDetailPage(props: {
         {gym.phone ? (
           <a
             href={`tel:${gym.phone}`}
-            className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-4"
+            className="rounded-[1.5rem] border border-zinc-200 bg-white p-4"
           >
-            <Phone className="text-[#fcb415]" size={23} strokeWidth={3} />
-            <p className="mt-3 text-xs font-black uppercase tracking-[.18em] text-white/35">
+            <Phone className="text-[#c2410c]" size={23} strokeWidth={3} />
+            <p className="mt-3 text-xs font-black uppercase tracking-[.18em] text-slate-500">
               Phone
             </p>
-            <p className="mt-1 text-sm font-bold text-white">{gym.phone}</p>
+            <p className="mt-1 text-sm font-bold text-zinc-950">{gym.phone}</p>
           </a>
         ) : null}
 
         {gym.email ? (
           <a
             href={`mailto:${gym.email}`}
-            className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-4"
+            className="rounded-[1.5rem] border border-zinc-200 bg-white p-4"
           >
-            <Mail className="text-[#fcb415]" size={23} strokeWidth={3} />
-            <p className="mt-3 text-xs font-black uppercase tracking-[.18em] text-white/35">
+            <Mail className="text-[#c2410c]" size={23} strokeWidth={3} />
+            <p className="mt-3 text-xs font-black uppercase tracking-[.18em] text-slate-500">
               Email
             </p>
-            <p className="mt-1 truncate text-sm font-bold text-white">
+            <p className="mt-1 truncate text-sm font-bold text-zinc-950">
               {gym.email}
             </p>
           </a>
@@ -352,15 +266,15 @@ export default function LiveGymDetailPage(props: {
       </section>
 
       {facilities.length > 0 ? (
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+        <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#c2410c]">
             Facilities
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             {facilities.map((facility) => (
               <span
                 key={facility}
-                className="rounded-full border border-white/10 bg-black/25 px-4 py-2 text-xs font-black text-white/65"
+                className="rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-xs font-black text-slate-600"
               >
                 {facility}
               </span>
@@ -370,17 +284,17 @@ export default function LiveGymDetailPage(props: {
       ) : null}
 
       {classes.length > 0 ? (
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+        <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#c2410c]">
             Classes
           </p>
           <div className="mt-4 grid gap-2">
             {classes.map((gymClass) => (
               <div
                 key={gymClass}
-                className="rounded-2xl border border-white/10 bg-black/25 p-4"
+                className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
               >
-                <p className="text-sm font-black text-white">{gymClass}</p>
+                <p className="text-sm font-black text-zinc-950">{gymClass}</p>
               </div>
             ))}
           </div>
@@ -388,18 +302,18 @@ export default function LiveGymDetailPage(props: {
       ) : null}
 
       {equipment.length > 0 ? (
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+        <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#c2410c]">
             Featured Equipment
           </p>
           <div className="mt-4 grid grid-cols-2 gap-3">
             {equipment.map((item) => (
               <div
                 key={item}
-                className="rounded-2xl border border-white/10 bg-black/25 p-4"
+                className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
               >
-                <Sparkles className="text-[#fcb415]" size={18} strokeWidth={3} />
-                <p className="mt-3 text-sm font-black text-white">{item}</p>
+                <Sparkles className="text-[#c2410c]" size={18} strokeWidth={3} />
+                <p className="mt-3 text-sm font-black text-zinc-950">{item}</p>
               </div>
             ))}
           </div>
@@ -407,11 +321,11 @@ export default function LiveGymDetailPage(props: {
       ) : null}
 
       {gym.notes ? (
-        <section className="rounded-[2rem] border border-[#fcb415]/25 bg-[#fcb415]/10 p-5">
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+        <section className="rounded-[2rem] border border-orange-200 bg-orange-50 p-5">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#c2410c]">
             Notes
           </p>
-          <p className="mt-3 text-sm font-bold leading-6 text-white/65">
+          <p className="mt-3 text-sm font-bold leading-6 text-slate-600">
             {gym.notes}
           </p>
         </section>

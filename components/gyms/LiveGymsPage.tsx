@@ -142,201 +142,76 @@ export default function LiveGymsPage() {
 
   const activeCount = gyms.filter((gym) => gym.status === "active").length;
 
+
   return (
     <div className="space-y-6">
-      <section
-        className="relative min-h-[360px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
-        style={{
-          backgroundImage:
-            "linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.78)), linear-gradient(135deg, rgba(252,180,21,.22), rgba(0,0,0,.82)), url('/visuals/gyms.jpg')",
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/25 to-black/85" />
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
+      <header>
+        <p className="text-[11px] font-black uppercase tracking-[.2em] text-[#c2410c]">Our locations</p>
+        <h1 className="mt-2 text-4xl font-black leading-tight tracking-tight text-zinc-950">Find your gym.</h1>
+        <p className="mt-3 text-sm leading-6 text-slate-600">Your next session starts here. Explore the BGM network across Malta.</p>
+        {!loading && <p className="mt-4 text-xs font-bold text-slate-500"><span className="text-[#c2410c]">{activeCount} active gyms</span> · {gyms.length} locations</p>}
+      </header>
 
-        <div className="relative flex min-h-[310px] flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <div className="rounded-full border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-md">
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
-                BGM Locations
-              </p>
-            </div>
+      <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-4 shadow-sm focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-100">
+        <Search className="shrink-0 text-[#ff5a0a]" size={20} />
+        <label htmlFor="gym-search" className="sr-only">Search gym or location</label>
+        <input id="gym-search" value={query} onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search gym or location" type="search"
+          className="min-w-0 w-full bg-transparent text-sm font-semibold text-zinc-950 outline-none placeholder:text-slate-400" />
+      </div>
 
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black/35 text-[#fcb415] backdrop-blur-md">
-              <MapPinned size={24} strokeWidth={3} />
-            </div>
-          </div>
-
-          <div>
-            <h1 className="text-5xl font-black leading-[0.95] text-white drop-shadow-2xl">
-              Train across the BGM network
-            </h1>
-
-            <p className="mt-5 max-w-xs text-sm font-bold leading-6 text-white/70">
-              Find your gym, check the details and open directions instantly.
-            </p>
-
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-md">
-                <p className="text-3xl font-black text-white">{activeCount}</p>
-                <p className="mt-1 text-xs font-black uppercase tracking-[.18em] text-white/45">
-                  Active gyms
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-md">
-                <p className="text-3xl font-black text-[#fcb415]">
-                  {gyms.length}
-                </p>
-                <p className="mt-1 text-xs font-black uppercase tracking-[.18em] text-white/45">
-                  Total locations
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-4">
-        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/35 px-4 py-3">
-          <Search className="text-[#fcb415]" size={20} strokeWidth={3} />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search gym or location"
-            className="w-full bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/30"
-          />
-        </div>
-      </section>
-
-      {loading ? (
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-          <div className="flex items-center gap-3 text-white/45">
-            <RefreshCw size={18} className="animate-spin" />
-            <p className="text-sm font-bold">Loading gyms…</p>
-          </div>
+      {loading && (
+        <section className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-slate-600" aria-live="polite">
+          <RefreshCw size={18} className="animate-spin text-[#ff5a0a]" /> Loading gyms…
         </section>
-      ) : null}
+      )}
 
-      {!loading && filteredGyms.length === 0 ? (
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 text-center">
-          <Dumbbell className="mx-auto text-[#fcb415]" size={34} strokeWidth={3} />
-          <h2 className="mt-4 text-2xl font-black text-white">
-            No gyms found
-          </h2>
-          <p className="mt-2 text-sm font-bold text-white/45">
-            Try searching another location.
-          </p>
+      {!loading && filteredGyms.length === 0 && (
+        <section className="rounded-[1.5rem] border border-zinc-200 bg-white p-6 text-center">
+          <Dumbbell className="mx-auto text-[#ff5a0a]" size={34} />
+          <h2 className="mt-4 text-xl font-black text-zinc-950">No gyms found</h2>
+          <p className="mt-2 text-sm text-slate-600">Try searching another location.</p>
         </section>
-      ) : null}
+      )}
 
-      <section className="space-y-5">
+      <section className="space-y-5" aria-label="Gym locations">
         {filteredGyms.map((gym) => {
           const openingHours = getOpeningHours(gym);
           const tourUrl = getVirtualTourUrl(gym);
-
           return (
-            <article
-              key={gym.id}
-              className="overflow-hidden rounded-[2.2rem] border border-white/10 bg-white/[0.04] shadow-2xl"
-            >
-              <div
-                className="relative min-h-[260px] bg-cover bg-center p-5"
-                style={{
-                  backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.82)), linear-gradient(135deg, rgba(252,180,21,.14), rgba(0,0,0,.78)), url('${getCoverImage(
-                    gym
-                  )}')`,
-                }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/15 to-black/85" />
-
-                <div className="relative flex min-h-[220px] flex-col justify-between">
-                  <div className="flex items-start justify-between gap-4">
-                    <span
-                      className={`rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[.2em] ${
-                        gym.status === "active"
-                          ? "bg-[#fcb415] text-black"
-                          : "border border-white/10 bg-black/45 text-white/70"
-                      }`}
-                    >
-                      {statusLabel(gym.status)}
-                    </span>
-
-                    {gym.logo ? (
-                      <div className="flex h-24 w-24 items-center justify-center">
-                        <img
-                          src={gym.logo}
-                          alt=""
-                          className="h-full w-full object-contain drop-shadow-2xl"
-                        />
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div>
-                    <h2 className="text-4xl font-black leading-tight text-white drop-shadow">
-                      {gym.name}
-                    </h2>
-
-                    <p className="mt-3 flex items-start gap-2 text-sm font-bold leading-6 text-white/65">
-                      <MapPinned
-                        className="mt-0.5 shrink-0 text-[#fcb415]"
-                        size={17}
-                        strokeWidth={3}
-                      />
-                      {gym.address || gym.city || "BestGymsMalta location"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
+            <article key={gym.id} className="overflow-hidden rounded-[1.75rem] border border-zinc-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)]">
+              <a href={`/gyms/${gym.id}`} aria-label={`View ${gym.name}`} className="relative block">
+                <img src={getCoverImage(gym)} alt={gym.name} className="h-44 w-full object-cover" loading="lazy" />
+                <span className={`absolute left-4 top-4 rounded-full bg-white px-3 py-1.5 text-[10px] font-black shadow-sm ${gym.status === "active" ? "text-emerald-700" : "text-slate-600"}`}>
+                  {statusLabel(gym.status)}
+                </span>
+                {gym.logo && <span className="absolute bottom-3 right-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/95 p-2 shadow-sm">
+                  <img src={gym.logo} alt="" className="h-full w-full object-contain" />
+                </span>}
+              </a>
               <div className="p-5">
-                {openingHours ? (
-                  <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-                    <div className="flex items-start gap-3">
-                      <Clock
-                        className="mt-0.5 shrink-0 text-[#fcb415]"
-                        size={18}
-                        strokeWidth={3}
-                      />
-                      <p className="whitespace-pre-line text-sm font-bold leading-6 text-white/55">
-                        {openingHours}
-                      </p>
-                    </div>
+                <h2 className="text-2xl font-black tracking-tight text-zinc-950">{gym.name}</h2>
+                <p className="mt-2 flex items-start gap-2 text-sm leading-6 text-slate-600">
+                  <MapPinned className="mt-1 shrink-0 text-[#ff5a0a]" size={16} />
+                  {gym.address || gym.city || "BestGymsMalta location"}
+                </p>
+                {openingHours && (
+                  <div className="mt-4 flex items-start gap-3 rounded-2xl bg-zinc-50 p-4">
+                    <Clock className="mt-0.5 shrink-0 text-slate-500" size={17} />
+                    <p className="whitespace-pre-line text-xs font-semibold leading-6 text-slate-600">{openingHours}</p>
                   </div>
-                ) : null}
-
+                )}
                 <div className="mt-4 grid grid-cols-2 gap-3">
-                  <a
-                    href={`/gyms/${gym.id}`}
-                    className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
-                  >
-                    View Details
-                    <ArrowRight size={17} strokeWidth={3} />
+                  <a href={`/gyms/${gym.id}`} className="flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-3 py-3 text-xs font-black text-white">
+                    View gym <ArrowRight size={16} />
                   </a>
-
-                  <a
-                    href={getMapsUrl(gym)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white"
-                  >
-                    <Navigation size={17} strokeWidth={3} />
-                    Directions
+                  <a href={getMapsUrl(gym)} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-3 text-xs font-bold text-zinc-900">
+                    <Navigation size={16} /> Directions
                   </a>
                 </div>
-
-                {tourUrl ? (
-                  <a
-                    href={`/gyms/${gym.id}/tour`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-3 flex items-center justify-center gap-2 rounded-full border border-[#fcb415]/30 bg-[#fcb415]/10 px-5 py-4 text-sm font-black text-[#fcb415]"
-                  >
-                    <Box size={18} strokeWidth={3} />
-                    Explore 3D Virtual Tour
-                  </a>
-                ) : null}
+                {tourUrl && <a href={`/gyms/${gym.id}/tour`} className="mt-3 flex items-center justify-center gap-2 rounded-full bg-orange-50 px-3 py-3 text-xs font-bold text-[#c2410c]">
+                  <Box size={17} /> Explore in 3D
+                </a>}
               </div>
             </article>
           );

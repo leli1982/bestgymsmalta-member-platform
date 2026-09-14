@@ -16,7 +16,7 @@ export default async function GymDetailPage({
   const { id } = await params;
 
   return (
-    <AppShell>
+    <AppShell theme="light">
       <LiveGymDetailPage gymId={id} />
     </AppShell>
   );
