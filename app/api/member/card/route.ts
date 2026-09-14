@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getMemberRequestSession } from "@/lib/memberAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { MEMBER_PROFILE_COLUMNS, publicMemberProfile } from "@/lib/memberPublicProfile";
 
 export const dynamic = "force-dynamic";
 
@@ -10,20 +11,20 @@ export async function GET(request: NextRequest) {
     if (!session) {
       return NextResponse.json(
         { error: "Member session required. Please log in again." },
-        { status: 401 }
+        { status: 401, headers: { "Cache-Control": "private, no-store, max-age=0" } }
       );
     }
 
     const supabase = getSupabaseAdmin();
     const memberResult = await supabase
       .from("bgm_members")
-      .select("id, member_number, status, membership_expiry")
+      .select(MEMBER_PROFILE_COLUMNS)
       .eq("id", session.memberId)
       .maybeSingle();
 
     if (memberResult.error) throw memberResult.error;
     if (!memberResult.data) {
-      return NextResponse.json({ error: "Member account not found." }, { status: 404 });
+      return NextResponse.json({ error: "Member account not found." }, { status: 404, headers: { "Cache-Control": "private, no-store, max-age=0" } });
     }
 
     const credentialsResult = await supabase
@@ -49,6 +50,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       {
+        member: publicMemberProfile(memberResult.data),
         cardLinked,
         cardBarcode: cardLinked ? cardBarcode : null,
         source: activeCredential ? "credential" : legacyBarcode ? "legacy" : null,
@@ -65,7 +67,7 @@ export async function GET(request: NextRequest) {
     console.error(error);
     return NextResponse.json(
       { error: "Could not load the current membership card." },
-      { status: 500 }
+      { status: 500, headers: { "Cache-Control": "private, no-store, max-age=0" } }
     );
   }
 }

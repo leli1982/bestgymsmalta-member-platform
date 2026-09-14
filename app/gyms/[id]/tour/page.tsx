@@ -16,7 +16,7 @@ export default async function GymTourRoute({
   const { id } = await params;
 
   return (
-    <AppShell>
+    <AppShell theme="light">
       <GymTourPage gymId={id} />
     </AppShell>
   );

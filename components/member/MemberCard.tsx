@@ -1,125 +1,135 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
-import { BadgeCheck, CreditCard, LogIn, ShieldCheck } from "lucide-react";
-import { getSavedMember, type AppMember } from "@/lib/memberSession";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { BadgeCheck, CreditCard, LogIn, RefreshCw, ShieldCheck } from "lucide-react";
+import {
+  cacheVerifiedMember, forgetSavedMember,
+  MEMBER_SESSION_KEY, waitForMemberLogout,
+} from "@/lib/memberSession";
+import { resolveMemberCardResponse, type MemberCardState } from "@/lib/memberCardState";
 import MemberBarcode from "@/components/member/MemberBarcode";
-
-type CardCredential = {
-  cardLinked: boolean;
-  cardBarcode: string | null;
-  source: "credential" | "legacy" | null;
-};
 
 type MemberCardProps = {
   variant?: "full" | "home";
 };
 
 export default function MemberCard({ variant = "full" }: MemberCardProps) {
-  const [member, setMember] = useState<AppMember | null>(null);
+  const [state, setState] = useState<MemberCardState>({ kind: "loading" });
   const [flipped, setFlipped] = useState(false);
-  const [cardLinked, setCardLinked] = useState<boolean | null>(null);
-  const [cardBarcode, setCardBarcode] = useState("");
-  const [cardError, setCardError] = useState("");
+  const requestVersion = useRef(0);
 
   const loadCardCredential = useCallback(async () => {
-    setCardError("");
+    const version = ++requestVersion.current;
+    setState({ kind: "loading" });
+    setFlipped(false);
     try {
-      const response = await fetch("/api/member/card", { cache: "no-store" });
-      const data = (await response.json()) as CardCredential & { error?: string };
-      if (!response.ok) {
-        setCardLinked(false);
-        setCardBarcode("");
-        setCardError(data.error || "Could not load your current card.");
-        return;
-      }
-      setCardLinked(data.cardLinked === true);
-      setCardBarcode(data.cardLinked && data.cardBarcode ? data.cardBarcode : "");
+      await waitForMemberLogout();
+      if (version !== requestVersion.current) return;
+      const response = await fetch("/api/member/card", {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+      // Treat authentication failures correctly even if an error body is empty.
+      const data = await response.json().catch(() => null);
+      if (version !== requestVersion.current) return;
+      const nextState = resolveMemberCardResponse(response.status, data);
+      setState(nextState);
+      if (nextState.kind === "signed-out") forgetSavedMember();
+      if (nextState.kind === "ready") cacheVerifiedMember(nextState.member);
     } catch {
-      setCardLinked(false);
-      setCardBarcode("");
-      setCardError("Could not load your current card.");
+      if (version !== requestVersion.current) return;
+      setState({ kind: "unavailable", message: "Your card could not be loaded. Check your connection and try again." });
     }
   }, []);
 
   useEffect(() => {
-    function loadMember() {
-      const nextMember = getSavedMember();
-      setMember(nextMember);
-      setCardLinked(nextMember ? null : false);
-      setCardBarcode("");
-      if (nextMember) void loadCardCredential();
+    function onMemberChanged(event: Event) {
+      // Local state can revoke the displayed card, but can never authorise it.
+      if ((event as CustomEvent<{ signedOut?: boolean }>).detail?.signedOut) {
+        requestVersion.current += 1;
+        setFlipped(false);
+        setState({ kind: "signed-out" });
+        return;
+      }
+      void loadCardCredential();
     }
-
-    function refreshOnFocus() {
-      if (getSavedMember()) void loadCardCredential();
+    function onStorage(event: StorageEvent) {
+      if (event.key !== MEMBER_SESSION_KEY && event.key !== null) return;
+      if (event.newValue === null) {
+        requestVersion.current += 1;
+        setFlipped(false);
+        setState({ kind: "signed-out" });
+      } else void loadCardCredential();
     }
+    function refreshOnFocus() { void loadCardCredential(); }
 
-    loadMember();
-    window.addEventListener("bgmMemberChanged", loadMember);
+    // A valid cookie works even if localStorage has been cleared.
+    void loadCardCredential();
+    window.addEventListener("bgmMemberChanged", onMemberChanged);
+    window.addEventListener("storage", onStorage);
     window.addEventListener("focus", refreshOnFocus);
-
     return () => {
-      window.removeEventListener("bgmMemberChanged", loadMember);
+      requestVersion.current += 1;
+      window.removeEventListener("bgmMemberChanged", onMemberChanged);
+      window.removeEventListener("storage", onStorage);
       window.removeEventListener("focus", refreshOnFocus);
     };
   }, [loadCardCredential]);
 
-  if (!member) {
-    if (variant === "home") {
-      return (
-        <section
-          data-home-membership="compact-strip"
-          className="rounded-[1.45rem] border border-zinc-200/80 bg-white p-3 text-zinc-950 shadow-[0_6px_20px_rgba(15,23,42,0.06)]"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-[1rem] bg-zinc-950 p-2.5">
-              <img src="/bgm-logo.png" alt="BestGymsMalta" className="h-full w-full object-contain" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-bold text-slate-500">Membership</p>
-              <h2 className="mt-0.5 text-[15px] font-black">Login to show your card</h2>
-              <p className="mt-1 text-[10px] font-semibold text-slate-400">Your live barcode appears here.</p>
-            </div>
-            <a
-              href="/member-login"
-              className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#ff5a0a] px-3 py-2 text-[10px] font-black text-white"
-            >
-              <LogIn size={14} strokeWidth={3} />
-              Login
-            </a>
-          </div>
-        </section>
-      );
-    }
-
+  if (state.kind !== "ready") {
+    const signingIn = state.kind === "signed-out";
+    const loading = state.kind === "loading";
     return (
-      <section className="rounded-[2rem] border border-[#fcb415]/30 bg-[#fcb415]/10 p-5">
+      <section
+        data-home-membership={variant === "home" ? "compact-strip" : undefined}
+        className="rounded-[1.45rem] border border-zinc-200/80 bg-white p-5 text-zinc-950 shadow-[0_6px_20px_rgba(15,23,42,0.06)]"
+        aria-live="polite"
+        aria-busy={loading}
+      >
         <div className="flex items-center gap-3">
-          <CreditCard className="text-[#fcb415]" size={26} strokeWidth={3} />
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">Digital Membership Card</p>
-            <h2 className="mt-1 text-2xl font-black text-white">Login to show your card</h2>
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-zinc-950 p-2">
+            <img src="/bgm-logo.png" alt="BestGymsMalta" className="h-full w-full object-contain" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold text-slate-500">Membership</p>
+            <h2 className="mt-1 text-base font-black">
+              {loading ? "Checking your card…" : signingIn ? "Sign in to show your card" : "Card temporarily unavailable"}
+            </h2>
           </div>
         </div>
-        <p className="mt-3 text-sm font-bold leading-6 text-white/55">
-          Your digital membership card appears here when you log in.
-        </p>
-        <a
-          href="/member-login"
-          className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
-        >
-          <LogIn size={17} strokeWidth={3} />
-          Login / Activate
-        </a>
+        {!loading && (
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            {signingIn
+              ? "Please sign in to confirm your session and load your current card."
+              : state.kind === "unavailable" ? state.message : ""}
+          </p>
+        )}
+        {loading ? (
+          <p className="mt-3 flex items-center gap-2 text-sm text-slate-500">
+            <RefreshCw size={15} className="animate-spin" /> Loading your current membership…
+          </p>
+        ) : signingIn ? (
+          <a href="/member-login?returnTo=card"
+            className="mt-4 flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-3 text-sm font-black text-white">
+            <LogIn size={17} /> Sign in
+          </a>
+        ) : (
+          <button type="button" onClick={() => void loadCardCredential()}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-3 text-sm font-black text-white">
+            <RefreshCw size={17} /> Try again
+          </button>
+        )}
       </section>
     );
   }
 
+  const { member, cardLinked, cardBarcode } = state;
+  const active = member.status === "active"
+    && (!member.membershipExpiry || member.membershipExpiry.slice(0, 10) >= new Date().toISOString().slice(0, 10));
   const expiryText = member.membershipExpiry
     ? new Date(member.membershipExpiry).toLocaleDateString()
-    : "Active member";
+    : "Not set";
 
   if (variant === "home") {
     return (
@@ -149,8 +159,8 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
 
               <div className="min-w-0 border-r border-slate-200 pr-2">
                 <p className="text-[10px] font-bold text-slate-500">Membership</p>
-                <p className="mt-1 flex items-center gap-1.5 text-[13px] font-black capitalize text-emerald-600">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <p className={`mt-1 flex items-center gap-1.5 text-[13px] font-black capitalize ${active ? "text-emerald-700" : "text-amber-700"}`}>
+                  <span className={`h-2 w-2 rounded-full ${active ? "bg-emerald-500" : "bg-amber-500"}`} />
                   {member.status || "Active"}
                 </p>
                 <p className="mt-2 text-[9px] font-semibold text-slate-400">Valid until</p>
@@ -172,10 +182,10 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
                     <p className="mt-1 text-[8px] font-semibold text-slate-400">Ask reception</p>
                   </div>
                 )}
-                <p className="mt-1 text-[8px] font-semibold text-slate-400">Tap to enlarge</p>
+                <p className="mt-1 text-[8px] font-semibold text-slate-400">Tap for details</p>
               </div>
             </div>
-            {cardError ? <p className="absolute bottom-1 left-3 right-3 text-center text-[8px] font-bold text-red-600">{cardError}</p> : null}
+            
           </section>
 
           <section
@@ -199,107 +209,81 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => setFlipped((value) => !value)}
-      className="block w-full text-left"
-      style={{ perspective: "1200px" }}
-      aria-label="Flip membership card"
-    >
-      <div
-        className="relative min-h-[390px] transition-transform duration-700"
-        style={{
-          transformStyle: "preserve-3d",
-          transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
-        }}
-      >
+    <button type="button" onClick={() => setFlipped((value) => !value)}
+      className="block w-full text-left text-zinc-950" style={{ perspective: "1200px" }}
+      aria-label={flipped ? "Show membership barcode" : "Show membership details"}>
+      <div className="grid transition-transform duration-700 motion-reduce:transition-none"
+        style={{ transformStyle: "preserve-3d", transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)" }}>
         <section
-          className="absolute inset-0 overflow-hidden rounded-[2rem] border border-[#fcb415]/35 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black p-5 shadow-2xl"
-          style={{ backfaceVisibility: "hidden" }}
-        >
-          <div className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-[#fcb415]/25 blur-3xl" />
-          <div className="absolute -bottom-20 left-8 h-44 w-44 rounded-full bg-[#fcb415]/10 blur-3xl" />
-          <div className="absolute bottom-5 right-5 opacity-10">
-            <CreditCard size={120} strokeWidth={1.5} />
-          </div>
-
-          <div className="relative flex min-h-[350px] flex-col justify-between">
-            <div>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">BestGymsMalta</p>
-                  <h2 className="mt-4 text-3xl font-black leading-tight text-white">{member.fullName || member.username}</h2>
-                  <p className="mt-2 text-sm font-black uppercase tracking-[.18em] text-white/45">
-                    {cardLinked && cardBarcode ? `Card No. ${cardBarcode}` : "Card not linked"}
+          className="relative col-start-1 row-start-1 flex min-h-[420px] flex-col justify-between overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,0.07)]"
+          style={{ backfaceVisibility: "hidden" }} aria-hidden={flipped}>
+          <div className="absolute inset-x-0 top-0 h-1.5 bg-[#ff5a0a]" />
+          <div>
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#c2410c]">BestGymsMalta</p>
+                <h2 className="mt-3 break-words text-2xl font-black leading-tight">{member.fullName || member.username}</h2>
+                <p className="mt-2 text-xs font-bold text-slate-500">Digital membership card</p>
+              </div>
+              <div className="relative h-16 w-16 shrink-0 rounded-full bg-zinc-950 p-2">
+                <Image src="/bgm-logo.png" alt="BestGymsMalta" fill priority className="object-contain p-2" />
+              </div>
+            </div>
+            <div className="mt-7 rounded-2xl border border-zinc-200 bg-white p-2">
+              {cardLinked && cardBarcode ? (
+                <MemberBarcode memberNumber={cardBarcode} />
+              ) : (
+                <div className="rounded-xl bg-amber-50 p-5 text-center">
+                  <CreditCard className="mx-auto text-amber-700" size={26} />
+                  <p className="mt-3 text-sm font-black text-amber-800">CARD NOT LINKED</p>
+                  <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">
+                    Visit reception to link your physical BGM card.
                   </p>
                 </div>
-                <div className="relative h-16 w-20 shrink-0">
-                  <Image src="/bgm-logo.png" alt="BestGymsMalta" fill priority className="object-contain" />
-                </div>
+              )}
+            </div>
+            <p className="mt-3 text-center text-xs text-slate-500">
+              {cardLinked ? "Present this barcode at reception." : "Your membership account is signed in."}
+            </p>
+          </div>
+          <div className="mt-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-zinc-50 p-4">
+              <div className={`flex items-center gap-2 ${active ? "text-emerald-700" : "text-amber-700"}`}>
+                <BadgeCheck size={21} />
+                <p className="text-xs font-black capitalize">{active ? "Active member" : "Inactive / expired"}</p>
               </div>
-
-              <div className="mt-5">
-                {cardLinked === null ? (
-                  <div className="rounded-xl bg-white/10 p-5 text-center text-sm font-bold text-white/55">Refreshing current card…</div>
-                ) : cardLinked && cardBarcode ? (
-                  <MemberBarcode memberNumber={cardBarcode} />
-                ) : (
-                  <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-5 text-center">
-                    <p className="text-lg font-black text-amber-300">CARD NOT LINKED</p>
-                    <p className="mt-2 text-xs font-bold leading-5 text-white/55">
-                      Visit reception so your physical BGM card can be linked before using virtual access.
-                    </p>
-                  </div>
-                )}
-                {cardError && <p className="mt-2 text-center text-xs font-bold text-red-300">{cardError}</p>}
+              <div>
+                <p className="text-[10px] font-semibold text-slate-500">Valid until</p>
+                <p className="mt-1 text-xs font-black">{expiryText}</p>
               </div>
             </div>
-
-            <div>
-              <div className="flex items-center gap-2">
-                <BadgeCheck className="text-green-300" size={21} strokeWidth={3} />
-                <p className="text-xs font-black uppercase tracking-[.16em] text-green-300">{member.status || "Active"}</p>
-              </div>
-              <p className="mt-2 text-xs font-bold text-white/45">Valid until {expiryText}</p>
-              <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[.22em] text-white/30">Tap card to flip</p>
-            </div>
+            <p className="mt-5 text-center text-[10px] font-bold text-slate-500">Tap card to view details</p>
           </div>
         </section>
-
         <section
-          className="absolute inset-0 overflow-hidden rounded-[2rem] border border-[#fcb415]/35 bg-gradient-to-br from-black via-zinc-950 to-zinc-900 p-5 shadow-2xl"
-          style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
-        >
-          <div className="absolute -left-16 -top-16 h-52 w-52 rounded-full bg-[#fcb415]/20 blur-3xl" />
-          <div className="relative flex min-h-[350px] flex-col justify-between">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">Member Details</p>
-              <div className="mt-5 grid gap-3">
-                <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
-                  <p className="text-xs font-black uppercase tracking-[.18em] text-white/35">Name</p>
-                  <p className="mt-2 text-lg font-black text-white">{member.fullName || member.username}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
-                  <p className="text-xs font-black uppercase tracking-[.18em] text-white/35">Current Card Number</p>
-                  <p className="mt-2 break-all text-xl font-black text-[#fcb415]">{cardLinked && cardBarcode ? cardBarcode : "Not linked"}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="text-[#fcb415]" size={19} strokeWidth={3} />
-                      <p className="text-xs font-black uppercase tracking-[.16em] text-white">Valid</p>
-                    </div>
-                    <p className="mt-2 text-xs font-bold text-white/45">{expiryText}</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
-                    <p className="text-xs font-black uppercase tracking-[.18em] text-white/35">Email</p>
-                    <p className="mt-2 truncate text-xs font-bold text-white/60">{member.email}</p>
-                  </div>
-                </div>
-              </div>
+          className="col-start-1 row-start-1 flex min-h-[420px] flex-col justify-between rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,0.07)]"
+          style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }} aria-hidden={!flipped}>
+          <div>
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#c2410c]">Member details</p>
+              <ShieldCheck className="text-[#ff5a0a]" size={25} />
             </div>
-            <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[.22em] text-white/30">Tap card to return</p>
+            <dl className="mt-5 space-y-4">
+              <div className="rounded-2xl bg-zinc-50 p-4">
+                <dt className="text-xs font-semibold text-slate-500">Name</dt>
+                <dd className="mt-1 break-words text-lg font-black">{member.fullName || member.username}</dd>
+              </div>
+              <div className="rounded-2xl bg-orange-50 p-4">
+                <dt className="text-xs font-semibold text-slate-500">Current card number</dt>
+                <dd className="mt-1 break-all font-mono text-lg font-black text-[#c2410c]">{cardLinked && cardBarcode ? cardBarcode : "Not linked"}</dd>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><dt className="text-xs text-slate-500">Valid until</dt><dd className="mt-1 text-sm font-bold">{expiryText}</dd></div>
+                <div className="min-w-0"><dt className="text-xs text-slate-500">Email</dt><dd className="mt-1 break-all text-xs font-bold">{member.email || "Not set"}</dd></div>
+              </div>
+            </dl>
           </div>
+          <p className="mt-5 text-center text-[10px] font-bold text-slate-500">Tap card to return to your barcode</p>
         </section>
       </div>
     </button>

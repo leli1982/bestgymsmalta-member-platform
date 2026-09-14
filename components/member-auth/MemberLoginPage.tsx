@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BadgeCheck,
   Bot,
@@ -19,8 +19,11 @@ import {
   Video,
 } from "lucide-react";
 import {
+  cacheVerifiedMember,
   clearSavedMember,
-  getSavedMember,
+  forgetSavedMember,
+  MEMBER_SESSION_KEY,
+  waitForMemberLogout,
   saveMember,
   type AppMember,
 } from "@/lib/memberSession";
@@ -81,6 +84,10 @@ const quickLinks = [
 export default function MemberLoginPage() {
   const [member, setMember] = useState<AppMember | null>(null);
   const [mode, setMode] = useState<Mode>("login");
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [sessionError, setSessionError] = useState("");
+  const sessionRequest = useRef(0);
+  const authBusy = useRef(false);
 
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -99,14 +106,85 @@ export default function MemberLoginPage() {
 
   const active = useMemo(() => isMembershipActive(member), [member]);
 
-  useEffect(() => {
-    setMember(getSavedMember());
+  const checkSession = useCallback(async () => {
+    if (authBusy.current) return;
+    const version = ++sessionRequest.current;
+    setCheckingSession(true);
+    setSessionError("");
+    try {
+      await waitForMemberLogout();
+      if (version !== sessionRequest.current) return;
+      const response = await fetch("/api/member/auth/session", {
+        cache: "no-store", credentials: "same-origin",
+      });
+      const data = await response.json().catch(() => null);
+      if (version !== sessionRequest.current) return;
+      if (response.status === 401) {
+        setMember(null);
+        forgetSavedMember();
+        return;
+      }
+      if (!response.ok || !data?.member?.id) throw new Error("Could not check your session. Please try again.");
+      cacheVerifiedMember(data.member);
+      setMember(data.member);
+    } catch (error) {
+      if (version !== sessionRequest.current) return;
+      setMember(null);
+      setSessionError(error instanceof Error ? error.message : "Could not check your session.");
+    } finally {
+      if (version === sessionRequest.current) setCheckingSession(false);
+    }
   }, []);
 
-  function handleLogout() {
-    clearSavedMember();
+  useEffect(() => {
+    function onMemberChanged(event: Event) {
+      if (authBusy.current) return;
+      if ((event as CustomEvent<{ signedOut?: boolean }>).detail?.signedOut) {
+        sessionRequest.current += 1;
+        setMember(null);
+        setCheckingSession(false);
+        return;
+      }
+      void checkSession();
+    }
+    function onStorage(event: StorageEvent) {
+      if (event.key !== MEMBER_SESSION_KEY && event.key !== null) return;
+      if (event.newValue === null) {
+        sessionRequest.current += 1;
+        setMember(null);
+        setCheckingSession(false);
+      } else void checkSession();
+    }
+    function onFocus() { void checkSession(); }
+    void checkSession();
+    window.addEventListener("bgmMemberChanged", onMemberChanged);
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      sessionRequest.current += 1;
+      window.removeEventListener("bgmMemberChanged", onMemberChanged);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [checkSession]);
+
+  function returnToCard() {
+    if (new URLSearchParams(window.location.search).get("returnTo") === "card") {
+      window.location.assign("/card");
+    }
+  }
+
+  async function handleLogout() {
+    if (authBusy.current) return;
+    authBusy.current = true;
+    sessionRequest.current += 1;
+    setLoading(true);
+    await clearSavedMember();
     setMember(null);
+    setCheckingSession(false);
     setMode("login");
+    setLoading(false);
+    authBusy.current = false;
   }
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
@@ -119,10 +197,15 @@ export default function MemberLoginPage() {
     }
 
     try {
+      authBusy.current = true;
+      sessionRequest.current += 1;
       setLoading(true);
+      setSessionError("");
+      await waitForMemberLogout();
 
       const response = await fetch("/api/member/auth/login", {
         method: "POST",
+        credentials: "same-origin",
         headers: {
           "Content-Type": "application/json",
         },
@@ -143,10 +226,13 @@ export default function MemberLoginPage() {
       saveMember(loggedInMember);
       setMember(loggedInMember);
       setLoginPassword("");
+      returnToCard();
     } catch (error) {
       setError(error instanceof Error ? error.message : "Login failed.");
     } finally {
       setLoading(false);
+      setCheckingSession(false);
+      authBusy.current = false;
     }
   }
 
@@ -211,10 +297,15 @@ export default function MemberLoginPage() {
     }
 
     try {
+      authBusy.current = true;
+      sessionRequest.current += 1;
       setLoading(true);
+      setSessionError("");
+      await waitForMemberLogout();
 
       const response = await fetch("/api/member/auth/register", {
         method: "POST",
+        credentials: "same-origin",
         headers: {
           "Content-Type": "application/json",
         },
@@ -238,11 +329,25 @@ export default function MemberLoginPage() {
       setMember(activatedMember);
       setActivatePassword("");
       setConfirmPassword("");
+      returnToCard();
     } catch (error) {
       setError(error instanceof Error ? error.message : "Activation failed.");
     } finally {
       setLoading(false);
+      setCheckingSession(false);
+      authBusy.current = false;
     }
+  }
+
+
+  if (checkingSession) {
+    return (
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-6 text-zinc-950" aria-live="polite">
+        <RefreshCw className="animate-spin text-[#ff5a0a]" size={24} />
+        <h1 className="mt-4 text-xl font-black">Checking your session…</h1>
+        <p className="mt-2 text-sm text-slate-600">Loading your member account securely.</p>
+      </section>
+    );
   }
 
   if (member) {
@@ -431,6 +536,7 @@ export default function MemberLoginPage() {
         <button
           type="button"
           onClick={handleLogout}
+          disabled={loading}
           className="flex w-full items-center justify-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-black text-red-200"
         >
           <LogOut size={18} strokeWidth={3} />
@@ -442,6 +548,12 @@ export default function MemberLoginPage() {
 
   return (
     <div className="space-y-6">
+      {sessionError && (
+        <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <p>{sessionError}</p>
+          <button type="button" onClick={() => void checkSession()} className="mt-2 font-black underline">Check session again</button>
+        </div>
+      )}
       <section
         className="relative min-h-[390px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
         style={{

@@ -3,7 +3,7 @@ import LiveGymsPage from "@/components/gyms/LiveGymsPage";
 
 export default function GymsPage() {
   return (
-    <AppShell>
+    <AppShell theme="light">
       <LiveGymsPage />
     </AppShell>
   );
