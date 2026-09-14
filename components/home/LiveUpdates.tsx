@@ -120,7 +120,7 @@ export default function LiveUpdates() {
                   ) : null}
                 </div>
                 {getBody(item) ? (
-                  <p className="mt-1 line-clamp-2 text-xs font-bold leading-5 text-zinc-500">{getBody(item)}</p>
+                  <p className="mt-1 text-xs font-bold leading-5 text-zinc-500">{getBody(item)}</p>
                 ) : null}
                 {ctaUrl ? (
                   <p className="mt-1.5 text-xs font-black text-orange-600">{ctaLabel || "Open update"}</p>

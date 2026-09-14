@@ -40,7 +40,7 @@ export default function BottomNav({ variant = "dark" }: BottomNavProps) {
   return (
     <nav
       className={`fixed bottom-0 left-0 right-0 z-50 border-t pb-[calc(.65rem+env(safe-area-inset-bottom))] pt-2.5 backdrop-blur-xl ${
-        isLight ? "border-zinc-200 bg-white/98" : "border-white/10 bg-black/90 px-4"
+        isLight ? "border-zinc-200 bg-white/[0.98]" : "border-white/10 bg-black/90 px-4"
       }`}
     >
       <div

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { setMemberSessionCookie } from "@/lib/memberAuth";
-import { normalizeMembershipNumber } from "@/lib/memberNumberCore";
+import { MEMBERSHIP_NUMBER_PATTERN, normalizeMembershipNumber } from "@/lib/memberNumberCore";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     if (!member) {
       const normalizedLegacyNumber = normalizeMembershipNumber(rawLogin);
 
-      if (normalizedLegacyNumber !== rawLogin) {
+      if (MEMBERSHIP_NUMBER_PATTERN.test(normalizedLegacyNumber) && normalizedLegacyNumber !== rawLogin) {
         const legacyResult = await supabase
           .from("bgm_members")
           .select("*")
