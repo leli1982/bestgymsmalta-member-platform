@@ -44,6 +44,13 @@ test("member login never uses email as a standalone identity", () => {
   assert.match(loginRoute, /\.eq\(["']username["']/);
 });
 
+test("activated members can log in with an exact non-BGM card/member identifier", () => {
+  assert.doesNotMatch(loginRoute, /parseMembershipNumber/);
+  assert.match(loginRoute, /rawLogin/);
+  assert.match(loginRoute, /\.eq\(["']username["'],\s*login\)/);
+  assert.match(loginRoute, /\.eq\(["']member_number["'],\s*rawLogin\)/);
+});
+
 test("member login UI clearly supports username or permanent membership number", () => {
   assert.match(loginUi, /Username or Membership Number/);
   assert.match(loginUi, /BGM0000001/);

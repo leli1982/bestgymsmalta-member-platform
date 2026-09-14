@@ -4,12 +4,15 @@ import MotionPage from "@/components/ui/MotionPage";
 import TopBar from "@/components/ui/TopBar";
 import FirstTimeOnboarding from "@/components/onboarding/FirstTimeOnboarding";
 
+type NavVariant = "dark" | "light";
+
 type AppShellProps = {
   children: ReactNode;
   title?: string;
   eyebrow?: string;
   showLogo?: boolean;
   useTopBar?: boolean;
+  navVariant?: NavVariant;
 };
 
 export default function AppShell({
@@ -18,6 +21,7 @@ export default function AppShell({
   eyebrow = "BestGymsMalta",
   showLogo = true,
   useTopBar = true,
+  navVariant = "dark",
 }: AppShellProps) {
   return (
     <main className="relative min-h-screen overflow-hidden bg-go text-white pb-[calc(96px+env(safe-area-inset-bottom))]">
@@ -63,7 +67,7 @@ export default function AppShell({
       </MotionPage>
 
       <FirstTimeOnboarding />
-      <BottomNav />
+      <BottomNav variant={navVariant} />
     </main>
   );
 }
