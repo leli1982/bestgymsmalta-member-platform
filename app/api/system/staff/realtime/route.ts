@@ -18,7 +18,7 @@ function publicRealtimeConfig() {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireSystemPermission(request, "members.create");
+  const auth = await requireSystemPermission(request, "members.view");
   if (auth.error || !auth.context) return auth.error;
 
   if (!auth.context.gymId) {
