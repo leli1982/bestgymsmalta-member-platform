@@ -428,7 +428,7 @@ The print layout is A4 and includes:
 
 Use print-specific CSS so navigation, buttons and dashboard chrome do not appear on paper.
 
-Printing is logged/audited with application ID, system user, gym and timestamp where practical.
+Opening the print view must create an audit event with application ID, system user, gym and server timestamp. Re-opening it creates a reprint audit event. The system does not claim that the physical printer completed successfully because browsers do not provide a reliable print-completion signal.
 
 ## 10. Completion Behaviour
 
@@ -470,7 +470,7 @@ Audit at minimum:
 - card assignment rejected because of conflict where useful for diagnostics
 - payment received
 - membership activated
-- application printed/reprinted where practical
+- print view opened / reprint requested
 
 For each audit event, retain relevant context such as:
 
@@ -522,7 +522,7 @@ If Realtime disconnects:
 
 - show a connection warning/indicator
 - automatically attempt normal reconnect through the client library
-- periodically/refetch the pending queue on reconnect or focus so missed events are recovered
+- refetch the pending queue on reconnect or window focus so missed events are recovered
 
 Realtime loss must not lose applications because the database is authoritative.
 
@@ -652,6 +652,7 @@ At minimum verify:
 - print route is authorization protected
 - normal gym user may print only own-gym application
 - print view contains final values and signature fields
+- opening/re-opening the print view creates the appropriate audit event
 - print CSS excludes operational UI
 
 ### Regression
@@ -714,5 +715,6 @@ This feature is complete when all of the following are true:
 15. Successful activation finalizes the card and final member record using corrected values.
 16. A green MEMBERSHIP ACTIVE confirmation is shown, then the next queued member is surfaced.
 17. Print Form produces an A4 form containing final details, timestamps, photo, application reference and member/staff signature fields.
-18. Normal gym accounts cannot access or process another gym's application through direct API calls.
-19. Existing member-facing features and existing critical barcode/card rules continue to work.
+18. Opening or re-opening Print Form creates a print/reprint audit event.
+19. Normal gym accounts cannot access or process another gym's application through direct API calls.
+20. Existing member-facing features and existing critical barcode/card rules continue to work.
