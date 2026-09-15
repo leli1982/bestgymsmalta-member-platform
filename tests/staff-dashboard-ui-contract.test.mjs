@@ -15,6 +15,8 @@ function read(path) {
 const dashboard = read("components/staff/StaffDashboard.tsx");
 const browser = read("components/staff/StaffMemberBrowser.tsx");
 const login = read("components/staff/StaffLoginPage.tsx");
+const queue = read("components/staff/StaffMembershipQueue.tsx");
+const modal = read("components/staff/StaffMembershipReviewModal.tsx");
 
 test("staff login preserves existing auth endpoints and hands authenticated users to StaffDashboard", () => {
   assert.match(login, /fetch\(["']\/api\/system\/auth["']/);
@@ -49,4 +51,35 @@ test("member browser is read-only and surfaces canonical status labels", () => {
   assert.match(browser, /INACTIVE/);
   assert.match(browser, /read-only|read only/i);
   assert.doesNotMatch(browser, /Save Member|Update Member/);
+});
+
+test("new membership queue exposes waiting state and recoverable refreshes", () => {
+  assert.match(queue, /WAITING/);
+  assert.match(queue, /submittedAt/);
+  assert.match(queue, /\/api\/system\/members\/applications/);
+  assert.match(queue, /online/);
+  assert.match(queue, /setInterval/);
+  assert.match(queue, /Retry/);
+});
+
+test("review modal keeps the approved three primary actions", () => {
+  assert.match(modal, /SCAN CARD/);
+  assert.match(modal, /PAYMENT RECEIVED/);
+  assert.match(modal, /PRINT FORM/);
+  assert.doesNotMatch(modal, /ACTIVATE MEMBER/);
+});
+
+test("scan card mode includes a secondary manual entry fallback and preserves card conflicts", () => {
+  assert.match(modal, /manual/i);
+  assert.match(modal, /applicationMemberId/);
+  assert.match(modal, /\/api\/system\/members\/card\/assign/);
+  assert.match(modal, /409|conflict|already/i);
+});
+
+test("payment received activates only after prerequisites and asks for staff name", () => {
+  assert.match(modal, /activationStaffName/);
+  assert.match(modal, /action:\s*["']activate["']/);
+  assert.match(modal, /MEMBERSHIP ACTIVE/);
+  assert.match(modal, /hasPhoto/);
+  assert.match(modal, /cardVerified|reservedBarcode/);
 });
