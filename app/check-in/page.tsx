@@ -17,7 +17,7 @@ export default async function CheckInRoutePage({
   const gymId = params.gymId || params.gym || params.id || "";
 
   return (
-    <AppShell>
+    <AppShell theme="light">
       {gymId ? <CheckInScreen gymId={gymId} /> : <ScanGymQrPage />}
     </AppShell>
   );
