@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
@@ -145,11 +146,56 @@ export default function LiveGymsPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <p className="text-[11px] font-black uppercase tracking-[.2em] text-[#c2410c]">Our locations</p>
-        <h1 className="mt-2 text-4xl font-black leading-tight tracking-tight text-zinc-950">Find your gym.</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">Your next session starts here. Explore the BGM network across Malta.</p>
-        {!loading && <p className="mt-4 text-xs font-bold text-slate-500"><span className="text-[#c2410c]">{activeCount} active gyms</span> · {gyms.length} locations</p>}
+      <header
+        data-gym-hero="network"
+        className="relative min-h-[270px] overflow-hidden rounded-[2rem] bg-zinc-950 text-white shadow-[0_14px_36px_rgba(15,23,42,0.16)]"
+      >
+        <Image
+          src="/visuals/gyms.jpg"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 448px) calc(100vw - 40px), 408px"
+          className="object-cover object-center"
+          aria-hidden="true"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,.92)_0%,rgba(0,0,0,.72)_48%,rgba(0,0,0,.22)_100%)]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/10" />
+
+        <div className="relative flex min-h-[270px] flex-col justify-between p-5">
+          <div className="flex items-center justify-between gap-4">
+            <p className="rounded-full border border-white/15 bg-black/30 px-3 py-2 text-[10px] font-black uppercase tracking-[.2em] text-orange-300 backdrop-blur-sm">
+              Our locations
+            </p>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/30 text-orange-300 backdrop-blur-sm">
+              <MapPinned size={19} strokeWidth={2.75} />
+            </div>
+          </div>
+
+          <div>
+            <h1 className="max-w-[260px] text-4xl font-black leading-[0.95] tracking-tight">
+              Find your gym.
+            </h1>
+            <p className="mt-3 text-sm font-bold text-white/75">
+              One membership. Train across Malta.
+            </p>
+
+            <div className="mt-5 grid grid-cols-2 gap-2.5">
+              <div className="rounded-2xl border border-white/15 bg-black/35 px-3 py-3 backdrop-blur-md">
+                <p className="text-xl font-black text-white">{loading ? "—" : activeCount}</p>
+                <p className="mt-0.5 text-[9px] font-black uppercase tracking-[.13em] text-white/55">
+                  Active gyms
+                </p>
+              </div>
+              <div className="rounded-2xl border border-white/15 bg-black/35 px-3 py-3 backdrop-blur-md">
+                <p className="text-xl font-black text-orange-300">{loading ? "—" : gyms.length}</p>
+                <p className="mt-0.5 text-[9px] font-black uppercase tracking-[.13em] text-white/55">
+                  Locations
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </header>
 
       <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-4 shadow-sm focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-100">
