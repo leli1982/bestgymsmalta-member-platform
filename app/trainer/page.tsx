@@ -3,7 +3,7 @@ import AiTrainer from "@/components/trainer/AiTrainer";
 
 export default function TrainerPage() {
   return (
-    <AppShell>
+    <AppShell theme="light">
       <AiTrainer />
     </AppShell>
   );
