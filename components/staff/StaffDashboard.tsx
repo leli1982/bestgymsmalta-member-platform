@@ -163,7 +163,7 @@ export default function StaffDashboard({ user, onLogout }: Props) {
         <section className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <Tile label="Members" icon={UsersRound} onClick={focusMembers} />
           <Tile label="New Member" icon={PackagePlus} onClick={focusWaiting} badge={queueCount > 0 ? String(queueCount) : undefined} />
-          <Tile label="Card / Reception" icon={Barcode} href="/staff/reception" />
+          <Tile label="Card / Reception" icon={Barcode} href="/staff/reception" disabled={!can("barcode.scan")} />
           <Tile label="Sundries" icon={Boxes} href="/staff/sundries" disabled={!can("orders.sundries.submit")} />
           <Tile label="Bar" icon={Beer} href="/staff/bar" disabled={!can("orders.bar.submit")} />
           <Tile label="Punch Clock" icon={Clock3} disabled />
