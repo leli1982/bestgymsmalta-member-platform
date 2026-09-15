@@ -33,7 +33,7 @@ export async function broadcastStaffMembershipRefresh(gymId: string) {
     const channel = supabase.channel(staffMembershipTopic(gymId));
     try {
       const result = await channel.httpSend(EVENT_NAME, { refresh: true });
-      if (result !== "ok") {
+      if (!result.success) {
         console.error("Staff membership refresh broadcast was not acknowledged.", result);
       }
     } finally {
