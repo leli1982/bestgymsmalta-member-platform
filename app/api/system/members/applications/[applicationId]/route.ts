@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
+import { broadcastStaffMembershipRefresh } from "@/lib/staffRealtime";
 
 export const dynamic = "force-dynamic";
 
@@ -372,6 +373,8 @@ export async function PATCH(
         { status: expectedValidation ? 409 : 500 }
       );
     }
+
+    await broadcastStaffMembershipRefresh(application.enrollment_gym_id);
 
     return NextResponse.json({ ok: true, correction: correctionResult.data });
   } catch (error) {
