@@ -15,6 +15,21 @@ const DURATION_KEYS = new Set([
 ]);
 const PENDING_STATUSES = new Set(["submitted", "awaiting_payment"]);
 
+type ParticipantCorrectionInput = {
+  id?: unknown;
+  participantOrder?: unknown;
+  firstName?: unknown;
+  lastName?: unknown;
+  addressLine1?: unknown;
+  addressLine2?: unknown;
+  postcode?: unknown;
+  idNumber?: unknown;
+  dateOfBirth?: unknown;
+  phone?: unknown;
+  email?: unknown;
+  nextOfKin?: unknown;
+};
+
 function clean(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -247,7 +262,9 @@ export async function PATCH(
     const durationKey = clean(body.durationKey).toLowerCase();
     const startDate = clean(body.startDate);
     const expiryDate = clean(body.expiryDate);
-    const rawParticipants = Array.isArray(body.participants)
+    const rawParticipants: ParticipantCorrectionInput[] = Array.isArray(
+      body.participants
+    )
       ? body.participants
       : [];
 
@@ -285,18 +302,18 @@ export async function PATCH(
     }
 
     const participants = rawParticipants.map((participant, index) => ({
-      id: clean(participant?.id),
-      participantOrder: Number(participant?.participantOrder || index + 1),
-      firstName: clean(participant?.firstName),
-      lastName: clean(participant?.lastName),
-      addressLine1: optional(participant?.addressLine1),
-      addressLine2: optional(participant?.addressLine2),
-      postcode: optional(participant?.postcode),
-      idNumber: optional(participant?.idNumber),
-      dateOfBirth: optional(participant?.dateOfBirth),
-      phone: optional(participant?.phone),
-      email: normalizeEmail(participant?.email),
-      nextOfKin: optional(participant?.nextOfKin),
+      id: clean(participant.id),
+      participantOrder: Number(participant.participantOrder || index + 1),
+      firstName: clean(participant.firstName),
+      lastName: clean(participant.lastName),
+      addressLine1: optional(participant.addressLine1),
+      addressLine2: optional(participant.addressLine2),
+      postcode: optional(participant.postcode),
+      idNumber: optional(participant.idNumber),
+      dateOfBirth: optional(participant.dateOfBirth),
+      phone: optional(participant.phone),
+      email: normalizeEmail(participant.email),
+      nextOfKin: optional(participant.nextOfKin),
     }));
 
     if (
