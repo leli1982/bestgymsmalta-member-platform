@@ -244,9 +244,9 @@ export default function ProgressVault() {
 
   if (!member) {
     return (
-      <div className="space-y-6">
+      <div data-member-surface="progress-light" className="space-y-5 text-zinc-950">
         <section
-          className="relative min-h-[360px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
+          className="relative min-h-[320px] overflow-hidden rounded-[2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
           style={{
             backgroundImage:
               "linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.82)), linear-gradient(135deg, rgba(252,180,21,.22), rgba(0,0,0,.82)), url('/visuals/progress.jpg')",
@@ -254,7 +254,7 @@ export default function ProgressVault() {
         >
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
 
-          <div className="relative flex min-h-[310px] flex-col justify-between">
+          <div className="relative flex min-h-[270px] flex-col justify-between">
             <div className="flex items-center justify-between">
               <div className="rounded-full border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-md">
                 <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
@@ -289,9 +289,9 @@ export default function ProgressVault() {
   }
 
   return (
-    <div className="space-y-6">
+    <div data-member-surface="progress-light" className="space-y-5 text-zinc-950">
       <section
-        className="relative min-h-[390px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
+        className="relative min-h-[340px] overflow-hidden rounded-[2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
         style={{
           backgroundImage:
             "linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.82)), linear-gradient(135deg, rgba(252,180,21,.22), rgba(0,0,0,.82)), url('/visuals/progress.jpg')",
@@ -300,7 +300,7 @@ export default function ProgressVault() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/25 to-black/85" />
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
 
-        <div className="relative flex min-h-[340px] flex-col justify-between">
+        <div className="relative flex min-h-[298px] flex-col justify-between">
           <div className="flex items-center justify-between">
             <div className="rounded-full border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-md">
               <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
@@ -357,20 +357,20 @@ export default function ProgressVault() {
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-[#fcb415]/25 bg-[#fcb415]/10 p-5">
+      <section className="rounded-[1.8rem] border border-orange-200 bg-orange-50 p-5">
         <div className="flex items-start gap-3">
-          <Lock className="mt-0.5 shrink-0 text-[#fcb415]" size={24} strokeWidth={3} />
+          <Lock className="mt-0.5 shrink-0 text-[#ff5a0a]" size={24} strokeWidth={3} />
 
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ff5a0a]">
               Private Vault
             </p>
 
-            <h2 className="mt-1 text-2xl font-black text-white">
+            <h2 className="mt-1 text-2xl font-black text-zinc-950">
               Only visible to you
             </h2>
 
-            <p className="mt-3 text-sm font-bold leading-6 text-white/60">
+            <p className="mt-3 text-sm font-bold leading-6 text-zinc-600">
               Your progress photos are not public, not posted to other members,
               and not shared unless you choose to create a story yourself.
             </p>
@@ -379,14 +379,14 @@ export default function ProgressVault() {
       </section>
 
       {photos.length === 0 ? (
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 text-center">
-          <Sparkles className="mx-auto text-[#fcb415]" size={42} strokeWidth={3} />
+        <section className="rounded-[2rem] border border-zinc-200 bg-white p-6 text-center">
+          <Sparkles className="mx-auto text-[#ff5a0a]" size={42} strokeWidth={3} />
 
-          <h2 className="mt-4 text-3xl font-black text-white">
+          <h2 className="mt-4 text-3xl font-black text-zinc-950">
             Start your progress journey
           </h2>
 
-          <p className="mt-3 text-sm font-bold leading-6 text-white/50">
+          <p className="mt-3 text-sm font-bold leading-6 text-zinc-500">
             Your first photo is not about where you are today. It gives your
             future self something powerful to compare against.
           </p>
@@ -394,23 +394,23 @@ export default function ProgressVault() {
       ) : null}
 
       {oldestPhoto && latestPhoto && oldestPhoto.id !== latestPhoto.id ? (
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+        <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ff5a0a]">
                 Before / Latest
               </p>
 
-              <h2 className="mt-1 text-2xl font-black text-white">
+              <h2 className="mt-1 text-2xl font-black text-zinc-950">
                 Compare your journey
               </h2>
             </div>
 
-            <Eye className="text-[#fcb415]" size={25} strokeWidth={3} />
+            <Eye className="text-[#ff5a0a]" size={25} strokeWidth={3} />
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-3">
-            <div className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/25">
+            <div className="overflow-hidden rounded-[1.5rem] border border-zinc-200 bg-zinc-50">
               <div
                 className="aspect-[3/4] bg-cover bg-center"
                 style={{
@@ -418,16 +418,16 @@ export default function ProgressVault() {
                 }}
               />
               <div className="p-3">
-                <p className="text-[10px] font-black uppercase tracking-[.18em] text-white/35">
+                <p className="text-[10px] font-black uppercase tracking-[.18em] text-zinc-400">
                   First
                 </p>
-                <p className="mt-1 text-xs font-bold text-white/65">
+                <p className="mt-1 text-xs font-bold text-zinc-600">
                   {formatDate(getPhotoDate(oldestPhoto))}
                 </p>
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-[1.5rem] border border-[#fcb415]/30 bg-black/25">
+            <div className="overflow-hidden rounded-[1.5rem] border border-[#fcb415]/30 bg-zinc-50">
               <div
                 className="aspect-[3/4] bg-cover bg-center"
                 style={{
@@ -435,10 +435,10 @@ export default function ProgressVault() {
                 }}
               />
               <div className="p-3">
-                <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#fcb415]">
+                <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#ff5a0a]">
                   Latest
                 </p>
-                <p className="mt-1 text-xs font-bold text-white/65">
+                <p className="mt-1 text-xs font-bold text-zinc-600">
                   {formatDate(getPhotoDate(latestPhoto))}
                 </p>
               </div>
@@ -447,7 +447,7 @@ export default function ProgressVault() {
 
           <a
             href="/story"
-            className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+            className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-black"
           >
             Create Progress Story
             <ChevronRight size={17} strokeWidth={3} />
@@ -455,22 +455,22 @@ export default function ProgressVault() {
         </section>
       ) : null}
 
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
         <div className="flex items-center gap-3">
-          <ImagePlus className="text-[#fcb415]" size={24} strokeWidth={3} />
+          <ImagePlus className="text-[#ff5a0a]" size={24} strokeWidth={3} />
 
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ff5a0a]">
               Progress Check-In
             </p>
 
-            <h2 className="mt-1 text-2xl font-black text-white">
+            <h2 className="mt-1 text-2xl font-black text-zinc-950">
               Add a new photo
             </h2>
           </div>
         </div>
 
-        <p className="mt-4 text-sm font-bold leading-6 text-white/45">
+        <p className="mt-4 text-sm font-bold leading-6 text-zinc-500">
           Same lighting. Same angle. Same effort. Small updates become big
           progress over time.
         </p>
@@ -496,7 +496,7 @@ export default function ProgressVault() {
           <button
             type="button"
             onClick={() => cameraInputRef.current?.click()}
-            className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+            className="flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-black"
           >
             <Camera size={17} strokeWidth={3} />
             Take Photo
@@ -505,7 +505,7 @@ export default function ProgressVault() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white"
+            className="flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white px-5 py-4 text-sm font-black text-zinc-950"
           >
             <Upload size={17} strokeWidth={3} />
             Upload
@@ -513,32 +513,32 @@ export default function ProgressVault() {
         </div>
 
         {previewUrl ? (
-          <div className="mt-5 overflow-hidden rounded-[1.8rem] border border-[#fcb415]/25 bg-black/25">
+          <div className="mt-5 overflow-hidden rounded-[1.8rem] border border-[#fcb415]/25 bg-zinc-50">
             <img src={previewUrl} alt="" className="max-h-[420px] w-full object-cover" />
           </div>
         ) : null}
 
         <div className="mt-5 grid gap-4">
           <label className="grid gap-2">
-            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-zinc-400">
               Date
             </span>
             <input
               type="date"
               value={progressDate}
               onChange={(event) => setProgressDate(event.target.value)}
-              className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold text-white outline-none"
+              className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-950 outline-none"
             />
           </label>
 
           <label className="grid gap-2">
-            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-zinc-400">
               View
             </span>
             <select
               value={photoView}
               onChange={(event) => setPhotoView(event.target.value)}
-              className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold text-white outline-none"
+              className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-950 outline-none"
             >
               {photoViews.map((view) => (
                 <option key={view} value={view}>
@@ -549,19 +549,19 @@ export default function ProgressVault() {
           </label>
 
           <label className="grid gap-2">
-            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-zinc-400">
               Body weight
             </span>
             <input
               value={bodyWeight}
               onChange={(event) => setBodyWeight(event.target.value)}
               placeholder="Example: 82kg"
-              className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold text-white outline-none placeholder:text-white/25"
+              className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-950 outline-none placeholder:text-zinc-950/25"
             />
           </label>
 
           <label className="grid gap-2">
-            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-zinc-400">
               Notes
             </span>
             <textarea
@@ -569,7 +569,7 @@ export default function ProgressVault() {
               onChange={(event) => setNotes(event.target.value)}
               placeholder="How did you feel today?"
               rows={3}
-              className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold leading-6 text-white outline-none placeholder:text-white/25"
+              className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold leading-6 text-zinc-950 outline-none placeholder:text-zinc-950/25"
             />
           </label>
         </div>
@@ -578,7 +578,7 @@ export default function ProgressVault() {
           type="button"
           onClick={savePhoto}
           disabled={!selectedFile || saving}
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black disabled:opacity-50"
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-black disabled:opacity-50"
         >
           {saving ? (
             <>
@@ -594,20 +594,20 @@ export default function ProgressVault() {
         </button>
       </section>
 
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ff5a0a]">
               Timeline
             </p>
 
-            <h2 className="mt-1 text-2xl font-black text-white">
+            <h2 className="mt-1 text-2xl font-black text-zinc-950">
               Your progress photos
             </h2>
           </div>
 
           {loading ? (
-            <RefreshCw className="animate-spin text-[#fcb415]" size={24} strokeWidth={3} />
+            <RefreshCw className="animate-spin text-[#ff5a0a]" size={24} strokeWidth={3} />
           ) : null}
         </div>
 
@@ -619,8 +619,8 @@ export default function ProgressVault() {
               onClick={() => setFilter(view)}
               className={`shrink-0 rounded-full px-4 py-2 text-xs font-black uppercase tracking-[.14em] ${
                 filter === view
-                  ? "bg-[#fcb415] text-black"
-                  : "border border-white/10 bg-black/25 text-white/45"
+                  ? "bg-[#ff5a0a] text-black"
+                  : "border border-zinc-200 bg-zinc-50 text-zinc-500"
               }`}
             >
               {view}
@@ -635,7 +635,7 @@ export default function ProgressVault() {
             return (
               <article
                 key={photo.id}
-                className="overflow-hidden rounded-[1.8rem] border border-white/10 bg-black/25"
+                className="overflow-hidden rounded-[1.8rem] border border-zinc-200 bg-zinc-50"
               >
                 {url ? (
                   <img src={url} alt="" className="max-h-[520px] w-full object-cover" />
@@ -644,16 +644,16 @@ export default function ProgressVault() {
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#fcb415]">
+                      <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#ff5a0a]">
                         {getPhotoView(photo)}
                       </p>
 
-                      <h3 className="mt-1 text-xl font-black text-white">
+                      <h3 className="mt-1 text-xl font-black text-zinc-950">
                         {formatDate(getPhotoDate(photo))}
                       </h3>
 
                       {getPhotoWeight(photo) ? (
-                        <p className="mt-1 text-sm font-bold text-white/45">
+                        <p className="mt-1 text-sm font-bold text-zinc-500">
                           Weight: {getPhotoWeight(photo)}
                         </p>
                       ) : null}
@@ -669,7 +669,7 @@ export default function ProgressVault() {
                   </div>
 
                   {photo.notes ? (
-                    <p className="mt-3 text-sm font-bold leading-6 text-white/55">
+                    <p className="mt-3 text-sm font-bold leading-6 text-zinc-600">
                       {photo.notes}
                     </p>
                   ) : null}
@@ -679,9 +679,9 @@ export default function ProgressVault() {
           })}
 
           {!loading && filteredPhotos.length === 0 ? (
-            <div className="rounded-[1.5rem] border border-white/10 bg-black/25 p-5 text-center">
-              <Camera className="mx-auto text-[#fcb415]" size={34} strokeWidth={3} />
-              <p className="mt-3 text-sm font-bold text-white/45">
+            <div className="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-5 text-center">
+              <Camera className="mx-auto text-[#ff5a0a]" size={34} strokeWidth={3} />
+              <p className="mt-3 text-sm font-bold text-zinc-500">
                 No progress photos in this view yet.
               </p>
             </div>
@@ -690,48 +690,48 @@ export default function ProgressVault() {
       </section>
 
       {photos.length > 0 ? (
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+        <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
           <div className="flex items-center gap-3">
-            <Sparkles className="text-[#fcb415]" size={24} strokeWidth={3} />
+            <Sparkles className="text-[#ff5a0a]" size={24} strokeWidth={3} />
 
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ff5a0a]">
                 Milestones
               </p>
 
-              <h2 className="mt-1 text-2xl font-black text-white">
+              <h2 className="mt-1 text-2xl font-black text-zinc-950">
                 Keep showing up
               </h2>
             </div>
           </div>
 
           <div className="mt-5 grid gap-3">
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-              <p className="text-sm font-black text-white">
+            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+              <p className="text-sm font-black text-zinc-950">
                 First progress photo saved
               </p>
-              <p className="mt-1 text-xs font-bold text-white/45">
+              <p className="mt-1 text-xs font-bold text-zinc-500">
                 You started your visual progress journey.
               </p>
             </div>
 
             {photos.length >= 3 ? (
-              <div className="rounded-2xl border border-[#fcb415]/25 bg-[#fcb415]/10 p-4">
-                <p className="text-sm font-black text-white">
+              <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
+                <p className="text-sm font-black text-zinc-950">
                   Consistency building
                 </p>
-                <p className="mt-1 text-xs font-bold text-white/45">
+                <p className="mt-1 text-xs font-bold text-zinc-500">
                   You have saved {photos.length} progress photos.
                 </p>
               </div>
             ) : null}
 
             {trackedDays >= 30 ? (
-              <div className="rounded-2xl border border-[#fcb415]/25 bg-[#fcb415]/10 p-4">
-                <p className="text-sm font-black text-white">
+              <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
+                <p className="text-sm font-black text-zinc-950">
                   30-day journey
                 </p>
-                <p className="mt-1 text-xs font-bold text-white/45">
+                <p className="mt-1 text-xs font-bold text-zinc-500">
                   You have been tracking progress for {trackedDays} days.
                 </p>
               </div>

@@ -1,16 +1,14 @@
 import ProgressVault from "@/components/progress/ProgressVault";
 import StrengthTracker from "@/components/progress/StrengthTracker";
-import BottomNav from "@/components/BottomNav";
+import AppShell from "@/components/ui/AppShell";
 
 export default function Page() {
   return (
-    <>
-      <main className="mx-auto min-h-screen max-w-md space-y-6 px-4 pb-32 pt-6 text-white">
+    <AppShell theme="light">
+      <div className="space-y-6">
         <ProgressVault />
         <StrengthTracker />
-      </main>
-
-      <BottomNav />
-    </>
+      </div>
+    </AppShell>
   );
 }

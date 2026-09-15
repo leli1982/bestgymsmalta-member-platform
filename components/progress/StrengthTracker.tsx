@@ -271,14 +271,14 @@ function GraphModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/80 p-4 backdrop-blur-md sm:items-center">
-      <div className="mx-auto max-h-[92vh] w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-[#080808] shadow-2xl">
-        <div className="flex items-start justify-between gap-4 border-b border-white/10 p-5">
+      <div className="mx-auto max-h-[92vh] w-full max-w-md overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-zinc-200 p-5">
           <div>
-            <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
+            <p className="text-xs font-black uppercase tracking-[.25em] text-[#ff5a0a]">
               Progress Graph
             </p>
-            <h2 className="mt-2 text-2xl font-black text-white">{exercise}</h2>
-            <p className="mt-1 text-sm font-bold text-white/45">
+            <h2 className="mt-2 text-2xl font-black text-zinc-950">{exercise}</h2>
+            <p className="mt-1 text-sm font-bold text-zinc-500">
               Each exercise has its own saved timeline.
             </p>
           </div>
@@ -286,7 +286,7 @@ function GraphModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-950"
           >
             <X size={20} strokeWidth={3} />
           </button>
@@ -297,7 +297,7 @@ function GraphModal({
             <button
               type="button"
               onClick={() => cycle("previous")}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-950"
             >
               <ChevronLeft size={18} strokeWidth={3} />
             </button>
@@ -310,8 +310,8 @@ function GraphModal({
                   onClick={() => onExerciseChange(tab)}
                   className={
                     tab === exercise
-                      ? "shrink-0 rounded-full bg-[#fcb415] px-4 py-3 text-xs font-black text-black"
-                      : "shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-xs font-black text-white/70"
+                      ? "shrink-0 rounded-full bg-[#ff5a0a] px-4 py-3 text-xs font-black text-black"
+                      : "shrink-0 rounded-full border border-zinc-200 bg-white px-4 py-3 text-xs font-black text-zinc-600"
                   }
                 >
                   {tab}
@@ -322,7 +322,7 @@ function GraphModal({
             <button
               type="button"
               onClick={() => cycle("next")}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-950"
             >
               <ChevronRight size={18} strokeWidth={3} />
             </button>
@@ -346,25 +346,25 @@ function GraphModal({
           ) : null}
 
           {history.length < 2 ? (
-            <div className="rounded-[1.5rem] border border-[#fcb415]/20 bg-[#fcb415]/10 p-5 text-center">
-              <LineChart className="mx-auto text-[#fcb415]" size={34} />
-              <h3 className="mt-3 text-xl font-black text-white">
+            <div className="rounded-[1.5rem] border border-[#ff5a0a]/20 bg-[#ff5a0a]/10 p-5 text-center">
+              <LineChart className="mx-auto text-[#ff5a0a]" size={34} />
+              <h3 className="mt-3 text-xl font-black text-zinc-950">
                 Add another {exercise} entry
               </h3>
-              <p className="mt-2 text-sm font-bold leading-6 text-white/50">
+              <p className="mt-2 text-sm font-bold leading-6 text-zinc-500">
                 This exercise needs at least two records to show a useful graph.
               </p>
             </div>
           ) : (
             <>
-              <div className="rounded-[1.6rem] border border-white/10 bg-black/35 p-4">
+              <div className="rounded-[1.6rem] border border-zinc-200 bg-zinc-50 p-4">
                 <svg viewBox="0 0 100 100" className="h-64 w-full overflow-visible">
                   <line
                     x1="8"
                     y1="86"
                     x2="94"
                     y2="86"
-                    stroke="rgba(255,255,255,0.18)"
+                    stroke="rgba(24,24,27,0.14)"
                     strokeWidth="1"
                   />
                   <line
@@ -372,14 +372,14 @@ function GraphModal({
                     y1="12"
                     x2="8"
                     y2="86"
-                    stroke="rgba(255,255,255,0.18)"
+                    stroke="rgba(24,24,27,0.14)"
                     strokeWidth="1"
                   />
 
                   <polyline
                     points={polyline}
                     fill="none"
-                    stroke="#fcb415"
+                    stroke="#ff5a0a"
                     strokeWidth="3"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -391,7 +391,7 @@ function GraphModal({
                         cx={point.x}
                         cy={point.y}
                         r="3.2"
-                        fill="#fcb415"
+                        fill="#ff5a0a"
                         stroke="black"
                         strokeWidth="1.5"
                       />
@@ -399,7 +399,7 @@ function GraphModal({
                   ))}
                 </svg>
 
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-black uppercase tracking-[.14em] text-white/35">
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-black uppercase tracking-[.14em] text-zinc-400">
                   <span>{formatShortDate(getEntryDate(graphEntries[0]))}</span>
                   <span className="text-right">
                     {formatShortDate(
@@ -655,7 +655,7 @@ export default function StrengthTracker() {
 
   if (!member) {
     return (
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 text-center">
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-6 text-center">
         <LockMessage />
       </section>
     );
@@ -663,21 +663,21 @@ export default function StrengthTracker() {
 
   return (
     <>
-      <section className="space-y-5 rounded-[2.2rem] border border-white/10 bg-white/[0.04] p-5 shadow-2xl">
+      <section data-member-surface="strength-light" className="space-y-5 rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
+            <p className="text-xs font-black uppercase tracking-[.25em] text-[#ff5a0a]">
               Strength Tracker
             </p>
-            <h2 className="mt-2 text-3xl font-black text-white">
+            <h2 className="mt-2 text-3xl font-black text-zinc-950">
               Track your lifts
             </h2>
-            <p className="mt-2 text-sm font-bold leading-6 text-white/50">
+            <p className="mt-2 text-sm font-bold leading-6 text-zinc-500">
               Every exercise is saved separately to your own member account.
             </p>
           </div>
 
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#fcb415] text-black">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#ff5a0a] text-black">
             <Dumbbell size={30} strokeWidth={3} />
           </div>
         </div>
@@ -695,10 +695,10 @@ export default function StrengthTracker() {
           {rows.map((row, index) => (
             <div
               key={row.id}
-              className="rounded-[1.7rem] border border-white/10 bg-black/25 p-4"
+              className="rounded-[1.7rem] border border-zinc-200 bg-zinc-50 p-4"
             >
               <div className="mb-4 flex items-center justify-between gap-3">
-                <p className="text-sm font-black text-white">
+                <p className="text-sm font-black text-zinc-950">
                   Exercise {index + 1}
                 </p>
 
@@ -713,12 +713,12 @@ export default function StrengthTracker() {
                 ) : null}
               </div>
 
-              <label className="text-[10px] font-black uppercase tracking-[.22em] text-white/35">
+              <label className="text-[10px] font-black uppercase tracking-[.22em] text-zinc-400">
                 Date
               </label>
 
-              <div className="mt-2 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/45 px-4 py-3">
-                <CalendarDays size={18} className="text-white/35" />
+              <div className="mt-2 flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+                <CalendarDays size={18} className="text-zinc-400" />
                 <input
                   type="date"
                   value={row.progressDate}
@@ -727,11 +727,11 @@ export default function StrengthTracker() {
                       progressDate: event.target.value,
                     })
                   }
-                  className="w-full bg-transparent text-sm font-black text-white outline-none"
+                  className="w-full bg-transparent text-sm font-black text-zinc-950 outline-none"
                 />
               </div>
 
-              <label className="mt-4 block text-[10px] font-black uppercase tracking-[.22em] text-white/35">
+              <label className="mt-4 block text-[10px] font-black uppercase tracking-[.22em] text-zinc-400">
                 Exercise
               </label>
 
@@ -743,7 +743,7 @@ export default function StrengthTracker() {
                       exerciseName: event.target.value,
                     })
                   }
-                  className="w-full appearance-none rounded-2xl border border-white/10 bg-black/45 px-4 py-4 text-sm font-black text-white outline-none"
+                  className="w-full appearance-none rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 text-sm font-black text-zinc-950 outline-none"
                 >
                   {inputExerciseOptions.map((exercise) => (
                     <option key={exercise} value={exercise}>
@@ -753,7 +753,7 @@ export default function StrengthTracker() {
                 </select>
 
                 <ChevronDown
-                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-white/35"
+                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400"
                   size={18}
                 />
               </div>
@@ -767,7 +767,7 @@ export default function StrengthTracker() {
                     })
                   }
                   placeholder="Type exercise name"
-                  className="mt-3 w-full rounded-2xl border border-white/10 bg-black/45 px-4 py-4 text-sm font-black text-white outline-none placeholder:text-white/25"
+                  className="mt-3 w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 text-sm font-black text-zinc-950 outline-none placeholder:text-zinc-400"
                 />
               ) : null}
 
@@ -799,7 +799,7 @@ export default function StrengthTracker() {
                   })
                 }
                 placeholder="Notes, optional"
-                className="mt-3 w-full rounded-2xl border border-white/10 bg-black/45 px-4 py-4 text-sm font-bold text-white outline-none placeholder:text-white/25"
+                className="mt-3 w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 text-sm font-bold text-zinc-950 outline-none placeholder:text-zinc-400"
               />
             </div>
           ))}
@@ -809,7 +809,7 @@ export default function StrengthTracker() {
           <button
             type="button"
             onClick={() => setRows((currentRows) => [...currentRows, newRow()])}
-            className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white"
+            className="flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white px-5 py-4 text-sm font-black text-zinc-950"
           >
             <Plus size={17} strokeWidth={3} />
             Add Exercise
@@ -819,7 +819,7 @@ export default function StrengthTracker() {
             type="button"
             onClick={saveRows}
             disabled={saving}
-            className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black disabled:opacity-60"
+            className="flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-black disabled:opacity-60"
           >
             {saving ? (
               <RefreshCw size={17} className="animate-spin" strokeWidth={3} />
@@ -830,21 +830,21 @@ export default function StrengthTracker() {
           </button>
         </div>
 
-        <div className="rounded-[1.7rem] border border-white/10 bg-black/25 p-4">
+        <div className="rounded-[1.7rem] border border-zinc-200 bg-zinc-50 p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-black uppercase tracking-[.22em] text-[#fcb415]">
+              <p className="text-xs font-black uppercase tracking-[.22em] text-[#ff5a0a]">
                 Exercise Progress
               </p>
-              <h3 className="mt-1 text-xl font-black text-white">
+              <h3 className="mt-1 text-xl font-black text-zinc-950">
                 Choose an exercise
               </h3>
-              <p className="mt-1 text-sm font-bold text-white/45">
+              <p className="mt-1 text-sm font-bold text-zinc-500">
                 Stats and graphs change per exercise.
               </p>
             </div>
 
-            <Activity className="text-[#fcb415]" size={26} strokeWidth={3} />
+            <Activity className="text-[#ff5a0a]" size={26} strokeWidth={3} />
           </div>
 
           {loggedExerciseTabs.length > 0 ? (
@@ -857,8 +857,8 @@ export default function StrengthTracker() {
                     onClick={() => setSelectedExercise(exercise)}
                     className={
                       activeExercise === exercise
-                        ? "shrink-0 rounded-full bg-[#fcb415] px-4 py-3 text-xs font-black text-black"
-                        : "shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-xs font-black text-white/70"
+                        ? "shrink-0 rounded-full bg-[#ff5a0a] px-4 py-3 text-xs font-black text-black"
+                        : "shrink-0 rounded-full border border-zinc-200 bg-white px-4 py-3 text-xs font-black text-zinc-600"
                     }
                   >
                     {exercise}
@@ -890,28 +890,28 @@ export default function StrengthTracker() {
               <button
                 type="button"
                 onClick={() => setShowGraph(true)}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-black"
               >
                 <BarChart3 size={18} strokeWidth={3} />
                 View Progress Graphs
               </button>
             </>
           ) : (
-            <p className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center text-sm font-bold text-white/45">
+            <p className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4 text-center text-sm font-bold text-zinc-500">
               Save your first exercise to unlock exercise tabs and graphs.
             </p>
           )}
         </div>
 
-        <div className="rounded-[1.7rem] border border-white/10 bg-black/25 p-4">
+        <div className="rounded-[1.7rem] border border-zinc-200 bg-zinc-50 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-black text-white">
+              <h3 className="text-xl font-black text-zinc-950">
                 {loggedExerciseTabs.length > 0
                   ? `${activeExercise} history`
                   : "Latest lifts"}
               </h3>
-              <p className="mt-1 text-sm font-bold text-white/45">
+              <p className="mt-1 text-sm font-bold text-zinc-500">
                 {loggedExerciseTabs.length > 0
                   ? "Showing entries for the selected exercise only."
                   : "Your recent strength entries will show here."}
@@ -919,7 +919,7 @@ export default function StrengthTracker() {
             </div>
 
             {loading ? (
-              <RefreshCw className="animate-spin text-white/35" size={18} />
+              <RefreshCw className="animate-spin text-zinc-400" size={18} />
             ) : null}
           </div>
 
@@ -930,17 +930,17 @@ export default function StrengthTracker() {
             ).map((entry) => (
               <div
                 key={entry.id}
-                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4"
+                className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-4"
               >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#fcb415]/10 text-[#fcb415]">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ff5a0a]/10 text-[#ff5a0a]">
                   <Dumbbell size={22} strokeWidth={3} />
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-black text-white">
+                  <p className="truncate text-sm font-black text-zinc-950">
                     {getExerciseName(entry)}
                   </p>
-                  <p className="mt-1 text-xs font-bold text-white/45">
+                  <p className="mt-1 text-xs font-bold text-zinc-500">
                     {formatDate(getEntryDate(entry))} ·{" "}
                     {formatNumber(getWeight(entry))}kg · {getSets(entry)} sets ×{" "}
                     {getReps(entry)} reps
@@ -961,7 +961,7 @@ export default function StrengthTracker() {
             (loggedExerciseTabs.length > 0
               ? selectedLatestEntries.length === 0
               : allLatestEntries.length === 0) ? (
-              <p className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center text-sm font-bold text-white/45">
+              <p className="rounded-2xl border border-zinc-200 bg-white p-4 text-center text-sm font-bold text-zinc-500">
                 No strength progress yet. Add your first lift above.
               </p>
             ) : null}
@@ -984,11 +984,11 @@ export default function StrengthTracker() {
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
-      <p className="text-[9px] font-black uppercase tracking-[.18em] text-white/35">
+    <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
+      <p className="text-[9px] font-black uppercase tracking-[.18em] text-zinc-400">
         {label}
       </p>
-      <p className="mt-2 text-lg font-black text-white">{value}</p>
+      <p className="mt-2 text-lg font-black text-zinc-950">{value}</p>
     </div>
   );
 }
@@ -1004,7 +1004,7 @@ function NumberField({
 }) {
   return (
     <div>
-      <label className="text-[9px] font-black uppercase tracking-[.16em] text-white/35">
+      <label className="text-[9px] font-black uppercase tracking-[.16em] text-zinc-400">
         {label}
       </label>
       <input
@@ -1012,7 +1012,7 @@ function NumberField({
         inputMode="decimal"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-2xl border border-white/10 bg-black/45 px-3 py-4 text-center text-sm font-black text-white outline-none"
+        className="mt-2 w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-4 text-center text-sm font-black text-zinc-950 outline-none"
       />
     </div>
   );
@@ -1021,16 +1021,16 @@ function NumberField({
 function LockMessage() {
   return (
     <>
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#fcb415]/10 text-[#fcb415]">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#ff5a0a]/10 text-[#ff5a0a]">
         <Dumbbell size={30} strokeWidth={3} />
       </div>
-      <h2 className="mt-4 text-2xl font-black text-white">Strength Tracker</h2>
-      <p className="mt-2 text-sm font-bold leading-6 text-white/50">
+      <h2 className="mt-4 text-2xl font-black text-zinc-950">Strength Tracker</h2>
+      <p className="mt-2 text-sm font-bold leading-6 text-zinc-500">
         Log in to track your lifts, sets, reps and exercise progress.
       </p>
       <a
         href="/member-login"
-        className="mt-5 flex items-center justify-center rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+        className="mt-5 flex items-center justify-center rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-black"
       >
         Login / Activate
       </a>
