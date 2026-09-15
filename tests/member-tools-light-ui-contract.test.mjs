@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+// Batch 1 member-tool light-surface contract.
 const root = new URL("..", import.meta.url).pathname;
 const trainerPagePath = join(root, "app/trainer/page.tsx");
 const trainerPath = join(root, "components/trainer/AiTrainer.tsx");
