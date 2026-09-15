@@ -3,7 +3,7 @@ import LivePassportPage from "@/components/passport/LivePassportPage";
 
 export default function PassportPage() {
   return (
-    <AppShell>
+    <AppShell theme="light">
       <LivePassportPage />
     </AppShell>
   );
