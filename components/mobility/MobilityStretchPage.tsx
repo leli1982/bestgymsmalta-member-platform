@@ -353,18 +353,18 @@ export default function MobilityStretchPage() {
   }, [selectedCategory]);
 
   return (
-    <AppShell>
-      <div className="min-h-screen bg-neutral-950 px-4 pb-28 pt-5 text-white">
+    <AppShell theme="light">
+      <div data-member-surface="mobility-light" className="min-h-screen bg-[#f6f6f6] px-4 pb-28 pt-5 text-zinc-950">
         <div className="mx-auto max-w-5xl">
           <Link
             href="/"
-            className="mb-5 inline-flex items-center gap-2 text-sm text-neutral-300 hover:text-white"
+            className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-zinc-500 hover:text-zinc-950"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to dashboard
           </Link>
 
-          <section className="relative overflow-hidden rounded-[2rem] border border-orange-500/20 bg-neutral-900 shadow-2xl">
+          <section className="relative overflow-hidden rounded-[2rem] border border-zinc-200 bg-zinc-900 shadow-lg">
             <img
               src="/images/mobility-stretch-card.png"
               alt="Mobility and Stretch"
@@ -379,7 +379,7 @@ export default function MobilityStretchPage() {
                 Recovery guide
               </div>
 
-              <h1 className="text-3xl font-black tracking-tight">
+              <h1 className="text-3xl font-black tracking-tight text-white">
                 Mobility & Stretch
               </h1>
 
@@ -389,7 +389,7 @@ export default function MobilityStretchPage() {
             </div>
           </section>
 
-          <section className="mt-5 rounded-[1.5rem] border border-yellow-500/20 bg-yellow-500/10 p-4 text-sm leading-6 text-yellow-100">
+          <section className="mt-5 rounded-[1.5rem] border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-900">
             <div className="mb-2 flex items-center gap-2 font-bold">
               <AlertTriangle className="h-4 w-4" />
               Important
@@ -397,15 +397,15 @@ export default function MobilityStretchPage() {
             These are general stretching suggestions. Stop if you feel pain, numbness, dizziness or sharp discomfort. Always consult with a medical professional before starting any stretching or exercise routine, especially if you have an injury, medical condition or ongoing pain.
           </section>
 
-          <section className="mt-5 rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-4">
-            <label className="mb-2 block text-sm font-semibold text-neutral-200">
+          <section className="mt-5 rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm">
+            <label className="mb-2 block text-sm font-bold text-zinc-700">
               Choose stretch area
             </label>
 
             <select
               value={selectedCategory}
               onChange={(event) => setSelectedCategory(event.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-neutral-950 px-4 py-3 text-white outline-none focus:border-orange-500"
+              className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 font-semibold text-zinc-950 outline-none focus:border-[#ff5a0a] focus:ring-2 focus:ring-[#ff5a0a]/10"
             >
               {Object.entries(stretchCategories).map(([key, item]) => (
                 <option key={key} value={key}>
@@ -418,34 +418,34 @@ export default function MobilityStretchPage() {
           <section className="mt-5">
             <div className="mb-4">
               <h2 className="text-2xl font-black">{category.label}</h2>
-              <p className="mt-1 text-sm text-neutral-400">{category.intro}</p>
+              <p className="mt-1 text-sm font-medium text-zinc-500">{category.intro}</p>
             </div>
 
             <div className="grid gap-4">
               {category.stretches.map((stretch) => (
                 <article
                   key={stretch.name}
-                  className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-5"
+                  className="rounded-[1.5rem] border border-zinc-200 bg-white p-5 shadow-sm"
                 >
                   <div className="mb-3 flex items-start justify-between gap-4">
                     <div>
                       <h3 className="text-lg font-black">{stretch.name}</h3>
-                      <p className="mt-1 text-sm text-orange-300">
+                      <p className="mt-1 text-sm font-bold text-[#ff5a0a]">
                         {stretch.area}
                       </p>
                     </div>
 
-                    <div className="flex shrink-0 items-center gap-2 rounded-full bg-orange-500/15 px-3 py-1 text-sm font-bold text-orange-200">
+                    <div className="flex shrink-0 items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-sm font-black text-[#ff5a0a]">
                       <Clock className="h-4 w-4" />
                       {stretch.hold}
                     </div>
                   </div>
 
-                  <p className="text-sm leading-6 text-neutral-300">
+                  <p className="text-sm font-medium leading-6 text-zinc-600">
                     {stretch.instructions}
                   </p>
 
-                  <div className="mt-4 flex gap-2 rounded-2xl border border-orange-500/15 bg-orange-500/10 p-3 text-xs leading-5 text-orange-100">
+                  <div className="mt-4 flex gap-2 rounded-2xl border border-orange-200 bg-orange-50 p-3 text-xs font-semibold leading-5 text-orange-800">
                     <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
                     {stretch.note}
                   </div>
