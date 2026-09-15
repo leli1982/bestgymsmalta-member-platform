@@ -14,7 +14,7 @@ import {
 export const dynamic = "force-dynamic";
 
 const MEMBER_SEARCH_FIELDS =
-  "id, member_number, first_name, last_name, full_name, status, membership_expiry, mobile, phone, email, id_number, enrollment_gym_id, legacy_pk_customer, legacy_gym, official_photo_path";
+  "id, member_number, first_name, last_name, full_name, status, membership_expiry, mobile, phone, email, id_number, address_line_1, address_line_2, postcode, date_of_birth, next_of_kin, enrollment_gym_id, legacy_pk_customer, legacy_gym, official_photo_path";
 const VALID_FILTERS = new Set<StaffMemberFilter>(["all", "active", "expired"]);
 
 function escapeLikePattern(value: string) {
@@ -48,8 +48,14 @@ function toCandidate(
     classification,
     membershipExpiry: member.membership_expiry || "",
     mobile: member.mobile || member.phone || "",
+    phone: member.phone || member.mobile || "",
     email: member.email || "",
     idNumber: member.id_number || "",
+    addressLine1: member.address_line_1 || "",
+    addressLine2: member.address_line_2 || "",
+    postcode: member.postcode || "",
+    dateOfBirth: member.date_of_birth || "",
+    nextOfKin: member.next_of_kin || "",
     enrollmentGymId: member.enrollment_gym_id || null,
     legacyPkCustomer: member.legacy_pk_customer || "",
     legacyGym: member.legacy_gym || "",
