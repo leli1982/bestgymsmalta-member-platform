@@ -776,9 +776,9 @@ export default function StoryCreator() {
   }
 
   return (
-    <div className="space-y-6">
+    <div data-member-surface="story-light" className="space-y-6 text-zinc-950">
       <section
-        className="relative min-h-[300px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
+        className="relative min-h-[290px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
         style={{
           backgroundImage:
             "linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.82)), linear-gradient(135deg, rgba(252,180,21,.22), rgba(0,0,0,.82)), url('/visuals/story.jpg')",
@@ -786,7 +786,7 @@ export default function StoryCreator() {
       >
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
 
-        <div className="relative flex min-h-[250px] flex-col justify-between">
+        <div className="relative flex min-h-[240px] flex-col justify-between">
           <div className="flex items-center justify-between">
             <div className="rounded-full border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-md">
               <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
@@ -811,7 +811,7 @@ export default function StoryCreator() {
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-[#fcb415]/25 bg-black/50 p-4 shadow-2xl">
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-4 shadow-sm">
         <div
           ref={previewRef}
           className="relative mx-auto aspect-[9/16] w-full max-w-[360px] touch-none select-none overflow-hidden rounded-[2rem] border border-white/10 bg-cover bg-center shadow-2xl"
@@ -950,7 +950,7 @@ export default function StoryCreator() {
             type="button"
             onClick={shareStory}
             disabled={busy}
-            className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black disabled:opacity-60"
+            className="flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-200 disabled:opacity-60"
           >
             <Share2 size={17} strokeWidth={3} />
             Share
@@ -960,19 +960,19 @@ export default function StoryCreator() {
             type="button"
             onClick={downloadStory}
             disabled={busy}
-            className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white disabled:opacity-60"
+            className="flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-5 py-4 text-sm font-black text-zinc-950 disabled:opacity-60"
           >
             <Download size={17} strokeWidth={3} />
             Download
           </button>
         </div>
 
-        <p className="mt-4 text-center text-xs font-bold leading-5 text-white/35">
+        <p className="mt-4 text-center text-xs font-bold leading-5 text-zinc-500">
           Tap to select. Drag to move. Use the gold handles to resize or rotate.
         </p>
       </section>
 
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
           <ImagePlus className="text-[#fcb415]" size={24} strokeWidth={3} />
 
@@ -980,7 +980,7 @@ export default function StoryCreator() {
             <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
               Photo
             </p>
-            <h2 className="mt-1 text-2xl font-black text-white">
+            <h2 className="mt-1 text-2xl font-black text-zinc-950">
               Take or upload a photo
             </h2>
           </div>
@@ -1007,7 +1007,7 @@ export default function StoryCreator() {
           <button
             type="button"
             onClick={() => cameraInputRef.current?.click()}
-            className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+            className="flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white"
           >
             <Camera size={17} strokeWidth={3} />
             Take Photo
@@ -1016,7 +1016,7 @@ export default function StoryCreator() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white"
+            className="flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-5 py-4 text-sm font-black text-zinc-950"
           >
             <Upload size={17} strokeWidth={3} />
             Upload
@@ -1025,7 +1025,7 @@ export default function StoryCreator() {
           <button
             type="button"
             onClick={resetPhoto}
-            className="col-span-2 flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white"
+            className="col-span-2 flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-5 py-4 text-sm font-black text-zinc-950"
           >
             <RefreshCw size={17} strokeWidth={3} />
             Use Preset Background
@@ -1033,7 +1033,7 @@ export default function StoryCreator() {
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
           <Sparkles className="text-[#fcb415]" size={24} strokeWidth={3} />
 
@@ -1041,7 +1041,7 @@ export default function StoryCreator() {
             <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
               Stickers & Logos
             </p>
-            <h2 className="mt-1 text-2xl font-black text-white">
+            <h2 className="mt-1 text-2xl font-black text-zinc-950">
               Tap to add more
             </h2>
           </div>
@@ -1053,7 +1053,7 @@ export default function StoryCreator() {
               key={sticker.id}
               type="button"
               onClick={() => addSticker(sticker.id)}
-              className="rounded-2xl border border-white/10 bg-black/25 p-3 text-xs font-black text-white/60 transition hover:border-[#fcb415]/50 hover:text-white"
+              className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-xs font-black text-zinc-600 transition hover:border-[#ff5a0a]/50 hover:text-zinc-950"
             >
               <span className="flex flex-col items-center gap-2">
                 {sticker.src ? (
@@ -1076,8 +1076,8 @@ export default function StoryCreator() {
           ))}
         </div>
 
-        <div className="mt-5 rounded-[1.5rem] border border-white/10 bg-black/25 p-4">
-          <p className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+        <div className="mt-5 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4">
+          <p className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">
             Selected item
           </p>
 
@@ -1087,7 +1087,7 @@ export default function StoryCreator() {
                 <button
                   type="button"
                   onClick={resetSelectedLayer}
-                  className="rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+                  className="rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white"
                 >
                   Reset Selected
                 </button>
@@ -1095,7 +1095,7 @@ export default function StoryCreator() {
                 <button
                   type="button"
                   onClick={removeSelectedLayer}
-                  className="flex items-center justify-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-black text-red-200"
+                  className="flex items-center justify-center gap-2 rounded-full border border-red-200 bg-red-50 px-5 py-4 text-sm font-black text-red-700"
                 >
                   <Trash2 size={17} strokeWidth={3} />
                   Remove
@@ -1103,7 +1103,7 @@ export default function StoryCreator() {
               </div>
 
               <label className="grid gap-2">
-                <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                <span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">
                   Size
                 </span>
 
@@ -1120,7 +1120,7 @@ export default function StoryCreator() {
               </label>
 
               <label className="grid gap-2">
-                <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                <span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">
                   Rotate
                 </span>
 
@@ -1139,7 +1139,7 @@ export default function StoryCreator() {
               </label>
 
               <label className="grid gap-2">
-                <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                <span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">
                   Move left / right
                 </span>
 
@@ -1156,7 +1156,7 @@ export default function StoryCreator() {
               </label>
 
               <label className="grid gap-2">
-                <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+                <span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">
                   Move up / down
                 </span>
 
@@ -1173,14 +1173,14 @@ export default function StoryCreator() {
               </label>
             </div>
           ) : (
-            <p className="mt-3 text-sm font-bold text-white/45">
+            <p className="mt-3 text-sm font-bold text-zinc-500">
               Add or tap a sticker to edit it.
             </p>
           )}
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
           <Layers className="text-[#fcb415]" size={24} strokeWidth={3} />
 
@@ -1188,7 +1188,7 @@ export default function StoryCreator() {
             <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
               Templates
             </p>
-            <h2 className="mt-1 text-2xl font-black text-white">
+            <h2 className="mt-1 text-2xl font-black text-zinc-950">
               Optional story style
             </h2>
           </div>
@@ -1201,7 +1201,7 @@ export default function StoryCreator() {
             className={`relative min-h-[150px] overflow-hidden rounded-[1.5rem] border p-4 text-left transition ${
               selectedTemplateId === ""
                 ? "border-[#fcb415] bg-[#fcb415]/15 ring-2 ring-[#fcb415]/30"
-                : "border-white/10 bg-black/25"
+                : "border-zinc-200 bg-zinc-50"
             }`}
           >
             <div className="relative flex min-h-[118px] flex-col justify-between">
@@ -1210,10 +1210,10 @@ export default function StoryCreator() {
               </span>
 
               <div>
-                <h3 className="text-lg font-black leading-tight text-white">
+                <h3 className="text-lg font-black leading-tight text-zinc-950">
                   No template
                 </h3>
-                <p className="mt-1 text-xs font-bold text-white/55">
+                <p className="mt-1 text-xs font-bold text-zinc-500">
                   Photo + stickers only
                 </p>
               </div>
@@ -1257,7 +1257,7 @@ export default function StoryCreator() {
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
           <Type className="text-[#fcb415]" size={24} strokeWidth={3} />
 
@@ -1265,7 +1265,7 @@ export default function StoryCreator() {
             <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
               Text
             </p>
-            <h2 className="mt-1 text-2xl font-black text-white">
+            <h2 className="mt-1 text-2xl font-black text-zinc-950">
               Edit your message
             </h2>
           </div>
@@ -1273,30 +1273,30 @@ export default function StoryCreator() {
 
         <div className="mt-5 grid gap-4">
           <label className="grid gap-2">
-            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">
               Badge
             </span>
             <input
               value={badge}
               onChange={(event) => setBadge(event.target.value)}
-              className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold text-white outline-none placeholder:text-white/25"
+              className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-950 outline-none placeholder:text-zinc-400 focus:border-[#ff5a0a] focus:ring-2 focus:ring-orange-100"
             />
           </label>
 
           <label className="grid gap-2">
-            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">
               Main title
             </span>
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="Optional"
-              className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold text-white outline-none placeholder:text-white/25"
+              className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-950 outline-none placeholder:text-zinc-400 focus:border-[#ff5a0a] focus:ring-2 focus:ring-orange-100"
             />
           </label>
 
           <label className="grid gap-2">
-            <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
+            <span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">
               Subtitle
             </span>
             <textarea
@@ -1304,7 +1304,7 @@ export default function StoryCreator() {
               onChange={(event) => setSubtitle(event.target.value)}
               rows={3}
               placeholder="Optional"
-              className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold leading-6 text-white outline-none placeholder:text-white/25"
+              className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold leading-6 text-zinc-950 outline-none placeholder:text-zinc-400 focus:border-[#ff5a0a] focus:ring-2 focus:ring-orange-100"
             />
           </label>
         </div>

@@ -194,9 +194,9 @@ export default function LivePassportPage() {
 
   if (!member) {
     return (
-      <div className="space-y-6">
+      <div data-member-surface="passport-light" className="space-y-6 text-zinc-950">
         <section
-          className="relative min-h-[390px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
+          className="relative min-h-[330px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
           style={{
             backgroundImage:
               "linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.82)), linear-gradient(135deg, rgba(252,180,21,.22), rgba(0,0,0,.82)), url('/visuals/passport.jpg')",
@@ -204,7 +204,7 @@ export default function LivePassportPage() {
         >
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
 
-          <div className="relative flex min-h-[340px] flex-col justify-between">
+          <div className="relative flex min-h-[280px] flex-col justify-between">
             <div className="flex items-center justify-between">
               <div className="rounded-full border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-md">
                 <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
@@ -246,9 +246,9 @@ export default function LivePassportPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div data-member-surface="passport-light" className="space-y-6 text-zinc-950">
       <section
-        className="relative min-h-[430px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
+        className="relative min-h-[350px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
         style={{
           backgroundImage:
             "linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.85)), linear-gradient(135deg, rgba(252,180,21,.20), rgba(0,0,0,.82)), url('/visuals/passport.jpg')",
@@ -257,7 +257,7 @@ export default function LivePassportPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/25 to-black/90" />
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
 
-        <div className="relative flex min-h-[380px] flex-col justify-between">
+        <div className="relative flex min-h-[300px] flex-col justify-between">
           <div className="flex items-center justify-between">
             <div className="rounded-full border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-md">
               <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
@@ -317,58 +317,58 @@ export default function LivePassportPage() {
       </section>
 
       <section className="grid grid-cols-3 gap-3">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
           <Stamp className="text-[#fcb415]" size={22} strokeWidth={3} />
-          <p className="mt-3 text-3xl font-black text-white">
+          <p className="mt-3 text-3xl font-black text-zinc-950">
             {stampedGyms.length}
           </p>
-          <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35">
+          <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-zinc-500">
             Visited
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
           <Dumbbell className="text-[#fcb415]" size={22} strokeWidth={3} />
-          <p className="mt-3 text-3xl font-black text-white">
+          <p className="mt-3 text-3xl font-black text-zinc-950">
             {checkIns.length}
           </p>
-          <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35">
+          <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-zinc-500">
             Check-ins
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
           <Target className="text-[#fcb415]" size={22} strokeWidth={3} />
-          <p className="mt-3 text-3xl font-black text-white">
+          <p className="mt-3 text-3xl font-black text-zinc-950">
             {unvisitedGyms.length}
           </p>
-          <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35">
+          <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-zinc-500">
             To visit
           </p>
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-[#fcb415]/25 bg-[#fcb415]/10 p-5">
+      <section className="rounded-[2rem] border border-orange-200 bg-orange-50 p-5 shadow-sm">
         <div className="flex items-start gap-3">
-          <QrCode className="mt-0.5 shrink-0 text-[#fcb415]" size={28} strokeWidth={3} />
+          <QrCode className="mt-0.5 shrink-0 text-[#ff5a0a]" size={28} strokeWidth={3} />
 
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ff5a0a]">
               Check In
             </p>
 
-            <h2 className="mt-1 text-2xl font-black text-white">
+            <h2 className="mt-1 text-2xl font-black text-zinc-950">
               Scan at reception
             </h2>
 
-            <p className="mt-3 text-sm font-bold leading-6 text-white/60">
+            <p className="mt-3 text-sm font-bold leading-6 text-zinc-600">
               Scan the gym QR code when you visit. Your passport stamp will be
               saved against your member account.
             </p>
 
             <a
               href="/scan-gym-qr"
-              className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+              className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-200"
             >
               Scan Gym QR
               <QrCode size={17} strokeWidth={3} />
@@ -378,7 +378,7 @@ export default function LivePassportPage() {
       </section>
 
       {nextGym ? (
-        <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04]">
+        <section className="overflow-hidden rounded-[2rem] border border-zinc-200 bg-zinc-950 shadow-sm">
           <div
             className="min-h-[230px] bg-cover bg-center p-5"
             style={{
@@ -422,14 +422,14 @@ export default function LivePassportPage() {
       ) : null}
 
       {stampedGyms.length > 0 ? (
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+        <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
                 Stamped Gyms
               </p>
 
-              <h2 className="mt-1 text-2xl font-black text-white">
+              <h2 className="mt-1 text-2xl font-black text-zinc-950">
                 Places you trained
               </h2>
             </div>
@@ -448,7 +448,7 @@ export default function LivePassportPage() {
                 <a
                   key={gym.id}
                   href={`/gyms/${gym.id}`}
-                  className="flex items-center gap-4 rounded-[1.5rem] border border-[#fcb415]/20 bg-black/25 p-4"
+                  className="flex items-center gap-4 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4"
                 >
                   <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#fcb415]/10 p-2">
                     <img
@@ -463,45 +463,45 @@ export default function LivePassportPage() {
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-lg font-black text-white">
+                    <h3 className="truncate text-lg font-black text-zinc-950">
                       {getGymName(gym)}
                     </h3>
 
-                    <p className="mt-1 text-xs font-bold text-white/45">
+                    <p className="mt-1 text-xs font-bold text-zinc-500">
                       {gymCheckIns.length} check-in{gymCheckIns.length === 1 ? "" : "s"}
                       {latest ? ` • Last ${formatDate(getCheckInDate(latest))}` : ""}
                     </p>
                   </div>
 
-                  <ChevronRight className="text-white/30" size={20} strokeWidth={3} />
+                  <ChevronRight className="text-zinc-400" size={20} strokeWidth={3} />
                 </a>
               );
             })}
           </div>
         </section>
       ) : (
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 text-center">
+        <section className="rounded-[2rem] border border-zinc-200 bg-white p-6 text-center shadow-sm">
           <Sparkles className="mx-auto text-[#fcb415]" size={42} strokeWidth={3} />
 
-          <h2 className="mt-4 text-3xl font-black text-white">
+          <h2 className="mt-4 text-3xl font-black text-zinc-950">
             Start your passport
           </h2>
 
-          <p className="mt-3 text-sm font-bold leading-6 text-white/50">
+          <p className="mt-3 text-sm font-bold leading-6 text-zinc-500">
             Your first QR check-in will stamp your first BGM gym.
           </p>
         </section>
       )}
 
       {unvisitedGyms.length > 0 ? (
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+        <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
                 Still To Visit
               </p>
 
-              <h2 className="mt-1 text-2xl font-black text-white">
+              <h2 className="mt-1 text-2xl font-black text-zinc-950">
                 Complete the network
               </h2>
             </div>
@@ -514,7 +514,7 @@ export default function LivePassportPage() {
               <a
                 key={gym.id}
                 href={`/gyms/${gym.id}`}
-                className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/25"
+                className="overflow-hidden rounded-[1.5rem] border border-zinc-200 bg-white shadow-sm"
               >
                 <div
                   className="min-h-[115px] bg-cover bg-center p-3"
@@ -530,11 +530,11 @@ export default function LivePassportPage() {
                 </div>
 
                 <div className="p-3">
-                  <h3 className="truncate text-sm font-black text-white">
+                  <h3 className="truncate text-sm font-black text-zinc-950">
                     {getGymName(gym)}
                   </h3>
 
-                  <p className="mt-1 truncate text-xs font-bold text-white/40">
+                  <p className="mt-1 truncate text-xs font-bold text-zinc-500">
                     Not stamped yet
                   </p>
                 </div>
@@ -543,27 +543,27 @@ export default function LivePassportPage() {
           </div>
         </section>
       ) : activeGyms.length > 0 ? (
-        <section className="rounded-[2rem] border border-[#fcb415]/25 bg-[#fcb415]/10 p-6 text-center">
+        <section className="rounded-[2rem] border border-orange-200 bg-orange-50 p-6 text-center shadow-sm">
           <Trophy className="mx-auto text-[#fcb415]" size={46} strokeWidth={3} />
 
-          <h2 className="mt-4 text-3xl font-black text-white">
+          <h2 className="mt-4 text-3xl font-black text-zinc-950">
             Passport complete
           </h2>
 
-          <p className="mt-3 text-sm font-bold leading-6 text-white/60">
+          <p className="mt-3 text-sm font-bold leading-6 text-zinc-600">
             You have stamped every active BestGymsMalta gym in the network.
           </p>
         </section>
       ) : null}
 
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
               Recent Check-ins
             </p>
 
-            <h2 className="mt-1 text-2xl font-black text-white">
+            <h2 className="mt-1 text-2xl font-black text-zinc-950">
               Your latest visits
             </h2>
           </div>
@@ -584,18 +584,18 @@ export default function LivePassportPage() {
             return (
               <article
                 key={checkIn.id}
-                className="flex items-center gap-4 rounded-[1.5rem] border border-white/10 bg-black/25 p-4"
+                className="flex items-center gap-4 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4"
               >
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#fcb415] text-black">
                   <Stamp size={23} strokeWidth={3} />
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-base font-black text-white">
+                  <h3 className="truncate text-base font-black text-zinc-950">
                     {gym ? getGymName(gym) : checkIn.gymName || checkIn.gym_name || "BGM Gym"}
                   </h3>
 
-                  <p className="mt-1 text-xs font-bold text-white/45">
+                  <p className="mt-1 text-xs font-bold text-zinc-500">
                     {formatDate(date)}
                     {formatTime(date) ? ` • ${formatTime(date)}` : ""}
                   </p>
@@ -605,9 +605,9 @@ export default function LivePassportPage() {
           })}
 
           {!loading && sortedCheckIns.length === 0 ? (
-            <div className="rounded-[1.5rem] border border-white/10 bg-black/25 p-5 text-center">
+            <div className="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-5 text-center">
               <QrCode className="mx-auto text-[#fcb415]" size={34} strokeWidth={3} />
-              <p className="mt-3 text-sm font-bold text-white/45">
+              <p className="mt-3 text-sm font-bold text-zinc-500">
                 No check-ins yet. Scan your first gym QR to start collecting stamps.
               </p>
             </div>
