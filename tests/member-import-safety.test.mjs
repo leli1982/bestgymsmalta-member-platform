@@ -48,3 +48,12 @@ test("CI verifies pull requests to main and pushes to main", () => {
   assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\n\s*- main/);
   assert.match(workflow, /push:\s*\n\s*branches:\s*\n(?:\s*- .*\n)*\s*- main/);
 });
+
+test("CI installs browser runtime before building the app it will start", () => {
+  const workflow = fs.readFileSync(ciWorkflowUrl, "utf8");
+  const installIndex = workflow.indexOf("- name: Install browser verification tools");
+  const buildIndex = workflow.indexOf("- name: Build Next.js app");
+  assert.notEqual(installIndex, -1);
+  assert.notEqual(buildIndex, -1);
+  assert.ok(installIndex < buildIndex, "Playwright install must happen before Next.js build so the build and runtime dependency trees match");
+});
