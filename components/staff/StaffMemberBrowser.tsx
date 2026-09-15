@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, UserRound, X } from "lucide-react";
+import { RefreshCw, Search, UserRound, X } from "lucide-react";
 
 type Classification = "active" | "expired" | "inactive";
 type Filter = "all" | "active" | "expired";
@@ -32,6 +32,7 @@ type SearchResponse = {
 
 type Props = {
   focusToken?: number;
+  canRenew?: boolean;
 };
 
 const FILTERS: Array<{ key: Filter; label: string }> = [
@@ -51,7 +52,7 @@ function statusLabel(classification: Classification) {
   return "INACTIVE";
 }
 
-export default function StaffMemberBrowser({ focusToken = 0 }: Props) {
+export default function StaffMemberBrowser({ focusToken = 0, canRenew = false }: Props) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [members, setMembers] = useState<StaffMember[]>([]);
@@ -112,7 +113,7 @@ export default function StaffMemberBrowser({ focusToken = 0 }: Props) {
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff5a0a]">Member browser</p>
             <h2 className="mt-1 text-2xl font-black tracking-tight text-zinc-950">Members</h2>
-            <p className="mt-1 text-sm text-zinc-500">Read-only member lookup for reception.</p>
+            <p className="mt-1 text-sm text-zinc-500">Member lookup for reception and renewal.</p>
           </div>
           <p className="text-sm font-semibold text-zinc-500">{summary}</p>
         </div>
@@ -189,7 +190,7 @@ export default function StaffMemberBrowser({ focusToken = 0 }: Props) {
                   <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400"><UserRound className="h-8 w-8" /></span>
                 )}
                 <div className="min-w-0">
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">Read-only member</p>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">Member details</p>
                   <h3 className="mt-1 truncate text-2xl font-black text-zinc-950">{selected.fullName}</h3>
                   <span className={`mt-2 inline-flex rounded-full px-3 py-1 text-[11px] font-black tracking-wide ring-1 ${statusClass(selected.classification)}`}>
                     {statusLabel(selected.classification)}
@@ -214,6 +215,15 @@ export default function StaffMemberBrowser({ focusToken = 0 }: Props) {
                 </div>
               ))}
             </dl>
+
+            {canRenew && selected.memberNumber && (
+              <a
+                href={`/staff/members/enroll?kind=renewal&memberNumber=${encodeURIComponent(selected.memberNumber)}`}
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#ff5a0a] px-5 py-4 text-base font-black text-white shadow-sm hover:bg-orange-600"
+              >
+                <RefreshCw className="h-5 w-5" /> RENEW MEMBERSHIP
+              </a>
+            )}
           </div>
         </div>
       )}
