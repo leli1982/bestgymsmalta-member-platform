@@ -1,4 +1,5 @@
 // Batch 2 contract: light Passport surfaces and canvas-first Story editor chrome with dark exported artwork.
+// Canvas-first checkpoint: keep the story visible while tools open in a compact dock/sheet flow.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
