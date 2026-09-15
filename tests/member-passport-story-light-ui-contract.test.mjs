@@ -1,4 +1,4 @@
-// Batch 2 contract: light Passport surfaces and light Story editor chrome with dark exported artwork.
+// Batch 2 contract: light Passport surfaces and canvas-first Story editor chrome with dark exported artwork.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -48,4 +48,20 @@ test("Story Creator uses light editor chrome while preserving the dark 9 by 16 s
   assert.match(story, /bestgymsmalta-story\.png/);
   assert.match(story, /ctx\.fillStyle = ["']#050505["']/);
   assert.match(story, /ctx\.strokeStyle = ["']rgba\(252,180,21,0\.78\)["']/);
+});
+
+test("Story Creator is canvas-first with an Instagram-style tool dock and overlay sheet", () => {
+  const story = readFileSync(storyPath, "utf8");
+
+  assert.match(story, /type StoryTool = ["']photo["'] \| ["']text["'] \| ["']stickers["'] \| ["']templates["']/);
+  assert.match(story, /const \[activeTool, setActiveTool\] = useState<StoryTool \| null>\(null\)/);
+  assert.match(story, /data-story-editor=["']canvas-first["']/);
+  assert.match(story, /data-story-tool-dock/);
+  assert.match(story, /data-story-tool=["']photo["']/);
+  assert.match(story, /data-story-tool=["']text["']/);
+  assert.match(story, /data-story-tool=["']stickers["']/);
+  assert.match(story, /data-story-tool=["']templates["']/);
+  assert.match(story, /data-story-tool-sheet=\{activeTool\}/);
+  assert.match(story, /fixed bottom-\[calc\(96px\+env\(safe-area-inset-bottom\)\)\]/);
+  assert.match(story, /h-\[48svh\]/);
 });
