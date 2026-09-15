@@ -55,7 +55,8 @@ test("pending application queue is authenticated and gym scoped server side", ()
 
 test("application review enforces gym ownership before returning or correcting details", () => {
   assert.match(detailSource, /enrollment_gym_id/);
-  assert.match(detailSource, /auth\.context\.gymId/);
+  assert.match(detailSource, /context\.gymId/);
+  assert.match(detailSource, /gymScopeError\(application,\s*auth\.context\)/);
   assert.match(detailSource, /another gym|belongs to another gym/i);
   assert.match(detailSource, /bgm_correct_membership_application/);
   assert.doesNotMatch(detailSource, /body\.enrollmentGymId/);
