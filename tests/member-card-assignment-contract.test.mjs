@@ -12,10 +12,11 @@ test('card assignment reserves exact unused barcode for pending participant',()=
  assert.match(s,/enrollment_gym_id/);
  assert.match(s,/delete\(\)[\s\S]*status["']?,\s*["']reserved["']/i);
 });
-test('pending membership actions surface the exact new-membership scan action',()=>{
- const s=read('components/staff/PendingMembershipActions.tsx');
- assert.match(s,/NEW MEMBERSHIP READY — SCAN CARD/);
+test('pending membership review surfaces the exact physical-card scan action',()=>{
+ const s=read('components/staff/StaffMembershipReviewModal.tsx');
+ assert.match(s,/SCAN CARD/);
  assert.match(s,/\/api\/system\/members\/card\/assign/);
- const home=read('components/staff/StaffLoginPage.tsx');
- assert.match(home,/PendingMembershipActions/);
+ assert.match(s,/applicationMemberId/);
+ const home=read('components/staff/StaffDashboard.tsx');
+ assert.match(home,/StaffMembershipQueue/);
 });
