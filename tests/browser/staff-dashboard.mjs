@@ -213,12 +213,12 @@ try {
   });
 
   await page.goto(origin + "/staff");
-  await waitVisible(page.getByRole("heading", { name: "Browser Gym Reception" }));
-  await waitVisible(page.getByRole("button", { name: "Members" }));
-  await waitVisible(page.getByRole("button", { name: "New Member" }));
-  await waitVisible(page.getByRole("link", { name: "Card / Reception" }));
-  await waitVisible(page.getByRole("link", { name: "Sundries" }));
-  await waitVisible(page.getByRole("link", { name: "Bar" }));
+  await waitVisible(page.getByRole("heading", { name: "Browser Gym Reception", exact: true }));
+  await waitVisible(page.getByRole("button", { name: "Members", exact: true }));
+  await waitVisible(page.getByRole("button", { name: "New Member", exact: true }));
+  await waitVisible(page.getByRole("link", { name: "Card / Reception", exact: true }));
+  await waitVisible(page.getByRole("link", { name: "Sundries", exact: true }));
+  await waitVisible(page.getByRole("link", { name: "Bar", exact: true }));
   assert.equal(await page.getByText("1 WAITING", { exact: true }).count() >= 1, true);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "staff dashboard must fit tablet viewport");
   await page.screenshot({ path: artifacts + "/dashboard-1024.png", fullPage: true });
@@ -231,26 +231,26 @@ try {
   await page.getByRole("button", { name: "ALL", exact: true }).click();
 
   await page.getByText("Browser Queue Member", { exact: true }).click();
-  await waitVisible(page.getByRole("heading", { name: "Review membership" }));
-  await waitVisible(page.getByRole("button", { name: "SCAN CARD" }));
-  await waitVisible(page.getByRole("button", { name: "PAYMENT RECEIVED" }));
-  assert.equal(await page.getByRole("button", { name: "PAYMENT RECEIVED" }).isDisabled(), true);
+  await waitVisible(page.getByRole("heading", { name: "Review membership", exact: true }));
+  await waitVisible(page.getByRole("button", { name: "SCAN CARD", exact: true }));
+  await waitVisible(page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }));
+  assert.equal(await page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }).isDisabled(), true);
   await page.screenshot({ path: artifacts + "/review-1024.png", fullPage: true });
 
-  await page.getByRole("button", { name: "SCAN CARD" }).click();
+  await page.getByRole("button", { name: "SCAN CARD", exact: true }).click();
   await waitVisible(page.getByPlaceholder("Scanner input"));
   await page.getByRole("button", { name: /Enter card manually/i }).click();
   await waitVisible(page.getByPlaceholder("Enter card barcode manually"));
   await page.getByPlaceholder("Enter card barcode manually").fill("CARD-12345");
-  await page.getByRole("button", { name: "Confirm card" }).click();
+  await page.getByRole("button", { name: "Confirm card", exact: true }).click();
   await page.getByText("CARD ASSIGNED ✓", { exact: true }).waitFor({ state: "visible", timeout: 15000 });
-  assert.equal(await page.getByRole("button", { name: "PAYMENT RECEIVED" }).isEnabled(), true);
+  assert.equal(await page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }).isEnabled(), true);
 
-  await page.getByRole("button", { name: "PAYMENT RECEIVED" }).click();
+  await page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }).click();
   await waitVisible(page.getByPlaceholder("Activation Staff Name"));
   await page.getByPlaceholder("Activation Staff Name").fill("Browser Staff");
-  await page.getByRole("button", { name: "Confirm & activate" }).click();
-  await waitVisible(page.getByRole("heading", { name: "MEMBERSHIP ACTIVE" }));
+  await page.getByRole("button", { name: "Confirm & activate", exact: true }).click();
+  await waitVisible(page.getByRole("heading", { name: "MEMBERSHIP ACTIVE", exact: true }));
   await page.screenshot({ path: artifacts + "/success-1024.png", fullPage: true });
 
   for (let attempt = 0; attempt < 50; attempt++) {
