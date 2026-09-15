@@ -1,0 +1,129 @@
+name: Apply Batch 2 light UI
+
+on:
+  push:
+    branches:
+      - ui/member-app-light-refresh-batch2
+    paths:
+      - .github/workflows/batch2-light-ui-apply.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ui/member-app-light-refresh-batch2
+          fetch-depth: 0
+
+      - name: Apply presentation-only changes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(text, old, new, label, count=None, limit=None):
+              found = text.count(old)
+              if count is not None and found != count:
+                  raise SystemExit(f"{label}: expected {count} occurrences, found {found}")
+              if found == 0:
+                  raise SystemExit(f"{label}: source pattern not found")
+              return text.replace(old, new, limit if limit is not None else -1)
+
+          passport_path = Path('components/passport/LivePassportPage.tsx')
+          passport = passport_path.read_text()
+
+          passport = replace(passport, '<div className="space-y-6">', '<div data-member-surface="passport-light" className="space-y-6 text-zinc-950">', 'passport root surfaces', count=2)
+          passport = replace(passport, 'min-h-[390px]', 'min-h-[330px]', 'passport signed-out hero', count=1)
+          passport = replace(passport, 'min-h-[340px]', 'min-h-[280px]', 'passport signed-out hero inner', count=1)
+          passport = replace(passport, 'min-h-[430px]', 'min-h-[350px]', 'passport hero', count=1)
+          passport = replace(passport, 'min-h-[380px]', 'min-h-[300px]', 'passport hero inner', count=1)
+
+          passport = replace(passport, 'rounded-2xl border border-white/10 bg-white/[0.04] p-4', 'rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm', 'passport summary cards', count=3)
+          passport = replace(passport, 'mt-3 text-3xl font-black text-white', 'mt-3 text-3xl font-black text-zinc-950', 'passport summary values', count=3)
+          passport = replace(passport, 'text-white/35', 'text-zinc-500', 'passport summary labels', count=3)
+
+          passport = replace(passport, 'rounded-[2rem] border border-[#fcb415]/25 bg-[#fcb415]/10 p-5', 'rounded-[2rem] border border-orange-200 bg-orange-50 p-5 shadow-sm', 'passport scan card', count=1)
+          passport = replace(passport, 'mt-0.5 shrink-0 text-[#fcb415]', 'mt-0.5 shrink-0 text-[#ff5a0a]', 'passport scan icon', count=1)
+          passport = replace(passport, 'text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">\n              Check In', 'text-[10px] font-black uppercase tracking-[.25em] text-[#ff5a0a]">\n              Check In', 'passport scan eyebrow', count=1)
+          passport = replace(passport, 'mt-1 text-2xl font-black text-white">\n              Scan at reception', 'mt-1 text-2xl font-black text-zinc-950">\n              Scan at reception', 'passport scan heading', count=1)
+          passport = replace(passport, 'mt-3 text-sm font-bold leading-6 text-white/60">\n              Scan the gym QR code', 'mt-3 text-sm font-bold leading-6 text-zinc-600">\n              Scan the gym QR code', 'passport scan copy', count=1)
+          passport = replace(passport, 'mt-5 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black">\n              Scan Gym QR', 'mt-5 flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-200">\n              Scan Gym QR', 'passport scan CTA', count=1)
+
+          passport = replace(passport, 'overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04]">', 'overflow-hidden rounded-[2rem] border border-zinc-200 bg-zinc-950 shadow-sm">', 'passport next gym card', count=1)
+
+          passport = replace(passport, 'rounded-[2rem] border border-white/10 bg-white/[0.04] p-5', 'rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm', 'passport light sections', count=3)
+          passport = replace(passport, 'rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 text-center', 'rounded-[2rem] border border-zinc-200 bg-white p-6 text-center shadow-sm', 'passport empty stamps card', count=1)
+          passport = replace(passport, 'mt-1 text-2xl font-black text-white', 'mt-1 text-2xl font-black text-zinc-950', 'passport section headings', count=3)
+          passport = replace(passport, 'mt-4 text-3xl font-black text-white">\n            Start your passport', 'mt-4 text-3xl font-black text-zinc-950">\n            Start your passport', 'passport empty heading', count=1)
+          passport = replace(passport, 'mt-3 text-sm font-bold leading-6 text-white/50">\n            Your first QR check-in', 'mt-3 text-sm font-bold leading-6 text-zinc-500">\n            Your first QR check-in', 'passport empty copy', count=1)
+
+          passport = replace(passport, 'flex items-center gap-4 rounded-[1.5rem] border border-[#fcb415]/20 bg-black/25 p-4', 'flex items-center gap-4 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4', 'passport stamped gym rows', count=1)
+          passport = replace(passport, 'truncate text-lg font-black text-white', 'truncate text-lg font-black text-zinc-950', 'passport stamped gym titles', count=1)
+          passport = replace(passport, 'mt-1 text-xs font-bold text-white/45', 'mt-1 text-xs font-bold text-zinc-500', 'passport stamped gym meta', count=1)
+          passport = replace(passport, 'className="text-white/30"', 'className="text-zinc-400"', 'passport stamped chevron', count=1)
+
+          passport = replace(passport, 'overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/25', 'overflow-hidden rounded-[1.5rem] border border-zinc-200 bg-white shadow-sm', 'passport unvisited cards', count=1)
+          passport = replace(passport, 'truncate text-sm font-black text-white', 'truncate text-sm font-black text-zinc-950', 'passport unvisited titles', count=1)
+          passport = replace(passport, 'mt-1 truncate text-xs font-bold text-white/40', 'mt-1 truncate text-xs font-bold text-zinc-500', 'passport unvisited labels', count=1)
+
+          passport = replace(passport, 'rounded-[2rem] border border-[#fcb415]/25 bg-[#fcb415]/10 p-6 text-center', 'rounded-[2rem] border border-orange-200 bg-orange-50 p-6 text-center shadow-sm', 'passport complete card', count=1)
+          passport = replace(passport, 'mt-4 text-3xl font-black text-white">\n            Passport complete', 'mt-4 text-3xl font-black text-zinc-950">\n            Passport complete', 'passport complete heading', count=1)
+          passport = replace(passport, 'mt-3 text-sm font-bold leading-6 text-white/60">\n            You have stamped every active', 'mt-3 text-sm font-bold leading-6 text-zinc-600">\n            You have stamped every active', 'passport complete copy', count=1)
+
+          passport = replace(passport, 'flex items-center gap-4 rounded-[1.5rem] border border-white/10 bg-black/25 p-4', 'flex items-center gap-4 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4', 'passport recent rows', count=1)
+          passport = replace(passport, 'truncate text-base font-black text-white', 'truncate text-base font-black text-zinc-950', 'passport recent titles', count=1)
+          passport = replace(passport, 'rounded-[1.5rem] border border-white/10 bg-black/25 p-5 text-center', 'rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-5 text-center', 'passport no checkins', count=1)
+          passport = replace(passport, 'mt-3 text-sm font-bold text-white/45', 'mt-3 text-sm font-bold text-zinc-500', 'passport no checkins copy', count=1)
+
+          passport_path.write_text(passport)
+
+          story_path = Path('components/story/StoryCreator.tsx')
+          story = story_path.read_text()
+
+          story = replace(story, 'return (\n    <div className="space-y-6">', 'return (\n    <div data-member-surface="story-light" className="space-y-6 text-zinc-950">', 'story root surface', count=1)
+          story = replace(story, 'min-h-[300px]', 'min-h-[290px]', 'story hero', count=1)
+          story = replace(story, 'min-h-[250px]', 'min-h-[240px]', 'story hero inner', count=1)
+
+          story = replace(story, 'rounded-[2rem] border border-[#fcb415]/25 bg-black/50 p-4 shadow-2xl', 'rounded-[2rem] border border-zinc-200 bg-white p-4 shadow-sm', 'story preview workspace', count=1)
+          story = replace(story, 'flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black disabled:opacity-60', 'flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-200 disabled:opacity-60', 'story share CTA', count=1)
+          story = replace(story, 'flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white disabled:opacity-60', 'flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-5 py-4 text-sm font-black text-zinc-950 disabled:opacity-60', 'story download CTA', count=1)
+          story = replace(story, 'mt-4 text-center text-xs font-bold leading-5 text-white/35', 'mt-4 text-center text-xs font-bold leading-5 text-zinc-500', 'story workspace help', count=1)
+
+          story = replace(story, 'rounded-[2rem] border border-white/10 bg-white/[0.04] p-5', 'rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm', 'story editor sections', count=4)
+          story = replace(story, 'mt-1 text-2xl font-black text-white', 'mt-1 text-2xl font-black text-zinc-950', 'story section headings', count=4)
+
+          story = replace(story, 'flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black', 'flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white', 'story take photo CTA', count=1)
+          story = replace(story, 'flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white', 'flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-5 py-4 text-sm font-black text-zinc-950', 'story secondary photo controls', count=2)
+
+          story = replace(story, 'rounded-2xl border border-white/10 bg-black/25 p-3 text-xs font-black text-white/60 transition hover:border-[#fcb415]/50 hover:text-white', 'rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-xs font-black text-zinc-600 transition hover:border-[#ff5a0a]/50 hover:text-zinc-950', 'story sticker buttons', count=1)
+          story = replace(story, 'mt-5 rounded-[1.5rem] border border-white/10 bg-black/25 p-4', 'mt-5 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4', 'story selected item panel', count=1)
+          story = replace(story, 'text-xs font-black uppercase tracking-[.18em] text-white/35', 'text-xs font-black uppercase tracking-[.18em] text-zinc-500', 'story editor labels', count=7)
+          story = replace(story, 'rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black', 'rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white', 'story reset selected CTA', count=1)
+          story = replace(story, 'flex items-center justify-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-black text-red-200', 'flex items-center justify-center gap-2 rounded-full border border-red-200 bg-red-50 px-5 py-4 text-sm font-black text-red-700', 'story remove selected CTA', count=1)
+          story = replace(story, 'mt-3 text-sm font-bold text-white/45', 'mt-3 text-sm font-bold text-zinc-500', 'story no selected copy', count=1)
+
+          story = replace(story, 'border-white/10 bg-black/25"\n            }`}', 'border-zinc-200 bg-zinc-50"\n            }`}', 'story no-template inactive state', count=1)
+          story = replace(story, 'className="text-lg font-black leading-tight text-white">\n                  No template', 'className="text-lg font-black leading-tight text-zinc-950">\n                  No template', 'story no-template title', count=1)
+          story = replace(story, 'className="mt-1 text-xs font-bold text-white/55">\n                  Photo + stickers only', 'className="mt-1 text-xs font-bold text-zinc-500">\n                  Photo + stickers only', 'story no-template copy', count=1)
+
+          story = replace(story, 'rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold text-white outline-none placeholder:text-white/25', 'rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-950 outline-none placeholder:text-zinc-400 focus:border-[#ff5a0a] focus:ring-2 focus:ring-orange-100', 'story text inputs', count=2)
+          story = replace(story, 'rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-bold leading-6 text-white outline-none placeholder:text-white/25', 'rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold leading-6 text-zinc-950 outline-none placeholder:text-zinc-400 focus:border-[#ff5a0a] focus:ring-2 focus:ring-orange-100', 'story textarea', count=1)
+
+          story_path.write_text(story)
+          PY
+
+      - name: Commit UI changes and remove runner
+        shell: bash
+        run: |
+          rm .github/workflows/batch2-light-ui-apply.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add components/passport/LivePassportPage.tsx components/story/StoryCreator.tsx .github/workflows/batch2-light-ui-apply.yml
+          git commit -m "ui: apply Batch 2 light Passport and Story Creator surfaces"
+          git push origin HEAD:ui/member-app-light-refresh-batch2
