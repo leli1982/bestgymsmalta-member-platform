@@ -3,7 +3,7 @@ import ScanGymQrPage from "@/components/checkins/ScanGymQrPage";
 
 export default function ScanGymQrRoutePage() {
   return (
-    <AppShell>
+    <AppShell theme="light">
       <ScanGymQrPage />
     </AppShell>
   );

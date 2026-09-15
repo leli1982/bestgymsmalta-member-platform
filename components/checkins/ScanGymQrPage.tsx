@@ -193,59 +193,48 @@ export default function ScanGymQrPage() {
     );
 
   return (
-    <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2.3rem] border border-white/10 bg-gradient-to-br from-[#fcb415]/20 via-white/[0.04] to-black p-6 shadow-2xl">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#fcb415]/20 blur-3xl" />
-
-        <div className="relative">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
-                Passport Check-in
-              </p>
-
-              <h1 className="mt-4 text-4xl font-black leading-tight text-white">
-                Scan Gym QR
-              </h1>
-
-              <p className="mt-3 text-sm font-bold leading-6 text-white/55">
-                Scan the QR code at the gym to collect your passport stamp.
-              </p>
-            </div>
-
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#fcb415] text-black">
-              <QrCode size={34} strokeWidth={3} />
-            </div>
+    <div data-member-surface="qr-light" className="space-y-6 text-zinc-950">
+      <section className="relative overflow-hidden rounded-[2rem] bg-zinc-950 p-6 shadow-xl">
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ff5a0a]/25 blur-3xl" />
+        <div className="relative flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[.25em] text-[#ff5a0a]">
+              Passport Check-in
+            </p>
+            <h1 className="mt-3 text-4xl font-black leading-tight text-white">
+              Scan Gym QR
+            </h1>
+            <p className="mt-3 max-w-xs text-sm font-bold leading-6 text-white/60">
+              Scan the QR code at the gym to collect your passport stamp.
+            </p>
+          </div>
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#ff5a0a] text-white">
+            <QrCode size={30} strokeWidth={3} />
           </div>
         </div>
       </section>
 
       {!member ? (
-        <section className="rounded-[2rem] border border-[#fcb415]/30 bg-[#fcb415]/10 p-5 text-center">
-          <h2 className="text-2xl font-black text-white">Login required</h2>
-          <p className="mt-3 text-sm font-bold leading-6 text-white/55">
+        <section className="rounded-[2rem] border border-orange-200 bg-orange-50 p-5 text-center">
+          <h2 className="text-2xl font-black text-zinc-950">Login required</h2>
+          <p className="mt-3 text-sm font-bold leading-6 text-zinc-600">
             Please log in first so the check-in can be saved to your passport.
           </p>
-
           <a
             href="/member-login"
-            className="mt-5 flex items-center justify-center rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+            className="mt-5 flex items-center justify-center rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white"
           >
             Login / Activate
           </a>
         </section>
       ) : (
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+        <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="text-center">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#fcb415]/10 text-[#fcb415]">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-orange-50 text-[#ff5a0a]">
               <Camera size={38} strokeWidth={3} />
             </div>
-
-            <h2 className="mt-5 text-2xl font-black text-white">
-              Camera scanner
-            </h2>
-
-            <p className="mt-2 text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
+            <h2 className="mt-5 text-2xl font-black text-zinc-950">Camera scanner</h2>
+            <p className="mt-2 text-xs font-black uppercase tracking-[.18em] text-[#ff5a0a]">
               {member.fullName || member.username} · {member.memberNumber}
             </p>
           </div>
@@ -253,7 +242,7 @@ export default function ScanGymQrPage() {
           <div
             className={
               scannerActive
-                ? "mt-5 overflow-hidden rounded-[1.7rem] border border-[#fcb415]/30 bg-black"
+                ? "relative mt-5 overflow-hidden rounded-[1.7rem] border-4 border-zinc-950 bg-black shadow-xl"
                 : "mt-5 hidden"
             }
           >
@@ -261,12 +250,13 @@ export default function ScanGymQrPage() {
               ref={videoRef}
               muted
               playsInline
-              className="aspect-[3/4] w-full object-cover"
+              className="aspect-[3/4] w-full bg-black object-cover"
             />
+            <div className="pointer-events-none absolute inset-8 rounded-[1.3rem] border-2 border-[#ff5a0a]/80" />
           </div>
 
           {scannerMessage ? (
-            <p className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-3 text-sm font-bold leading-6 text-white/55">
+            <p className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-sm font-bold leading-6 text-zinc-600">
               {scannerMessage}
             </p>
           ) : null}
@@ -276,7 +266,7 @@ export default function ScanGymQrPage() {
               <button
                 type="button"
                 onClick={startScanner}
-                className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+                className="flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white"
               >
                 <Camera size={17} strokeWidth={3} />
                 Start Scan
@@ -285,7 +275,7 @@ export default function ScanGymQrPage() {
               <button
                 type="button"
                 onClick={stopScanner}
-                className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white"
+                className="flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white px-5 py-4 text-sm font-black text-zinc-950"
               >
                 <X size={17} strokeWidth={3} />
                 Stop
@@ -294,7 +284,7 @@ export default function ScanGymQrPage() {
 
             <a
               href="/passport"
-              className="flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-black text-white"
+              className="flex items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 px-5 py-4 text-sm font-black text-zinc-950"
             >
               Passport
             </a>
@@ -302,34 +292,30 @@ export default function ScanGymQrPage() {
         </section>
       )}
 
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
+      <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-black uppercase tracking-[.25em] text-[#fcb415]">
+            <p className="text-xs font-black uppercase tracking-[.25em] text-[#ff5a0a]">
               Manual fallback
             </p>
-
-            <h2 className="mt-2 text-2xl font-black text-white">
-              Select your gym
-            </h2>
+            <h2 className="mt-2 text-2xl font-black text-zinc-950">Select your gym</h2>
           </div>
-
-          <Dumbbell className="text-[#fcb415]" size={28} strokeWidth={3} />
+          <Dumbbell className="text-[#ff5a0a]" size={28} strokeWidth={3} />
         </div>
 
-        <div className="mt-5 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/40 px-4 py-4">
-          <Search className="text-white/30" size={18} strokeWidth={3} />
+        <div className="mt-5 flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4">
+          <Search className="text-zinc-400" size={18} strokeWidth={3} />
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search gym"
-            className="w-full bg-transparent text-base font-bold text-white outline-none placeholder:text-white/25"
+            className="w-full bg-transparent text-base font-bold text-zinc-950 outline-none placeholder:text-zinc-400"
           />
         </div>
 
         {loading ? (
-          <div className="mt-5 flex items-center gap-3 text-white/45">
-            <RefreshCw size={18} className="animate-spin" />
+          <div className="mt-5 flex items-center gap-3 text-zinc-500">
+            <RefreshCw size={18} className="animate-spin text-[#ff5a0a]" />
             <p className="text-sm font-bold">Loading gyms…</p>
           </div>
         ) : (
@@ -339,20 +325,14 @@ export default function ScanGymQrPage() {
                 key={gym.id}
                 type="button"
                 onClick={() => goToGymCheckin(gym.id)}
-                className="flex w-full items-center gap-4 rounded-[1.5rem] border border-white/10 bg-black/25 p-4 text-left"
+                className="flex w-full items-center gap-4 rounded-[1.5rem] border border-zinc-200 bg-white p-4 text-left shadow-sm"
               >
-                <img
-                  src={getGymLogo(gym)}
-                  alt=""
-                  className="h-16 w-16 shrink-0 object-contain drop-shadow-2xl"
-                />
-
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-zinc-50 p-2">
+                  <img src={getGymLogo(gym)} alt="" className="h-full w-full object-contain" />
+                </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-lg font-black text-white">
-                    {gym.name}
-                  </p>
-
-                  <p className="mt-1 flex items-center gap-2 text-xs font-bold text-white/40">
+                  <p className="truncate text-lg font-black text-zinc-950">{gym.name}</p>
+                  <p className="mt-1 flex items-center gap-2 text-xs font-bold text-zinc-500">
                     <MapPinned size={14} strokeWidth={3} />
                     {gym.city || gym.address || "BestGymsMalta"}
                   </p>
@@ -361,7 +341,7 @@ export default function ScanGymQrPage() {
             ))}
 
             {visibleGyms.length === 0 ? (
-              <p className="rounded-2xl border border-white/10 bg-black/25 p-4 text-center text-sm font-bold text-white/45">
+              <p className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-center text-sm font-bold text-zinc-500">
                 No active gyms found.
               </p>
             ) : null}
