@@ -1,3 +1,4 @@
+// Batch 2 contract: light Passport surfaces and light Story editor chrome with dark exported artwork.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
