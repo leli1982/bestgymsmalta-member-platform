@@ -85,8 +85,8 @@ function Tile({
   const cls = `group flex min-h-32 flex-col items-center justify-center rounded-3xl border bg-white p-4 shadow-sm transition ${disabled ? "cursor-not-allowed border-zinc-200 opacity-45" : "border-zinc-200 hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-md"}`;
 
   if (disabled) return <div className={cls}>{content}</div>;
-  if (href) return <a href={href} className={cls}>{content}</a>;
-  return <button type="button" onClick={onClick} className={cls}>{content}</button>;
+  if (href) return <a href={href} aria-label={label} className={cls}>{content}</a>;
+  return <button type="button" aria-label={label} onClick={onClick} className={cls}>{content}</button>;
 }
 
 export default function StaffDashboard({ user, onLogout }: Props) {
