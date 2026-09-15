@@ -7,7 +7,9 @@ const componentUrl = new URL(
   import.meta.url
 );
 const pageUrl = new URL("../app/staff/members/enroll/page.tsx", import.meta.url);
-const staffHomeUrl = new URL("../components/staff/StaffLoginPage.tsx", import.meta.url);
+const staffDashboardUrl = new URL("../components/staff/StaffDashboard.tsx", import.meta.url);
+const staffQueueUrl = new URL("../components/staff/StaffMembershipQueue.tsx", import.meta.url);
+const staffBrowserUrl = new URL("../components/staff/StaffMemberBrowser.tsx", import.meta.url);
 
 function read(url) {
   return fs.readFileSync(url, "utf8");
@@ -51,10 +53,14 @@ test("staff enrollment route renders the membership enrollment component", () =>
   assert.match(source, /MembershipEnrollmentPage/);
 });
 
-test("staff Members tile navigates to membership enrollment tools", () => {
-  const source = read(staffHomeUrl);
-  assert.match(source, /title=["']Members["']/);
-  assert.match(source, /href=["']\/staff\/members\/enroll["']/);
-  assert.match(source, /members\.create/);
-  assert.match(source, /members\.renew/);
+test("staff dashboard separates established-member browsing from the new-member waiting workflow", () => {
+  const dashboard = read(staffDashboardUrl);
+  const queue = read(staffQueueUrl);
+  const browser = read(staffBrowserUrl);
+  assert.match(dashboard, /label=["']Members["']/);
+  assert.match(dashboard, /label=["']New Member["']/);
+  assert.match(dashboard, /StaffMemberBrowser/);
+  assert.match(dashboard, /StaffMembershipQueue/);
+  assert.match(browser, /\/api\/system\/members\/search/);
+  assert.match(queue, /\/api\/system\/members\/applications/);
 });
