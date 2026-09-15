@@ -4,8 +4,21 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const root = new URL("..", import.meta.url).pathname;
-const memberSearchPath = join(root, "app/api/system/members/search/route.ts");
-const source = readFileSync(memberSearchPath, "utf8");
+function read(path) {
+  try {
+    return readFileSync(join(root, path), "utf8");
+  } catch {
+    return "";
+  }
+}
+
+const memberSearchPath = "app/api/system/members/search/route.ts";
+const source = read(memberSearchPath);
+const queueSource = read("app/api/system/members/applications/route.ts");
+const detailSource = read(
+  "app/api/system/members/applications/[applicationId]/route.ts"
+);
+const enrollSource = read("app/api/system/members/enroll/route.ts");
 
 test("member search remains system-auth protected", () => {
   assert.match(
@@ -26,4 +39,32 @@ test("staff member search supports blank-query browsing and server classificatio
   assert.match(source, /classifyStaffMember/);
   assert.match(source, /classification/);
   assert.match(source, /enrollment_gym_id/);
+});
+
+test("pending application queue is authenticated and gym scoped server side", () => {
+  assert.match(queueSource, /requireSystemPermission|getSystemContext/);
+  assert.match(queueSource, /enrollment_gym_id/);
+  assert.match(queueSource, /auth\.context\.gymId/);
+  assert.doesNotMatch(
+    queueSource,
+    /searchParams\.get\(["']gymId["']\)/
+  );
+  assert.match(queueSource, /submitted/);
+  assert.match(queueSource, /awaiting_payment/);
+});
+
+test("application review enforces gym ownership before returning or correcting details", () => {
+  assert.match(detailSource, /enrollment_gym_id/);
+  assert.match(detailSource, /auth\.context\.gymId/);
+  assert.match(detailSource, /another gym|belongs to another gym/i);
+  assert.match(detailSource, /bgm_correct_membership_application/);
+  assert.doesNotMatch(detailSource, /body\.enrollmentGymId/);
+});
+
+test("original membership submission audit preserves the complete sanitized form", () => {
+  assert.match(enrollSource, /membership\.application\.submit/);
+  assert.match(enrollSource, /after_data/);
+  assert.match(enrollSource, /participants\.map/);
+  assert.match(enrollSource, /idNumber|id_number/);
+  assert.match(enrollSource, /nextOfKin|next_of_kin/);
 });
