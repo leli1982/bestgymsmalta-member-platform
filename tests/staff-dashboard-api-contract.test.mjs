@@ -19,6 +19,10 @@ const detailSource = read(
   "app/api/system/members/applications/[applicationId]/route.ts"
 );
 const enrollSource = read("app/api/system/members/enroll/route.ts");
+const cardAssignSource = read("app/api/system/members/card/assign/route.ts");
+const realtimeSource = read("lib/staffRealtime.ts");
+const realtimeRoute = read("app/api/system/staff/realtime/route.ts");
+const realtimeBridge = read("components/staff/StaffRealtimeBridge.tsx");
 
 test("member search remains system-auth protected", () => {
   assert.match(
@@ -68,4 +72,40 @@ test("original membership submission audit preserves the complete sanitized form
   assert.match(enrollSource, /participants\.map/);
   assert.match(enrollSource, /idNumber|id_number/);
   assert.match(enrollSource, /nextOfKin|next_of_kin/);
+});
+
+test("staff realtime topic is derived server-side and payload carries no member data", () => {
+  assert.match(realtimeSource, /createHmac/);
+  assert.match(realtimeSource, /membership-queue-changed/);
+  assert.match(realtimeSource, /refresh:\s*true/);
+  assert.doesNotMatch(
+    realtimeSource,
+    /fullName|email|phone|idNumber|photoUrl|memberNumber/
+  );
+});
+
+test("realtime config is authenticated, gym-scoped, and never returns service-role credentials", () => {
+  assert.match(realtimeRoute, /requireSystemPermission|getSystemContext/);
+  assert.match(realtimeRoute, /gymId/);
+  assert.match(realtimeRoute, /staffMembershipTopic/);
+  assert.match(realtimeRoute, /SUPABASE_PUBLISHABLE_KEY/);
+  assert.doesNotMatch(realtimeRoute, /searchParams\.get\(["']gym/);
+  assert.doesNotMatch(realtimeRoute, /SUPABASE_SERVICE_ROLE_KEY/);
+});
+
+test("staff realtime bridge treats broadcasts as refresh-only signals", () => {
+  assert.match(realtimeBridge, /membership-queue-changed/);
+  assert.match(realtimeBridge, /onQueueChanged/);
+  assert.match(realtimeBridge, /SUBSCRIBED/);
+  assert.match(realtimeBridge, /CHANNEL_ERROR|TIMED_OUT|CLOSED/);
+  assert.doesNotMatch(
+    realtimeBridge,
+    /payload\.(fullName|email|phone|idNumber|photoUrl|memberNumber)/
+  );
+});
+
+test("membership mutations broadcast refresh only after successful persistence", () => {
+  assert.match(enrollSource, /broadcastStaffMembershipRefresh/);
+  assert.match(cardAssignSource, /broadcastStaffMembershipRefresh/);
+  assert.match(detailSource, /broadcastStaffMembershipRefresh/);
 });
