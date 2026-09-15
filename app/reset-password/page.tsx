@@ -9,7 +9,7 @@ export default async function ResetPasswordRoute({
   const params = await searchParams;
 
   return (
-    <AppShell>
+    <AppShell theme="light">
       <ResetPasswordPage token={String(params.token || "")} />
     </AppShell>
   );
