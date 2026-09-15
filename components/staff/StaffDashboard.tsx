@@ -4,16 +4,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Barcode,
   Beer,
-  BellRing,
   Boxes,
   Clock3,
   Dumbbell,
   LogOut,
   PackagePlus,
-  RefreshCcw,
   UsersRound,
 } from "lucide-react";
 import StaffMemberBrowser from "@/components/staff/StaffMemberBrowser";
+import StaffMembershipQueue from "@/components/staff/StaffMembershipQueue";
 import StaffRealtimeBridge from "@/components/staff/StaffRealtimeBridge";
 
 type SystemUser = {
@@ -23,10 +22,6 @@ type SystemUser = {
   displayName: string;
   isSuperAdmin: boolean;
   permissions: string[];
-};
-
-type QueueResponse = {
-  applications?: Array<{ id: string }>;
 };
 
 type Props = {
@@ -96,8 +91,8 @@ function Tile({
 
 export default function StaffDashboard({ user, onLogout }: Props) {
   const [queueCount, setQueueCount] = useState(0);
-  const [queueError, setQueueError] = useState(false);
-  const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>("connecting");
+  const [queueRefreshToken, setQueueRefreshToken] = useState(0);
+  const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>(user.gymId ? "connecting" : "disabled");
   const [memberFocusToken, setMemberFocusToken] = useState(0);
 
   const can = useCallback(
@@ -105,24 +100,9 @@ export default function StaffDashboard({ user, onLogout }: Props) {
     [user.isSuperAdmin, user.permissions]
   );
 
-  const refreshQueue = useCallback(async () => {
-    try {
-      const response = await fetch("/api/system/members/applications", {
-        cache: "no-store",
-        credentials: "same-origin",
-      });
-      if (!response.ok) throw new Error("Queue unavailable");
-      const data = (await response.json()) as QueueResponse;
-      setQueueCount(data.applications?.length || 0);
-      setQueueError(false);
-    } catch {
-      setQueueError(true);
-    }
+  const signalQueueRefresh = useCallback(() => {
+    setQueueRefreshToken((value) => value + 1);
   }, []);
-
-  useEffect(() => {
-    void refreshQueue();
-  }, [refreshQueue]);
 
   const realtimeLabel = useMemo(() => {
     if (!user.gymId) return "Network view";
@@ -143,10 +123,12 @@ export default function StaffDashboard({ user, onLogout }: Props) {
 
   return (
     <main className="min-h-screen bg-[#f6f6f6] text-zinc-950">
-      <StaffRealtimeBridge
-        onQueueChanged={refreshQueue}
-        onConnectionChange={(connected) => setRealtimeStatus(connected ? "connected" : "disconnected")}
-      />
+      {user.gymId && (
+        <StaffRealtimeBridge
+          onQueueChanged={signalQueueRefresh}
+          onConnectionChange={(connected) => setRealtimeStatus(connected ? "connected" : "disconnected")}
+        />
+      )}
       <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
         <header className="rounded-3xl border border-zinc-200 bg-white px-5 py-4 shadow-sm sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -187,23 +169,9 @@ export default function StaffDashboard({ user, onLogout }: Props) {
           <Tile label="Punch Clock" icon={Clock3} disabled />
         </section>
 
-        <section id="staff-waiting" className="mt-5 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-[#ff5a0a]"><BellRing className="h-5 w-5" /></span>
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">New membership queue</p>
-                <h2 className="text-xl font-black">{queueCount} WAITING</h2>
-              </div>
-            </div>
-            {queueError && (
-              <button type="button" onClick={() => void refreshQueue()} className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700">
-                <RefreshCcw className="h-4 w-4" /> Retry
-              </button>
-            )}
-          </div>
-          <p className="mt-3 text-sm text-zinc-500">Pending applications stay in this gym-specific queue until card verification and payment activation are complete.</p>
-        </section>
+        <div className="mt-5">
+          <StaffMembershipQueue refreshToken={queueRefreshToken} onCountChange={setQueueCount} />
+        </div>
 
         <div className="mt-5">
           <StaffMemberBrowser focusToken={memberFocusToken} />
