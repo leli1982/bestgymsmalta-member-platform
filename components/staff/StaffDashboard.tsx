@@ -9,7 +9,10 @@ import {
   Dumbbell,
   LogOut,
   PackagePlus,
+  RefreshCw,
+  UserPlus,
   UsersRound,
+  X,
 } from "lucide-react";
 import StaffMemberBrowser from "@/components/staff/StaffMemberBrowser";
 import StaffMembershipQueue from "@/components/staff/StaffMembershipQueue";
@@ -94,6 +97,7 @@ export default function StaffDashboard({ user, onLogout }: Props) {
   const [queueRefreshToken, setQueueRefreshToken] = useState(0);
   const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>(user.gymId ? "connecting" : "disabled");
   const [memberFocusToken, setMemberFocusToken] = useState(0);
+  const [membershipActionOpen, setMembershipActionOpen] = useState(false);
 
   const can = useCallback(
     (permission: string) => user.isSuperAdmin || user.permissions.includes(permission),
@@ -120,6 +124,9 @@ export default function StaffDashboard({ user, onLogout }: Props) {
   function focusWaiting() {
     document.getElementById("staff-waiting")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
+
+  const canCreateMembership = can("members.create");
+  const canRenewMembership = can("members.renew") && can("members.view");
 
   return (
     <main className="min-h-screen bg-[#f6f6f6] text-zinc-950">
@@ -162,7 +169,7 @@ export default function StaffDashboard({ user, onLogout }: Props) {
 
         <section className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <Tile label="Members" icon={UsersRound} onClick={focusMembers} />
-          <Tile label="New Member" icon={PackagePlus} onClick={focusWaiting} badge={queueCount > 0 ? String(queueCount) : undefined} />
+          <Tile label="New Member" icon={PackagePlus} onClick={() => setMembershipActionOpen(true)} badge={queueCount > 0 ? String(queueCount) : undefined} />
           <Tile label="Card / Reception" icon={Barcode} href="/staff/reception" disabled={!can("barcode.scan")} />
           <Tile label="Sundries" icon={Boxes} href="/staff/sundries" disabled={!can("orders.sundries.submit")} />
           <Tile label="Bar" icon={Beer} href="/staff/bar" disabled={!can("orders.bar.submit")} />
@@ -174,9 +181,58 @@ export default function StaffDashboard({ user, onLogout }: Props) {
         </div>
 
         <div className="mt-5">
-          <StaffMemberBrowser focusToken={memberFocusToken} />
+          <StaffMemberBrowser focusToken={memberFocusToken} canRenew={canRenewMembership} />
         </div>
       </div>
+
+      {membershipActionOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="membership-action-title">
+          <div className="w-full rounded-t-3xl bg-white p-6 shadow-2xl sm:max-w-2xl sm:rounded-3xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff5a0a]">Membership action</p>
+                <h2 id="membership-action-title" className="mt-1 text-2xl font-black text-zinc-950">What do you need to do?</h2>
+                <p className="mt-1 text-sm text-zinc-500">Start a new membership or renew an existing BGM member.</p>
+              </div>
+              <button type="button" onClick={() => setMembershipActionOpen(false)} aria-label="Close membership action" className="rounded-xl border border-zinc-200 p-2.5 text-zinc-500 hover:bg-zinc-50"><X className="h-5 w-5" /></button>
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <a
+                href="/staff/members/enroll?kind=new"
+                aria-disabled={!canCreateMembership}
+                onClick={(event) => { if (!canCreateMembership) event.preventDefault(); }}
+                className={`flex min-h-44 flex-col justify-between rounded-3xl border-2 p-6 transition ${canCreateMembership ? "border-zinc-950 bg-zinc-950 text-white hover:-translate-y-0.5" : "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400"}`}
+              >
+                <UserPlus className="h-9 w-9" />
+                <span>
+                  <span className="block text-2xl font-black">NEW MEMBER</span>
+                  <span className={`mt-2 block text-sm ${canCreateMembership ? "text-zinc-300" : "text-zinc-400"}`}>Create a genuinely new BGM membership.</span>
+                </span>
+              </a>
+
+              <a
+                href="/staff/members/enroll?kind=renewal"
+                aria-disabled={!canRenewMembership}
+                onClick={(event) => { if (!canRenewMembership) event.preventDefault(); }}
+                className={`flex min-h-44 flex-col justify-between rounded-3xl border-2 p-6 transition ${canRenewMembership ? "border-orange-400 bg-orange-50 text-orange-950 hover:-translate-y-0.5" : "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400"}`}
+              >
+                <RefreshCw className="h-9 w-9" />
+                <span>
+                  <span className="block text-2xl font-black">RENEW</span>
+                  <span className={`mt-2 block text-sm ${canRenewMembership ? "text-orange-900/70" : "text-zinc-400"}`}>Find the existing member, keep their data, and confirm the old or a new card.</span>
+                </span>
+              </a>
+            </div>
+
+            {queueCount > 0 && (
+              <button type="button" onClick={() => { setMembershipActionOpen(false); window.setTimeout(focusWaiting, 0); }} className="mt-4 w-full rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-black text-orange-800">
+                {queueCount} submitted application{queueCount === 1 ? "" : "s"} waiting — open queue
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
