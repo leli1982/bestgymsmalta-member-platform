@@ -10,6 +10,7 @@ const pageUrl = new URL("../app/staff/members/enroll/page.tsx", import.meta.url)
 const staffDashboardUrl = new URL("../components/staff/StaffDashboard.tsx", import.meta.url);
 const staffQueueUrl = new URL("../components/staff/StaffMembershipQueue.tsx", import.meta.url);
 const staffBrowserUrl = new URL("../components/staff/StaffMemberBrowser.tsx", import.meta.url);
+const cardAssignUrl = new URL("../app/api/system/members/card/assign/route.ts", import.meta.url);
 
 function read(url) {
   return fs.readFileSync(url, "utf8");
@@ -31,11 +32,14 @@ test("both application flows visibly require Staff Name for human accountability
   assert.match(source, /RENEWAL[\s\S]*Staff Name/i);
 });
 
-test("renewal searches and confirms a permanent member before continuing", () => {
+test("renewal keeps the permanent member number while allowing card keep or replacement", () => {
   const source = read(componentUrl);
+  const cardAssign = read(cardAssignUrl);
   assert.match(source, /\/api\/system\/members\/search/);
-  assert.match(source, /This number and barcode stay with this member\./);
+  assert.match(source, /permanent member number/i);
   assert.match(source, /memberNumber/);
+  assert.match(cardAssign, /renewalCardAction\s*=\s*["']keep["']/);
+  assert.match(cardAssign, /renewalCardAction\s*=\s*["']replace["']/);
 });
 
 test("printing is separate from payment activation and Activation Staff Name is required", () => {
