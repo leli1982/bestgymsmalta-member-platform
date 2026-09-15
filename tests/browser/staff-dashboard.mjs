@@ -215,7 +215,7 @@ try {
   await page.goto(origin + "/staff");
   await waitVisible(page.getByRole("heading", { name: "Browser Gym Reception", exact: true }));
   await waitVisible(page.getByRole("button", { name: "Members", exact: true }));
-  await waitVisible(page.getByRole("button", { name: "New Member", exact: true }));
+  await waitVisible(page.getByRole("button", { name: /^New Member(?:\s+\d+)?$/ }));
   await waitVisible(page.getByRole("link", { name: "Card / Reception", exact: true }));
   await waitVisible(page.getByRole("link", { name: "Sundries", exact: true }));
   await waitVisible(page.getByRole("link", { name: "Bar", exact: true }));
