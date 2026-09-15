@@ -41,9 +41,9 @@ test("staff dashboard is icon-first and exposes core reception actions", () => {
 
 test("member browser exposes browse search and All Active Expired filters", () => {
   assert.match(browser, /\/api\/system\/members\/search/);
-  assert.match(browser, />ALL</i);
-  assert.match(browser, />ACTIVE</i);
-  assert.match(browser, />EXPIRED</i);
+  assert.match(browser, /\{\s*key:\s*["']all["'],\s*label:\s*["']ALL["']\s*\}/);
+  assert.match(browser, /\{\s*key:\s*["']active["'],\s*label:\s*["']ACTIVE["']\s*\}/);
+  assert.match(browser, /\{\s*key:\s*["']expired["'],\s*label:\s*["']EXPIRED["']\s*\}/);
   assert.match(browser, /AbortController/);
   assert.match(browser, /member number|ID number|phone|email/i);
 });
