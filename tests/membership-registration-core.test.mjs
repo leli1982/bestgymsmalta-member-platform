@@ -76,7 +76,7 @@ test("under-18 participants require complete guardian details", () => {
           fullName: "Maria Mifsud",
           idNumber: "654321M",
           relationship: "Mother",
-          phone: "79004567",
+          mobile: "79004567",
           email: "maria@example.com",
           address: "12 Main Street, Birkirkara",
         },
