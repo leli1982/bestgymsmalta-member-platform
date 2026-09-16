@@ -1,31 +1,17 @@
 import type { MembershipType } from "@/lib/membershipSettingsCore";
+import type {
+  GuardianDetails,
+  IdentityMatchState,
+  RegistrationMode,
+  RegistrationParticipant,
+} from "@/lib/membershipRegistrationTypes";
 
-export type RegistrationMode = "tablet" | "staff";
-export type IdentityMatchState = "clear" | "active" | "expired_inactive";
-
-export type GuardianDetails = {
-  fullName: string;
-  idNumber: string;
-  relationship: string;
-  phone: string;
-  email: string;
-  address: string;
-};
-
-export type RegistrationParticipant = {
-  firstName: string;
-  lastName: string;
-  idNumber: string;
-  dateOfBirth: string;
-  addressLine1: string;
-  addressLine2: string;
-  town: string;
-  postcode: string;
-  phone: string;
-  email: string;
-  nextOfKin: string;
-  guardian?: GuardianDetails;
-};
+export type {
+  GuardianDetails,
+  IdentityMatchState,
+  RegistrationMode,
+  RegistrationParticipant,
+} from "@/lib/membershipRegistrationTypes";
 
 type CalendarDate = {
   year: number;
@@ -163,7 +149,7 @@ export function validateRegistrationParticipant(
         ["fullName", "Guardian full name"],
         ["idNumber", "Guardian ID or passport number"],
         ["relationship", "Guardian relationship"],
-        ["phone", "Guardian mobile number"],
+        ["mobile", "Guardian mobile number"],
         ["email", "Guardian email"],
         ["address", "Guardian address"],
       ];
