@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - phase-2-operations-nfc-redesign
+      - feature/tablet-enrollment-membership-settings
       - main
   workflow_dispatch:
 
