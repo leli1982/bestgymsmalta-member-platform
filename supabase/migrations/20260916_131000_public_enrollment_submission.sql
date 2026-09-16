@@ -227,7 +227,7 @@ begin
 
   insert into public.bgm_membership_applications (
     id,
-    reference,
+    application_reference,
     membership_type,
     duration_key,
     enrollment_gym_id,
