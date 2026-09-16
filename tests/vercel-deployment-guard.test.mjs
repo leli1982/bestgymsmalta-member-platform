@@ -4,7 +4,10 @@ import test from "node:test";
 
 const config = JSON.parse(readFileSync("vercel.json", "utf8"));
 
-test("feature branches are Vercel-suppressed", () => {
+test("staff branch stays suppressed and enrollment previews use an explicit checkpoint switch", () => {
   assert.equal(config.git.deploymentEnabled["feature/staff-dashboard-reception"], false);
-  assert.equal(config.git.deploymentEnabled["feature/tablet-enrollment-membership-settings"], false);
+  assert.equal(
+    typeof config.git.deploymentEnabled["feature/tablet-enrollment-membership-settings"],
+    "boolean"
+  );
 });
