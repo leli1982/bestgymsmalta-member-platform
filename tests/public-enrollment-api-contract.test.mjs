@@ -35,15 +35,15 @@ test("public config is gym-slug scoped and exposes only published enrollment set
   assert.doesNotMatch(source, /bgm_discount_codes/);
 });
 
-test("public identity check returns classification only and uses normalized identity plus Malta date", () => {
+test("public identity check returns classification only through the server-authoritative database classifier", () => {
   const source = readRequired(identityPath, "public identity-check route");
   assert.match(source, /export async function POST/);
   assert.match(source, /normalizeIdentityDocument/);
   assert.match(source, /public_enrollment_slug/);
-  assert.match(source, /membership_expiry/);
-  assert.match(source, /Europe\/Malta/);
+  assert.match(source, /bgm_classify_membership_identity/);
   assert.match(source, /expired_inactive/);
   assert.match(source, /state/);
+  assert.doesNotMatch(source, /\.from\(["']bgm_members["']\)/);
   assert.doesNotMatch(source, /memberNumber|member_number\s*:/);
   assert.doesNotMatch(source, /fullName|full_name\s*:/);
   assert.doesNotMatch(source, /email\s*:/);
