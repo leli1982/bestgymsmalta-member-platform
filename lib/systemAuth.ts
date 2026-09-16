@@ -117,3 +117,26 @@ export async function requireSystemPermission(
 
   return { context, error: null };
 }
+
+export async function requireSuperAdmin(request: NextRequest) {
+  const context = await getSystemContext(request);
+
+  if (!context) {
+    return {
+      context: null,
+      error: NextResponse.json({ error: "System login required." }, { status: 401 }),
+    };
+  }
+
+  if (!context.isSuperAdmin) {
+    return {
+      context: null,
+      error: NextResponse.json(
+        { error: "Super Admin access required." },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { context, error: null };
+}
