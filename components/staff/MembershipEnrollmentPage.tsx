@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 type SystemUser = {
   id: string;
@@ -26,7 +27,14 @@ type Candidate = {
   status: string;
   membershipExpiry: string;
   mobile: string;
+  phone?: string;
   email: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  postcode?: string;
+  idNumber?: string;
+  dateOfBirth?: string;
+  nextOfKin?: string;
   legacyPkCustomer: string;
   legacyGym: string;
   officialPhotoPath?: string | null;
@@ -113,18 +121,25 @@ function participantFromCandidate(candidate: Candidate): ParticipantForm {
   const fallbackLastName = nameParts.slice(1).join(" ");
 
   return {
-    ...blankParticipant(),
     existingMemberId: candidate.id,
     memberNumber: candidate.memberNumber,
     firstName: candidate.firstName || fallbackFirstName,
     lastName: candidate.lastName || fallbackLastName,
-    phone: candidate.mobile || "",
+    addressLine1: candidate.addressLine1 || "",
+    addressLine2: candidate.addressLine2 || "",
+    postcode: candidate.postcode || "",
+    idNumber: candidate.idNumber || "",
+    dateOfBirth: candidate.dateOfBirth || "",
+    phone: candidate.phone || candidate.mobile || "",
     email: candidate.email || "",
+    nextOfKin: candidate.nextOfKin || "",
     officialPhotoPath: candidate.officialPhotoPath || "",
   };
 }
 
 export default function MembershipEnrollmentPage() {
+  const searchParams = useSearchParams();
+  const presetHandled = useRef(false);
   const [user, setUser] = useState<SystemUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [gyms, setGyms] = useState<Gym[]>([]);
@@ -273,8 +288,8 @@ export default function MembershipEnrollmentPage() {
     setMessage("");
     try {
       const response = await fetch(
-        `/api/system/members/search?q=${encodeURIComponent(query)}`,
-        { cache: "no-store" }
+        `/api/system/members/search?q=${encodeURIComponent(query)}&status=all&limit=50`,
+        { cache: "no-store", credentials: "same-origin" }
       );
       const data = await response.json();
       if (!response.ok) {
@@ -306,6 +321,56 @@ export default function MembershipEnrollmentPage() {
     setCandidates([]);
     setSearchQuery("");
   }
+
+  useEffect(() => {
+    if (loading || !user || presetHandled.current) return;
+
+    const presetKind = searchParams.get("kind");
+    if (presetKind !== "new" && presetKind !== "renewal") {
+      presetHandled.current = true;
+      return;
+    }
+
+    presetHandled.current = true;
+    if (presetKind === "new") {
+      if (!canCreate) {
+        setError("This account does not have permission to create memberships.");
+        return;
+      }
+      chooseKind("new");
+      return;
+    }
+
+    if (!canRenew || !canSearch) {
+      setError("This account does not have permission to renew memberships.");
+      return;
+    }
+
+    chooseKind("renewal");
+    const memberNumber = String(searchParams.get("memberNumber") || "").trim();
+    if (!memberNumber) return;
+
+    setSearching(true);
+    void fetch(
+      `/api/system/members/search?q=${encodeURIComponent(memberNumber)}&status=all&limit=10`,
+      { cache: "no-store", credentials: "same-origin" }
+    )
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not load the selected member.");
+        const candidates = Array.isArray(data.candidates) ? data.candidates as Candidate[] : [];
+        const selected = candidates.find((candidate) => candidate.memberNumber === memberNumber) || candidates[0];
+        if (!selected) {
+          setSearchQuery(memberNumber);
+          throw new Error("That member could not be found. Search again below.");
+        }
+        selectRenewalMember(selected);
+      })
+      .catch((requestError) => {
+        setError(requestError instanceof Error ? requestError.message : "Could not load the selected member.");
+      })
+      .finally(() => setSearching(false));
+  }, [loading, user, searchParams, canCreate, canRenew, canSearch]);
 
   function removeRenewalMember(memberId: string) {
     setParticipants((current) =>
@@ -372,7 +437,7 @@ export default function MembershipEnrollmentPage() {
       }
       setApplication(data.application);
       setMessage(
-        "Application saved. It is awaiting payment and has NOT been activated."
+        "Application saved. It is awaiting card confirmation and payment activation."
       );
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
@@ -532,7 +597,7 @@ export default function MembershipEnrollmentPage() {
               <div>
                 <h2 className="text-lg font-black">1. Find the existing member</h2>
                 <p className="mt-1 text-sm text-zinc-600">
-                  Scan/search the BGM number first. Name, mobile, email and legacy PK searches may show several candidates.
+                  Scan/search the BGM number first. Name, ID number, mobile and email searches may show several candidates.
                 </p>
               </div>
               <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-black text-orange-800">
@@ -557,7 +622,7 @@ export default function MembershipEnrollmentPage() {
                       {participant.memberNumber}
                     </p>
                     <p className="mt-2 text-sm font-bold text-emerald-900">
-                      This number and barcode stay with this member.
+                      Stored member details and permanent number have been carried forward.
                     </p>
                     <button
                       type="button"
@@ -578,7 +643,7 @@ export default function MembershipEnrollmentPage() {
                 <input
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="BGM0000001, name, mobile, email or legacy PK"
+                  placeholder="Member number, name, ID number, mobile or email"
                   className="min-w-0 flex-1 rounded-xl border border-zinc-300 px-4 py-3 outline-none focus:border-orange-500"
                 />
                 <button
@@ -747,7 +812,7 @@ export default function MembershipEnrollmentPage() {
               {submitting ? "Saving application…" : "SUBMIT MEMBERSHIP APPLICATION"}
             </button>
             <p className="text-center text-xs font-semibold text-zinc-500">
-              Submitting creates an awaiting-payment application only. It does not activate membership access.
+              Submitting creates an awaiting-payment application only. Card confirmation and Payment Received are completed from the Staff Dashboard review.
             </p>
           </form>
         )}
@@ -765,7 +830,7 @@ export default function MembershipEnrollmentPage() {
                 </p>
               </div>
               <span className="rounded-full bg-amber-100 px-3 py-2 text-xs font-black text-amber-900">
-                AWAITING PAYMENT
+                AWAITING CARD / PAYMENT
               </span>
             </div>
 
@@ -789,7 +854,7 @@ export default function MembershipEnrollmentPage() {
                     <>
                       <p className="mt-1 font-mono font-black">{participant.memberNumber}</p>
                       <p className="mt-1 text-xs font-bold text-emerald-700">
-                        This number and barcode stay with this member.
+                        Permanent member number retained for renewal.
                       </p>
                     </>
                   )}
@@ -800,11 +865,18 @@ export default function MembershipEnrollmentPage() {
               ))}
             </div>
 
+            <div className="mt-6 rounded-2xl border border-orange-200 bg-orange-50 p-5 print:hidden">
+              <p className="font-black text-orange-950">Next: confirm the member card and payment.</p>
+              <p className="mt-1 text-sm text-orange-900/80">
+                In the Staff Dashboard, open this waiting application. For a renewal, scan the existing card to keep it or scan a different unused card to stage a replacement. A new card is only finalized when Payment Received activates the renewal.
+              </p>
+              <a href="/staff#staff-waiting" className="mt-4 inline-flex rounded-xl bg-[#ff5a0a] px-5 py-3 text-sm font-black text-white">
+                CONTINUE TO STAFF DASHBOARD
+              </a>
+            </div>
+
             <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-4 print:hidden">
               <p className="font-black text-blue-900">Printing does not activate this membership.</p>
-              <p className="mt-1 text-sm text-blue-800">
-                The permanent BGM number for a new member is not issued until payment is confirmed below.
-              </p>
               <button
                 type="button"
                 onClick={() => window.print()}
@@ -817,7 +889,7 @@ export default function MembershipEnrollmentPage() {
             <div className="mt-6 border-t-2 border-zinc-200 pt-6 print:hidden">
               <h3 className="text-xl font-black">Payment & activation</h3>
               <p className="mt-1 text-sm text-zinc-600">
-                A second staff attribution is required. Enter the name of the person actually receiving payment and activating this membership.
+                Card confirmation is required before activation. The Staff Dashboard review is the recommended processing surface.
               </p>
 
               {!canActivate ? (
@@ -944,7 +1016,7 @@ function ParticipantEditor({
       </div>
       {participant.memberNumber && (
         <p className="mt-2 text-sm font-bold text-emerald-700">
-          This number and barcode stay with this member.
+          This permanent member number stays with this member. Card keep/replacement is confirmed in the Staff Dashboard review.
         </p>
       )}
       <div className="mt-4 grid gap-4 sm:grid-cols-2">

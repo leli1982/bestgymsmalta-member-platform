@@ -5,6 +5,7 @@ import {
 } from "@/lib/memberCardCredentialCore";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
+import { broadcastStaffMembershipRefresh } from "@/lib/staffRealtime";
 
 export const dynamic = "force-dynamic";
 
@@ -267,6 +268,8 @@ export async function POST(request: NextRequest) {
         });
         if (auditResult.error) console.error(auditResult.error);
 
+        await broadcastStaffMembershipRefresh(application.enrollment_gym_id);
+
         return NextResponse.json({
           ok: true,
           reservation: {
@@ -396,6 +399,8 @@ export async function POST(request: NextRequest) {
       },
     });
     if (auditResult.error) console.error(auditResult.error);
+
+    await broadcastStaffMembershipRefresh(application.enrollment_gym_id);
 
     return NextResponse.json({
       ok: true,

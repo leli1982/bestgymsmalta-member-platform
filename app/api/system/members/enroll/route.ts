@@ -6,6 +6,7 @@ import {
 } from "@/lib/membershipEnrollmentCore";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
+import { broadcastStaffMembershipRefresh } from "@/lib/staffRealtime";
 
 export const dynamic = "force-dynamic";
 
@@ -132,6 +133,28 @@ export async function POST(request: NextRequest) {
       }
 
       const supabase = getSupabaseAdmin();
+      const applicationResult = await supabase
+        .from("bgm_membership_applications")
+        .select("id, enrollment_gym_id, status")
+        .eq("id", applicationId)
+        .maybeSingle();
+      if (applicationResult.error) throw applicationResult.error;
+      if (!applicationResult.data) {
+        return NextResponse.json(
+          { error: "Membership application not found." },
+          { status: 404 }
+        );
+      }
+      if (
+        !auth.context.isSuperAdmin &&
+        auth.context.gymId !== applicationResult.data.enrollment_gym_id
+      ) {
+        return NextResponse.json(
+          { error: "This application belongs to another gym." },
+          { status: 403 }
+        );
+      }
+
       const activationResult = await supabase.rpc(
         "bgm_activate_membership_application",
         {
@@ -157,6 +180,10 @@ export async function POST(request: NextRequest) {
           { status: expectedValidation ? 409 : 500 }
         );
       }
+
+      await broadcastStaffMembershipRefresh(
+        applicationResult.data.enrollment_gym_id
+      );
 
       return NextResponse.json({
         ok: true,
@@ -335,18 +362,37 @@ export async function POST(request: NextRequest) {
       entity_id: applicationId,
       member_id: primaryExistingMemberId,
       after_data: {
+        applicationReference,
         applicationKind: kind,
         membershipType,
         durationKey,
         startDate,
         expiryDate,
-        applicationReference,
+        enrollmentGymId: gym.id,
+        submittedAt: now,
+        participants: participants.map((participant) => ({
+          participantOrder: participant.participant_order,
+          firstName: participant.first_name,
+          lastName: participant.last_name,
+          addressLine1: participant.address_line_1,
+          addressLine2: participant.address_line_2,
+          postcode: participant.postcode,
+          idNumber: participant.id_number,
+          dateOfBirth: participant.date_of_birth,
+          phone: participant.phone,
+          email: participant.email,
+          nextOfKin: participant.next_of_kin,
+          officialPhotoPath: participant.official_photo_path,
+          existingMemberId: participant.existing_member_id,
+        })),
       },
     });
 
     if (auditResult.error) {
       console.error(auditResult.error);
     }
+
+    await broadcastStaffMembershipRefresh(gym.id);
 
     return NextResponse.json({
       ok: true,

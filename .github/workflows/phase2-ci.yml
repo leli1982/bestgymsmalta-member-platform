@@ -28,6 +28,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install browser verification tools
+        run: |
+          npm install --no-save --package-lock=false playwright@1.63.0
+          npx playwright install --with-deps chromium
+
       - name: Run tests
         run: node --experimental-strip-types --test tests/*.test.mjs
 
@@ -39,13 +44,11 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: "1"
 
-      - name: Install browser verification tools
-        run: |
-          npm install --no-save --package-lock=false playwright@1.63.0
-          npx playwright install --with-deps chromium
-
       - name: Verify member card and gym pages in Chromium
         run: node tests/browser/member-card-gyms.mjs
+
+      - name: Verify staff dashboard workflow in Chromium
+        run: node tests/browser/staff-dashboard.mjs
 
       - name: Save member UI screenshots
         if: always()
@@ -53,4 +56,12 @@ jobs:
         with:
           name: member-ui-screenshots
           path: test-artifacts/member-ui
+          if-no-files-found: ignore
+
+      - name: Save staff UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staff-ui-screenshots
+          path: test-artifacts/staff-ui
           if-no-files-found: ignore

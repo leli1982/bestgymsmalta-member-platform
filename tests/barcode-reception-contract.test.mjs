@@ -15,7 +15,7 @@ const page = fs.readFileSync(
   "utf8"
 );
 const staffHome = fs.readFileSync(
-  new URL("../components/staff/StaffLoginPage.tsx", import.meta.url),
+  new URL("../components/staff/StaffDashboard.tsx", import.meta.url),
   "utf8"
 );
 
@@ -40,8 +40,8 @@ test("launch reception uses barcode scanner UX", () => {
 });
 
 test("enabled staff reception tile navigates with barcode permission", () => {
-  assert.match(staffHome, /Reception \/ Barcode/);
-  assert.match(staffHome, /barcode\.scan/);
+  assert.match(staffHome, /Card \/ Reception/);
+  assert.match(staffHome, /can\(["']barcode\.scan["']\)/);
   assert.match(staffHome, /href="\/staff\/reception"/);
-  assert.match(staffHome, /enabled\s*&&\s*href/);
+  assert.match(staffHome, /disabled=\{!can\(["']barcode\.scan["']\)\}/);
 });
