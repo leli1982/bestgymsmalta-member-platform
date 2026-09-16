@@ -11,8 +11,9 @@ Read these documents in this order:
 4. `docs/superpowers/plans/2026-09-16-tablet-enrollment-03-staff-review-activation-print-photo.md` — reception review, possible-renewal conversion, verification gates, card/payment activation, one-page A4 printing and deferred photo workflow.
 5. `docs/superpowers/plans/2026-09-16-tablet-enrollment-04-offline-continuity-rollout.md` — staff offline queue/sync, idempotency, local/private testing, browser coverage and release-candidate verification.
 6. `docs/superpowers/plans/2026-09-16-tablet-enrollment-self-review-amendments.md` — required corrections found during final spec-to-plan coverage review, including participant-specific Couples acknowledgements, camera recovery, audit coverage, offline renewal and pending offline discount validation.
+7. `docs/superpowers/plans/2026-09-16-tablet-enrollment-plan-hardening-addendum.md` — canonical shared types, enrollment-branch CI trigger, safe public rate limits, race-safe declaration versions and crash/concurrency-safe offline idempotency.
 
-If an amendment conflicts with wording in Plans 01–04, the self-review amendment wins for that specific topic.
+If an amendment conflicts with wording in Plans 01–04, the later self-review/hardening document wins for that specific topic.
 
 ## Sequence and branch safety
 
