@@ -50,6 +50,8 @@ The platform continues to use the approved barcode/physical-card architecture fo
 
 Implementation must occur on a feature branch with normal Vercel auto-deploy disabled for that branch. GitHub CI/local verification is used during development. A single deliberate Preview is created only at a meaningful checkpoint and only when Vercel storage permits it. Production remains untouched until explicit visual approval.
 
+Before creating the new implementation branch, the Vercel branch guard must be extended from the currently protected `feature/staff-dashboard-reception` branch to the chosen enrollment implementation branch so branch creation/push cannot create an accidental Preview.
+
 ## 3. Gym-Specific Public Routes
 
 Each gym has a stable public registration route, for example:
@@ -71,6 +73,8 @@ The server validates that the slug maps to an active BGM gym before accepting a 
 
 The routes are intentionally public. There is no hidden kiosk key in this phase because no submission can create an active member without staff review, verification, payment and activation.
 
+Public submission/duplicate-check endpoints should still use basic abuse/rate limiting and expose only the minimum response needed by the form.
+
 ## 4. Installable PWA Behaviour
 
 Each gym registration route should be installable as a PWA so a tablet can appear to run a dedicated BGM Registration app.
@@ -80,19 +84,17 @@ Requirements:
 - official BGM app icon/branding;
 - standalone display where supported;
 - installed launch returns directly to the correct `/join/<gym-slug>` route;
-- no need for one-time device provisioning;
+- no one-time physical provisioning requirement;
 - replacing a broken tablet requires only opening the correct gym URL and installing/adding it again;
-- route/gym identity must remain obvious inside the UI.
+- route/gym identity remains obvious inside the UI.
 
-The PWA does not need offline submission for customers. Public/tablet enrollment is online-only.
+The public/customer PWA is online-only for submission.
 
 ## 5. Shared Registration Form
 
 The tablet and Staff Portal use one shared registration-domain model and, where practical, the same underlying form component.
 
-Differences by launch context:
-
-### Tablet context
+### 5.1 Tablet context
 
 - gym comes from `/join/<gym-slug>`;
 - new memberships only;
@@ -101,7 +103,7 @@ Differences by launch context:
 - customer-facing copy;
 - successful submission creates a pending application and clears the tablet.
 
-### Staff context
+### 5.2 Staff context
 
 - gym comes from the authenticated shared staff account;
 - New Membership and Renewal available;
@@ -136,20 +138,20 @@ For Couples, the displayed price is the configured combined Couples price, not t
 
 Immediately after selecting the membership type, and before the applicant spends time completing the form, show a prominent **You will need at reception** panel.
 
-### Regular / Single
+### 7.1 Regular / Single
 
 Applicant must be told they will need:
 
 - valid ID card or passport.
 
-### Student
+### 7.2 Student
 
 Applicant must be told they will need:
 
 - valid ID card or passport;
 - valid student card or supporting student document.
 
-### Couples
+### 7.3 Couples
 
 Applicants must be told they will need:
 
@@ -164,9 +166,9 @@ The relevant requirement is repeated on the final submission-success screen.
 
 For public/tablet registration:
 
-- start date defaults to the day of submission;
+- start date defaults to the server-resolved calendar day of submission in `Europe/Malta`;
 - the applicant does not choose a different start date;
-- expiry is derived from the selected duration.
+- expiry is derived from the selected duration using the platform's canonical membership-date rules.
 
 During staff review, reception may change the start date before activation. Expiry is recalculated from the final staff-approved start date and duration.
 
@@ -187,7 +189,7 @@ For each applicant, collect at minimum:
 - email;
 - next of kin / emergency contact.
 
-The implementation should preserve compatibility with the existing member/application schema and approved legacy-member transition architecture.
+The implementation must preserve compatibility with the existing member/application schema and approved legacy-member transition architecture.
 
 ## 10. Couples Membership
 
@@ -230,7 +232,7 @@ Student applicants complete the standard registration information and live photo
 
 The platform does not store a copy of the student card/supporting document.
 
-At submission completion, show a message such as:
+At submission completion, show wording in this meaning:
 
 **Application submitted — please show your valid student ID or supporting document to our reception staff to complete your membership.**
 
@@ -242,7 +244,7 @@ The verification event is auditable with staff/system/gym/timestamp context.
 
 Age is derived from date of birth.
 
-If the applicant is under 18, the form requires Parent / Legal Guardian details before submission.
+If the applicant is under 18 on the server-recorded application submission date, the application permanently requires the Parent / Legal Guardian path for that application even if staff later changes the membership start date.
 
 Capture at minimum:
 
@@ -322,11 +324,13 @@ The initial authoritative Gym Rules/declaration wording comes from the user-prov
 
 `Generic Membership form.pdf`
 
-The implementation must seed the rules/declaration content from that document as the initial published version rather than inventing replacement wording.
+The implementation must seed the **exact source-backed Gym Rules and existing declaration wording** from that document as the initial published version rather than inventing replacement wording.
 
-The existing PDF includes the BGM Membership Form, eleven Gym Rules and the existing declaration/signature wording.
+The PDF contains the BGM Membership Form, eleven Gym Rules and existing declaration/signature wording.
 
-The managed digital system becomes the operational source after seeding, but historical versioning must preserve the exact wording each applicant accepted.
+The PDF does not automatically supply any legal wording that is not actually present in it. If the required privacy/data-processing or health declaration wording is not present in the source PDF, the system must require a published Super Admin version before public enrollment can go live; implementation must not invent legal copy.
+
+The managed digital system becomes the operational source after seeding, but historical versioning preserves the exact wording each applicant accepted.
 
 ## 16. Versioned Gym Rules and Declarations
 
@@ -340,15 +344,19 @@ The actual wording is Super Admin-managed.
 
 Every published edit creates a new version. Existing historical versions are not overwritten.
 
-Each submitted application stores the exact version/content identifiers accepted at submission time.
+Each submitted application stores the exact published version identifiers and immutable content snapshot/hash necessary to reproduce what was accepted.
 
 Historical applications/printouts continue to render the wording accepted by that member even if Super Admin publishes newer wording later.
 
 Under-18/guardian-specific wording is included where applicable.
 
+Public enrollment cannot be enabled for a gym unless all required declaration categories have a currently published version.
+
 ## 17. Duplicate Identity Detection and Returning Members
 
 ID/passport matching is server-side and normalized.
+
+The duplicate check should occur as soon as the public form has enough identity information to perform it, so an already-active member is redirected to reception before unnecessarily completing the entire application.
 
 ### 17.1 No existing member match
 
@@ -401,11 +409,11 @@ The Staff Portal New Member area offers exactly:
 - **NEW MEMBERSHIP**
 - **RENEWAL**
 
-### New Membership
+### 18.1 New Membership
 
 Uses the shared registration form with staff context.
 
-### Renewal
+### 18.2 Renewal
 
 Search/select an existing member and reuse the approved renewal flow.
 
@@ -460,7 +468,7 @@ They cannot manually alter the configured base price.
 
 ### 20.1 Price snapshot
 
-At application submission, capture the exact configured base price shown to the applicant.
+At application submission, capture the exact configured base price and published pricing-version identifier shown to the applicant.
 
 Later Super Admin price changes must not change an already-submitted application.
 
@@ -492,6 +500,8 @@ Staff cannot change the configured percentage or manually type an arbitrary disc
 ### 21.1 Validation
 
 Discount validation is server-side.
+
+Validity windows are evaluated from server time in `Europe/Malta` calendar-date terms.
 
 At payment time, validate:
 
@@ -550,21 +560,21 @@ Payment Received remains the activation action.
 
 Before Payment Received / activation, staff must satisfy the applicable verification gates.
 
-### Regular / Single
+### 23.1 Regular / Single
 
 - ID/passport verified.
 
-### Student
+### 23.2 Student
 
 - ID/passport verified;
 - student card/supporting-document eligibility verified.
 
-### Couples
+### 23.3 Couples
 
 - both identities verified;
 - same-address evidence verified.
 
-### Under 18
+### 23.4 Under 18
 
 - guardian present;
 - printed application co-signed by guardian.
@@ -586,7 +596,7 @@ At minimum revalidate:
 - card state;
 - required document-verification gates;
 - guardian gate where applicable;
-- price snapshot;
+- price snapshot/version;
 - discount code validity/use limit;
 - payment method;
 - Staff Name;
@@ -603,7 +613,7 @@ On success:
 - remove application from active Waiting queue;
 - show membership-active success state.
 
-The operation must be safe against duplicate submission/retry.
+The operation must be idempotent and safe against duplicate submission/retry.
 
 ## 25. Printed Membership Form — One A4 Sheet per Member
 
@@ -663,7 +673,7 @@ When Super Admin edits Gym Rules/declaration wording, the Membership Settings UI
 
 If the candidate version would push the member form beyond one A4 page, warn the Super Admin before publication.
 
-The implementation plan should choose a deterministic layout/measurement strategy suitable for browser printing and automated tests.
+The preview must use the same effective print typography/layout constraints as the actual member print route closely enough for the warning to be meaningful.
 
 ## 26. Super Admin Membership Settings
 
@@ -671,16 +681,18 @@ This slice adds only the minimum Super Admin controls needed by enrollment. It i
 
 Add a focused Membership Settings area for Super Admin only.
 
-Manage:
-
 ### 26.1 Membership prices
+
+Manage:
 
 - membership type;
 - duration;
 - price;
-- publish/save behaviour.
+- published/current pricing version.
 
 ### 26.2 Discount codes
+
+Manage:
 
 - code;
 - percentage;
@@ -688,9 +700,11 @@ Manage:
 - optional valid-from;
 - optional expiry;
 - optional maximum successful uses;
-- usage count/history where appropriate.
+- usage count/history.
 
 ### 26.3 Rules/declarations
+
+Manage:
 
 - Gym Rules;
 - privacy/data-processing wording;
@@ -709,7 +723,7 @@ After the server confirms a successful public/tablet submission:
 
 1. show the appropriate success message;
 2. direct the applicant to reception;
-3. include Student/Couples/Minor reminder text where applicable;
+3. repeat the applicable Regular/Student/Couples/Minor document reminder;
 4. clear all personal fields;
 5. clear temporary photo data;
 6. reset the form to a fresh application for the next person.
@@ -775,15 +789,25 @@ Staff can still:
 - scan/enter the intended physical card as pending confirmation;
 - queue the application for sync.
 
+Because the gym is offline, no central duplicate-ID lookup is trusted at creation time. During synchronization the server performs the normal identity check before creating any member:
+
+- no match -> continue as new member;
+- active existing match -> place the queued item into staff conflict/review, do not create a duplicate;
+- expired/inactive existing match -> convert/offer the same possible-renewal review path, do not create a duplicate.
+
 The UI must clearly distinguish local/pending state from centrally activated state.
 
 ### 29.5 Offline renewal
 
-If the previously synchronized local staff data is sufficient to identify/select the existing member, the renewal can be queued against that known central member ID/membership number.
+Offline renewal does not require a locally cached copy of the whole member database.
 
-Do not mint a new member identity locally.
+Staff must identify the returning member using a known permanent BGM membership number/current card barcode, normally by scanning the existing card or entering the known permanent number.
 
-If staff cannot safely identify the existing member from synchronized data, defer renewal until connectivity returns rather than guessing.
+The queued renewal stores that identifier plus staff-reconfirmed details.
+
+On synchronization, the server resolves the permanent identifier to the central member record and validates it before applying any change.
+
+If the identifier does not resolve uniquely or safely, the queued renewal becomes a recoverable staff conflict and no new member is created.
 
 ### 29.6 Permanent membership numbers
 
@@ -803,7 +827,7 @@ It is not finalized while offline.
 
 On synchronization, the server revalidates the card against current central assignments/reservations.
 
-If a conflict exists, synchronization must stop that application at a recoverable staff-review state rather than overwriting another member/card.
+If a conflict exists, synchronization stops that application at a recoverable staff-review state rather than overwriting another member/card.
 
 ### 29.8 Payment while offline
 
@@ -813,7 +837,9 @@ Staff may record that payment was received locally, but the UI must state:
 
 The membership is not considered centrally activated until the queued data synchronizes and server validation succeeds.
 
-Reception may manually admit the member during the outage based on its local operational judgment.
+The offline flow must show/print a simple pending reference containing at least the temporary application reference, member name, gym, recorded payment method/amount and the words **PENDING ONLINE ACTIVATION** so staff has an operational record during the outage.
+
+Reception may manually admit the person during the outage based on local operational judgment.
 
 ### 29.9 Discount codes while offline
 
@@ -821,33 +847,37 @@ For the initial offline implementation, do not finalize discount codes without c
 
 This avoids stale validity windows and usage-limit races across gyms.
 
-If a discounted membership is required during an outage, the application/payment can remain pending final pricing/activation until connectivity returns and the code can be validated centrally.
+If a discounted membership is required during an outage, the discount-dependent payment/activation remains pending until connectivity returns and the code can be validated centrally.
 
 ### 29.10 Sync recovery
 
 When connectivity returns:
 
 1. upload the queued application/photo data;
-2. server revalidates current membership/card/discount/settings state;
-3. central transaction allocates/finalizes permanent identities/cards as applicable;
-4. server returns confirmed central records;
-5. mark the local item synchronized;
-6. delete local sensitive copies only after confirmed successful persistence;
-7. keep failed/conflicted items in a visible recoverable queue with actionable errors.
+2. server performs duplicate identity checks and current-state validation;
+3. server revalidates current membership/card/discount/settings state;
+4. central transaction allocates/finalizes permanent identities/cards as applicable;
+5. server returns confirmed central records;
+6. mark the local item synchronized;
+7. delete local sensitive copies only after confirmed successful persistence;
+8. keep failed/conflicted items in a visible recoverable queue with actionable errors.
 
 Synchronization must be idempotent so retrying the same local application cannot create duplicate members/memberships.
 
 ## 30. Pricing and Content Caching for Offline Staff
 
-The staff device may cache the most recently synchronized published membership price catalog and declaration/rules metadata for operational continuity.
+The staff device may cache the most recently synchronized **published** membership price catalog and declaration/rules metadata for operational continuity.
 
-Every cached catalog/version carries enough metadata to identify the source version/time.
+Every cached pricing item includes the published pricing-version identifier used when it was fetched.
 
-Offline staff enrollment uses the cached published price as a provisional snapshot.
+Offline staff enrollment uses that last published price as the provisional quoted price.
 
-At synchronization, the server records both the offline-captured price context and the final central validation result so discrepancies can be reviewed rather than silently altered.
+When synchronization occurs, the server verifies the submitted offline price against the historical server-side pricing version referenced by the queued application:
 
-The implementation plan must define the exact conflict policy for a price that changed centrally while a gym was offline. The preferred principle is to preserve what staff legitimately saw/quoted from the last synchronized published catalog, with a clear audit trail.
+- if the version exists and the quoted price matches that historical published version, preserve that quoted price even if a newer price was published while the gym was offline;
+- if the version is unknown, altered or the amount does not match the historical server record, do not silently change the amount; place the application into a recoverable pricing-conflict review state.
+
+This makes the offline price deterministic, prevents client-side price tampering, and preserves what staff legitimately saw/quoted during the outage.
 
 ## 31. Photo Handling During Offline Staff Enrollment
 
@@ -885,7 +915,7 @@ Privileged Supabase/service credentials remain server-only.
 
 Public routes cannot read arbitrary member/application information.
 
-Duplicate-ID checks must reveal only the minimum outcome needed by the public flow, not private member details.
+Duplicate-ID checks reveal only the minimum outcome needed by the public flow, not private member details.
 
 Normal gym staff authorization remains scoped server-side to the authenticated gym except for explicitly approved network-wide Super Admin behaviour.
 
@@ -941,7 +971,7 @@ Implementation uses TDD for new behaviour.
 
 At minimum verify:
 
-### Public gym route/PWA
+### 35.1 Public gym route/PWA
 
 - valid gym slug loads correct gym identity;
 - invalid/inactive gym slug cannot submit;
@@ -949,14 +979,14 @@ At minimum verify:
 - public flow exposes New Member only;
 - public flow never exposes staff Renewal controls.
 
-### Membership selection/readiness
+### 35.2 Membership selection/readiness
 
 - Single/Student/Couples show correct document reminders before form completion;
 - applicant must acknowledge readiness notice before continuing;
 - configured current price is displayed;
-- start date defaults to today.
+- start date defaults to the Malta submission date.
 
-### Photos
+### 35.3 Photos
 
 - public submission blocked without required live photo(s);
 - no public gallery upload path;
@@ -966,7 +996,7 @@ At minimum verify:
 - PHOTO REQUIRED does not block an otherwise valid check-in;
 - confirmed later photo updates central official-photo record and clears warning.
 
-### Duplicate identity
+### 35.4 Duplicate identity
 
 - no match -> new application;
 - active ID/passport match -> public submission blocked and directed to reception;
@@ -975,7 +1005,7 @@ At minimum verify:
 - staff can reject flagged application without changing existing member;
 - duplicate phone/email -> warning only.
 
-### Couples
+### 35.5 Couples
 
 - two full member profiles;
 - one shared membership transaction;
@@ -984,33 +1014,37 @@ At minimum verify:
 - same-address verification required;
 - exactly two A4 pages, one per member.
 
-### Student
+### 35.6 Student
 
 - student-document reminder displayed;
 - student verification required before activation;
 - no proof-document storage.
 
-### Under 18
+### 35.7 Under 18
 
-- guardian details automatically required;
+- guardian details automatically required when under 18 on submission date;
+- later start-date change does not remove that application's guardian requirement;
 - guardian presence/co-sign confirmation required before activation;
 - guardian signature fields appear on one-page member printout.
 
-### Rules/declarations
+### 35.8 Rules/declarations
 
-- seed initial content from `Generic Membership form.pdf`;
+- seed exact source-backed rules/existing declaration from `Generic Membership form.pdf`;
+- public enrollment blocked until every required declaration category has a published version;
 - mandatory acknowledgements;
 - application stores exact accepted versions;
 - historical application renders old wording after new version published;
 - Super Admin publication creates a new version rather than overwriting history.
 
-### Pricing
+### 35.9 Pricing
 
 - only Super Admin can change prices;
 - submitted application keeps captured price after later price change;
-- staff/public cannot manually alter base price.
+- staff/public cannot manually alter base price;
+- offline historical price version is preserved when it matches server history;
+- tampered/unknown offline price version creates recoverable conflict rather than silent repricing.
 
-### Discounts
+### 35.10 Discounts
 
 - valid code applies correct percentage;
 - one code only;
@@ -1018,16 +1052,17 @@ At minimum verify:
 - usage-limited code rejected after maximum successful uses;
 - usage counted only on successful activation;
 - concurrent final-use race is safe;
-- print includes code/percentage/amount/final total.
+- print includes code/percentage/amount/final total;
+- discount is not finalized offline.
 
-### Payment
+### 35.11 Payment
 
 - Cash/Card/Other supported;
 - Other requires description;
 - Staff Name required;
 - Payment Received performs server revalidation.
 
-### Printing
+### 35.12 Printing
 
 - Single/Student exactly one A4 page;
 - Couples exactly one A4 page per member;
@@ -1035,23 +1070,26 @@ At minimum verify:
 - operational UI omitted;
 - Super Admin overflow warning detects candidate content that would exceed one member A4 sheet.
 
-### Offline staff continuity
+### 35.13 Offline staff continuity
 
 - previously initialized staff device can enter offline mode;
 - unknown/uninitialized device cannot create offline membership data;
 - offline application receives temporary UUID, not permanent member number;
 - no permanent BGM number generated client-side;
+- offline new-member duplicate ID is rechecked centrally before member creation;
+- offline renewal can be queued from a known permanent number/card without caching the whole member database;
+- unresolved renewal identifier creates recoverable conflict, not a new member;
 - card remains pending until central validation;
 - payment shows pending-online-activation state;
+- pending receipt/reference clearly states PENDING ONLINE ACTIVATION;
 - queued application survives page/app restart as designed;
 - sync is idempotent;
 - two gyms offline cannot create duplicate permanent membership numbers;
 - card conflict during sync becomes recoverable conflict, not overwrite;
 - successful sync removes local sensitive copy only after central confirmation;
-- failed sync keeps local item visible/actionable;
-- discount cannot be finalized offline in the initial implementation.
+- failed sync keeps local item visible/actionable.
 
-### Regression
+### 35.14 Regression
 
 - existing member app remains green;
 - existing Staff Dashboard workflow remains green;
@@ -1080,7 +1118,7 @@ At minimum verify:
 - central membership pricing;
 - discount codes and limits/validity;
 - versioned Gym Rules/declarations;
-- initial rule/declaration seed from `Generic Membership form.pdf`;
+- initial source-backed rule/declaration seed from `Generic Membership form.pdf`;
 - one-A4-page-per-member printing;
 - A4 overflow warning in Super Admin settings;
 - simple Cash/Card/Other payment method capture;
@@ -1112,12 +1150,12 @@ This slice is complete when all of the following are true:
 5. Staff New Membership reuses the shared registration flow.
 6. Applicant chooses Single/Student/Couples and duration and sees the published price.
 7. Applicant is warned up front about the documents needed at reception before completing the form.
-8. Tablet start date defaults to submission day; staff may change it before activation.
+8. Tablet start date defaults to the Malta submission day; staff may change it before activation.
 9. Public tablet requires live photo for every applicant and has no gallery upload.
 10. Couples collects two full profiles and two live photos in one application.
 11. Couples creates two member identities/cards but one shared membership transaction/payment.
 12. Under-18 applicants require guardian details and guardian co-sign verification before activation.
-13. Gym Rules/declarations use the initial wording from `Generic Membership form.pdf` and are thereafter Super Admin-managed/versioned.
+13. Gym Rules/existing declaration use the exact source-backed wording from `Generic Membership form.pdf`; any missing legal declaration category must be explicitly published by Super Admin rather than invented.
 14. Every application preserves the exact rules/declaration versions accepted at submission.
 15. Active existing ID/passport blocks public new-member submission and directs to reception.
 16. Expired/inactive existing ID/passport accepts the application and flags it as a possible renewal.
@@ -1138,10 +1176,12 @@ This slice is complete when all of the following are true:
 31. Staff-created New Membership/Renewal may activate without a photo and set PHOTO REQUIRED.
 32. PHOTO REQUIRED warns on every future scan until resolved but does not block an otherwise valid check-in.
 33. Later webcam/upload photo updates the central official-photo record and clears PHOTO REQUIRED.
-34. During internet outage, an initialized Staff Portal can queue new memberships/renewals locally using temporary UUIDs.
+34. During internet outage, an initialized Staff Portal can queue new memberships and known-member renewals locally using temporary UUIDs/references.
 35. No offline gym can allocate permanent BGM membership numbers or final cards locally.
-36. When connectivity returns, queued items sync idempotently and central transactions allocate/finalize membership identities/cards.
-37. Offline payment remains visibly pending online activation until central sync succeeds.
-38. Discount codes are not finalized offline in the initial implementation.
-39. Existing member, staff, renewal, barcode and card behaviour remains working.
-40. Development does not create unnecessary Vercel deployments; one deliberate Preview is used only at the approved checkpoint before Production.
+36. Offline new-member identity is revalidated centrally before creation, preventing duplicate members when another gym/system already holds that ID.
+37. When connectivity returns, queued items sync idempotently and central transactions allocate/finalize membership identities/cards.
+38. Offline payment remains visibly pending online activation until central sync succeeds.
+39. Offline quoted pricing is accepted only when it matches the referenced historical published pricing version; otherwise it becomes a recoverable conflict.
+40. Discount codes are not finalized offline in the initial implementation.
+41. Existing member, staff, renewal, barcode and card behaviour remains working.
+42. Development does not create unnecessary Vercel deployments; one deliberate Preview is used only at the approved checkpoint before Production.
