@@ -10,6 +10,9 @@ Read these documents in this order:
 3. `docs/superpowers/plans/2026-09-16-tablet-enrollment-02-shared-registration-tablet.md` — shared registration domain/form, `/join/<gym-slug>` tablet PWA, public submission and duplicate classification.
 4. `docs/superpowers/plans/2026-09-16-tablet-enrollment-03-staff-review-activation-print-photo.md` — reception review, possible-renewal conversion, verification gates, card/payment activation, one-page A4 printing and deferred photo workflow.
 5. `docs/superpowers/plans/2026-09-16-tablet-enrollment-04-offline-continuity-rollout.md` — staff offline queue/sync, idempotency, local/private testing, browser coverage and release-candidate verification.
+6. `docs/superpowers/plans/2026-09-16-tablet-enrollment-self-review-amendments.md` — required corrections found during final spec-to-plan coverage review, including participant-specific Couples acknowledgements, camera recovery, audit coverage, offline renewal and pending offline discount validation.
+
+If an amendment conflicts with wording in Plans 01–04, the self-review amendment wins for that specific topic.
 
 ## Sequence and branch safety
 
@@ -24,14 +27,14 @@ No Production merge/deploy is allowed without explicit user approval. Normal dev
 ## Locked implementation boundaries
 
 - Public `/join/<gym-slug>` is New Member only and online-only.
-- Staff retains New Membership and Renewal.
+- Staff retains New Membership and Renewal, including offline renewal from a known permanent card/member number.
 - Barcode/physical card only; no NFC implementation.
 - Permanent BGM membership numbers are server-generated only and never allocated offline.
 - Tablet requires a live photo; Staff may capture, upload, retain or choose Photo Later.
 - `PHOTO REQUIRED` warns on each scan but does not by itself deny an otherwise valid check-in.
 - Prices and declaration versions are server-authoritative; submitted applications keep immutable snapshots.
-- Discount usage increments only inside successful Payment Received / activation.
-- Couples are one transaction with two participant/member/card outcomes and atomic activation.
+- Discount usage increments only inside successful Payment Received / activation. An offline code may be queued only as pending online validation.
+- Couples are one transaction with two participant/member/card outcomes and atomic activation; declaration acceptance is recorded per participant.
 - One printed A4 page per member; Couples therefore print exactly two member pages.
 - Initial Gym Rules/declaration wording must be seeded verbatim from the user-provided `Generic Membership form.pdf`; do not invent legal copy.
 - Public enrollment cannot launch until Gym Rules, privacy/data-processing and health declaration versions are all published.
