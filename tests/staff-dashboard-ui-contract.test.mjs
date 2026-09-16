@@ -48,12 +48,13 @@ test("member browser exposes browse search and All Active Expired filters", () =
   assert.match(browser, /member number|ID number|phone|email/i);
 });
 
-test("member browser is read-only and surfaces canonical status labels", () => {
+test("member browser keeps profile fields read-only while exposing canonical status labels and controlled renewal", () => {
   assert.match(browser, /ACTIVE/);
   assert.match(browser, /EXPIRED/);
   assert.match(browser, /INACTIVE/);
-  assert.match(browser, /read-only|read only/i);
-  assert.doesNotMatch(browser, /Save Member|Update Member/);
+  assert.doesNotMatch(browser, /Save Member|Update Member|Delete Member/);
+  assert.match(browser, /canRenew/);
+  assert.match(browser, /RENEW MEMBERSHIP/);
 });
 
 test("new membership queue exposes waiting state and recoverable refreshes", () => {
