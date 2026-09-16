@@ -10,6 +10,7 @@ import {
   LogOut,
   PackagePlus,
   RefreshCw,
+  Settings2,
   UserPlus,
   UsersRound,
   X,
@@ -173,6 +174,9 @@ export default function StaffDashboard({ user, onLogout }: Props) {
           <Tile label="Card / Reception" icon={Barcode} href="/staff/reception" disabled={!can("barcode.scan")} />
           <Tile label="Sundries" icon={Boxes} href="/staff/sundries" disabled={!can("orders.sundries.submit")} />
           <Tile label="Bar" icon={Beer} href="/staff/bar" disabled={!can("orders.bar.submit")} />
+          {user.isSuperAdmin && (
+            <Tile label="Membership Settings" icon={Settings2} href="/staff/membership-settings" />
+          )}
           <Tile label="Punch Clock" icon={Clock3} disabled />
         </section>
 
