@@ -69,7 +69,11 @@ async function waitVisible(locator) {
 async function chooseMembership(typeLabel, duration = "1_month") {
   await page.getByRole("button", { name: typeLabel, exact: true }).click();
   await waitVisible(page.getByRole("heading", { name: "You will need at reception", exact: true }));
-  await page.getByLabel("Membership duration", { exact: true }).selectOption(duration);
+  await page
+    .locator("label")
+    .filter({ hasText: "Membership duration" })
+    .locator("select")
+    .selectOption(duration);
 }
 
 async function continuePastDocumentWarning() {
