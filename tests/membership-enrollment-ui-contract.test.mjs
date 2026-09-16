@@ -57,6 +57,12 @@ test("staff enrollment route renders the membership enrollment component", () =>
   assert.match(source, /MembershipEnrollmentPage/);
 });
 
+test("staff enrollment route wraps the search-param client component in Suspense", () => {
+  const source = read(pageUrl);
+  assert.match(source, /import\s+\{\s*Suspense\s*\}\s+from\s+["']react["']/);
+  assert.match(source, /<Suspense[\s\S]*<MembershipEnrollmentPage\s*\/>[\s\S]*<\/Suspense>/);
+});
+
 test("staff dashboard separates established-member browsing from the new-member waiting workflow", () => {
   const dashboard = read(staffDashboardUrl);
   const queue = read(staffQueueUrl);
