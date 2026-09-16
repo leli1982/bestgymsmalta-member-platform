@@ -51,6 +51,9 @@ jobs:
       - name: Verify staff dashboard workflow in Chromium
         run: node tests/browser/staff-dashboard.mjs
 
+      - name: Verify tablet enrollment workflow in Chromium
+        run: node tests/browser/tablet-enrollment.mjs
+
       - name: Save member UI screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -66,3 +69,11 @@ jobs:
           name: staff-ui-screenshots
           path: test-artifacts/staff-ui
           if-no-files-found: ignore
+
+      - name: Save tablet enrollment screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tablet-enrollment-screenshots
+          path: test-artifacts/tablet-enrollment
+          if-no-files-found: error
