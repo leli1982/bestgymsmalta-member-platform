@@ -89,7 +89,7 @@ alter table public.bgm_membership_application_members
   add column if not exists under_18_at_submission boolean not null default false,
   add column if not exists identity_match_state text not null default 'clear',
   add column if not exists matched_member_id uuid references public.bgm_members(id) on delete set null,
-  add column if not exists duplicate_contact_warning jsonb,
+  add column if not exists duplicate_contact_warning boolean not null default false,
   add column if not exists gym_rules_accepted_at timestamptz,
   add column if not exists privacy_accepted_at timestamptz,
   add column if not exists health_accepted_at timestamptz;
@@ -133,7 +133,8 @@ declare
   v_order integer := 0;
   v_identity_match_state text;
   v_matched_member_id uuid;
-  v_application_id uuid;
+  v_application_id uuid := gen_random_uuid();
+  v_participant_id uuid;
   v_reference text;
   v_start_date date;
   v_expiry_date date;
@@ -272,9 +273,10 @@ begin
     )
   );
 
-  v_reference := 'BGMAPP-' || upper(replace(gen_random_uuid()::text, '-', ''));
+  v_reference := 'BGMAPP-' || upper(replace(v_application_id::text, '-', ''));
 
   insert into public.bgm_membership_applications (
+    id,
     reference,
     membership_type,
     duration_key,
@@ -297,6 +299,7 @@ begin
     declaration_snapshot,
     document_readiness_ack_at
   ) values (
+    v_application_id,
     v_reference,
     v_membership_type,
     v_duration_key,
@@ -318,12 +321,12 @@ begin
     v_health.id,
     v_declaration_snapshot,
     v_ack_at
-  )
-  returning id into v_application_id;
+  );
 
   for v_participant in select value from jsonb_array_elements(v_participants)
   loop
     v_order := v_order + 1;
+    v_participant_id := gen_random_uuid();
     v_identity_match_state := btrim(coalesce(v_participant->>'identityMatchState', 'clear'));
     v_matched_member_id := nullif(btrim(coalesce(v_participant->>'matchedMemberId', '')), '')::uuid;
 
@@ -332,6 +335,7 @@ begin
     end if;
 
     insert into public.bgm_membership_application_members (
+      id,
       application_id,
       participant_order,
       first_name,
@@ -361,6 +365,7 @@ begin
       privacy_accepted_at,
       health_accepted_at
     ) values (
+      v_participant_id,
       v_application_id,
       v_order,
       btrim(v_participant->>'firstName'),
@@ -385,11 +390,7 @@ begin
       coalesce((v_participant->>'under18AtSubmission')::boolean, false),
       v_identity_match_state,
       v_matched_member_id,
-      case
-        when jsonb_typeof(v_participant->'duplicateContactWarning') = 'object'
-          then v_participant->'duplicateContactWarning'
-        else null
-      end,
+      coalesce((v_participant->>'duplicateContactWarning')::boolean, false),
       v_ack_at,
       v_ack_at,
       v_ack_at
