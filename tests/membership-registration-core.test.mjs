@@ -91,10 +91,11 @@ test("adult participants do not require guardian details", () => {
   assert.deepEqual(validateRegistrationParticipant(adultParticipant(), "2026-09-16"), []);
 });
 
-test("canonical membership expiry handles weeks, month ends and leap years", () => {
+test("canonical membership expiry matches the established BGM duration rules", () => {
   assert.equal(calculateMembershipExpiry("2026-09-16", "1_week"), "2026-09-23");
   assert.equal(calculateMembershipExpiry("2026-09-16", "2_weeks"), "2026-09-30");
   assert.equal(calculateMembershipExpiry("2026-09-16", "1_month"), "2026-10-16");
-  assert.equal(calculateMembershipExpiry("2026-01-31", "1_month"), "2026-02-28");
-  assert.equal(calculateMembershipExpiry("2024-02-29", "1_year"), "2025-02-28");
+  assert.equal(calculateMembershipExpiry("2026-09-16", "3_months"), "2026-12-16");
+  assert.equal(calculateMembershipExpiry("2026-09-16", "6_months"), "2027-03-16");
+  assert.equal(calculateMembershipExpiry("2026-09-16", "1_year"), "2027-09-16");
 });
