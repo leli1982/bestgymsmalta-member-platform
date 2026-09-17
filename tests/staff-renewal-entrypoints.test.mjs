@@ -15,6 +15,7 @@ function read(path) {
 const dashboard = read("components/staff/StaffDashboard.tsx");
 const browser = read("components/staff/StaffMemberBrowser.tsx");
 const enrollment = read("components/staff/MembershipEnrollmentPage.tsx");
+const renewal = read("components/staff/StaffRenewalEnrollmentPage.tsx");
 const searchRoute = read("app/api/system/members/search/route.ts");
 
 test("New Member tile opens a chooser for new membership or renewal", () => {
@@ -31,11 +32,13 @@ test("member detail exposes direct renew membership action", () => {
   assert.match(browser, /memberNumber/);
 });
 
-test("renewal deep link preselects the requested existing member", () => {
+test("renewal deep link remains routed to the preserved renewal implementation", () => {
   assert.match(enrollment, /useSearchParams/);
   assert.match(enrollment, /searchParams\.get\(["']kind["']\)/);
   assert.match(enrollment, /searchParams\.get\(["']memberNumber["']\)/);
-  assert.match(enrollment, /selectRenewalMember/);
+  assert.match(enrollment, /StaffRenewalEnrollmentPage/);
+  assert.match(renewal, /selectRenewalMember/);
+  assert.match(renewal, /searchParams\.get\(["']memberNumber["']\)/);
 });
 
 test("renewal member selection carries the full stored member profile", () => {
@@ -50,7 +53,7 @@ test("renewal member selection carries the full stored member profile", () => {
     "nextOfKin",
     "officialPhotoPath",
   ]) {
-    assert.match(enrollment, new RegExp(field));
+    assert.match(renewal, new RegExp(field));
   }
 
   for (const dbField of [
