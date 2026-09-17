@@ -73,7 +73,7 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
 
   const initialStaffName = useMemo(() => staffName.trim(), [staffName]);
 
-  async function uploadParticipantPhoto(applicationId: string, applicationMemberId: string, file: File, participant: RegistrationDraft["participants"][number], index: number) {
+  async function uploadParticipantPhoto(applicationMemberId: string, file: File, participant: RegistrationDraft["participants"][number], index: number) {
     const formData = new FormData();
     formData.append("applicationMemberId", applicationMemberId);
     formData.append("file", file, participantFileName(participant, index));
@@ -116,7 +116,6 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
         throw new Error(payload?.error || "Could not submit this membership application.");
       }
 
-      const applicationId = String(payload?.application?.id || "");
       const applicationReference = String(payload?.application?.reference || "");
       const applicationMembers = Array.isArray(payload?.application?.members)
         ? payload.application.members
@@ -132,7 +131,7 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
           continue;
         }
         try {
-          await uploadParticipantPhoto(applicationId, applicationMemberId, file, draft.participants[index], index);
+          await uploadParticipantPhoto(applicationMemberId, file, draft.participants[index], index);
         } catch (photoError) {
           photoWarnings.push(
             photoError instanceof Error
