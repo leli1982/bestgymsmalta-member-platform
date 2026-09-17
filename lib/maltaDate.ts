@@ -32,6 +32,15 @@ function formatCalendarDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+export function isValidCalendarDate(value: string): boolean {
+  try {
+    parseCalendarDate(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function todayMaltaDate(now = new Date()): string {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Europe/Malta",
