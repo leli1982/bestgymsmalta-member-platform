@@ -4,10 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import RegistrationForm from "@/components/membership/RegistrationForm";
 import StaffRenewalEnrollmentPage from "@/components/staff/StaffRenewalEnrollmentPage";
-import type {
-  PublicEnrollmentConfig,
-  RegistrationDraft,
-} from "@/lib/membershipRegistrationTypes";
+import type { PublicEnrollmentConfig, RegistrationDraft } from "@/lib/membershipRegistrationTypes";
 import { todayMaltaDate } from "@/lib/maltaDate";
 
 function participantFileName(participant: RegistrationDraft["participants"][number], index: number) {
@@ -20,11 +17,7 @@ export default function MembershipEnrollmentPage() {
   const searchParams = useSearchParams();
   const kind = String(searchParams.get("kind") || "").trim().toLowerCase();
   const memberNumber = String(searchParams.get("memberNumber") || "").trim();
-
-  if (kind !== "new") {
-    return <StaffRenewalEnrollmentPage />;
-  }
-
+  if (kind !== "new") return <StaffRenewalEnrollmentPage />;
   return <StaffNewMembershipEnrollment memberNumber={memberNumber} />;
 }
 
@@ -90,7 +83,6 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload?.error || "Could not submit this membership application.");
-
       const applicationReference = String(payload?.application?.reference || "");
       const applicationMembers = Array.isArray(payload?.application?.members) ? payload.application.members : [];
       const photoWarnings: string[] = [];
