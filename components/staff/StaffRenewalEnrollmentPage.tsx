@@ -815,7 +815,7 @@ function ParticipantEditor({
       </div>
       {participant.memberNumber && (
         <p className="mt-2 text-sm font-bold text-emerald-700">
-          This permanent member number stays with this member. Card keep/replacement is confirmed in the Staff Dashboard review.
+          This permanent BGM number stays with this member. The current physical card is verified or replaced in the next step.
         </p>
       )}
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
