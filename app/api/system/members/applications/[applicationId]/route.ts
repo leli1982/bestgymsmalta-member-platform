@@ -202,7 +202,7 @@ export async function GET(
     const scopeError = gymScopeError(application, auth.context);
     if (scopeError) return scopeError;
 
-    const [participantsResult, gymResult] = await Promise.all([
+    const [participantsResult, gymResult, printConfirmedResult] = await Promise.all([
       supabase
         .from("bgm_membership_application_members")
         .select(
@@ -215,10 +215,20 @@ export async function GET(
         .select("id, name")
         .eq("id", application.enrollment_gym_id)
         .maybeSingle(),
+      supabase
+        .from("bgm_audit_log")
+        .select("created_at")
+        .eq("entity_type", "membership_application")
+        .eq("entity_id", applicationId)
+        .eq("action_key", "membership.application.print_confirmed")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
     if (participantsResult.error) throw participantsResult.error;
     if (gymResult.error) throw gymResult.error;
+    if (printConfirmedResult.error) throw printConfirmedResult.error;
 
     const participants = participantsResult.data || [];
     const participantIds = participants.map((participant) => participant.id);
@@ -296,6 +306,7 @@ export async function GET(
         declarationSnapshot: application.declaration_snapshot,
         sameAddressVerified: Boolean(application.same_address_verified_at),
         reviewedBySystemUserId: application.reviewed_by_system_user_id || null,
+        printConfirmedAt: printConfirmedResult.data?.created_at || null,
         participants: participants.map((participant) => {
           const existingMember = participant.existing_member_id
             ? memberById.get(participant.existing_member_id)
