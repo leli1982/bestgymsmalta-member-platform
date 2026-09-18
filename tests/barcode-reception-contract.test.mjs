@@ -39,7 +39,8 @@ test("launch reception uses barcode scanner UX", () => {
   assert.doesNotMatch(page, /NfcReceptionPage/);
 });
 
-test("enabled staff reception tile navigates with barcode permission", () => {
+test("staff home is scanner-ready while the full reception tile remains available", () => {
+  assert.match(staffHome, /StaffHomeScanner/);
   assert.match(staffHome, /Card \/ Reception/);
   assert.match(staffHome, /can\(["']barcode\.scan["']\)/);
   assert.match(staffHome, /href="\/staff\/reception"/);
