@@ -191,6 +191,39 @@ try {
     route.fulfill({ json: { enabled: false } })
   );
 
+  let homeScanCount = 0;
+  await page.route("**/api/system/barcode/scan", (route) => {
+    assert.equal(route.request().method(), "POST");
+    const payload = route.request().postDataJSON();
+    assert.equal(payload.membershipNumber, "BGM0000123");
+    homeScanCount += 1;
+    return route.fulfill({
+      json: {
+        result: "granted",
+        granted: true,
+        duplicate: false,
+        scanId: "scan-home-browser",
+        scannedAt: "2026-09-18T10:00:00.000Z",
+        scannedBarcode: "BGM0000123",
+        credentialKind: "member_number",
+        cardStatus: "member_number",
+        gym: { id: "bgm-browser-gym", name: "Browser Gym" },
+        member: {
+          id: member.id,
+          memberNumber: "BGM0000123",
+          fullName: "Existing Member",
+          status: "active",
+          membershipExpiry: "2027-12-31",
+          enrollmentGymId: "bgm-browser-gym",
+          enrollmentGymName: "Browser Gym",
+          hasPhoto: true,
+          photoRequired: false,
+          photoUrl: null,
+        },
+      },
+    });
+  });
+
   await page.route("**/api/system/members/search?*", (route) => {
     const url = new URL(route.request().url());
     assert.ok(url.searchParams.has("status"));
@@ -266,6 +299,15 @@ try {
 
   await page.goto(origin + "/staff");
   await waitVisible(page.getByRole("heading", { name: "Browser Gym Reception", exact: true }));
+  await waitVisible(page.getByRole("heading", { name: "READY TO SCAN", exact: true }));
+  const homeScanner = page.getByPlaceholder("Barcode scanner input");
+  await homeScanner.fill("BGM0000123");
+  await page.getByRole("button", { name: "Scan", exact: true }).click();
+  await waitVisible(page.getByRole("heading", { name: "ACCESS GRANTED", exact: true }));
+  await waitVisible(page.getByText("Scanned via BGM member number", { exact: true }));
+  await page.getByRole("button", { name: "Close / Scan Next", exact: true }).click();
+  await waitVisible(page.getByRole("heading", { name: "READY TO SCAN", exact: true }));
+  assert.equal(homeScanCount, 1, "staff home must process a barcode without opening Reception");
   await waitVisible(page.getByRole("button", { name: "Members", exact: true }));
   await waitVisible(page.getByRole("button", { name: "New Member", exact: true }));
   await waitVisible(page.getByRole("link", { name: "Card / Reception", exact: true }));
