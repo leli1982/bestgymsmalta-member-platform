@@ -20,6 +20,7 @@ const modal = read("components/staff/StaffMembershipReviewModal.tsx");
 const printRoute = read("app/api/system/members/applications/[applicationId]/print/route.ts");
 const printPage = read("app/staff/applications/[applicationId]/print/page.tsx");
 const printView = read("components/staff/StaffApplicationPrint.tsx");
+const printSheet = read("components/staff/MembershipA4Sheet.tsx");
 
 test("staff login preserves existing auth endpoints and hands authenticated users to StaffDashboard", () => {
   assert.match(login, /fetch\(["']\/api\/system\/auth["']/);
@@ -98,12 +99,14 @@ test("print endpoint is authenticated gym-scoped and audits print requests", () 
   assert.match(printRoute, /membership\.application\.print_requested/);
 });
 
-test("print surface is A4 and includes signatures plus final membership details", () => {
+test("print surface renders one dedicated A4 member sheet with signatures and final membership details", () => {
   assert.match(printPage, /StaffApplicationPrint/);
-  assert.match(printView, /@page/);
-  assert.match(printView, /A4/);
-  assert.match(printView, /Member Signature/);
-  assert.match(printView, /Staff Signature/);
+  assert.match(printView, /MembershipA4Sheet/);
+  assert.match(printView, /application\.participants\.map/);
+  assert.match(printSheet, /@page/);
+  assert.match(printSheet, /A4 portrait/);
+  assert.match(printSheet, /Member Signature/);
+  assert.match(printSheet, /Staff Signature/);
   assert.match(printView, /window\.print/);
-  assert.match(printView, /applicationReference|reference/);
+  assert.match(printSheet, /applicationReference|Application reference/);
 });
