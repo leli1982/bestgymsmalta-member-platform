@@ -29,7 +29,8 @@ function positiveInteger(value: string | null, fallback: number) {
 function toCandidate(
   member: any,
   canViewOfficialPhoto: boolean,
-  today: string
+  today: string,
+  gymNames: Map<string, string>
 ) {
   const classification = classifyStaffMember({
     status: member.status,
@@ -57,6 +58,9 @@ function toCandidate(
     dateOfBirth: member.date_of_birth || "",
     nextOfKin: member.next_of_kin || "",
     enrollmentGymId: member.enrollment_gym_id || null,
+    enrollmentGymName: member.enrollment_gym_id
+      ? gymNames.get(member.enrollment_gym_id) || ""
+      : "",
     legacyPkCustomer: member.legacy_pk_customer || "",
     legacyGym: member.legacy_gym || "",
     officialPhotoPath: canViewOfficialPhoto
@@ -97,6 +101,19 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = getSupabaseAdmin();
+  const gymsResult = await supabase
+    .from("bgm_gyms")
+    .select("id, name");
+  if (gymsResult.error) {
+    console.error(gymsResult.error);
+    return NextResponse.json(
+      { error: "Could not load gym names." },
+      { status: 500 }
+    );
+  }
+  const gymNames = new Map(
+    (gymsResult.data || []).map((gym) => [gym.id as string, gym.name as string])
+  );
   const today = new Date().toISOString().slice(0, 10);
   const canViewOfficialPhoto =
     auth.context.isSuperAdmin ||
@@ -146,7 +163,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         candidates: members.map((member) =>
-          toCandidate(member, canViewOfficialPhoto, today)
+          toCandidate(member, canViewOfficialPhoto, today, gymNames)
         ),
         exactMembershipNumber: false,
         page,
@@ -177,7 +194,7 @@ export async function GET(request: NextRequest) {
     }
 
     const candidates = (browseResult.data || [])
-      .map((member) => toCandidate(member, canViewOfficialPhoto, today))
+      .map((member) => toCandidate(member, canViewOfficialPhoto, today, gymNames))
       .filter((candidate) =>
         matchesStaffMemberFilter(candidate.classification, requestedStatus)
       );
@@ -213,7 +230,7 @@ export async function GET(request: NextRequest) {
 
   if ((exactResult.data || []).length > 0) {
     const candidates = (exactResult.data || [])
-      .map((member) => toCandidate(member, canViewOfficialPhoto, today))
+      .map((member) => toCandidate(member, canViewOfficialPhoto, today, gymNames))
       .filter((candidate) =>
         matchesStaffMemberFilter(candidate.classification, requestedStatus)
       );
@@ -305,7 +322,7 @@ export async function GET(request: NextRequest) {
 
   const filteredCandidates = Array.from(uniqueCandidates.values())
     .sort(sortMembersByName)
-    .map((member) => toCandidate(member, canViewOfficialPhoto, today))
+    .map((member) => toCandidate(member, canViewOfficialPhoto, today, gymNames))
     .filter((candidate) =>
       matchesStaffMemberFilter(candidate.classification, requestedStatus)
     );
