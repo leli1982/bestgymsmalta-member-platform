@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import MembershipPrintOverflowPreview, {
+  type MembershipPrintMeasurement,
+} from "@/components/staff/MembershipPrintOverflowPreview";
 
 type MembershipType = "single" | "student" | "couples";
 type DurationKey = "1_week" | "2_weeks" | "1_month" | "3_months" | "6_months" | "1_year";
@@ -152,6 +155,7 @@ export default function MembershipSettingsAdmin() {
     health: "",
     guardian: "",
   });
+  const [printMeasurement, setPrintMeasurement] = useState<MembershipPrintMeasurement | null>(null);
   const [discountDraft, setDiscountDraft] = useState({
     id: "",
     code: "",
@@ -174,6 +178,18 @@ export default function MembershipSettingsAdmin() {
     () => settings.priceCatalogs.find((catalog) => catalog.status === "draft") || null,
     [settings.priceCatalogs]
   );
+
+  const printOverflow = Boolean(printMeasurement && !printMeasurement.fits);
+  const handlePrintMeasurement = useCallback((result: MembershipPrintMeasurement) => {
+    setPrintMeasurement((current) =>
+      current &&
+      current.fits === result.fits &&
+      current.measuredHeightPx === result.measuredHeightPx &&
+      current.maxHeightPx === result.maxHeightPx
+        ? current
+        : result
+    );
+  }, []);
 
   const seedEditors = useCallback((payload: SettingsPayload) => {
     const source =
@@ -493,8 +509,27 @@ export default function MembershipSettingsAdmin() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
+            <section id="rules-declarations" className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
               <SectionTitle title="Rules & Declarations" copy="Published wording is immutable. Editing always creates a new draft/version, preserving the exact historical wording already accepted by members." />
+              <MembershipPrintOverflowPreview
+                declarationBodies={declarationBodies}
+                onResult={handlePrintMeasurement}
+              />
+              {printOverflow && (
+                <div className="mt-4 rounded-2xl border border-red-300 bg-red-50 p-4 text-sm font-bold text-red-800">
+                  <p>This wording will overflow the one-page A4 membership form</p>
+                  <p className="mt-1 text-xs font-semibold text-red-700">
+                    Shorten the Rules / Declaration wording before publishing. Current measured height: {Math.ceil(printMeasurement?.measuredHeightPx || 0)}px; maximum: {Math.floor(printMeasurement?.maxHeightPx || 0)}px.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById("rules-declarations")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                    className="mt-3 rounded-xl border border-red-300 bg-white px-3 py-2 text-xs font-black text-red-800"
+                  >
+                    Return to editing
+                  </button>
+                </div>
+              )}
               <div className="mt-5 grid gap-5">
                 {declarationKeys.map((contentKey) => {
                   const versions = settings.declarations.filter((item) => item.contentKey === contentKey);
@@ -514,7 +549,7 @@ export default function MembershipSettingsAdmin() {
                         <div className="text-xs font-semibold text-zinc-400">{published ? `Published at ${published.publishedAt || "—"} · contentSha256 ${published.contentSha256}` : "No published version yet."}</div>
                         <div className="flex gap-2">
                           <button type="button" disabled={saving} onClick={() => void saveDeclarationDraft(contentKey)} className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-black disabled:opacity-50">Save Draft</button>
-                          <button type="button" disabled={saving || !draft} onClick={() => void publishDeclaration(contentKey)} className="rounded-xl bg-[#ff5a0a] px-3 py-2 text-xs font-black text-white disabled:opacity-40">Publish Declaration</button>
+                          <button type="button" disabled={saving || !draft || printOverflow} onClick={() => void publishDeclaration(contentKey)} className="rounded-xl bg-[#ff5a0a] px-3 py-2 text-xs font-black text-white disabled:opacity-40">Publish Declaration</button>
                         </div>
                       </div>
                       {versions.length > 0 && (
