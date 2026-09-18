@@ -67,6 +67,7 @@ export default function OfficialMemberPhotoCapture({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const uploadRef = useRef<HTMLInputElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const previewUrlRef = useRef("");
   const [previewUrl, setPreviewUrl] = useState("");
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
@@ -74,8 +75,9 @@ export default function OfficialMemberPhotoCapture({
   const [error, setError] = useState("");
 
   function replacePreview(blob: Blob) {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     const url = URL.createObjectURL(blob);
+    previewUrlRef.current = url;
     setPhotoBlob(blob);
     setPreviewUrl(url);
   }
@@ -111,10 +113,14 @@ export default function OfficialMemberPhotoCapture({
 
   useEffect(
     () => () => {
-      stopCamera();
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+        previewUrlRef.current = "";
+      }
     },
-    [previewUrl]
+    []
   );
 
   async function capture() {
@@ -198,7 +204,10 @@ export default function OfficialMemberPhotoCapture({
   }
 
   async function retake() {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = "";
+    }
     setPreviewUrl("");
     setPhotoBlob(null);
     await startCamera();
