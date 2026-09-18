@@ -27,7 +27,7 @@ test("system-user admin presents Gym Staff as a fixed role, not a permission edi
 
 test("normal staff home exposes only daily operational tiles", () => {
   const source = read("components/staff/StaffDashboard.tsx");
-  for (const label of ["Members", "New Member", "Card / Reception", "Sundries", "Bar", "Punch Clock"]) {
+  for (const label of ["Members", "New Member", "Renew", "Waiting", "Reception Tools", "Sundries", "Bar", "Punch Clock"]) {
     assert.match(source, new RegExp(`label=["']${label.replace("/", "\\/")}["']`));
   }
   assert.match(source, /Punch Clock[\s\S]*disabled/);
