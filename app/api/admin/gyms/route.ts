@@ -10,6 +10,8 @@ import { GYM_STAFF_PERMISSIONS } from "@/lib/systemPermissions";
 
 export const dynamic = "force-dynamic";
 
+type SupabaseAdmin = ReturnType<typeof getSupabaseAdmin>;
+
 async function requireAdminOrSuperAdmin(request: NextRequest) {
   if (requireAdmin(request) === null) {
     return { context: null, error: null };
@@ -91,18 +93,18 @@ function appGymToDbGym(gym: any, index = 0) {
     featured_equipment: Array.isArray(gym.featuredEquipment)
       ? gym.featuredEquipment
       : Array.isArray(gym.featured_equipment)
-      ? gym.featured_equipment
-      : String(gym.featuredEquipment || gym.featured_equipment || "")
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
+        ? gym.featured_equipment
+        : String(gym.featuredEquipment || gym.featured_equipment || "")
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
     notes: gym.notes || "",
     sort_order: Number(gym.sort_order ?? gym.sortOrder ?? index),
     updated_at: new Date().toISOString(),
   };
 }
 
-function dbGymToAdminGym(gym: any) {
+function dbGymToAdminGym(gym: any, staff?: any) {
   return {
     id: gym.id,
     name: gym.name,
@@ -110,6 +112,9 @@ function dbGymToAdminGym(gym: any) {
     publicEnrollmentSlug: gym.public_enrollment_slug || "",
     joinPath: gym.public_enrollment_slug ? `/join/${gym.public_enrollment_slug}` : null,
     staffPath: gym.public_enrollment_slug ? `/staff/${gym.public_enrollment_slug}` : null,
+    staffProvisioned: Boolean(staff?.id),
+    staffUsername: staff?.username || null,
+    staffActive: Boolean(staff?.active),
     status: gym.status,
     city: gym.city || "",
     address: gym.address || "",
@@ -131,15 +136,95 @@ function dbGymToAdminGym(gym: any) {
   };
 }
 
-async function rollbackProvisionedGym(
-  supabase: ReturnType<typeof getSupabaseAdmin>,
-  gymId: string,
-  systemUserId?: string
-) {
-  if (systemUserId) {
-    await supabase.from("bgm_system_users").delete().eq("id", systemUserId);
+async function getGymStaff(supabase: SupabaseAdmin, gymId: string) {
+  const result = await supabase
+    .from("bgm_system_users")
+    .select("id,gym_id,username,display_name,active")
+    .eq("gym_id", gymId)
+    .eq("is_super_admin", false)
+    .maybeSingle();
+  if (result.error) throw result.error;
+  return result.data;
+}
+
+async function provisionGymStaffAccount({
+  supabase,
+  gymId,
+  gymName,
+  shortName,
+  staffPassword,
+  active,
+}: {
+  supabase: SupabaseAdmin;
+  gymId: string;
+  gymName: string;
+  shortName: string;
+  staffPassword: string;
+  active: boolean;
+}) {
+  if (staffPassword.length < 8) {
+    throw new Error("STAFF_PASSWORD_REQUIRED");
   }
-  await supabase.from("bgm_gyms").delete().eq("id", gymId);
+
+  const identity = buildGymProvisioningIdentity({ name: gymName, shortName });
+  const passwordHash = await bcrypt.hash(staffPassword, 12);
+  const userResult = await supabase
+    .from("bgm_system_users")
+    .insert({
+      gym_id: gymId,
+      username: identity.staffUsername,
+      password_hash: passwordHash,
+      display_name: identity.staffDisplayName,
+      is_super_admin: false,
+      active,
+    })
+    .select("id,gym_id,username,display_name,active")
+    .single();
+
+  if (userResult.error) throw userResult.error;
+
+  const permissionResult = await supabase.from("bgm_user_permissions").insert(
+    GYM_STAFF_PERMISSIONS.map((permissionKey) => ({
+      system_user_id: userResult.data.id,
+      permission_key: permissionKey,
+      allowed: true,
+    }))
+  );
+
+  if (permissionResult.error) {
+    await supabase.from("bgm_system_users").delete().eq("id", userResult.data.id);
+    throw permissionResult.error;
+  }
+
+  return userResult.data;
+}
+
+async function writeProvisionAudit(
+  supabase: SupabaseAdmin,
+  context: Awaited<ReturnType<typeof getSystemContext>>,
+  data: {
+    gymId: string;
+    gymName: string;
+    routeSlug: string;
+    joinPath: string;
+    staffPath: string;
+    systemUserId: string | null;
+    systemUsername: string | null;
+    reason: "created_active" | "activated_existing";
+  }
+) {
+  if (!context) return;
+
+  const result = await supabase.from("bgm_audit_log").insert({
+    system_user_id: context.systemUserId,
+    context_gym_id: data.gymId,
+    staff_name: context.displayName,
+    action_key: "gym.provisioned",
+    entity_type: "gym",
+    entity_id: data.gymId,
+    after_data: data,
+  });
+  if (result.error) throw result.error;
 }
 
 export async function GET(request: NextRequest) {
@@ -149,16 +234,31 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabaseAdmin();
 
-    const result = await supabase
-      .from("bgm_gyms")
-      .select("*")
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true });
+    const [gymsResult, staffResult] = await Promise.all([
+      supabase
+        .from("bgm_gyms")
+        .select("*")
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true }),
+      supabase
+        .from("bgm_system_users")
+        .select("id,gym_id,username,display_name,active")
+        .eq("is_super_admin", false),
+    ]);
 
-    if (result.error) throw result.error;
+    if (gymsResult.error) throw gymsResult.error;
+    if (staffResult.error) throw staffResult.error;
+
+    const staffByGym = new Map(
+      (staffResult.data || [])
+        .filter((staff) => staff.gym_id)
+        .map((staff) => [staff.gym_id as string, staff])
+    );
 
     return NextResponse.json({
-      gyms: (result.data || []).map(dbGymToAdminGym),
+      gyms: (gymsResult.data || []).map((gym) =>
+        dbGymToAdminGym(gym, staffByGym.get(gym.id))
+      ),
     });
   } catch (error) {
     console.error(error);
@@ -191,21 +291,16 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         ok: true,
-        gyms: (result.data || []).map(dbGymToAdminGym),
+        gyms: (result.data || []).map((gym) => dbGymToAdminGym(gym)),
       });
     }
 
     if (mode === "create") {
       const gym = body.gym || {};
+      const targetStatus = clean(gym.status) || "coming_soon";
       const staffPassword = String(body.staffPassword || "");
-      if (staffPassword.length < 8) {
-        return NextResponse.json(
-          { error: "The gym staff password must be at least 8 characters." },
-          { status: 400 }
-        );
-      }
-
       let identity;
+
       try {
         identity = buildGymProvisioningIdentity({
           name: clean(gym.name),
@@ -214,6 +309,13 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         return NextResponse.json(
           { error: error instanceof Error ? error.message : "A valid gym name is required." },
+          { status: 400 }
+        );
+      }
+
+      if (targetStatus === "active" && staffPassword.length < 8) {
+        return NextResponse.json(
+          { error: "Set a staff password of at least 8 characters before activating this gym." },
           { status: 400 }
         );
       }
@@ -241,82 +343,42 @@ export async function POST(request: NextRequest) {
         throw gymResult.error;
       }
 
-      let systemUserId = "";
+      let staff = null;
       try {
-        const passwordHash = await bcrypt.hash(staffPassword, 12);
-        const userResult = await supabase
-          .from("bgm_system_users")
-          .insert({
-            gym_id: identity.gymId,
-            username: identity.staffUsername,
-            password_hash: passwordHash,
-            display_name: identity.staffDisplayName,
-            is_super_admin: false,
+        if (targetStatus === "active") {
+          staff = await provisionGymStaffAccount({
+            supabase,
+            gymId: identity.gymId,
+            gymName: payload.name,
+            shortName: payload.short_name,
+            staffPassword,
             active: true,
-          })
-          .select("id, gym_id, username, display_name, active")
-          .single();
-
-        if (userResult.error) throw userResult.error;
-        systemUserId = userResult.data.id;
-
-        const permissionResult = await supabase.from("bgm_user_permissions").insert(
-          GYM_STAFF_PERMISSIONS.map((permissionKey) => ({
-            system_user_id: systemUserId,
-            permission_key: permissionKey,
-            allowed: true,
-          }))
-        );
-        if (permissionResult.error) throw permissionResult.error;
-
-        if (auth.context) {
-          const auditResult = await supabase.from("bgm_audit_log").insert({
-            system_user_id: auth.context.systemUserId,
-            context_gym_id: identity.gymId,
-            staff_name: auth.context.displayName,
-            action_key: "gym.provisioned",
-            entity_type: "gym",
-            entity_id: identity.gymId,
-            after_data: {
-              gymId: identity.gymId,
-              gymName: payload.name,
-              publicEnrollmentSlug: identity.routeSlug,
-              joinPath: identity.joinPath,
-              staffPath: identity.staffPath,
-              systemUserId,
-              systemUsername: identity.staffUsername,
-            },
           });
-          if (auditResult.error) throw auditResult.error;
+
+          await writeProvisionAudit(supabase, auth.context, {
+            gymId: identity.gymId,
+            gymName: payload.name,
+            routeSlug: identity.routeSlug,
+            joinPath: identity.joinPath,
+            staffPath: identity.staffPath,
+            systemUserId: staff.id,
+            systemUsername: staff.username,
+            reason: "created_active",
+          });
         }
 
         return NextResponse.json(
           {
-            gym: dbGymToAdminGym(gymResult.data),
-            staff: {
-              id: userResult.data.id,
-              username: userResult.data.username,
-              displayName: userResult.data.display_name,
-              active: Boolean(userResult.data.active),
-            },
+            gym: dbGymToAdminGym(gymResult.data, staff),
+            staff,
             joinPath: identity.joinPath,
             staffPath: identity.staffPath,
+            provisioningRequired: targetStatus !== "active",
           },
           { status: 201 }
         );
       } catch (error) {
-        await rollbackProvisionedGym(supabase, identity.gymId, systemUserId || undefined);
-        if (
-          error &&
-          typeof error === "object" &&
-          "code" in error &&
-          (error as { code?: string }).code === "23505"
-        ) {
-          return NextResponse.json(
-            { error: "The generated staff login is already in use." },
-            { status: 409 }
-          );
-        }
+        await supabase.from("bgm_gyms").delete().eq("id", identity.gymId);
         throw error;
       }
     }
@@ -324,6 +386,7 @@ export async function POST(request: NextRequest) {
     if (mode === "update") {
       const gym = body.gym || {};
       const requestedId = clean(gym.id);
+      const staffPassword = String(body.staffPassword || "");
 
       if (!requestedId) {
         return NextResponse.json({ error: "Missing gym ID." }, { status: 400 });
@@ -338,7 +401,7 @@ export async function POST(request: NextRequest) {
 
       const currentResult = await supabase
         .from("bgm_gyms")
-        .select("id, public_enrollment_slug")
+        .select("id,name,short_name,status,public_enrollment_slug")
         .eq("id", requestedId)
         .maybeSingle();
       if (currentResult.error) throw currentResult.error;
@@ -346,28 +409,116 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Gym not found." }, { status: 404 });
       }
 
+      const currentStaff = await getGymStaff(supabase, requestedId);
+      const targetStatus = clean(gym.status) || currentResult.data.status;
+      const becomingActive =
+        currentResult.data.status !== "active" && targetStatus === "active";
+      const needsStaffProvisioning = targetStatus === "active" && !currentStaff;
+
+      if (needsStaffProvisioning && staffPassword.length < 8) {
+        return NextResponse.json(
+          {
+            error:
+              "This gym needs a staff password of at least 8 characters before it can become active.",
+            code: "STAFF_PASSWORD_REQUIRED",
+          },
+          { status: 400 }
+        );
+      }
+
+      const stableSlug =
+        currentResult.data.public_enrollment_slug ||
+        buildGymProvisioningIdentity({
+          name: clean(gym.name),
+          shortName: clean(gym.shortName || gym.short_name),
+        }).routeSlug;
+
+      const identity = buildGymProvisioningIdentity({
+        name: clean(gym.name),
+        shortName: clean(gym.shortName || gym.short_name),
+      });
       const payload = appGymToDbGym({
         ...gym,
         id: requestedId,
-        publicEnrollmentSlug:
-          currentResult.data.public_enrollment_slug ||
-          buildGymProvisioningIdentity({
-            name: clean(gym.name),
-            shortName: clean(gym.shortName || gym.short_name),
-          }).routeSlug,
+        publicEnrollmentSlug: stableSlug,
       });
 
-      const result = await supabase
+      let provisionedStaff: any = null;
+      if (needsStaffProvisioning) {
+        try {
+          provisionedStaff = await provisionGymStaffAccount({
+            supabase,
+            gymId: requestedId,
+            gymName: payload.name,
+            shortName: payload.short_name,
+            staffPassword,
+            active: false,
+          });
+        } catch (error) {
+          if (
+            error &&
+            typeof error === "object" &&
+            "code" in error &&
+            (error as { code?: string }).code === "23505"
+          ) {
+            return NextResponse.json(
+              { error: "The generated staff login is already in use." },
+              { status: 409 }
+            );
+          }
+          throw error;
+        }
+      }
+
+      const updateResult = await supabase
         .from("bgm_gyms")
         .update(payload)
         .eq("id", requestedId)
         .select()
         .single();
 
-      if (result.error) throw result.error;
+      if (updateResult.error) {
+        if (provisionedStaff?.id) {
+          await supabase.from("bgm_system_users").delete().eq("id", provisionedStaff.id);
+        }
+        throw updateResult.error;
+      }
+
+      const staffToUpdate = provisionedStaff || currentStaff;
+      if (staffToUpdate) {
+        const staffStatusResult = await supabase
+          .from("bgm_system_users")
+          .update({
+            active: targetStatus === "active",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", staffToUpdate.id);
+        if (staffStatusResult.error) throw staffStatusResult.error;
+      }
+
+      if (targetStatus === "active" && (becomingActive || needsStaffProvisioning)) {
+        const finalStaff = provisionedStaff || currentStaff;
+        await writeProvisionAudit(supabase, auth.context, {
+          gymId: requestedId,
+          gymName: payload.name,
+          routeSlug: stableSlug,
+          joinPath: `/join/${stableSlug}`,
+          staffPath: `/staff/${stableSlug}`,
+          systemUserId: finalStaff?.id || null,
+          systemUsername: finalStaff?.username || null,
+          reason: "activated_existing",
+        });
+      }
 
       return NextResponse.json({
-        gym: dbGymToAdminGym(result.data),
+        gym: dbGymToAdminGym(updateResult.data, {
+          ...(provisionedStaff || currentStaff || {}),
+          active: targetStatus === "active" && Boolean(staffToUpdate),
+        }),
+        joinPath: `/join/${stableSlug}`,
+        staffPath: `/staff/${stableSlug}`,
+        staffProvisioned: Boolean(staffToUpdate),
+        staffUsername: staffToUpdate?.username || identity.staffUsername,
       });
     }
 
@@ -386,7 +537,7 @@ export async function POST(request: NextRequest) {
       if (staffResult.error) throw staffResult.error;
       if (staffResult.data) {
         return NextResponse.json(
-          { error: "Disable/remove the gym staff account before deleting this gym." },
+          { error: "Remove the gym staff account before deleting this gym." },
           { status: 409 }
         );
       }
@@ -399,6 +550,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: "Invalid action." }, { status: 400 });
   } catch (error) {
+    if (error instanceof Error && error.message === "STAFF_PASSWORD_REQUIRED") {
+      return NextResponse.json(
+        { error: "The gym staff password must be at least 8 characters." },
+        { status: 400 }
+      );
+    }
+
     console.error(error);
 
     return NextResponse.json(
