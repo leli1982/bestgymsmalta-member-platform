@@ -6,7 +6,7 @@ import { join } from "node:path";
 const root = new URL("..", import.meta.url).pathname;
 const read = (path) => readFileSync(join(root, path), "utf8");
 
-test("Super Admin gym creation provisions routes and one shared gym staff account", () => {
+test("Super Admin active-gym creation provisions routes and one shared gym staff account", () => {
   const route = read("app/api/admin/gyms/route.ts");
   assert.match(route, /mode === ["']create["']/);
   assert.match(route, /buildGymProvisioningIdentity/);
@@ -17,6 +17,19 @@ test("Super Admin gym creation provisions routes and one shared gym staff accoun
   assert.match(route, /GYM_STAFF_PERMISSIONS/);
   assert.match(route, /joinPath/);
   assert.match(route, /staffPath/);
+  assert.match(route, /targetStatus === ["']active["']/);
+});
+
+test("coming-soon gyms provision missing staff access before activation", () => {
+  const route = read("app/api/admin/gyms/route.ts");
+  assert.match(route, /becomingActive/);
+  assert.match(route, /needsStaffProvisioning/);
+  assert.match(route, /STAFF_PASSWORD_REQUIRED/);
+  assert.match(route, /provisionGymStaffAccount/);
+  assert.match(route, /active:\s*false/);
+  assert.match(route, /targetStatus === ["']active["']/);
+  assert.match(route, /public_enrollment_slug/);
+  assert.match(route, /activated_existing/);
 });
 
 test("gym-specific staff route resolves the gym and renders a scoped password login", () => {
