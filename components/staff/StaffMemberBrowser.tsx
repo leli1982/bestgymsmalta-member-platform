@@ -60,11 +60,22 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false }:
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<StaffMember | null>(null);
+  const [refreshToken, setRefreshToken] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (focusToken > 0) searchRef.current?.focus();
   }, [focusToken]);
+
+  useEffect(() => {
+    const refresh = () => setRefreshToken((value) => value + 1);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("pageshow", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("pageshow", refresh);
+    };
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -99,7 +110,13 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false }:
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [query, filter]);
+  }, [query, filter, refreshToken]);
+
+  useEffect(() => {
+    if (!selected) return;
+    const freshSelected = members.find((member) => member.id === selected.id);
+    if (freshSelected) setSelected(freshSelected);
+  }, [members, selected?.id]);
 
   const summary = useMemo(() => {
     if (loading) return "Loading members…";
