@@ -67,7 +67,7 @@ test("activation RPC rechecks Super Admin price snapshot and discount code atomi
   assert.match(migration, /payment_method/i);
   assert.match(migration, /payment_other_text/i);
   assert.match(migration, /payment_staff_name/i);
-  assert.match(migration, /membership\.activate/i);
+  assert.match(activationMigration, /membership\.activate/i);
   assert.match(migration, /revoke all on function public\.bgm_activate_membership_application[\s\S]*from public, anon, authenticated/i);
   assert.match(migration, /grant execute on function public\.bgm_activate_membership_application[\s\S]*to service_role/i);
 });
