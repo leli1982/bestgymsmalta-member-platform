@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BadgeCheck, CreditCard, LogIn, RefreshCw, ShieldCheck } from "lucide-react";
+import { BadgeCheck, LogIn, RefreshCw, ShieldCheck } from "lucide-react";
 import {
   cacheVerifiedMember, forgetSavedMember,
   MEMBER_SESSION_KEY, waitForMemberLogout,
@@ -124,7 +124,7 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
     );
   }
 
-  const { member, cardLinked, cardBarcode } = state;
+  const { member, cardLinked, cardBarcode, physicalCardBarcode } = state;
   const active = member.status === "active"
     && (!member.membershipExpiry || member.membershipExpiry.slice(0, 10) >= new Date().toISOString().slice(0, 10));
   const expiryText = member.membershipExpiry
@@ -168,21 +168,10 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
               </div>
 
               <div className="min-w-0 text-center">
-                {cardLinked === null ? (
-                  <div className="flex h-[62px] items-center justify-center rounded-xl bg-zinc-50 text-[9px] font-bold text-slate-400">
-                    Refreshing…
-                  </div>
-                ) : cardLinked && cardBarcode ? (
-                  <div className="[&>div]:p-0 [&_p]:mt-0 [&_p]:text-[8px] [&_p]:tracking-[.08em] [&_svg]:max-h-[48px]">
-                    <MemberBarcode memberNumber={cardBarcode} />
-                  </div>
-                ) : (
-                  <div className="rounded-xl bg-amber-50 px-2 py-2 text-center">
-                    <p className="text-[9px] font-black text-amber-700">CARD NOT LINKED</p>
-                    <p className="mt-1 text-[8px] font-semibold text-slate-400">Ask reception</p>
-                  </div>
-                )}
-                <p className="mt-1 text-[8px] font-semibold text-slate-400">Tap for details</p>
+                <div className="[&>div]:p-0 [&_p]:mt-0 [&_p]:text-[8px] [&_p]:tracking-[.08em] [&_svg]:max-h-[48px]">
+                  <MemberBarcode memberNumber={cardBarcode} />
+                </div>
+                <p className="mt-1 text-[8px] font-semibold text-slate-400">BGM member number · tap for details</p>
               </div>
             </div>
             
@@ -196,8 +185,11 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
               <div className="min-w-0">
                 <p className="text-[9px] font-black uppercase tracking-[.16em] text-[#ff5a0a]">Member Details</p>
                 <h2 className="mt-1 truncate text-base font-black">{member.fullName || member.username}</h2>
-                <p className="mt-2 text-[9px] font-semibold text-slate-400">Current Card</p>
-                <p className="truncate text-xs font-black">{cardLinked && cardBarcode ? cardBarcode : "Not linked"}</p>
+                <p className="mt-2 text-[9px] font-semibold text-slate-400">BGM member number</p>
+                <p className="truncate text-xs font-black">{cardBarcode}</p>
+                <p className="mt-1 text-[9px] font-semibold text-slate-400">
+                  Physical card: {cardLinked && physicalCardBarcode ? physicalCardBarcode : "Not linked"}
+                </p>
                 <p className="mt-1 text-[9px] font-semibold text-slate-400">Valid until {expiryText}</p>
               </div>
               <ShieldCheck className="shrink-0 text-[#ff5a0a]" size={29} strokeWidth={3} />
@@ -230,20 +222,10 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
               </div>
             </div>
             <div className="mt-7 rounded-2xl border border-zinc-200 bg-white p-2">
-              {cardLinked && cardBarcode ? (
-                <MemberBarcode memberNumber={cardBarcode} />
-              ) : (
-                <div className="rounded-xl bg-amber-50 p-5 text-center">
-                  <CreditCard className="mx-auto text-amber-700" size={26} />
-                  <p className="mt-3 text-sm font-black text-amber-800">CARD NOT LINKED</p>
-                  <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">
-                    Visit reception to link your physical BGM card.
-                  </p>
-                </div>
-              )}
+              <MemberBarcode memberNumber={cardBarcode} />
             </div>
             <p className="mt-3 text-center text-xs text-slate-500">
-              {cardLinked ? "Present this barcode at reception." : "Your membership account is signed in."}
+              Present this BGM member number barcode at reception.
             </p>
           </div>
           <div className="mt-6">
@@ -274,8 +256,14 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
                 <dd className="mt-1 break-words text-lg font-black">{member.fullName || member.username}</dd>
               </div>
               <div className="rounded-2xl bg-orange-50 p-4">
-                <dt className="text-xs font-semibold text-slate-500">Current card number</dt>
-                <dd className="mt-1 break-all font-mono text-lg font-black text-[#c2410c]">{cardLinked && cardBarcode ? cardBarcode : "Not linked"}</dd>
+                <dt className="text-xs font-semibold text-slate-500">BGM member number</dt>
+                <dd className="mt-1 break-all font-mono text-lg font-black text-[#c2410c]">{cardBarcode}</dd>
+              </div>
+              <div className="rounded-2xl bg-zinc-50 p-4">
+                <dt className="text-xs font-semibold text-slate-500">Physical card</dt>
+                <dd className="mt-1 break-all font-mono text-sm font-black">
+                  {cardLinked && physicalCardBarcode ? physicalCardBarcode : "Not linked"}
+                </dd>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><dt className="text-xs text-slate-500">Valid until</dt><dd className="mt-1 text-sm font-bold">{expiryText}</dd></div>
