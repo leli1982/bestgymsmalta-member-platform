@@ -102,14 +102,18 @@ export default function OfficialMemberPhotoCapture({
       });
       streamRef.current = stream;
       setCameraOpen(true);
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
     } catch {
       setError("Camera access was not available. You can upload a photo instead.");
     }
   }
+
+  useEffect(() => {
+    if (!cameraOpen || !streamRef.current || !videoRef.current) return;
+    videoRef.current.srcObject = streamRef.current;
+    void videoRef.current.play().catch(() => {
+      setError("The webcam opened, but the video preview could not start.");
+    });
+  }, [cameraOpen]);
 
   useEffect(
     () => () => {
