@@ -44,6 +44,7 @@ const member = {
 };
 
 let cardAssigned = false;
+let idVerified = false;
 let activated = false;
 const applicationId = "app-browser";
 const participantId = "participant-browser";
@@ -87,21 +88,45 @@ function applicationDetail() {
     submittedAt: "2026-09-15T11:00:00.000Z",
     paymentReceivedAt: null,
     activatedAt: null,
+    basePriceCents: 3000,
+    currency: "EUR",
+    priceCatalogVersionId: "catalog-browser",
+    declarationSnapshot: {
+      gymRules: { versionNo: 1, body: "Browser gym rules" },
+      privacy: { versionNo: 1, body: "Browser privacy notice" },
+      health: { versionNo: 1, body: "Browser health declaration" },
+    },
+    sameAddressVerified: false,
     participants: [
       {
         id: participantId,
         participantOrder: 1,
         existingMemberId: null,
+        matchedMemberId: null,
+        identityMatchState: "clear",
+        duplicateContactWarning: false,
+        under18AtSubmission: false,
         firstName: "Browser",
         lastName: "Queue Member",
         addressLine1: "1 Test Street",
         addressLine2: "",
+        town: "Browser Town",
         postcode: "BGM 1000",
         idNumber: "999999M",
         dateOfBirth: "1990-01-01",
         phone: "79000001",
         email: "queue@example.test",
         nextOfKin: "Test Kin",
+        guardianName: "",
+        guardianIdNumber: "",
+        guardianRelationship: "",
+        guardianPhone: "",
+        guardianEmail: "",
+        guardianAddress: "",
+        idVerified,
+        studentEligibilityVerified: false,
+        guardianPresentVerified: false,
+        guardianCosignVerified: false,
         hasPhoto: true,
         photoUrl: null,
         reservedBarcode: cardAssigned ? "CARD-12345" : null,
@@ -179,8 +204,11 @@ try {
   await page.route(`**/api/system/members/applications/${applicationId}`, async (route) => {
     if (route.request().method() === "PATCH") {
       const payload = route.request().postDataJSON();
+      assert.equal(payload.action, "save_review");
       assert.equal(payload.membershipType, "single");
-      return route.fulfill({ json: { ok: true, correction: { applicationId } } });
+      assert.equal(payload.participants?.[0]?.idVerified, true);
+      idVerified = true;
+      return route.fulfill({ json: { ok: true, review: { applicationId } } });
     }
     return route.fulfill({ json: { application: applicationDetail() } });
   });
@@ -240,6 +268,13 @@ try {
   await waitVisible(page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }));
   assert.equal(await page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }).isDisabled(), true);
   await page.screenshot({ path: artifacts + "/review-1024.png", fullPage: true });
+
+  await page.getByLabel("ID / passport verified").check();
+  assert.equal(
+    await page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }).isDisabled(),
+    true,
+    "ID verification alone must not bypass the card requirement"
+  );
 
   await page.getByRole("button", { name: "SCAN CARD", exact: true }).click();
   await waitVisible(page.getByPlaceholder("Scanner input"));
