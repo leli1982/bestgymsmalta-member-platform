@@ -58,3 +58,15 @@ test("Super Admin retains the ability to change gym staff passwords", () => {
   assert.match(ui, /New password \(optional\)/);
   assert.match(ui, /Change/);
 });
+
+
+test("Super Admin UI requires staff password for active gyms that are not yet provisioned", () => {
+  const admin = read("app/bgm-admin/page.tsx");
+  assert.match(admin, /Staff password required/);
+  assert.match(admin, /staffProvisioned/);
+  assert.match(admin, /staffPassword/);
+  assert.match(admin, /creatingGym \? ["']create["'] : ["']update["']/);
+  assert.match(admin, /Manage staff password/);
+  assert.match(admin, /Join route/);
+  assert.match(admin, /Staff route/);
+});
