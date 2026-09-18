@@ -19,15 +19,20 @@ test("legacy members receive permanent BGM numbers without losing their physical
   assert.match(sql, /before insert or update/i);
 });
 
-test("barcode reception resolves both physical-card credentials and permanent BGM member numbers", () => {
+test("barcode reception resolves physical cards, BGM numbers and legacy pkCustomer values", () => {
   const route = read("app/api/system/barcode/scan/route.ts");
   const cardLookup = route.indexOf('from("bgm_member_card_credentials")');
   const memberLookup = route.indexOf('.eq("member_number", membershipNumber)');
+  const legacyLookup = route.indexOf('.eq("legacy_pk_customer", membershipNumber)');
   assert.ok(cardLookup >= 0, "physical credential lookup must exist");
   assert.ok(memberLookup > cardLookup, "permanent member-number fallback must exist after physical-card lookup");
+  assert.ok(legacyLookup > memberLookup, "legacy pkCustomer fallback must exist after BGM-number lookup");
   assert.match(route, /credentialKind/);
   assert.match(route, /physical_card/);
   assert.match(route, /member_number/);
+  assert.match(route, /legacy_pk_customer/);
+  assert.match(route, /ambiguous_card/);
+  assert.match(route, /legacyMatches/);
 });
 
 test("member app virtual barcode is the permanent BGM member number while physical card stays separate", () => {
@@ -54,4 +59,23 @@ test("staff home is always ready for a barcode scan without opening Reception", 
   assert.match(scanner, /autoFocus/);
   assert.match(scanner, /ACCESS GRANTED/);
   assert.match(scanner, /MEMBERSHIP EXPIRED/);
+});
+
+
+test("new/replaced physical cards synchronize pkCustomer while BGM number remains permanent", () => {
+  const sql = read("supabase/migrations/20260918_131000_pkcustomer_current_card_semantics.sql");
+  assert.match(sql, /bgm_member_card_credentials/i);
+  assert.match(sql, /legacy_pk_customer/i);
+  assert.match(sql, /barcode_value/i);
+  assert.match(sql, /after insert or update/i);
+  assert.match(sql, /status = 'active'/i);
+  assert.match(sql, /ambiguous_card/i);
+});
+
+test("legacy 15-column import keeps pkCustomer as the old barcode without rejecting duplicate active members", () => {
+  const core = read("lib/memberExchangeCore.ts");
+  const importServer = read("lib/memberImportServer.ts");
+  assert.match(core, /pkCustomer/);
+  assert.match(importServer, /legacy_pk_customer/);
+  assert.doesNotMatch(importServer, /pkCustomer.*globally unique/i);
 });
