@@ -13,6 +13,7 @@ const enrollRoute = read("app/api/system/members/enroll/route.ts");
 const modal = read("components/staff/StaffMembershipReviewModal.tsx");
 const pending = read("components/staff/PendingMembershipActions.tsx");
 const migration = read("supabase/migrations/20260918_090000_membership_discount_payment.sql");
+const activationMigration = read("supabase/migrations/20260916_140000_membership_review_activation.sql");
 const settingsRoute = read("app/api/system/membership-settings/route.ts");
 
 test("membership rates and discount definitions remain Super Admin only", () => {
@@ -61,7 +62,8 @@ test("activation RPC rechecks Super Admin price snapshot and discount code atomi
   assert.match(migration, /bgm_membership_price_entries/i);
   assert.match(migration, /base_price_cents/i);
   assert.match(migration, /bgm_discount_codes/i);
-  assert.match(migration, /successful_uses\s*=\s*successful_uses\s*\+\s*1/i);
+  assert.match(migration, /return public\.bgm_activate_membership_application\(/i);
+  assert.match(activationMigration, /successful_uses\s*=\s*successful_uses\s*\+\s*1/i);
   assert.match(migration, /payment_method/i);
   assert.match(migration, /payment_other_text/i);
   assert.match(migration, /payment_staff_name/i);
