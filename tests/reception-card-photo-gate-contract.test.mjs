@@ -7,6 +7,7 @@ const root = new URL("..", import.meta.url).pathname;
 const scanRoutePath = join(root, "app/api/system/barcode/scan/route.ts");
 const finalizeRoutePath = join(root, "app/api/system/barcode/finalize/route.ts");
 const receptionComponentPath = join(root, "components/staff/BarcodeReceptionPage.tsx");
+const photoComponentPath = join(root, "components/staff/OfficialMemberPhotoCapture.tsx");
 const migrationPath = join(root, "supabase/migrations/20260918_103000_nonblocking_photo_warning.sql");
 
 test("valid membership access is never denied only because the official photo is missing", () => {
@@ -45,8 +46,9 @@ test("reception grants access normally and shows a separate repeating PHOTO REQU
   assert.match(component, /ACCESS GRANTED/);
   assert.match(component, /PHOTO REQUIRED/);
   assert.match(component, /photoRequired/);
-  assert.match(component, /Take Photo with Webcam/);
-  assert.match(component, /Upload Photo/);
+  const photoComponent = readFileSync(photoComponentPath, "utf8");
+  assert.match(photoComponent, /Take Photo with Webcam/);
+  assert.match(photoComponent, /Upload Photo/);
   assert.match(component, /Allow Entry \/ Close/);
   assert.match(component, /OfficialMemberPhotoCapture/);
   assert.match(component, /memberId=/);
