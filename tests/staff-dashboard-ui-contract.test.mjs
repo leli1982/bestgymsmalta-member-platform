@@ -62,6 +62,7 @@ test("member browser keeps profile fields read-only while exposing canonical sta
   assert.match(browser, /canRenew/);
   assert.match(browser, /RENEW MEMBERSHIP/);
   assert.match(browser, /Physical card \/ pkCustomer/);
+  assert.match(browser, /legacyGym\s*\|\|\s*selected\.enrollmentGymName/);
 });
 
 test("new membership queue exposes waiting state and recoverable refreshes", () => {
@@ -115,4 +116,12 @@ test("print surface renders one dedicated A4 member sheet with signatures and fi
   assert.match(printSheet, /Staff Signature/);
   assert.match(printView, /window\.print/);
   assert.match(printSheet, /applicationReference|Application reference/);
+});
+
+
+test("member search API resolves enrollment gym names for the member popup", () => {
+  const route = read("app/api/system/members/search/route.ts");
+  assert.match(route, /bgm_gyms/);
+  assert.match(route, /enrollmentGymName/);
+  assert.match(route, /enrollment_gym_id/);
 });
