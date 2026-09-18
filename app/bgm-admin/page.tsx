@@ -64,6 +64,12 @@ type AdminGym = {
   featuredEquipment: string[];
   notes: string;
   sortOrder: number;
+  publicEnrollmentSlug?: string;
+  joinPath?: string | null;
+  staffPath?: string | null;
+  staffProvisioned?: boolean;
+  staffUsername?: string | null;
+  staffActive?: boolean;
 };
 
 const emptyAnnouncement: Announcement = {
@@ -123,6 +129,7 @@ export default function BgmAdminPage() {
   const [featuredEquipmentText, setFeaturedEquipmentText] = useState("");
   const [creatingGym, setCreatingGym] = useState(false);
   const [uploadingGymLogo, setUploadingGymLogo] = useState(false);
+  const [staffPassword, setStaffPassword] = useState("");
 
   useEffect(() => {
     async function checkAdminSession() {
@@ -338,6 +345,7 @@ export default function BgmAdminPage() {
   }
 
   function loadGymIntoForm(gym: AdminGym) {
+    setStaffPassword("");
     setSelectedGymId(gym.id);
     setGymForm(gym);
     setFacilitiesText((gym.facilities || []).join(", "));
@@ -418,6 +426,7 @@ export default function BgmAdminPage() {
     setFacilitiesText("");
     setClassesText("");
     setFeaturedEquipmentText("");
+    setStaffPassword("");
     setActiveTab("gyms");
     window.scrollTo({ top: 0, behavior: "smooth" });
     setStatus("Adding new gym. Choose a unique gym ID, then save.");
@@ -498,17 +507,21 @@ export default function BgmAdminPage() {
   async function saveGym() {
     if (!gymForm) return;
 
-    if (!gymForm.id.trim()) {
-      setStatus("Gym ID is required. Example: bgm-new-location");
-      return;
-    }
-
     if (!gymForm.name.trim()) {
       setStatus("Gym name is required.");
       return;
     }
 
-    setStatus("Saving gym…");
+    const needsStaffPassword =
+      gymForm.status === "active" &&
+      (creatingGym || !gymForm.staffProvisioned);
+
+    if (needsStaffPassword && staffPassword.length < 8) {
+      setStatus("Set a staff password of at least 8 characters before activating this gym.");
+      return;
+    }
+
+    setStatus(creatingGym ? "Creating gym…" : "Saving gym…");
 
     const gymToSave = {
       ...gymForm,
@@ -520,8 +533,9 @@ export default function BgmAdminPage() {
     const response = await gymsFetch({
       method: "POST",
       body: JSON.stringify({
-        mode: "update",
+        mode: creatingGym ? "create" : "update",
         gym: gymToSave,
+        staffPassword: needsStaffPassword ? staffPassword : undefined,
       }),
     });
 
@@ -533,8 +547,13 @@ export default function BgmAdminPage() {
     }
 
     setCreatingGym(false);
-    setStatus("Gym saved.");
-    await loadGyms(pin, gymForm.id);
+    setStaffPassword("");
+    setStatus(
+      data.staffPath && data.joinPath
+        ? `Gym saved. Join: ${data.joinPath} · Staff: ${data.staffPath}`
+        : "Gym saved."
+    );
+    await loadGyms(pin, data.gym?.id || gymForm.id);
   }
 
   if (!unlocked) {
@@ -1293,24 +1312,17 @@ export default function BgmAdminPage() {
                   </div>
 
                   <div className="grid gap-3">
-                    <input
-                      value={gymForm.id}
-                      disabled={!creatingGym}
-                      onChange={(event) =>
-                        updateGymForm({
-                          id: event.target.value
-                            .toLowerCase()
-                            .replace(/[^a-z0-9-]+/g, "-")
-                            .replace(/(^-|-$)/g, ""),
-                          qrCodeId: event.target.value
-                            .toLowerCase()
-                            .replace(/[^a-z0-9-]+/g, "-")
-                            .replace(/(^-|-$)/g, ""),
-                        })
-                      }
-                      placeholder="Gym ID, example: bgm-new-location"
-                      className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold outline-none disabled:opacity-45"
-                    />
+                    {creatingGym ? (
+                      <div className="rounded-2xl border border-[#fcb415]/20 bg-[#fcb415]/10 px-4 py-3 text-sm font-bold text-[#fcb415]">
+                        Gym ID, /join route and /staff route will be generated automatically from the gym name.
+                      </div>
+                    ) : (
+                      <input
+                        value={gymForm.id}
+                        disabled
+                        className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold outline-none opacity-45"
+                      />
+                    )}
 
                     <input
                       value={gymForm.name}
@@ -1344,6 +1356,53 @@ export default function BgmAdminPage() {
                       <option value="active">Active</option>
                       <option value="coming_soon">Coming Soon</option>
                     </select>
+
+                    {gymForm.status === "active" &&
+                    (creatingGym || !gymForm.staffProvisioned) ? (
+                      <label className="grid gap-2 rounded-2xl border border-[#fcb415]/25 bg-[#fcb415]/10 p-4">
+                        <span className="text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
+                          Staff password required
+                        </span>
+                        <input
+                          type="password"
+                          minLength={8}
+                          value={staffPassword}
+                          onChange={(event) => setStaffPassword(event.target.value)}
+                          placeholder="At least 8 characters"
+                          className="rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold text-white outline-none"
+                        />
+                        <span className="text-xs font-bold leading-5 text-white/50">
+                          Activating this gym will create its shared staff login and enable its gym-specific /join and /staff routes.
+                        </span>
+                      </label>
+                    ) : null}
+
+                    {!creatingGym && gymForm.publicEnrollmentSlug ? (
+                      <div className="grid gap-2 rounded-2xl border border-white/10 bg-black/25 p-4 text-xs font-bold">
+                        <div>
+                          <span className="text-white/40">Join route</span>
+                          <p className="mt-1 break-all text-white">{gymForm.joinPath || `/join/${gymForm.publicEnrollmentSlug}`}</p>
+                        </div>
+                        <div>
+                          <span className="text-white/40">Staff route</span>
+                          <p className="mt-1 break-all text-white">{gymForm.staffPath || `/staff/${gymForm.publicEnrollmentSlug}`}</p>
+                        </div>
+                        <div>
+                          <span className="text-white/40">Staff account</span>
+                          <p className={`mt-1 ${gymForm.staffProvisioned ? "text-green-300" : "text-amber-300"}`}>
+                            {gymForm.staffProvisioned
+                              ? `${gymForm.staffUsername || "Provisioned"} · ${gymForm.staffActive ? "ACTIVE" : "DISABLED"}`
+                              : "Not provisioned yet"}
+                          </p>
+                        </div>
+                        <a
+                          href="/bgm-admin/system-users"
+                          className="mt-1 w-fit rounded-full border border-white/10 px-3 py-2 text-[#fcb415]"
+                        >
+                          Manage staff password
+                        </a>
+                      </div>
+                    ) : null}
 
                     <input
                       value={gymForm.city}
