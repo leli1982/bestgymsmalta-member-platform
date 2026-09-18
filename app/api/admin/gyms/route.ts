@@ -378,6 +378,9 @@ export async function POST(request: NextRequest) {
           { status: 201 }
         );
       } catch (error) {
+        if (staff?.id) {
+          await supabase.from("bgm_system_users").delete().eq("id", staff.id);
+        }
         await supabase.from("bgm_gyms").delete().eq("id", identity.gymId);
         throw error;
       }
