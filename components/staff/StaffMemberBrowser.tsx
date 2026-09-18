@@ -182,23 +182,40 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false }:
 
       {selected && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog" aria-modal="true">
-          <div className="max-h-[90vh] w-full overflow-auto rounded-t-3xl bg-white p-6 shadow-2xl sm:max-w-xl sm:rounded-3xl">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex min-w-0 items-center gap-4">
+          <div className="max-h-[92vh] w-full overflow-auto rounded-t-3xl bg-white p-6 shadow-2xl sm:max-w-2xl sm:rounded-3xl">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setSelected(null)}
+                className="absolute right-0 top-0 z-10 rounded-xl border border-zinc-200 bg-white/95 p-2 text-zinc-500 shadow-sm hover:bg-zinc-50"
+                aria-label="Close member detail"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
                 {selected.photoUrl ? (
-                  <img src={selected.photoUrl} alt="" className="h-20 w-20 rounded-2xl bg-zinc-100 object-cover" />
+                  <img
+                    src={selected.photoUrl}
+                    alt={selected.fullName ? `${selected.fullName} member photo` : "Member photo"}
+                    className="h-56 w-full shrink-0 rounded-3xl bg-zinc-100 object-cover sm:h-56 sm:w-56"
+                  />
                 ) : (
-                  <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400"><UserRound className="h-8 w-8" /></span>
+                  <span className="flex h-56 w-full shrink-0 items-center justify-center rounded-3xl bg-zinc-100 text-zinc-400 sm:h-56 sm:w-56">
+                    <UserRound className="h-20 w-20" />
+                  </span>
                 )}
-                <div className="min-w-0">
+                <div className="min-w-0 pr-12 sm:pt-2">
                   <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">Member details</p>
-                  <h3 className="mt-1 truncate text-2xl font-black text-zinc-950">{selected.fullName}</h3>
-                  <span className={`mt-2 inline-flex rounded-full px-3 py-1 text-[11px] font-black tracking-wide ring-1 ${statusClass(selected.classification)}`}>
+                  <h3 className="mt-2 text-3xl font-black leading-tight text-zinc-950">{selected.fullName}</h3>
+                  <span className={`mt-3 inline-flex rounded-full px-4 py-1.5 text-xs font-black tracking-wide ring-1 ${statusClass(selected.classification)}`}>
                     {statusLabel(selected.classification)}
                   </span>
+                  <p className="mt-4 text-sm font-semibold leading-6 text-zinc-500">
+                    Confirm the member photo before allowing access or processing membership changes.
+                  </p>
                 </div>
               </div>
-              <button type="button" onClick={() => setSelected(null)} className="rounded-xl border border-zinc-200 p-2 text-zinc-500 hover:bg-zinc-50" aria-label="Close member detail"><X className="h-5 w-5" /></button>
             </div>
 
             <dl className="mt-6 grid gap-3 sm:grid-cols-2">
