@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
         .from("bgm_gyms")
         .select("id, name, public_enrollment_slug")
         .eq("public_enrollment_slug", gymSlug)
+        .eq("status", "active")
         .maybeSingle();
 
       if (gymResult.error) throw gymResult.error;
