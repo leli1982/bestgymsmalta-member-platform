@@ -25,11 +25,13 @@ test("Application Staff Name is mandatory server-side for both membership paths"
   assert.match(route, /membership\.application\.submit/);
 });
 
-test("payment activation requires a separate Activation Staff Name and activation permission", () => {
+test("payment activation requires payment staff identity, method and activation permission", () => {
   const route = source();
   assert.match(route, /membership\.activate/);
-  assert.match(route, /activationStaffName/);
-  assert.match(route, /Activation Staff Name/);
+  assert.match(route, /staffName/);
+  assert.match(route, /Payment Staff Name/);
+  assert.match(route, /paymentMethod/);
+  assert.match(route, /discountCode/);
   assert.match(route, /bgm_activate_membership_application/);
 });
 
