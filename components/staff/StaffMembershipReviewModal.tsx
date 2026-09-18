@@ -232,7 +232,7 @@ export default function StaffMembershipReviewModal({
       const fields = form.participants[index];
       if (!fields?.firstName.trim() || !fields.lastName.trim()) return false;
       if (!fields.idVerified) return false;
-      if (application.membershipType === "student" && !fields.studentEligibilityVerified) {
+      if (form.membershipType === "student" && !fields.studentEligibilityVerified) {
         return false;
       }
       if (
@@ -249,7 +249,7 @@ export default function StaffMembershipReviewModal({
 
     return (
       participantReady &&
-      (application.membershipType !== "couples" || form.sameAddressVerified)
+      (form.membershipType !== "couples" || form.sameAddressVerified)
     );
   }, [application, form]);
 
