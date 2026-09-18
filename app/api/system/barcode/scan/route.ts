@@ -3,6 +3,7 @@ import { evaluateBarcodeAccess } from "@/lib/barcodeAccessCore";
 import { recordCanonicalCheckin } from "@/lib/checkinService";
 import { normalizeBarcodePayload } from "@/lib/memberCardCredentialCore";
 import { todayMaltaDate } from "@/lib/maltaDate";
+import { resolveLegacyPkCustomerCandidates } from "@/lib/legacyPkCustomerResolution";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
 
@@ -111,21 +112,18 @@ export async function POST(request: NextRequest) {
           if (legacyResult.error) throw legacyResult.error;
 
           legacyMatches = legacyResult.data || [];
-          if (legacyMatches.length === 1) {
-            member = legacyMatches[0];
-            credentialKind = "legacy_pk_customer";
-          } else if (legacyMatches.length > 1) {
-            const liveMatches = legacyMatches.filter(
-              (candidate) => accessFor(candidate).granted
-            );
+          const legacyResolution = resolveLegacyPkCustomerCandidates(
+            legacyMatches,
+            todayMaltaDate()
+          );
 
-            if (liveMatches.length === 1) {
-              member = liveMatches[0];
-              credentialKind = "legacy_pk_customer";
-            } else if (liveMatches.length > 1) {
-              ambiguousLegacyCard = true;
-              credentialKind = "legacy_pk_customer";
-            }
+          if (legacyResolution.kind === "resolved") {
+            member = legacyResolution.member;
+            credentialKind = "legacy_pk_customer";
+          } else if (legacyResolution.kind === "ambiguous") {
+            ambiguousLegacyCard = true;
+            legacyMatches = legacyResolution.liveMatches;
+            credentialKind = "legacy_pk_customer";
           }
         }
       }
@@ -229,9 +227,7 @@ export async function POST(request: NextRequest) {
               ? "legacy_pk_customer"
               : null,
       legacyMatches: ambiguousLegacyCard
-        ? legacyMatches
-            .filter((candidate) => accessFor(candidate).granted)
-            .map((candidate) => ({
+        ? legacyMatches.map((candidate) => ({
               id: candidate.id,
               memberNumber: candidate.member_number,
               fullName: candidate.full_name,
