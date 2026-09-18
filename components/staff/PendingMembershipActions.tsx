@@ -277,7 +277,7 @@ export default function PendingMembershipActions() {
                               onChange={(event) => setBarcodes((current) => ({ ...current, [participant.id]: event.target.value }))}
                               onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void processCard(application, participant); } }}
                               placeholder="SCAN MEMBERSHIP CARD"
-                              className="min-w-0 flex-1 rounded-xl border border-zinc-300 px-3 py-2 font-mono"
+                              className="min-w-0 flex-1 rounded-xl border border-zinc-300 bg-white px-3 py-2 font-mono text-zinc-950 placeholder:text-zinc-400 caret-zinc-950"
                             />
                             <button type="button" onClick={() => void processCard(application, participant)} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-bold text-white">Verify Card</button>
                           </div>
@@ -295,7 +295,7 @@ export default function PendingMembershipActions() {
                                 onChange={(event) => setBarcodes((current) => ({ ...current, [participant.id]: event.target.value }))}
                                 onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void processCard(application, participant); } }}
                                 placeholder="Scan card barcode"
-                                className="min-w-0 flex-1 rounded-xl border border-zinc-300 px-3 py-2 font-mono"
+                                className="min-w-0 flex-1 rounded-xl border border-zinc-300 bg-white px-3 py-2 font-mono text-zinc-950 placeholder:text-zinc-400 caret-zinc-950"
                               />
                               <button type="button" onClick={() => void processCard(application, participant)} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-bold text-white">Reserve Card</button>
                             </div>
@@ -348,7 +348,7 @@ export default function PendingMembershipActions() {
                   </div>
 
                   {paymentMethods[application.id] === "other" && (
-                    <input value={paymentOtherTexts[application.id] || ""} onChange={(event) => setPaymentOtherTexts((current) => ({ ...current, [application.id]: event.target.value }))} placeholder="Describe Other payment method" className="mt-3 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2" />
+                    <input value={paymentOtherTexts[application.id] || ""} onChange={(event) => setPaymentOtherTexts((current) => ({ ...current, [application.id]: event.target.value }))} placeholder="Describe Other payment method" className="mt-3 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950" />
                   )}
 
                   <label className="mt-4 block text-sm font-bold">
@@ -357,7 +357,7 @@ export default function PendingMembershipActions() {
                       value={activationStaffNames[application.id] || ""}
                       onChange={(event) => setActivationStaffNames((current) => ({ ...current, [application.id]: event.target.value }))}
                       placeholder="Staff member receiving payment"
-                      className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2"
+                      className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950"
                     />
                   </label>
                   {!readyToActivate && (
