@@ -23,6 +23,7 @@ type ParticipantCorrectionInput = {
   lastName?: unknown;
   addressLine1?: unknown;
   addressLine2?: unknown;
+  town?: unknown;
   postcode?: unknown;
   idNumber?: unknown;
   dateOfBirth?: unknown;
