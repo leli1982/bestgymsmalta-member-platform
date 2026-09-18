@@ -290,7 +290,7 @@ export default function OperationalOrdersPage({
                   <input
                     value={staffName}
                     onChange={(event) => setStaffName(event.target.value)}
-                    className="mt-1 w-full rounded-xl border border-zinc-300 px-4 py-3 outline-none focus:border-orange-500"
+                    className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950 outline-none focus:border-orange-500"
                     placeholder="e.g. Maria Borg"
                   />
                 </label>
@@ -302,7 +302,7 @@ export default function OperationalOrdersPage({
                   <select
                     value={selectedGymId}
                     onChange={(event) => setSelectedGymId(event.target.value)}
-                    className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3"
+                    className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950"
                   >
                     {gyms.map((gym) => (
                       <option key={gym.id} value={gym.id}>
@@ -339,7 +339,7 @@ export default function OperationalOrdersPage({
                     value={item.itemName}
                     onChange={(event) => updateItem(index, "itemName", event.target.value)}
                     placeholder="Item"
-                    className="rounded-lg border border-zinc-300 bg-white px-3 py-2"
+                    className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950"
                   />
                   <input
                     value={item.quantity}
@@ -348,19 +348,19 @@ export default function OperationalOrdersPage({
                     min="0.01"
                     step="0.01"
                     placeholder="Qty"
-                    className="rounded-lg border border-zinc-300 bg-white px-3 py-2"
+                    className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950"
                   />
                   <input
                     value={item.unit}
                     onChange={(event) => updateItem(index, "unit", event.target.value)}
                     placeholder="Unit"
-                    className="rounded-lg border border-zinc-300 bg-white px-3 py-2"
+                    className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950"
                   />
                   <input
                     value={item.notes}
                     onChange={(event) => updateItem(index, "notes", event.target.value)}
                     placeholder="Item notes"
-                    className="rounded-lg border border-zinc-300 bg-white px-3 py-2"
+                    className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950"
                   />
                   <button
                     type="button"
@@ -385,7 +385,7 @@ export default function OperationalOrdersPage({
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 rows={3}
-                className="mt-1 w-full rounded-xl border border-zinc-300 px-4 py-3"
+                className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950"
                 placeholder="Optional notes for the manager"
               />
             </label>
