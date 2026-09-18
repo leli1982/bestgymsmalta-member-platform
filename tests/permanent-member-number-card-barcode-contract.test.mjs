@@ -7,16 +7,15 @@ const root = new URL("..", import.meta.url).pathname;
 const read = (path) => readFileSync(join(root, path), "utf8");
 const migrationPath = "supabase/migrations/20260918_123000_permanent_member_number_dual_barcode.sql";
 
-test("legacy members receive permanent BGM numbers without losing their physical card barcode", () => {
+test("legacy members receive permanent BGM numbers without losing duplicate pkCustomer values", () => {
   assert.equal(existsSync(join(root, migrationPath)), true);
   const sql = read(migrationPath);
-  assert.match(sql, /bgm_next_member_numbers*(/i);
-  assert.match(sql, /legacy_pk_customer/i);
-  assert.match(sql, /duplicate legacy members/i);
-  assert.match(sql, /^BGM[0-9]{7}$/i);
-  assert.match(sql, /member_number/i);
-  assert.match(sql, /unique index/i);
-  assert.match(sql, /before insert or update/i);
+  assert.equal(sql.includes("bgm_next_member_number()"), true);
+  assert.equal(sql.includes("legacy_pk_customer"), true);
+  assert.equal(sql.includes("duplicate legacy members"), true);
+  assert.equal(sql.includes("^BGM[0-9]{7}$"), true);
+  assert.equal(sql.includes("create unique index"), true);
+  assert.equal(sql.includes("before insert or update of member_number"), true);
 });
 
 test("barcode reception resolves physical cards, BGM numbers and legacy pkCustomer values", () => {
@@ -27,12 +26,16 @@ test("barcode reception resolves physical cards, BGM numbers and legacy pkCustom
   assert.ok(cardLookup >= 0, "physical credential lookup must exist");
   assert.ok(memberLookup > cardLookup, "permanent member-number fallback must exist after physical-card lookup");
   assert.ok(legacyLookup > memberLookup, "legacy pkCustomer fallback must exist after BGM-number lookup");
-  assert.match(route, /credentialKind/);
-  assert.match(route, /physical_card/);
-  assert.match(route, /member_number/);
-  assert.match(route, /legacy_pk_customer/);
-  assert.match(route, /ambiguous_card/);
-  assert.match(route, /legacyMatches/);
+  for (const token of [
+    "credentialKind",
+    "physical_card",
+    "member_number",
+    "legacy_pk_customer",
+    "ambiguous_card",
+    "legacyMatches",
+  ]) {
+    assert.equal(route.includes(token), true, `expected scan route to include ${token}`);
+  }
 });
 
 test("member app virtual barcode is the permanent BGM member number while physical card stays separate", () => {
@@ -40,42 +43,46 @@ test("member app virtual barcode is the permanent BGM member number while physic
   const card = read("components/member/MemberCard.tsx");
   const state = read("lib/memberCardState.ts");
 
-  assert.match(api, /cardBarcode:s*memberNumber/);
-  assert.match(api, /physicalCardBarcode/);
-  assert.match(api, /member_number/);
-  assert.match(card, /MemberBarcodes+memberNumber={cardBarcode}/);
+  assert.equal(api.includes("cardBarcode: memberNumber"), true);
+  assert.equal(api.includes("physicalCardBarcode"), true);
+  assert.equal(api.includes("member_number"), true);
+  assert.equal(card.includes("<MemberBarcode memberNumber={cardBarcode} />"), true);
   assert.match(card, /BGM member number/i);
   assert.match(card, /Physical card/i);
-  assert.match(state, /physicalCardBarcode/);
+  assert.equal(state.includes("physicalCardBarcode"), true);
 });
 
 test("staff home is always ready for a barcode scan without opening Reception", () => {
   const dashboard = read("components/staff/StaffDashboard.tsx");
   const scanner = read("components/staff/StaffHomeScanner.tsx");
-  assert.match(dashboard, /StaffHomeScanner/);
-  assert.match(scanner, //api/system/barcode/scan/);
-  assert.match(scanner, /Barcode scanner input/);
-  assert.match(scanner, /READY TO SCAN/);
-  assert.match(scanner, /autoFocus/);
-  assert.match(scanner, /ACCESS GRANTED/);
-  assert.match(scanner, /MEMBERSHIP EXPIRED/);
+  assert.equal(dashboard.includes("StaffHomeScanner"), true);
+  assert.equal(scanner.includes("/api/system/barcode/scan"), true);
+  assert.equal(scanner.includes("Barcode scanner input"), true);
+  assert.equal(scanner.includes("READY TO SCAN"), true);
+  assert.equal(scanner.includes("autoFocus"), true);
+  assert.equal(scanner.includes("ACCESS GRANTED"), true);
+  assert.equal(scanner.includes("MEMBERSHIP EXPIRED"), true);
 });
-
 
 test("new/replaced physical cards synchronize pkCustomer while BGM number remains permanent", () => {
   const sql = read("supabase/migrations/20260918_131000_pkcustomer_current_card_semantics.sql");
-  assert.match(sql, /bgm_member_card_credentials/i);
-  assert.match(sql, /legacy_pk_customer/i);
-  assert.match(sql, /barcode_value/i);
-  assert.match(sql, /after insert or update/i);
-  assert.match(sql, /status = 'active'/i);
-  assert.match(sql, /ambiguous_card/i);
+  for (const token of [
+    "bgm_member_card_credentials",
+    "legacy_pk_customer",
+    "barcode_value",
+    "after insert or update",
+    "status = 'active'",
+    "ambiguous_card",
+  ]) {
+    assert.equal(sql.toLowerCase().includes(token.toLowerCase()), true, `expected card semantics migration to include ${token}`);
+  }
 });
 
-test("legacy 15-column import keeps pkCustomer as the old barcode without rejecting duplicate active members", () => {
+test("legacy 15-column import keeps pkCustomer as the old barcode without requiring global uniqueness", () => {
   const core = read("lib/memberExchangeCore.ts");
   const importServer = read("lib/memberImportServer.ts");
-  assert.match(core, /pkCustomer/);
-  assert.match(importServer, /legacy_pk_customer/);
+  assert.equal(core.includes("pkCustomer"), true);
+  assert.equal(importServer.includes("legacy_pk_customer"), true);
+  assert.equal(importServer.includes('parsed.mode === "legacy_15" ? legacyPkCustomer : cardBarcode'), true);
   assert.doesNotMatch(importServer, /pkCustomer.*globally unique/i);
 });
