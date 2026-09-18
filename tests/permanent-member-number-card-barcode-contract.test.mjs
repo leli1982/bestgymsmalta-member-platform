@@ -11,8 +11,8 @@ test("legacy members receive permanent BGM numbers without losing their physical
   assert.equal(existsSync(join(root, migrationPath)), true);
   const sql = read(migrationPath);
   assert.match(sql, /bgm_next_member_numbers*(/i);
-  assert.match(sql, /bgm_member_card_credentials/i);
-  assert.match(sql, /barcode_value/i);
+  assert.match(sql, /legacy_pk_customer/i);
+  assert.match(sql, /duplicate legacy members/i);
   assert.match(sql, /^BGM[0-9]{7}$/i);
   assert.match(sql, /member_number/i);
   assert.match(sql, /unique index/i);
