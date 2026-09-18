@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import RegistrationForm from "@/components/membership/RegistrationForm";
 import StaffRenewalEnrollmentPage from "@/components/staff/StaffRenewalEnrollmentPage";
+import StaffMembershipReviewModal from "@/components/staff/StaffMembershipReviewModal";
+import { isUnder18On } from "@/lib/membershipRegistrationCore";
 import type { PublicEnrollmentConfig, RegistrationDraft } from "@/lib/membershipRegistrationTypes";
 
 function participantFileName(
@@ -34,6 +36,7 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState<{
+    applicationId: string;
     reference: string;
     photoWarnings: string[];
   } | null>(null);
