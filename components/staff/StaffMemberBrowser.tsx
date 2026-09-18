@@ -182,7 +182,7 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false }:
 
       {selected && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog" aria-modal="true">
-          <div className="max-h-[92vh] w-full overflow-auto rounded-t-3xl bg-white p-6 shadow-2xl sm:max-w-2xl sm:rounded-3xl">
+          <div className="max-h-[92vh] w-full overflow-auto rounded-t-3xl bg-white p-6 shadow-2xl sm:max-w-4xl sm:rounded-3xl">
             <div className="relative">
               <button
                 type="button"
@@ -198,10 +198,10 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false }:
                   <img
                     src={selected.photoUrl}
                     alt={selected.fullName ? `${selected.fullName} member photo` : "Member photo"}
-                    className="h-56 w-full shrink-0 rounded-3xl bg-zinc-100 object-cover sm:h-56 sm:w-56"
+                    className="h-72 w-full shrink-0 rounded-3xl bg-zinc-100 object-cover sm:h-80 sm:w-80"
                   />
                 ) : (
-                  <span className="flex h-56 w-full shrink-0 items-center justify-center rounded-3xl bg-zinc-100 text-zinc-400 sm:h-56 sm:w-56">
+                  <span className="flex h-72 w-full shrink-0 items-center justify-center rounded-3xl bg-zinc-100 text-zinc-400 sm:h-80 sm:w-80">
                     <UserRound className="h-20 w-20" />
                   </span>
                 )}
