@@ -60,6 +60,8 @@ test("new applications keep a match separate from explicit existing-member reuse
   assert.match(migration, /bgm_enforce_membership_application_identity_match/i);
   assert.match(migration, /application_kind/i);
   assert.match(migration, /existing_member_id\s*:=\s*null/i);
+  assert.match(migration, /tg_op\s*=\s*'INSERT'/i);
+  assert.match(migration, /existing_member_id\s+is\s+distinct\s+from\s+new\.matched_member_id/i);
   assert.match(migration, /identity_match_state\s*=\s*'expired_inactive'/i);
   assert.match(migration, /existing_member_id\s*=\s*null/i);
 });
