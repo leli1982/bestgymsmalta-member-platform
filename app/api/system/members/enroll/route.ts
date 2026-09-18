@@ -427,6 +427,20 @@ export async function POST(request: NextRequest) {
         .from("bgm_membership_applications")
         .delete()
         .eq("id", applicationId);
+
+      const participantMessage = String(participantResult.error.message || "");
+      const expectedParticipantValidation =
+        /active membership already exists|selected renewal member|renewal requires an existing member|identity/i.test(
+          participantMessage
+        );
+
+      if (expectedParticipantValidation) {
+        return NextResponse.json(
+          { error: participantMessage },
+          { status: 409 }
+        );
+      }
+
       throw participantResult.error;
     }
 
