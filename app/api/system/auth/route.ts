@@ -11,6 +11,10 @@ import { normalizeSystemUsername } from "@/lib/systemPermissions";
 
 export const dynamic = "force-dynamic";
 
+function clean(value: unknown) {
+  return String(value ?? "").trim();
+}
+
 function publicContext(context: Awaited<ReturnType<typeof getSystemContext>>) {
   if (!context) return null;
 
@@ -44,29 +48,56 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const gymSlug = clean(body.gymSlug).toLowerCase();
     const username = normalizeSystemUsername(String(body.username || ""));
     const password = String(body.password || "");
 
-    if (!username || !password) {
+    if (!password || (!gymSlug && !username)) {
       return NextResponse.json(
-        { error: "Username and password are required." },
+        { error: gymSlug ? "Staff password is required." : "Username and password are required." },
         { status: 400 }
       );
     }
 
     const supabase = getSupabaseAdmin();
-    const accountResult = await supabase
-      .from("bgm_system_users")
-      .select("id, gym_id, username, password_hash, display_name, is_super_admin, active")
-      .eq("username", username)
-      .maybeSingle();
+    let accountResult;
+
+    if (gymSlug) {
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(gymSlug)) {
+        return NextResponse.json({ error: "Gym staff login not found." }, { status: 404 });
+      }
+
+      const gymResult = await supabase
+        .from("bgm_gyms")
+        .select("id, name, public_enrollment_slug")
+        .eq("public_enrollment_slug", gymSlug)
+        .maybeSingle();
+
+      if (gymResult.error) throw gymResult.error;
+      if (!gymResult.data) {
+        return NextResponse.json({ error: "Gym staff login not found." }, { status: 404 });
+      }
+
+      accountResult = await supabase
+        .from("bgm_system_users")
+        .select("id, gym_id, username, password_hash, display_name, is_super_admin, active")
+        .eq("gym_id", gymResult.data.id)
+        .eq("is_super_admin", false)
+        .maybeSingle();
+    } else {
+      accountResult = await supabase
+        .from("bgm_system_users")
+        .select("id, gym_id, username, password_hash, display_name, is_super_admin, active")
+        .eq("username", username)
+        .maybeSingle();
+    }
 
     if (accountResult.error) throw accountResult.error;
     const account = accountResult.data;
 
     if (!account || !account.password_hash) {
       return NextResponse.json(
-        { error: "Incorrect username or password." },
+        { error: gymSlug ? "Incorrect staff password." : "Incorrect username or password." },
         { status: 401 }
       );
     }
@@ -82,7 +113,7 @@ export async function POST(request: NextRequest) {
 
     if (!passwordOk) {
       return NextResponse.json(
-        { error: "Incorrect username or password." },
+        { error: gymSlug ? "Incorrect staff password." : "Incorrect username or password." },
         { status: 401 }
       );
     }
