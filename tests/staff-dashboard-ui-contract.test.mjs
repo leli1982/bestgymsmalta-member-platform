@@ -125,3 +125,11 @@ test("member search API resolves enrollment gym names for the member popup", () 
   assert.match(route, /enrollmentGymName/);
   assert.match(route, /enrollment_gym_id/);
 });
+
+
+test("staff login username and password inputs always use readable dark-field styling", () => {
+  assert.match(login, /bg-zinc-900/);
+  assert.match(login, /text-white/);
+  assert.match(login, /placeholder:text-zinc-400/);
+  assert.match(login, /caret-white/);
+});
