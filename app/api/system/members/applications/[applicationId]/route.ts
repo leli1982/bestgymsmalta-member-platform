@@ -458,7 +458,7 @@ export async function PATCH(
 
     const review = validateReviewInput(body);
     if ("error" in review) {
-      return validationResponse(review.error);
+      return validationResponse(String(review.error));
     }
 
     if (action === "save_review") {
