@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
 
     let member: any = null;
     let card: any = null;
+    let credentialKind: "physical_card" | "member_number" | null = null;
 
     if (membershipNumber) {
       const cardResult = await supabase
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
       if (cardResult.error) throw cardResult.error;
       card = cardResult.data;
+      if (card) credentialKind = "physical_card";
 
       if (card?.member_id) {
         const memberResult = await supabase
@@ -81,6 +83,7 @@ export async function POST(request: NextRequest) {
         if (compatibilityResult.error) throw compatibilityResult.error;
         if ((compatibilityResult.data || []).length === 1) {
           member = compatibilityResult.data?.[0] || null;
+          credentialKind = member ? "member_number" : null;
         }
       }
     }
@@ -172,7 +175,13 @@ export async function POST(request: NextRequest) {
       scanId: scanResult.data.id,
       scannedAt: scanResult.data.scanned_at,
       scannedBarcode: membershipNumber || rawMembershipNumber,
-      cardStatus: card?.status || (member ? "legacy" : null),
+      credentialKind,
+      cardStatus:
+        credentialKind === "physical_card"
+          ? card?.status || null
+          : credentialKind === "member_number"
+            ? "member_number"
+            : null,
       gym: { id: gymResult.data.id, name: gymResult.data.name },
       member: member
         ? {
