@@ -14,7 +14,7 @@ import {
 export const dynamic = "force-dynamic";
 
 const MEMBER_SEARCH_FIELDS =
-  "id, member_number, first_name, last_name, full_name, status, membership_expiry, mobile, phone, email, id_number, address_line_1, address_line_2, postcode, date_of_birth, next_of_kin, enrollment_gym_id, legacy_pk_customer, legacy_gym, official_photo_path";
+  "id, member_number, first_name, last_name, full_name, status, membership_expiry, mobile, phone, email, id_number, address_line_1, address_line_2, town, postcode, date_of_birth, next_of_kin, enrollment_gym_id, legacy_pk_customer, legacy_gym, official_photo_path";
 const VALID_FILTERS = new Set<StaffMemberFilter>(["all", "active", "expired"]);
 
 function escapeLikePattern(value: string) {
@@ -54,6 +54,7 @@ function toCandidate(
     idNumber: member.id_number || "",
     addressLine1: member.address_line_1 || "",
     addressLine2: member.address_line_2 || "",
+    town: member.town || "",
     postcode: member.postcode || "",
     dateOfBirth: member.date_of_birth || "",
     nextOfKin: member.next_of_kin || "",
