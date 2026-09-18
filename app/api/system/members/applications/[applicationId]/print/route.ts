@@ -251,3 +251,68 @@ export async function GET(
     );
   }
 }
+
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ applicationId: string }> }
+) {
+  try {
+    const auth = await requireSystemPermission(request, "members.create");
+    if (auth.error || !auth.context) return auth.error;
+
+    const { applicationId } = await params;
+    const body = await request.json().catch(() => ({}));
+    if (String(body?.action || "") !== "confirm_print") {
+      return NextResponse.json({ error: "Invalid print confirmation action." }, { status: 400 });
+    }
+
+    const supabase = getSupabaseAdmin();
+    const applicationResult = await supabase
+      .from("bgm_membership_applications")
+      .select("id, application_reference, enrollment_gym_id, status")
+      .eq("id", applicationId)
+      .maybeSingle();
+
+    if (applicationResult.error) throw applicationResult.error;
+    const application = applicationResult.data;
+    if (!application) {
+      return NextResponse.json({ error: "Membership application not found." }, { status: 404 });
+    }
+
+    if (
+      !auth.context.isSuperAdmin &&
+      auth.context.gymId !== application.enrollment_gym_id
+    ) {
+      return NextResponse.json(
+        { error: "This application belongs to another gym." },
+        { status: 403 }
+      );
+    }
+
+    const confirmedAt = new Date().toISOString();
+    const auditResult = await supabase.from("bgm_audit_log").insert({
+      system_user_id: auth.context.systemUserId,
+      context_gym_id: application.enrollment_gym_id,
+      staff_name: null,
+      action_key: "membership.application.print_confirmed",
+      entity_type: "membership_application",
+      entity_id: application.id,
+      after_data: {
+        applicationReference: application.application_reference,
+        status: application.status,
+        confirmedAt,
+      },
+    });
+
+    if (auditResult.error) throw auditResult.error;
+
+    return NextResponse.json({ ok: true, confirmedAt });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "Could not confirm that this membership was printed." },
+      { status: 500 }
+    );
+  }
+}
