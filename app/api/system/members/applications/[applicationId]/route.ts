@@ -99,6 +99,7 @@ function normalizeReviewParticipants(rawParticipants: ParticipantCorrectionInput
     lastName: clean(participant.lastName),
     addressLine1: optional(participant.addressLine1),
     addressLine2: optional(participant.addressLine2),
+    town: optional(participant.town),
     postcode: optional(participant.postcode),
     idNumber: optional(participant.idNumber),
     dateOfBirth: optional(participant.dateOfBirth),
