@@ -30,13 +30,17 @@ test("staff login preserves existing auth endpoints and hands authenticated user
 });
 
 test("staff dashboard is icon-first and exposes core reception actions", () => {
-  for (const label of ["Members", "New Member", "Card / Reception", "Sundries", "Bar"]) {
+  for (const label of ["Members", "New Member", "Renew", "Waiting", "Reception Tools", "Sundries", "Bar"]) {
     assert.match(dashboard, new RegExp(label.replace("/", "\\/")));
   }
   assert.match(dashboard, /lucide-react/);
   assert.match(dashboard, /#ff5a0a/i);
   assert.match(dashboard, /Realtime|connection/i);
   assert.match(dashboard, /WAITING/);
+  assert.match(dashboard, /membersOpen/);
+  assert.match(dashboard, /href=["']\/staff\/members\/enroll\?kind=new["']/);
+  assert.match(dashboard, /href=["']\/staff\/members\/enroll\?kind=renewal["']/);
+  assert.doesNotMatch(dashboard, /membershipActionOpen/);
   assert.doesNotMatch(dashboard, /gym selector/i);
 });
 
@@ -47,6 +51,7 @@ test("member browser exposes browse search and All Active Expired filters", () =
   assert.match(browser, /\{\s*key:\s*["']expired["'],\s*label:\s*["']EXPIRED["']\s*\}/);
   assert.match(browser, /AbortController/);
   assert.match(browser, /member number|ID number|phone|email/i);
+  assert.match(browser, /pkCustomer/i);
 });
 
 test("member browser keeps profile fields read-only while exposing canonical status labels and controlled renewal", () => {
@@ -56,6 +61,7 @@ test("member browser keeps profile fields read-only while exposing canonical sta
   assert.doesNotMatch(browser, /Save Member|Update Member|Delete Member/);
   assert.match(browser, /canRenew/);
   assert.match(browser, /RENEW MEMBERSHIP/);
+  assert.match(browser, /Physical card \/ pkCustomer/);
 });
 
 test("new membership queue exposes waiting state and recoverable refreshes", () => {
