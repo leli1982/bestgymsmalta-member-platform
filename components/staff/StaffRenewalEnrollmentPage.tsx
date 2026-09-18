@@ -429,40 +429,6 @@ export default function MembershipEnrollmentPage() {
     }
   }
 
-  async function activateApplication() {
-    if (!application) return;
-    if (!activationStaffName.trim()) {
-      setError("Activation Staff Name is required before payment can be confirmed.");
-      return;
-    }
-
-    setActivating(true);
-    setError("");
-    setMessage("");
-    try {
-      const response = await fetch("/api/system/members/enroll", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "activate",
-          applicationId: application.id,
-          activationStaffName: activationStaffName.trim(),
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        setError(data.error || "Could not activate membership.");
-        return;
-      }
-      setActivation(data.activation);
-      setMessage("Payment confirmed and membership activated successfully.");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch {
-      setError("Could not activate membership.");
-    } finally {
-      setActivating(false);
-    }
-  }
 
   if (loading) {
     return (
