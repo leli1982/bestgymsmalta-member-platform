@@ -7,6 +7,7 @@ type Participant = {
   id: string;
   participantOrder: number;
   fullName: string;
+  existingMemberId: string | null;
   hasPhoto: boolean;
   photoUrl: string | null;
   reservedBarcode: string | null;
@@ -54,7 +55,7 @@ export default function PendingMembershipActions() {
   async function processCard(application: Application, participant: Participant) {
     const barcode = (barcodes[participant.id] || "").trim();
     if (!barcode) {
-      setError(application.kind === "renewal" ? "Scan the membership card first." : "Scan the preprinted membership card first.");
+      setError(participant.existingMemberId ? "Scan the membership card first." : "Scan the preprinted membership card first.");
       return;
     }
     setError("");
@@ -89,8 +90,7 @@ export default function PendingMembershipActions() {
 
   function isReady(application: Application) {
     return application.participants.every((participant) =>
-      participant.hasPhoto &&
-      (application.kind === "renewal" ? participant.cardVerified : Boolean(participant.reservedBarcode))
+      (participant.existingMemberId ? participant.cardVerified : Boolean(participant.reservedBarcode))
     );
   }
 
@@ -187,14 +187,14 @@ export default function PendingMembershipActions() {
                         <div className="mt-3">
                           <OfficialMemberPhotoCapture
                             applicationMemberId={participant.id}
-                            source={renewal ? "renewal" : undefined}
+                            source={participant.existingMemberId ? "renewal" : undefined}
                             staffName={application.staffName}
                             onSaved={() => void load()}
                           />
                         </div>
                       )}
 
-                      {renewal ? (
+                      {participant.existingMemberId ? (
                         <div className="mt-4 space-y-3">
                           <div className="rounded-xl bg-zinc-50 p-3 text-sm">
                             <p className="font-bold">Current card</p>
@@ -257,9 +257,7 @@ export default function PendingMembershipActions() {
                   </label>
                   {!readyToActivate && (
                     <p className="mt-3 text-sm font-semibold text-amber-700">
-                      {renewal
-                        ? "Complete every official photo and verify every membership card before activation."
-                        : "Complete every official photo and card reservation before activation."}
+                      Complete every participant verification and card action before activation.
                     </p>
                   )}
                   <button
