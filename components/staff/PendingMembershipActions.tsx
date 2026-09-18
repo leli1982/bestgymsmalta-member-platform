@@ -213,7 +213,7 @@ export default function PendingMembershipActions() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-700">Membership action required</p>
-          <h2 className="mt-1 text-xl font-black">MEMBERSHIP READY — CARD ACTION REQUIRED</h2>
+          <h2 className="mt-1 text-xl font-black">MEMBERSHIP READY — COMPLETE CARD & PAYMENT</h2>
         </div>
         <span className="rounded-full bg-orange-600 px-3 py-1 text-xs font-black text-white">{applications.length}</span>
       </div>
