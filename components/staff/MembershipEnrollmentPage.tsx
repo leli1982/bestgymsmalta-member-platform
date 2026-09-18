@@ -130,6 +130,7 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
           lastName: participant.lastName,
           addressLine1: participant.addressLine1,
           addressLine2: participant.addressLine2,
+          town: participant.town,
           postcode: participant.postcode,
           idNumber: participant.idNumber,
           dateOfBirth: participant.dateOfBirth,
