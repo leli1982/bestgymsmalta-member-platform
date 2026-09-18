@@ -572,7 +572,7 @@ export default function StaffMembershipReviewModal({
               {application?.reference || "Membership application"}
             </p>
             <h2 className="truncate text-xl font-black text-zinc-950">
-              Review membership
+              {application?.status === "awaiting_payment" ? "Complete membership" : "Review membership"}
             </h2>
             {application && (
               <p className="mt-0.5 text-xs font-semibold text-zinc-400">
