@@ -13,6 +13,9 @@ export default function StaffApplicationPrint({
 }) {
   const [application, setApplication] = useState<PrintableApplication | null>(null);
   const [error, setError] = useState("");
+  const [printDialogOpened, setPrintDialogOpened] = useState(false);
+  const [confirmingPrint, setConfirmingPrint] = useState(false);
+  const [printConfirmed, setPrintConfirmed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,6 +44,35 @@ export default function StaffApplicationPrint({
       cancelled = true;
     };
   }, [applicationId]);
+
+  async function confirmPrinted() {
+    setConfirmingPrint(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/system/members/applications/${encodeURIComponent(applicationId)}/print`,
+        {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "confirm_print" }),
+        }
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "Could not confirm printing.");
+      }
+      setPrintConfirmed(true);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Could not confirm printing."
+      );
+    } finally {
+      setConfirmingPrint(false);
+    }
+  }
 
   if (error) {
     return (
@@ -74,13 +106,38 @@ export default function StaffApplicationPrint({
           {application.participants.length} member sheet
           {application.participants.length === 1 ? "" : "s"} · one A4 page per member
         </p>
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-black text-white"
-        >
-          <Printer className="h-4 w-4" /> Print
-        </button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setPrintDialogOpened(true);
+              window.print();
+            }}
+            disabled={printConfirmed}
+            className="inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-black text-white disabled:opacity-40"
+          >
+            <Printer className="h-4 w-4" /> {printConfirmed ? "Printed" : "Print Membership"}
+          </button>
+          {printDialogOpened && !printConfirmed ? (
+            <button
+              type="button"
+              onClick={() => void confirmPrinted()}
+              disabled={confirmingPrint}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white disabled:opacity-40"
+            >
+              {confirmingPrint ? "Confirming…" : "CONFIRM PRINTED"}
+            </button>
+          ) : null}
+          {printConfirmed ? (
+            <button
+              type="button"
+              onClick={() => window.close()}
+              className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-5 py-3 text-sm font-black text-emerald-800"
+            >
+              Return to Staff Flow
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {application.participants.map((participant) => (
