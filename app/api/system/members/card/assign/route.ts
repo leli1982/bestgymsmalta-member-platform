@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabaseAdmin();
     let applicationsQuery = supabase
       .from("bgm_membership_applications")
-      .select("id, application_reference, application_kind, membership_type, duration_key, start_date, expiry_date, enrollment_gym_id, staff_name, status, created_at")
+      .select("id, application_reference, application_kind, membership_type, duration_key, start_date, expiry_date, enrollment_gym_id, staff_name, status, created_at, base_price_cents, currency")
       .in("application_kind", ["new", "renewal"])
       .in("status", ["submitted", "awaiting_payment"])
       .order("created_at", { ascending: true });
@@ -195,6 +195,8 @@ export async function GET(request: NextRequest) {
         enrollmentGymId: application.enrollment_gym_id,
         staffName: application.staff_name,
         status: application.status,
+        basePriceCents: application.base_price_cents,
+        currency: application.currency || "EUR",
         participants: participantsByApplication.get(application.id) || [],
       })),
     });
