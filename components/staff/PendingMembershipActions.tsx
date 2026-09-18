@@ -255,7 +255,7 @@ export default function PendingMembershipActions() {
                   </label>
                   {!readyToActivate && (
                     <p className="mt-3 text-sm font-semibold text-amber-700">
-                      Complete every participant verification and card action before activation.
+                      Complete every participant verification and card action before activation. A missing photo does not block activation.
                     </p>
                   )}
                   <button
