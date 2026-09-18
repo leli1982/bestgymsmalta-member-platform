@@ -365,7 +365,14 @@ export default function BarcodeReceptionPage() {
                   {result.member.fullName}
                 </h1>
                 <p className="mt-2 text-xl font-bold text-zinc-500">
-                  Card {result.member.memberNumber || result.scannedBarcode || "Not linked"}
+                  BGM Member No. {result.member.memberNumber}
+                </p>
+                <p className="mt-1 font-mono text-sm font-bold text-zinc-400">
+                  Scanned {result.credentialKind === "physical_card"
+                    ? "physical card"
+                    : result.credentialKind === "legacy_pk_customer"
+                      ? "legacy pkCustomer"
+                      : "BGM number"}: {result.scannedBarcode || "—"}
                 </p>
                 <dl className="mt-6 grid gap-3 sm:grid-cols-2">
                   <Detail
