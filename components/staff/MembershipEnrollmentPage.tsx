@@ -268,7 +268,7 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
       {success ? (
         <div className="rounded-2xl border border-emerald-400/25 bg-emerald-500/10 p-4 text-sm text-emerald-100">
           <p className="font-semibold">
-            Application {success.reference} saved for staff review.
+            Application {success.reference} is ready. Continue with card assignment and payment.
           </p>
           {success.photoWarnings.length ? (
             <div className="mt-2 space-y-1 text-amber-100">
@@ -281,13 +281,23 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
         </div>
       ) : null}
 
-      <RegistrationForm
-        mode="staff"
-        gym={config.gym}
-        config={config}
-        staffPhotoPolicy="optional"
-        onSubmit={submitRegistration}
-      />
+      {!success ? (
+        <RegistrationForm
+          mode="staff"
+          gym={config.gym}
+          config={config}
+          staffPhotoPolicy="optional"
+          onSubmit={submitRegistration}
+        />
+      ) : null}
+
+      {success ? (
+        <StaffMembershipReviewModal
+          applicationId={success.applicationId}
+          onClose={() => window.location.assign("/staff")}
+          onChanged={() => {}}
+        />
+      ) : null}
     </div>
   );
 }
