@@ -18,12 +18,12 @@ const enrollment = read("components/staff/MembershipEnrollmentPage.tsx");
 const renewal = read("components/staff/StaffRenewalEnrollmentPage.tsx");
 const searchRoute = read("app/api/system/members/search/route.ts");
 
-test("New Member tile opens a chooser for new membership or renewal", () => {
-  assert.match(dashboard, /membershipAction|membershipChooser|membershipMenu/i);
-  assert.match(dashboard, /NEW MEMBER/);
-  assert.match(dashboard, /RENEW/);
+test("staff home exposes direct New Member and Renew actions without an extra chooser", () => {
+  assert.match(dashboard, /New Member/);
+  assert.match(dashboard, /Renew/);
   assert.match(dashboard, /\/staff\/members\/enroll\?kind=new/);
   assert.match(dashboard, /\/staff\/members\/enroll\?kind=renewal/);
+  assert.doesNotMatch(dashboard, /membershipActionOpen/);
 });
 
 test("member detail exposes direct renew membership action", () => {
