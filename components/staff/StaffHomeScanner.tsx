@@ -56,6 +56,39 @@ function resultTitle(result: ScanResponse) {
   return "MEMBER NOT FOUND";
 }
 
+function playTone(kind: "success" | "warning") {
+  try {
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const context = new AudioContextClass();
+    const gain = context.createGain();
+    gain.connect(context.destination);
+    gain.gain.setValueAtTime(0.0001, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.18, context.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.35);
+
+    const oscillator = context.createOscillator();
+    oscillator.connect(gain);
+    oscillator.type = kind === "success" ? "sine" : "square";
+    oscillator.frequency.setValueAtTime(
+      kind === "success" ? 880 : 220,
+      context.currentTime
+    );
+    if (kind === "warning") {
+      oscillator.frequency.setValueAtTime(165, context.currentTime + 0.15);
+    }
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.36);
+    oscillator.onended = () => void context.close();
+  } catch {
+    // The full-screen visual result remains authoritative if audio is unavailable.
+  }
+}
+
 export default function StaffHomeScanner({ user }: { user: SystemUser }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const scannerBuffer = useRef("");
@@ -105,6 +138,10 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
       const scan = data as ScanResponse;
       setResult(scan);
       setValue("");
+      playTone(scan.granted ? "success" : "warning");
+      if (scan.granted && scan.member?.photoRequired) {
+        window.setTimeout(() => playTone("warning"), 220);
+      }
       if (scan.granted && !scan.member?.photoRequired) {
         resetTimer.current = window.setTimeout(reset, 3500);
       }
