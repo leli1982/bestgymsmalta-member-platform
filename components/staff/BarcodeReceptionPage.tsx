@@ -20,7 +20,8 @@ type BarcodeResult =
   | "unknown_card"
   | "unknown_member"
   | "disabled_card"
-  | "invalid_barcode";
+  | "invalid_barcode"
+  | "ambiguous_card";
 
 type ScanResponse = {
   result: BarcodeResult;
@@ -30,6 +31,14 @@ type ScanResponse = {
   scannedAt?: string;
   scannedBarcode?: string;
   cardStatus?: string | null;
+  credentialKind?: "physical_card" | "member_number" | "legacy_pk_customer" | null;
+  legacyMatches?: Array<{
+    id: string;
+    memberNumber: string;
+    fullName: string;
+    status: string;
+    membershipExpiry: string | null;
+  }>;
   gym?: { id: string; name: string };
   member: null | {
     id: string;
@@ -73,6 +82,14 @@ function presentation(result: BarcodeResult) {
   if (result === "inactive") {
     return {
       title: "MEMBERSHIP INACTIVE",
+      severity: "warning" as const,
+      tone: "warning" as const,
+      autoResetMs: 0,
+    };
+  }
+  if (result === "ambiguous_card") {
+    return {
+      title: "DUPLICATE LEGACY NUMBER",
       severity: "warning" as const,
       tone: "warning" as const,
       autoResetMs: 0,
@@ -296,6 +313,30 @@ export default function BarcodeReceptionPage() {
               </p>
             )}
           </div>
+
+          {result.result === "ambiguous_card" && (result.legacyMatches || []).length > 0 && (
+            <div className="mt-8 rounded-2xl border-4 border-red-200 bg-red-50 p-5">
+              <p className="text-center text-2xl font-black text-red-700">
+                DUPLICATE LEGACY NUMBER
+              </p>
+              <p className="mt-2 text-center text-sm font-bold text-red-900">
+                More than one active legacy member uses this old pkCustomer/card number. No access has been granted.
+              </p>
+              <div className="mx-auto mt-4 grid max-w-xl gap-2">
+                {(result.legacyMatches || []).map((candidate) => (
+                  <div key={candidate.id} className="rounded-xl bg-white p-3 text-left">
+                    <p className="font-black text-zinc-950">{candidate.fullName}</p>
+                    <p className="mt-1 font-mono text-xs font-bold text-zinc-500">
+                      {candidate.memberNumber} · {candidate.membershipExpiry || "No expiry date"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-center text-sm font-bold text-red-800">
+                Search and verify the correct member manually before allowing entry.
+              </p>
+            </div>
+          )}
 
           {result.member ? (
             <div className="mt-8 grid gap-6 md:grid-cols-[220px_1fr] md:items-start">
