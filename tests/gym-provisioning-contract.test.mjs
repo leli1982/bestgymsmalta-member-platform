@@ -70,3 +70,13 @@ test("Super Admin UI requires staff password for active gyms that are not yet pr
   assert.match(admin, /Join route/);
   assert.match(admin, /Staff route/);
 });
+
+
+test("system Super Admin session can enter BGM Admin and manage gym provisioning", () => {
+  const adminAuth = read("app/api/admin/auth/route.ts");
+  const gymRoute = read("app/api/admin/gyms/route.ts");
+  assert.match(adminAuth, /getSystemContext/);
+  assert.match(adminAuth, /isSuperAdmin/);
+  assert.match(adminAuth, /source:\s*["']super_admin["']/);
+  assert.match(gymRoute, /Super Admin access is required/);
+});
