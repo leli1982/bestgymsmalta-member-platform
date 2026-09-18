@@ -8,8 +8,21 @@ import { requireSystemPermission } from "@/lib/systemAuth";
 
 export const dynamic = "force-dynamic";
 
+const MEMBER_SELECT =
+  "id, member_number, full_name, status, membership_expiry, enrollment_gym_id, official_photo_path, legacy_pk_customer";
+
 function clean(value: unknown) {
   return String(value ?? "").trim();
+}
+
+function accessFor(member: any) {
+  return evaluateBarcodeAccess({
+    member: {
+      status: member.status,
+      membershipExpiry: member.membership_expiry,
+    },
+    today: todayMaltaDate(),
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -48,7 +61,13 @@ export async function POST(request: NextRequest) {
 
     let member: any = null;
     let card: any = null;
-    let credentialKind: "physical_card" | "member_number" | null = null;
+    let credentialKind:
+      | "physical_card"
+      | "member_number"
+      | "legacy_pk_customer"
+      | null = null;
+    let legacyMatches: any[] = [];
+    let ambiguousLegacyCard = false;
 
     if (membershipNumber) {
       const cardResult = await supabase
@@ -63,27 +82,51 @@ export async function POST(request: NextRequest) {
       if (card?.member_id) {
         const memberResult = await supabase
           .from("bgm_members")
-          .select(
-            "id, member_number, full_name, status, membership_expiry, enrollment_gym_id, official_photo_path"
-          )
+          .select(MEMBER_SELECT)
           .eq("id", card.member_id)
           .maybeSingle();
         if (memberResult.error) throw memberResult.error;
         member = memberResult.data;
       } else if (!card) {
-        // Transitional fallback for migrated members whose current issued card is
-        // still mirrored only in member_number. Never guess if the mirror is ambiguous.
-        const compatibilityResult = await supabase
+        const memberNumberResult = await supabase
           .from("bgm_members")
-          .select(
-            "id, member_number, full_name, status, membership_expiry, enrollment_gym_id, official_photo_path"
-          )
+          .select(MEMBER_SELECT)
           .eq("member_number", membershipNumber)
           .limit(2);
-        if (compatibilityResult.error) throw compatibilityResult.error;
-        if ((compatibilityResult.data || []).length === 1) {
-          member = compatibilityResult.data?.[0] || null;
+        if (memberNumberResult.error) throw memberNumberResult.error;
+
+        if ((memberNumberResult.data || []).length === 1) {
+          member = memberNumberResult.data?.[0] || null;
           credentialKind = member ? "member_number" : null;
+        } else if ((memberNumberResult.data || []).length === 0) {
+          // The legacy system used pkCustomer as the printed/scanned membership
+          // number. Duplicate historical values are legitimate records, so never
+          // discard them. Ignore inactive duplicates when exactly one live member
+          // remains; if multiple live members share the number, do not guess.
+          const legacyResult = await supabase
+            .from("bgm_members")
+            .select(MEMBER_SELECT)
+            .eq("legacy_pk_customer", membershipNumber)
+            .limit(50);
+          if (legacyResult.error) throw legacyResult.error;
+
+          legacyMatches = legacyResult.data || [];
+          if (legacyMatches.length === 1) {
+            member = legacyMatches[0];
+            credentialKind = "legacy_pk_customer";
+          } else if (legacyMatches.length > 1) {
+            const liveMatches = legacyMatches.filter(
+              (candidate) => accessFor(candidate).granted
+            );
+
+            if (liveMatches.length === 1) {
+              member = liveMatches[0];
+              credentialKind = "legacy_pk_customer";
+            } else if (liveMatches.length > 1) {
+              ambiguousLegacyCard = true;
+              credentialKind = "legacy_pk_customer";
+            }
+          }
         }
       }
     }
@@ -96,7 +139,8 @@ export async function POST(request: NextRequest) {
         | "unknown_member"
         | "unknown_card"
         | "disabled_card"
-        | "invalid_barcode";
+        | "invalid_barcode"
+        | "ambiguous_card";
       granted: boolean;
     };
 
@@ -107,17 +151,16 @@ export async function POST(request: NextRequest) {
       decision = { result: "invalid_barcode", granted: false };
     } else if (card && card.status !== "active") {
       decision = { result: "disabled_card", granted: false };
+    } else if (ambiguousLegacyCard) {
+      decision = { result: "ambiguous_card", granted: false };
+    } else if (!member && legacyMatches.length > 1) {
+      // More than one historical row exists but none is currently live.
+      // The old number is known, but access is not granted.
+      decision = { result: "inactive", granted: false };
     } else if (!member) {
       decision = { result: "unknown_card", granted: false };
     } else {
-      const membershipDecision = evaluateBarcodeAccess({
-        member: {
-          status: member.status,
-          membershipExpiry: member.membership_expiry,
-        },
-        today: todayMaltaDate(),
-      });
-
+      const membershipDecision = accessFor(member);
       decision = membershipDecision;
     }
 
@@ -134,7 +177,8 @@ export async function POST(request: NextRequest) {
       duplicate = checkin.duplicate;
     }
 
-    const credentialValue = membershipNumber || rawMembershipNumber || "(blank)";
+    const credentialValue =
+      membershipNumber || rawMembershipNumber || "(blank)";
     const scanResult = await supabase
       .from("bgm_access_scans")
       .insert({
@@ -181,12 +225,25 @@ export async function POST(request: NextRequest) {
           ? card?.status || null
           : credentialKind === "member_number"
             ? "member_number"
-            : null,
+            : credentialKind === "legacy_pk_customer"
+              ? "legacy_pk_customer"
+              : null,
+      legacyMatches: ambiguousLegacyCard
+        ? legacyMatches
+            .filter((candidate) => accessFor(candidate).granted)
+            .map((candidate) => ({
+              id: candidate.id,
+              memberNumber: candidate.member_number,
+              fullName: candidate.full_name,
+              status: candidate.status,
+              membershipExpiry: candidate.membership_expiry,
+            }))
+        : [],
       gym: { id: gymResult.data.id, name: gymResult.data.name },
       member: member
         ? {
             id: member.id,
-            memberNumber: member.member_number || membershipNumber,
+            memberNumber: member.member_number,
             fullName: member.full_name,
             status: member.status,
             membershipExpiry: member.membership_expiry,
