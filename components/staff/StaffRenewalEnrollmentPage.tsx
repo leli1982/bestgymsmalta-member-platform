@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import StaffMembershipReviewModal from "@/components/staff/StaffMembershipReviewModal";
 
 type SystemUser = {
   id: string;
@@ -31,6 +32,7 @@ type Candidate = {
   email: string;
   addressLine1?: string;
   addressLine2?: string;
+  town?: string;
   postcode?: string;
   idNumber?: string;
   dateOfBirth?: string;
@@ -38,6 +40,7 @@ type Candidate = {
   legacyPkCustomer: string;
   legacyGym: string;
   officialPhotoPath?: string | null;
+  photoUrl?: string | null;
 };
 
 type ParticipantForm = {
@@ -47,6 +50,7 @@ type ParticipantForm = {
   lastName: string;
   addressLine1: string;
   addressLine2: string;
+  town: string;
   postcode: string;
   idNumber: string;
   dateOfBirth: string;
@@ -105,6 +109,7 @@ function blankParticipant(): ParticipantForm {
     lastName: "",
     addressLine1: "",
     addressLine2: "",
+    town: "",
     postcode: "",
     idNumber: "",
     dateOfBirth: "",
@@ -127,6 +132,7 @@ function participantFromCandidate(candidate: Candidate): ParticipantForm {
     lastName: candidate.lastName || fallbackLastName,
     addressLine1: candidate.addressLine1 || "",
     addressLine2: candidate.addressLine2 || "",
+    town: candidate.town || "",
     postcode: candidate.postcode || "",
     idNumber: candidate.idNumber || "",
     dateOfBirth: candidate.dateOfBirth || "",
