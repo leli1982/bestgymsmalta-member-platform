@@ -28,7 +28,7 @@ test("access scans store photo warning separately from the access result", () =>
   const route = readFileSync(scanRoutePath, "utf8");
 
   assert.match(migration, /photo_required_warning\s+boolean\s+not\s+null\s+default\s+false/i);
-  assert.match(route, /photo_required_warning:\s*!hasPhoto/);
+  assert.match(route, /photo_required_warning:\\s*photoRequired/);
   assert.match(route, /result:\s*decision\.result/);
   assert.match(route, /checkin_id:\s*checkinId/);
 });
