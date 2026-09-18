@@ -309,16 +309,19 @@ try {
   await waitVisible(page.getByRole("heading", { name: "READY TO SCAN", exact: true }));
   assert.equal(homeScanCount, 1, "staff home must process a barcode without opening Reception");
   await waitVisible(page.getByRole("button", { name: "Members", exact: true }));
-  await waitVisible(page.getByRole("button", { name: "New Member", exact: true }));
-  await waitVisible(page.getByRole("link", { name: "Card / Reception", exact: true }));
+  await waitVisible(page.getByRole("link", { name: "New Member", exact: true }));
+  await waitVisible(page.getByRole("link", { name: "Renew", exact: true }));
+  await waitVisible(page.getByRole("button", { name: "Waiting", exact: true }));
+  await waitVisible(page.getByRole("link", { name: "Reception Tools", exact: true }));
   await waitVisible(page.getByRole("link", { name: "Sundries", exact: true }));
   await waitVisible(page.getByRole("link", { name: "Bar", exact: true }));
   assert.equal(await page.getByText("1 WAITING", { exact: true }).count() >= 1, true);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "staff dashboard must fit tablet viewport");
   await page.screenshot({ path: artifacts + "/dashboard-1024.png", fullPage: true });
 
-  await waitVisible(page.getByPlaceholder("Search name, member number, ID number, phone or email"));
-  await page.getByPlaceholder("Search name, member number, ID number, phone or email").fill("123456M");
+  await page.getByRole("button", { name: "Members", exact: true }).click();
+  await waitVisible(page.getByPlaceholder("Search name, BGM number, card / pkCustomer, ID, phone or email"));
+  await page.getByPlaceholder("Search name, BGM number, card / pkCustomer, ID, phone or email").fill("123456M");
   await waitVisible(page.getByText("Existing Member", { exact: true }));
   await page.getByRole("button", { name: "ACTIVE", exact: true }).click();
   await waitVisible(page.getByText("Existing Member", { exact: true }));
