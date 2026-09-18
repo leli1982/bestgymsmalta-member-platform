@@ -14,7 +14,8 @@ test("valid membership access is never denied only because the official photo is
   const route = readFileSync(scanRoutePath, "utf8");
   assert.match(route, /normalizeBarcodePayload/);
   assert.match(route, /bgm_member_card_credentials/);
-  assert.match(route, /const membershipDecision = evaluateBarcodeAccess/);
+  assert.match(route, /function accessFor/);
+  assert.match(route, /const membershipDecision = accessFor\(member\)/);
   assert.match(route, /decision = membershipDecision/);
   assert.doesNotMatch(route, /photo_required["']\s*,\s*granted:\s*false/);
   assert.match(route, /photoRequired:\s*!hasPhoto/);
