@@ -232,6 +232,10 @@ export default function MembershipEnrollmentPage() {
     () => participants.filter((participant) => participant.existingMemberId),
     [participants]
   );
+  const automaticRenewalStart = useMemo(
+    () => renewalStartForCandidates(selectedRenewalCandidates),
+    [selectedRenewalCandidates]
+  );
 
   function resetWorkflow() {
     setKind(null);
@@ -277,6 +281,7 @@ export default function MembershipEnrollmentPage() {
 
     if (kind === "renewal" && nextCount === 1) {
       setParticipants((current) => current.slice(0, 1));
+      setSelectedRenewalCandidates((current) => current.slice(0, 1));
     }
   }
 
@@ -356,6 +361,9 @@ export default function MembershipEnrollmentPage() {
             durationKey as MembershipDurationKey,
           ),
         );
+      } else {
+        setStartDate("");
+        setExpiryDate("");
       }
       return next;
     });
@@ -780,6 +788,7 @@ export default function MembershipEnrollmentPage() {
                     required
                     type="date"
                     value={startDate}
+                    readOnly={kind === "renewal" && Boolean(automaticRenewalStart)}
                     onChange={(event) => {
                       const nextStart = event.target.value;
                       setStartDate(nextStart);
@@ -792,7 +801,11 @@ export default function MembershipEnrollmentPage() {
                         );
                       }
                     }}
-                    className={inputClass}
+                    className={`${inputClass} ${
+                      kind === "renewal" && automaticRenewalStart
+                        ? "cursor-not-allowed bg-zinc-100 font-black text-emerald-800"
+                        : ""
+                    }`}
                   />
                 </Field>
                 <Field label="Expiry Date">
@@ -806,9 +819,15 @@ export default function MembershipEnrollmentPage() {
                   />
                 </Field>
               </div>
-              <p className="mt-3 text-xs text-zinc-500">
-                Starting and expiry dates are explicit so the exact membership period is visible and auditable before payment.
-              </p>
+              {kind === "renewal" && automaticRenewalStart ? (
+                <p className="mt-3 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
+                  Current membership is still active. Renewal starts automatically on {automaticRenewalStart}, the day after the current membership expires.
+                </p>
+              ) : (
+                <p className="mt-3 text-xs text-zinc-500">
+                  Starting and expiry dates are explicit so the exact membership period is visible and auditable before payment.
+                </p>
+              )}
             </section>
 
             {kind === "renewal" && membershipType === "couples" && renewalSelections.length < 2 && (
