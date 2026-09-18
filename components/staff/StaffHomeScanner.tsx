@@ -20,11 +20,19 @@ type ScanResponse = {
     | "unknown_card"
     | "unknown_member"
     | "disabled_card"
-    | "invalid_barcode";
+    | "invalid_barcode"
+    | "ambiguous_card";
   granted: boolean;
   duplicate?: boolean;
   scannedBarcode?: string;
-  credentialKind?: "physical_card" | "member_number" | null;
+  credentialKind?: "physical_card" | "member_number" | "legacy_pk_customer" | null;
+  legacyMatches?: Array<{
+    id: string;
+    memberNumber: string;
+    fullName: string;
+    status: string;
+    membershipExpiry: string | null;
+  }>;
   cardStatus?: string | null;
   gym?: { id: string; name: string };
   member: null | {
@@ -44,6 +52,7 @@ function resultTitle(result: ScanResponse) {
   if (result.result === "expired") return "MEMBERSHIP EXPIRED";
   if (result.result === "inactive") return "MEMBERSHIP INACTIVE";
   if (result.result === "disabled_card") return "CARD NOT ACTIVE";
+  if (result.result === "ambiguous_card") return "DUPLICATE LEGACY NUMBER";
   return "MEMBER NOT FOUND";
 }
 
@@ -232,6 +241,27 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
               {resultTitle(result)}
             </h2>
 
+            {result.result === "ambiguous_card" && (result.legacyMatches || []).length > 0 && (
+              <div className="mx-auto mt-6 max-w-xl rounded-2xl border-2 border-red-200 bg-red-50 p-4 text-left">
+                <p className="text-sm font-black uppercase tracking-wide text-red-700">
+                  More than one active legacy member uses this old number
+                </p>
+                <p className="mt-1 text-sm font-semibold text-red-900">
+                  No entry was granted. Search the member by name/BGM number and verify them manually.
+                </p>
+                <div className="mt-3 grid gap-2">
+                  {(result.legacyMatches || []).map((candidate) => (
+                    <div key={candidate.id} className="rounded-xl bg-white p-3">
+                      <p className="font-black text-zinc-950">{candidate.fullName}</p>
+                      <p className="mt-1 font-mono text-xs font-bold text-zinc-500">
+                        {candidate.memberNumber} · {candidate.membershipExpiry || "No expiry date"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {result.member ? (
               <div className="mx-auto mt-6 max-w-xl">
                 <div className="flex items-center justify-center gap-4">
@@ -256,7 +286,9 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
                       Scanned via{" "}
                       {result.credentialKind === "physical_card"
                         ? "physical card"
-                        : "BGM member number"}
+                        : result.credentialKind === "legacy_pk_customer"
+                          ? "legacy pkCustomer"
+                          : "BGM member number"}
                     </p>
                   </div>
                 </div>
