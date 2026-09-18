@@ -59,8 +59,8 @@ function resultTitle(result: ScanResponse) {
 export default function StaffHomeScanner({ user }: { user: SystemUser }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const scannerBuffer = useRef("");
-  const scannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scannerTimer = useRef<number | null>(null);
+  const resetTimer = useRef<number | null>(null);
   const [value, setValue] = useState("");
   const [result, setResult] = useState<ScanResponse | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -150,7 +150,7 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
 
       scannerBuffer.current += event.key;
       if (scannerTimer.current) clearTimeout(scannerTimer.current);
-      scannerTimer.current = setTimeout(() => {
+      scannerTimer.current = window.setTimeout(() => {
         scannerBuffer.current = "";
         scannerTimer.current = null;
       }, 160);
