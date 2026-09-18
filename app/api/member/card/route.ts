@@ -39,21 +39,20 @@ export async function GET(request: NextRequest) {
     const activeCredential = credentialRows.find(
       (credential) => credential.status === "active"
     );
-    const legacyBarcode =
-      credentialRows.length === 0
-        ? String(memberResult.data.member_number || "").trim()
-        : "";
-    const cardBarcode = String(
-      activeCredential?.barcode_value || legacyBarcode || ""
-    );
-    const cardLinked = Boolean(cardBarcode);
+    const memberNumber = String(memberResult.data.member_number || "").trim();
+    if (!/^BGM[0-9]{7}$/.test(memberNumber)) {
+      throw new Error("Member is missing a permanent BGM membership number.");
+    }
 
     return NextResponse.json(
       {
         member: publicMemberProfile(memberResult.data),
-        cardLinked,
-        cardBarcode: cardLinked ? cardBarcode : null,
-        source: activeCredential ? "credential" : legacyBarcode ? "legacy" : null,
+        // The member-app barcode is the lifetime BGM member number.
+        cardBarcode: memberNumber,
+        // The preprinted physical card remains a separate replaceable credential.
+        cardLinked: Boolean(activeCredential),
+        physicalCardBarcode: activeCredential?.barcode_value || null,
+        source: "member_number",
         memberStatus: memberResult.data.status,
         membershipExpiry: memberResult.data.membership_expiry || null,
       },
