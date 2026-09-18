@@ -19,6 +19,7 @@ type StaffMember = {
   email: string;
   idNumber: string;
   enrollmentGymId: string | null;
+  enrollmentGymName: string;
   legacyPkCustomer: string;
   legacyGym: string;
   photoUrl: string | null;
@@ -208,7 +209,7 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false }:
                 ["Membership expiry", selected.membershipExpiry || "—"],
                 ["Phone", selected.mobile || "—"],
                 ["Email", selected.email || "—"],
-                ["Legacy gym", selected.legacyGym || "—"],
+                ["Gym", selected.legacyGym || selected.enrollmentGymName || "—"],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-2xl bg-zinc-50 p-4">
                   <dt className="text-xs font-bold uppercase tracking-wide text-zinc-400">{label}</dt>
