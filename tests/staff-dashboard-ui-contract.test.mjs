@@ -133,3 +133,10 @@ test("staff login username and password inputs always use readable dark-field st
   assert.match(login, /placeholder:text-zinc-400/);
   assert.match(login, /caret-white/);
 });
+
+
+test("member detail popup gives the member photo strong visual priority", () => {
+  assert.match(browser, /sm:h-56/);
+  assert.match(browser, /sm:w-56/);
+  assert.match(browser, /max-w-2xl/);
+});
