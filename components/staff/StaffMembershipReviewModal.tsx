@@ -113,6 +113,7 @@ function editableSnapshot(application: Application) {
       lastName: participant.lastName,
       addressLine1: participant.addressLine1,
       addressLine2: participant.addressLine2,
+      town: participant.town,
       postcode: participant.postcode,
       idNumber: participant.idNumber,
       dateOfBirth: participant.dateOfBirth,
@@ -773,14 +774,10 @@ export default function StaffMembershipReviewModal({
                         <Field label="Email" value={participantForm.email} onChange={(value) => updateParticipant(index, "email", value)} />
                         <Field label="Address" value={participantForm.addressLine1} onChange={(value) => updateParticipant(index, "addressLine1", value)} />
                         <Field label="Address line 2" value={participantForm.addressLine2} onChange={(value) => updateParticipant(index, "addressLine2", value)} />
+                        <Field label="Town / locality" value={participantForm.town} onChange={(value) => updateParticipant(index, "town", value)} />
                         <Field label="Postcode" value={participantForm.postcode} onChange={(value) => updateParticipant(index, "postcode", value)} />
                         <Field label="Next of kin" value={participantForm.nextOfKin} onChange={(value) => updateParticipant(index, "nextOfKin", value)} />
                       </div>
-                      {participant.town && (
-                        <p className="mt-3 text-sm font-semibold text-zinc-500">
-                          Town: {participant.town}
-                        </p>
-                      )}
                     </div>
                   </div>
 
