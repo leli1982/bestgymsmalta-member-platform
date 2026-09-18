@@ -169,6 +169,23 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      const printConfirmationResult = await supabase
+        .from("bgm_audit_log")
+        .select("id")
+        .eq("entity_type", "membership_application")
+        .eq("entity_id", applicationId)
+        .eq("action_key", "membership.application.print_confirmed")
+        .limit(1)
+        .maybeSingle();
+
+      if (printConfirmationResult.error) throw printConfirmationResult.error;
+      if (!printConfirmationResult.data) {
+        return NextResponse.json(
+          { error: "Print and confirm the membership form before taking payment." },
+          { status: 409 }
+        );
+      }
+
       const activationResult = await supabase.rpc(
         "bgm_activate_membership_application",
         {
