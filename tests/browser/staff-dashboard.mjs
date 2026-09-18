@@ -339,7 +339,7 @@ try {
   );
 
   await page.getByRole("button", { name: "SCAN CARD", exact: true }).click();
-  await waitVisible(page.getByPlaceholder("Scanner input"));
+  await waitVisible(page.getByPlaceholder("Scanner input", { exact: true }));
   await page.getByRole("button", { name: /Enter card manually/i }).click();
   await waitVisible(page.getByPlaceholder("Enter card barcode manually"));
   await page.getByPlaceholder("Enter card barcode manually").fill("CARD-12345");
