@@ -126,7 +126,7 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false }:
               ref={searchRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search name, member number, ID number, phone or email"
+              placeholder="Search name, BGM number, card / pkCustomer, ID, phone or email"
               className="w-full rounded-2xl border border-zinc-300 bg-zinc-50 py-3.5 pl-12 pr-4 text-base font-medium outline-none transition focus:border-[#ff5a0a] focus:bg-white focus:ring-4 focus:ring-orange-100"
             />
           </label>
@@ -202,7 +202,8 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false }:
 
             <dl className="mt-6 grid gap-3 sm:grid-cols-2">
               {[
-                ["Member number", selected.memberNumber || "—"],
+                ["BGM member number", selected.memberNumber || "—"],
+                ["Physical card / pkCustomer", selected.legacyPkCustomer || "—"],
                 ["ID number", selected.idNumber || "—"],
                 ["Membership expiry", selected.membershipExpiry || "—"],
                 ["Phone", selected.mobile || "—"],
