@@ -166,14 +166,15 @@ test("member export derives CardBarcode from the active credential lifecycle", (
   assert.match(source, /bgm_member_card_credentials/);
 });
 
-test("membership data admin describes CardBarcode and no longer promises generated numbers", () => {
+test("membership data admin explains legacy pkCustomer cards and permanent BGM numbers", () => {
   const source = fs.readFileSync(
     new URL("../components/admin/MembershipDataAdmin.tsx", import.meta.url),
     "utf8"
   );
 
-  assert.match(source, /CardBarcode/);
-  assert.match(source, /Card barcode/i);
-  assert.doesNotMatch(source, /Generated .*permanent membership number/s);
+  assert.match(source, /pkCustomer/);
+  assert.match(source, /existing scanned membership\/card number/i);
+  assert.match(source, /duplicate historical values are preserved/i);
+  assert.match(source, /permanent BGM number/i);
   assert.doesNotMatch(source, /MembershipNumber first/);
 });
