@@ -234,12 +234,32 @@ try {
     });
   });
 
+  await page.route(`**/api/system/members/applications/${applicationId}/discount`, (route) => {
+    assert.equal(route.request().method(), "POST");
+    const payload = route.request().postDataJSON();
+    assert.deepEqual(payload, { code: "SAVE10" });
+    return route.fulfill({
+      json: {
+        code: "SAVE10",
+        percentage: 10,
+        basePriceCents: 3000,
+        discountAmountCents: 300,
+        finalAmountCents: 2700,
+        currency: "EUR",
+        priceCatalogVersionId: "catalog-browser",
+      },
+    });
+  });
+
   await page.route("**/api/system/members/enroll", (route) => {
     assert.equal(route.request().method(), "POST");
     const payload = route.request().postDataJSON();
     assert.equal(payload.action, "activate");
     assert.equal(payload.applicationId, applicationId);
-    assert.equal(payload.activationStaffName, "Browser Staff");
+    assert.equal(payload.paymentMethod, "cash");
+    assert.equal(payload.paymentOtherText, "");
+    assert.equal(payload.staffName, "Browser Staff");
+    assert.equal(payload.discountCode, "SAVE10");
     activated = true;
     return route.fulfill({ json: { ok: true, activation: { applicationId } } });
   });
@@ -286,9 +306,14 @@ try {
   assert.equal(await page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }).isEnabled(), true);
 
   await page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }).click();
-  await waitVisible(page.getByPlaceholder("Activation Staff Name"));
-  await page.getByPlaceholder("Activation Staff Name").fill("Browser Staff");
-  await page.getByRole("button", { name: "Confirm & activate", exact: true }).click();
+  await waitVisible(page.getByText("Base Price", { exact: true }));
+  await page.getByPlaceholder("Enter Super Admin code").fill("SAVE10");
+  await page.getByRole("button", { name: "Apply code", exact: true }).click();
+  await waitVisible(page.getByText("10% · -€3.00", { exact: true }));
+  await page.getByLabel("Cash").check();
+  await waitVisible(page.getByPlaceholder("Payment Staff Name"));
+  await page.getByPlaceholder("Payment Staff Name").fill("Browser Staff");
+  await page.getByRole("button", { name: "PAYMENT RECEIVED — ACTIVATE", exact: true }).click();
   await waitVisible(page.getByRole("heading", { name: "MEMBERSHIP ACTIVE", exact: true }));
   await page.screenshot({ path: artifacts + "/success-1024.png", fullPage: true });
 
