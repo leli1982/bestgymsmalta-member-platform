@@ -51,6 +51,9 @@ jobs:
       - name: Verify staff dashboard workflow in Chromium
         run: node tests/browser/staff-dashboard.mjs
 
+      - name: Verify membership A4 print in Chromium
+        run: node tests/browser/membership-print-a4.mjs
+
       - name: Verify tablet enrollment workflow in Chromium
         run: node tests/browser/tablet-enrollment.mjs
 
@@ -69,6 +72,14 @@ jobs:
           name: staff-ui-screenshots
           path: test-artifacts/staff-ui
           if-no-files-found: ignore
+
+      - name: Save membership print screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: membership-print-screenshots
+          path: test-artifacts/print-a4
+          if-no-files-found: error
 
       - name: Save tablet enrollment screenshots
         if: always()
