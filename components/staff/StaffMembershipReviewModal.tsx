@@ -78,6 +78,7 @@ type Application = {
   declarationSnapshot: unknown;
   sameAddressVerified: boolean;
   reviewedBySystemUserId: string | null;
+  printConfirmedAt: string | null;
   participants: Participant[];
 };
 
@@ -237,6 +238,14 @@ export default function StaffMembershipReviewModal({
   useEffect(() => {
     if (scanParticipantId) barcodeRef.current?.focus();
   }, [scanParticipantId, manualEntry]);
+
+  useEffect(() => {
+    const refreshAfterPrint = () => {
+      void loadDetail().catch(() => {});
+    };
+    window.addEventListener("focus", refreshAfterPrint);
+    return () => window.removeEventListener("focus", refreshAfterPrint);
+  }, [loadDetail]);
 
   const dirty = Boolean(form && original && JSON.stringify(form) !== original);
 
@@ -492,6 +501,10 @@ export default function StaffMembershipReviewModal({
 
   async function activateMembership(event: React.FormEvent) {
     event.preventDefault();
+    if (!application?.printConfirmedAt) {
+      setError("Print and confirm the membership form before taking payment.");
+      return;
+    }
     if (!allReady || !staffName.trim() || !paymentMethod) return;
     if (paymentMethod === "other" && !paymentOtherText.trim()) return;
     if (discountCode.trim() && !discountPreview) {
@@ -1029,7 +1042,14 @@ export default function StaffMembershipReviewModal({
                     <legend className="text-xs font-black uppercase tracking-wide text-emerald-800">Payment method</legend>
                     <div className="mt-2 grid grid-cols-3 gap-2">
                       {(["cash", "card", "other"] as const).map((method) => (
-                        <label key={method} className="cursor-pointer rounded-xl border border-emerald-300 bg-white px-3 py-3 text-center text-sm font-black capitalize">
+                        <label
+                          key={method}
+                          className={`cursor-pointer rounded-xl border px-3 py-3 text-center text-sm font-black capitalize text-zinc-950 ${
+                            paymentMethod === method
+                              ? "border-emerald-700 bg-emerald-100"
+                              : "border-emerald-300 bg-white"
+                          }`}
+                        >
                           <input
                             type="radio"
                             name="paymentMethod"
@@ -1086,7 +1106,17 @@ export default function StaffMembershipReviewModal({
               {!allReady && (
                 <p className="mb-3 text-xs font-bold text-amber-700">
                   Complete the required verification and card action for every participant
-                  before activation. A missing photo does not block activation.
+                  before printing. A missing photo does not block activation.
+                </p>
+              )}
+              {allReady && !application.printConfirmedAt && (
+                <p className="mb-3 text-xs font-bold text-orange-700">
+                  Next step: print the membership form and confirm it was printed. Payment stays locked until this is done.
+                </p>
+              )}
+              {application.printConfirmedAt && (
+                <p className="mb-3 text-xs font-bold text-emerald-700">
+                  Membership form printed ✓ · Payment is now available.
                 </p>
               )}
               <div className="grid gap-3 sm:grid-cols-4">
@@ -1100,19 +1130,19 @@ export default function StaffMembershipReviewModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPaymentPrompt(true)}
+                  onClick={() => void openPrint()}
                   disabled={!allReady || acting || saving}
-                  className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-35"
+                  className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-zinc-950 bg-white px-4 py-3 text-sm font-black text-zinc-950 disabled:cursor-not-allowed disabled:opacity-35"
                 >
-                  <CreditCard className="h-5 w-5" /> PAYMENT RECEIVED
+                  <Printer className="h-5 w-5" /> {application.printConfirmedAt ? "PRINTED ✓" : "PRINT MEMBERSHIP"}
                 </button>
                 <button
                   type="button"
-                  onClick={() => void openPrint()}
-                  disabled={acting || saving}
-                  className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-zinc-950 bg-white px-4 py-3 text-sm font-black text-zinc-950 disabled:opacity-40"
+                  onClick={() => setPaymentPrompt(true)}
+                  disabled={!allReady || !application.printConfirmedAt || acting || saving}
+                  className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-35"
                 >
-                  <Printer className="h-5 w-5" /> PRINT FORM
+                  <CreditCard className="h-5 w-5" /> PAYMENT RECEIVED
                 </button>
                 <button
                   type="button"
