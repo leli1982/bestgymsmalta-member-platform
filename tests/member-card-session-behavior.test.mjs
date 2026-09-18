@@ -16,7 +16,7 @@ const testSecret = "member-session-regression-test-only";
 const password = "member-session-test-password";
 const member = {
   id: "00000000-0000-4000-8000-000000000001", username: "test-member",
-  member_number: "00123Ab", full_name: "Test Member", email: "member@example.test",
+  member_number: "BGM0000123", full_name: "Test Member", email: "member@example.test",
   status: "active", membership_expiry: "9999-12-31", app_enrolled: true,
   password_hash: bcrypt.hashSync(password, 4),
 };
@@ -133,31 +133,40 @@ test("real login cookie restores the profile and current card without any local 
   assert.equal(cardResponse.status, 200);
   const data = await cardResponse.json();
   assert.equal(data.member.id, member.id);
-  assert.equal(data.cardBarcode, credential.barcode_value);
+  assert.equal(data.cardBarcode, member.member_number);
+  assert.equal(data.physicalCardBarcode, credential.barcode_value);
+  assert.equal(data.cardLinked, true);
   assert.equal(data.member.password_hash, undefined);
   assert.equal(data.member.app_enrolled, undefined);
   assert.equal(resolveMemberCardResponse(200, data).kind, "ready");
   assert.equal(app.queries.filter((q) => q.table === "bgm_member_card_credentials").every((q) => q.value === member.id), true);
 });
 
-test("a revoked card never falls back to the old membership barcode", async () => {
+test("a retired physical card never removes the permanent virtual BGM barcode", async () => {
   const app = harness({ credentials: [{ ...credential, status: "revoked" }] });
   const response = await app.card(request("/api/member/card", validToken()));
   const data = await response.json();
   assert.equal(response.status, 200);
   assert.equal(data.cardLinked, false);
-  assert.equal(data.cardBarcode, null);
+  assert.equal(data.cardBarcode, member.member_number);
+  assert.equal(data.physicalCardBarcode, null);
   assert.deepEqual(resolveMemberCardResponse(200, data), {
-    kind: "ready", member: data.member, cardLinked: false, cardBarcode: "",
+    kind: "ready",
+    member: data.member,
+    cardLinked: false,
+    cardBarcode: member.member_number,
+    physicalCardBarcode: "",
   });
 });
 
-test("legacy members with no credential history retain the existing barcode fallback", async () => {
+test("members with no physical credential still receive their permanent BGM virtual barcode", async () => {
   const app = harness({ credentials: [] });
   const response = await app.card(request("/api/member/card", validToken()));
   const data = await response.json();
   assert.equal(data.cardBarcode, member.member_number);
-  assert.equal(data.source, "legacy");
+  assert.equal(data.cardLinked, false);
+  assert.equal(data.physicalCardBarcode, null);
+  assert.equal(data.source, "member_number");
 });
 
 test("database errors are unavailable cards and never CARD NOT LINKED", async () => {
