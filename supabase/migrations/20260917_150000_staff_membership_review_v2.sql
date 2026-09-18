@@ -34,7 +34,12 @@ begin
   if v_application_kind = 'new' then
     -- New applications may record a possible renewal match, but reception must
     -- explicitly confirm reuse through bgm_confirm_membership_existing_member.
-    new.existing_member_id := null;
+    -- Preserve an already-confirmed reuse on later review saves only while the
+    -- authoritative identity classification still points to that same member.
+    if tg_op = 'INSERT'
+      or new.existing_member_id is distinct from new.matched_member_id then
+      new.existing_member_id := null;
+    end if;
   elsif new.existing_member_id is not null
     and new.existing_member_id is distinct from new.matched_member_id then
     raise exception 'Selected renewal member no longer matches this identity.';
