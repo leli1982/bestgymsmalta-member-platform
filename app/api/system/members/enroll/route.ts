@@ -119,15 +119,29 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      let activationStaffName: string;
+      let staffName: string;
       try {
-        activationStaffName = requireStaffName(
-          body.activationStaffName,
-          "Activation Staff Name"
-        );
+        staffName = requireStaffName(body.staffName, "Payment Staff Name");
       } catch (error) {
         return NextResponse.json(
-          { error: error instanceof Error ? error.message : "Activation Staff Name is required." },
+          { error: error instanceof Error ? error.message : "Payment Staff Name is required." },
+          { status: 400 }
+        );
+      }
+
+      const paymentMethod = clean(body.paymentMethod).toLowerCase();
+      const paymentOtherText = clean(body.paymentOtherText);
+      const discountCode = clean(body.discountCode).toUpperCase();
+
+      if (!["cash", "card", "other"].includes(paymentMethod)) {
+        return NextResponse.json(
+          { error: "Select Cash, Card or Other as the payment method." },
+          { status: 400 }
+        );
+      }
+      if (paymentMethod === "other" && !paymentOtherText) {
+        return NextResponse.json(
+          { error: "Describe the Other payment method." },
           { status: 400 }
         );
       }
@@ -159,7 +173,10 @@ export async function POST(request: NextRequest) {
         "bgm_activate_membership_application",
         {
           p_application_id: applicationId,
-          p_activation_staff_name: activationStaffName,
+          p_payment_method: paymentMethod,
+          p_payment_other_text: paymentMethod === "other" ? paymentOtherText : null,
+          p_payment_staff_name: staffName,
+          p_discount_code: discountCode || null,
           p_system_user_id: auth.context.systemUserId,
         }
       );
@@ -168,7 +185,7 @@ export async function POST(request: NextRequest) {
         console.error(activationResult.error);
         const message = String(activationResult.error.message || "");
         const expectedValidation =
-          /required|not found|not awaiting activation|invalid participant|cannot reuse|existing member identity|existing renewal member/i.test(
+          /required|not found|not awaiting activation|invalid participant|cannot reuse|existing member identity|existing renewal member|discount code|price snapshot|payment method|other payment/i.test(
             message
           );
         return NextResponse.json(
