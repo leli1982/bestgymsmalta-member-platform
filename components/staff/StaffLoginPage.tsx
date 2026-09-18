@@ -121,12 +121,12 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
             {!expectedGym && (
               <label className="block text-sm font-semibold">
                 Username
-                <input autoCapitalize="none" autoCorrect="off" required value={username} onChange={(event) => setUsername(event.target.value)} className="mt-1 w-full rounded-xl border border-zinc-300 px-4 py-3 outline-none focus:border-orange-500" placeholder="birkirkarafitness" />
+                <input autoCapitalize="none" autoCorrect="off" required value={username} onChange={(event) => setUsername(event.target.value)} className="mt-1 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white placeholder:text-zinc-400 caret-white outline-none focus:border-orange-500" placeholder="birkirkarafitness" />
               </label>
             )}
             <label className="block text-sm font-semibold">
               {expectedGym ? "Staff password" : "Password"}
-              <input required type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="mt-1 w-full rounded-xl border border-zinc-300 px-4 py-3 outline-none focus:border-orange-500" />
+              <input required type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="mt-1 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white placeholder:text-zinc-400 caret-white outline-none focus:border-orange-500" placeholder="Enter password" />
             </label>
             {expectedGym && (
               <p className="rounded-xl bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-500">
