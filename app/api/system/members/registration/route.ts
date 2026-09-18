@@ -420,6 +420,12 @@ export async function POST(request: NextRequest) {
           `Applicant ${index + 1} already has an active membership. Use the existing member record instead.`,
         );
       }
+      if (state === "expired_inactive") {
+        throw new RouteError(
+          409,
+          `Applicant ${index + 1} already has an existing BGM member record. Use Renew instead of creating a new member.`,
+        );
+      }
 
       const contactResult = await supabase.rpc("bgm_has_membership_contact_match", {
         p_phone: participant.phone,
