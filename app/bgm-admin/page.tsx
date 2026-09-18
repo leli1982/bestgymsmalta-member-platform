@@ -429,7 +429,7 @@ export default function BgmAdminPage() {
     setStaffPassword("");
     setActiveTab("gyms");
     window.scrollTo({ top: 0, behavior: "smooth" });
-    setStatus("Adding new gym. Choose a unique gym ID, then save.");
+    setStatus("Adding new gym. Gym ID and gym-specific routes will be generated automatically.");
   }
 
   async function uploadGymLogo(file?: File) {
