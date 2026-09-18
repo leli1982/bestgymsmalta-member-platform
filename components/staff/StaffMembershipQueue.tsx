@@ -29,6 +29,7 @@ type QueueApplication = {
 type Props = {
   refreshToken?: number;
   onCountChange?: (count: number) => void;
+  compact?: boolean;
 };
 
 function formatSubmitted(value: string | null, fallback: string) {
@@ -44,12 +45,17 @@ function formatSubmitted(value: string | null, fallback: string) {
   }).format(date);
 }
 
-export default function StaffMembershipQueue({ refreshToken = 0, onCountChange }: Props) {
+export default function StaffMembershipQueue({
+  refreshToken = 0,
+  onCountChange,
+  compact = false,
+}: Props) {
   const [applications, setApplications] = useState<QueueApplication[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [alertsArmed, setAlertsArmed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const seenIds = useRef(new Set<string>());
   const initialized = useRef(false);
   const audioContext = useRef<AudioContext | null>(null);
@@ -141,6 +147,10 @@ export default function StaffMembershipQueue({ refreshToken = 0, onCountChange }
     await loadQueue();
   }
 
+  const visibleApplications =
+    compact && !expanded ? applications.slice(0, 4) : applications;
+  const hiddenCount = Math.max(0, applications.length - visibleApplications.length);
+
   return (
     <section id="staff-waiting" className="rounded-3xl border border-zinc-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200 p-5 sm:p-6">
@@ -168,9 +178,11 @@ export default function StaffMembershipQueue({ refreshToken = 0, onCountChange }
       {error && <div className="mx-5 mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700 sm:mx-6">{error}</div>}
       <div className="divide-y divide-zinc-100">
         {!loading && applications.length === 0 && !error && (
-          <div className="p-8 text-center text-sm font-medium text-zinc-500">No membership applications are waiting at this gym.</div>
+          <div className={compact ? "px-5 py-4 text-sm font-medium text-zinc-500 sm:px-6" : "p-8 text-center text-sm font-medium text-zinc-500"}>
+            No membership applications are waiting at this gym.
+          </div>
         )}
-        {applications.map((application) => (
+        {visibleApplications.map((application) => (
           <button
             type="button"
             key={application.id}
@@ -188,6 +200,25 @@ export default function StaffMembershipQueue({ refreshToken = 0, onCountChange }
           </button>
         ))}
       </div>
+
+      {compact && hiddenCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="w-full border-t border-zinc-100 px-5 py-3 text-sm font-black text-[#ff5a0a] hover:bg-orange-50 sm:px-6"
+        >
+          Show {hiddenCount} more waiting application{hiddenCount === 1 ? "" : "s"}
+        </button>
+      )}
+      {compact && expanded && applications.length > 4 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="w-full border-t border-zinc-100 px-5 py-3 text-sm font-black text-zinc-500 hover:bg-zinc-50 sm:px-6"
+        >
+          Collapse waiting list
+        </button>
+      )}
 
       {selectedId && (
         <StaffMembershipReviewModal
