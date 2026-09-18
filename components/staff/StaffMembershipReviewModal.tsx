@@ -177,7 +177,18 @@ export default function StaffMembershipReviewModal({
   const [barcodeValue, setBarcodeValue] = useState("");
   const [manualEntry, setManualEntry] = useState(false);
   const [paymentPrompt, setPaymentPrompt] = useState(false);
-  const [activationStaffName, setActivationStaffName] = useState("");
+  const [staffName, setStaffName] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "other" | "">("");
+  const [paymentOtherText, setPaymentOtherText] = useState("");
+  const [discountCode, setDiscountCode] = useState("");
+  const [discountPreview, setDiscountPreview] = useState<{
+    code: string;
+    percentage: number;
+    basePriceCents: number;
+    discountAmountCents: number;
+    finalAmountCents: number;
+    currency: string;
+  } | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [activeConfirmation, setActiveConfirmation] = useState<{ activatedAt: string } | null>(null);
@@ -441,9 +452,49 @@ export default function StaffMembershipReviewModal({
     );
   }
 
+  async function applyDiscountCode() {
+    if (!discountCode.trim()) {
+      setDiscountPreview(null);
+      setError("");
+      return;
+    }
+    if (!(await saveReviewIfDirty())) return;
+    setActing(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/system/members/applications/${encodeURIComponent(applicationId)}/discount`,
+        {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: discountCode.trim() }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Discount code is unavailable.");
+      setDiscountCode(data.code || discountCode.trim().toUpperCase());
+      setDiscountPreview(data);
+    } catch (requestError) {
+      setDiscountPreview(null);
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Could not validate the discount code."
+      );
+    } finally {
+      setActing(false);
+    }
+  }
+
   async function activateMembership(event: React.FormEvent) {
     event.preventDefault();
-    if (!allReady || !activationStaffName.trim()) return;
+    if (!allReady || !staffName.trim() || !paymentMethod) return;
+    if (paymentMethod === "other" && !paymentOtherText.trim()) return;
+    if (discountCode.trim() && !discountPreview) {
+      setError("Apply the discount code before confirming payment.");
+      return;
+    }
     if (!(await saveReviewIfDirty())) return;
     setActing(true);
     setError("");
@@ -455,7 +506,10 @@ export default function StaffMembershipReviewModal({
         body: JSON.stringify({
           action: "activate",
           applicationId,
-          activationStaffName: activationStaffName.trim(),
+          paymentMethod,
+          paymentOtherText: paymentMethod === "other" ? paymentOtherText.trim() : "",
+          staffName: staffName.trim(),
+          discountCode: discountCode.trim(),
         }),
       });
       const data = await response.json();
@@ -916,21 +970,104 @@ export default function StaffMembershipReviewModal({
               <section className="rounded-3xl border-2 border-emerald-300 bg-emerald-50 p-5 sm:p-6">
                 <h3 className="text-xl font-black text-zinc-950">Confirm payment received</h3>
                 <p className="mt-1 text-sm text-zinc-600">
-                  Enter the individual staff name processing this payment. Payment method
-                  and discount controls are completed in the next task.
+                  Membership rates and discount values are controlled by Super Admin. Staff can only enter an issued discount code.
                 </p>
-                <form onSubmit={activateMembership} className="mt-4 flex flex-col gap-3 sm:flex-row">
-                  <input
-                    value={activationStaffName}
-                    onChange={(event) => setActivationStaffName(event.target.value)}
-                    placeholder="Activation Staff Name"
-                    className="min-w-0 flex-1 rounded-2xl border border-emerald-300 bg-white px-4 py-3 font-bold outline-none focus:ring-4 focus:ring-emerald-100"
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <Summary
+                    label="Base Price"
+                    value={formatMoney(
+                      discountPreview?.basePriceCents ?? application.basePriceCents,
+                      discountPreview?.currency ?? application.currency
+                    )}
                   />
+                  <Summary
+                    label="Discount"
+                    value={discountPreview
+                      ? `${discountPreview.percentage}% · -${formatMoney(discountPreview.discountAmountCents, discountPreview.currency)}`
+                      : "No discount"}
+                  />
+                  <Summary
+                    label="Final Total"
+                    value={formatMoney(
+                      discountPreview?.finalAmountCents ?? application.basePriceCents,
+                      discountPreview?.currency ?? application.currency
+                    )}
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <label className="text-xs font-black uppercase tracking-wide text-emerald-800">
+                    Discount code
+                    <div className="mt-1.5 flex gap-2">
+                      <input
+                        value={discountCode}
+                        onChange={(event) => {
+                          setDiscountCode(event.target.value.toUpperCase());
+                          setDiscountPreview(null);
+                        }}
+                        placeholder="Enter Super Admin code"
+                        className="min-w-0 flex-1 rounded-xl border border-emerald-300 bg-white px-3 py-2.5 font-mono font-bold uppercase outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void applyDiscountCode()}
+                        disabled={acting || !discountCode.trim()}
+                        className="rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-black text-white disabled:opacity-40"
+                      >
+                        Apply code
+                      </button>
+                    </div>
+                  </label>
+                </div>
+
+                <form onSubmit={activateMembership} className="mt-4 space-y-4">
+                  <fieldset>
+                    <legend className="text-xs font-black uppercase tracking-wide text-emerald-800">Payment method</legend>
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      {(["cash", "card", "other"] as const).map((method) => (
+                        <label key={method} className="cursor-pointer rounded-xl border border-emerald-300 bg-white px-3 py-3 text-center text-sm font-black capitalize">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value={method}
+                            checked={paymentMethod === method}
+                            onChange={() => setPaymentMethod(method)}
+                            className="mr-2 accent-emerald-700"
+                          />
+                          {method === "cash" ? "Cash" : method === "card" ? "Card" : "Other"}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  {paymentMethod === "other" && (
+                    <input
+                      value={paymentOtherText}
+                      onChange={(event) => setPaymentOtherText(event.target.value)}
+                      placeholder="Describe Other payment method"
+                      className="w-full rounded-2xl border border-emerald-300 bg-white px-4 py-3 font-bold outline-none"
+                    />
+                  )}
+
+                  <input
+                    value={staffName}
+                    onChange={(event) => setStaffName(event.target.value)}
+                    placeholder="Payment Staff Name"
+                    className="w-full rounded-2xl border border-emerald-300 bg-white px-4 py-3 font-bold outline-none focus:ring-4 focus:ring-emerald-100"
+                  />
+
                   <button
-                    disabled={acting || !activationStaffName.trim()}
-                    className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white disabled:opacity-40"
+                    disabled={
+                      acting ||
+                      !staffName.trim() ||
+                      !paymentMethod ||
+                      (paymentMethod === "other" && !paymentOtherText.trim()) ||
+                      Boolean(discountCode.trim() && !discountPreview)
+                    }
+                    className="w-full rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white disabled:opacity-40"
                   >
-                    Confirm & activate
+                    {acting ? "Activating…" : "PAYMENT RECEIVED — ACTIVATE"}
                   </button>
                 </form>
               </section>
