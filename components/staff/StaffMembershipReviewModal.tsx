@@ -913,7 +913,7 @@ export default function StaffMembershipReviewModal({
                     value={barcodeValue}
                     onChange={(event) => setBarcodeValue(event.target.value)}
                     placeholder={manualEntry ? "Enter card barcode manually" : "Scanner input"}
-                    className="min-w-0 flex-1 rounded-2xl border border-orange-300 bg-white px-4 py-3 text-lg font-black outline-none focus:ring-4 focus:ring-orange-100"
+                    className="min-w-0 flex-1 rounded-2xl border border-orange-300 bg-white px-4 py-3 text-lg font-black text-zinc-950 placeholder:text-zinc-400 caret-zinc-950 outline-none focus:ring-4 focus:ring-orange-100"
                   />
                   <button
                     disabled={acting || !barcodeValue.trim()}
@@ -947,7 +947,7 @@ export default function StaffMembershipReviewModal({
                   onChange={(event) => setRejectReason(event.target.value)}
                   rows={3}
                   placeholder="Reason for rejection"
-                  className="mt-4 w-full rounded-2xl border border-red-300 bg-white px-4 py-3 text-sm font-semibold outline-none focus:ring-4 focus:ring-red-100"
+                  className="mt-4 w-full rounded-2xl border border-red-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-950 placeholder:text-zinc-400 caret-zinc-950 outline-none focus:ring-4 focus:ring-red-100"
                 />
                 <div className="mt-3 flex gap-3">
                   <button
@@ -1010,7 +1010,7 @@ export default function StaffMembershipReviewModal({
                           setDiscountPreview(null);
                         }}
                         placeholder="Enter Super Admin code"
-                        className="min-w-0 flex-1 rounded-xl border border-emerald-300 bg-white px-3 py-2.5 font-mono font-bold uppercase outline-none"
+                        className="min-w-0 flex-1 rounded-xl border border-emerald-300 bg-white px-3 py-2.5 font-mono font-bold uppercase text-zinc-950 placeholder:text-zinc-400 caret-zinc-950 outline-none"
                       />
                       <button
                         type="button"
@@ -1049,7 +1049,7 @@ export default function StaffMembershipReviewModal({
                       value={paymentOtherText}
                       onChange={(event) => setPaymentOtherText(event.target.value)}
                       placeholder="Describe Other payment method"
-                      className="w-full rounded-2xl border border-emerald-300 bg-white px-4 py-3 font-bold outline-none"
+                      className="w-full rounded-2xl border border-emerald-300 bg-white px-4 py-3 font-bold text-zinc-950 placeholder:text-zinc-400 caret-zinc-950 outline-none"
                     />
                   )}
 
@@ -1057,7 +1057,7 @@ export default function StaffMembershipReviewModal({
                     value={staffName}
                     onChange={(event) => setStaffName(event.target.value)}
                     placeholder="Payment Staff Name"
-                    className="w-full rounded-2xl border border-emerald-300 bg-white px-4 py-3 font-bold outline-none focus:ring-4 focus:ring-emerald-100"
+                    className="w-full rounded-2xl border border-emerald-300 bg-white px-4 py-3 font-bold text-zinc-950 placeholder:text-zinc-400 caret-zinc-950 outline-none focus:ring-4 focus:ring-emerald-100"
                   />
 
                   <button
