@@ -96,6 +96,13 @@ export async function POST(
       priceCatalogVersionId = catalogResult.data.id;
     }
 
+    if (basePriceCents == null) {
+      return NextResponse.json(
+        { error: "Published Super Admin membership rate was not found." },
+        { status: 409 }
+      );
+    }
+
     const discountResult = await supabase
       .from("bgm_discount_codes")
       .select(
