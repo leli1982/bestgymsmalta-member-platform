@@ -73,19 +73,6 @@ type ApplicationSummary = {
   enrollmentGym: { id: string; name: string };
 };
 
-type ActivationMember = {
-  memberId: string;
-  memberNumber: string;
-  role: string;
-};
-
-type ActivationSummary = {
-  applicationId: string;
-  membershipId: string;
-  applicationKind: string;
-  members: ActivationMember[];
-};
-
 const MEMBERSHIP_TYPES = [
   { value: "single", label: "Single" },
   { value: "couples", label: "Couples" },
@@ -164,9 +151,6 @@ export default function MembershipEnrollmentPage() {
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [application, setApplication] = useState<ApplicationSummary | null>(null);
-  const [activationStaffName, setActivationStaffName] = useState("");
-  const [activating, setActivating] = useState(false);
-  const [activation, setActivation] = useState<ActivationSummary | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -205,10 +189,6 @@ export default function MembershipEnrollmentPage() {
   const canSearch = Boolean(
     user?.isSuperAdmin || user?.permissions.includes("members.view")
   );
-  const canActivate = Boolean(
-    user?.isSuperAdmin || user?.permissions.includes("membership.activate")
-  );
-
   const expectedParticipants = membershipType === "couples" ? 2 : 1;
   const renewalSelections = useMemo(
     () => participants.filter((participant) => participant.existingMemberId),
@@ -226,8 +206,6 @@ export default function MembershipEnrollmentPage() {
     setSearchQuery("");
     setCandidates([]);
     setApplication(null);
-    setActivationStaffName("");
-    setActivation(null);
     setMessage("");
     setError("");
   }
@@ -237,8 +215,6 @@ export default function MembershipEnrollmentPage() {
     setMembershipType("single");
     setParticipants(nextKind === "new" ? [blankParticipant()] : []);
     setApplication(null);
-    setActivation(null);
-    setActivationStaffName("");
     setStaffName("");
     setCandidates([]);
     setSearchQuery("");
