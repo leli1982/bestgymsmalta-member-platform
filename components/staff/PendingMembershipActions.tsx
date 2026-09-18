@@ -100,9 +100,7 @@ export default function PendingMembershipActions() {
 
     if (!readyToActivate) {
       setError(
-        application.kind === "renewal"
-          ? "Every participant needs an official photo and verified membership card before activation."
-          : "Every participant needs an official photo and reserved membership card before activation."
+        "Every participant needs the required membership card action before activation."
       );
       return;
     }
