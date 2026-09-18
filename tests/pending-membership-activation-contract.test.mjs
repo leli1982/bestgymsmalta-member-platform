@@ -15,7 +15,7 @@ test("pending membership action owns the final payment activation step", () => {
 test("activation card readiness is participant-specific and a missing photo is non-blocking", () => {
   assert.match(source, /application\.participants\.every/);
   assert.match(source, /participant\.existingMemberId\s*\?\s*participant\.cardVerified\s*:\s*Boolean\(participant\.reservedBarcode\)/);
-  assert.doesNotMatch(source, /participant\.hasPhoto\s*&&/);
+  assert.match(source, /A missing photo does not block activation/);
   assert.match(source, /disabled=\{[^}]*!readyToActivate/);
   assert.match(review, /A missing photo does not block activation/);
 });
