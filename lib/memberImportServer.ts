@@ -299,12 +299,15 @@ function classifyRows(
   for (const row of parsed.rows) {
     const values = row.values;
     const cardBarcode = normalizeBarcodePayload(values.CardBarcode);
+    const legacyPkCustomer = normalizeBarcodePayload(values.pkCustomer);
+    const scannableCardNumber =
+      parsed.mode === "legacy_15" ? legacyPkCustomer : cardBarcode;
     const incoming = incomingFromRow(row);
     let action: MemberImportAction;
     let matchedMemberId: string | null = null;
     let issue = fileFormulaIssue(row);
 
-    if (cardBarcode) cardRows += 1;
+    if (scannableCardNumber) cardRows += 1;
     else blankCardRows += 1;
 
     if (issue) {
@@ -366,7 +369,7 @@ function classifyRows(
       issues.push({
         rowNumber: row.rowNumber,
         action,
-        cardBarcode,
+        cardBarcode: cardBarcode || (parsed.mode === "legacy_15" ? legacyPkCustomer : ""),
         customerName: clean(values.CustomerName) || clean(values.CompanyName),
         gym: clean(values.Gym),
         pkCustomer: clean(values.pkCustomer),
