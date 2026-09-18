@@ -6,10 +6,13 @@ const source = readFileSync(new URL("../components/staff/PendingMembershipAction
 const review = readFileSync(new URL("../components/staff/StaffMembershipReviewModal.tsx", import.meta.url), "utf8");
 
 test("pending membership action owns the final payment activation step", () => {
-  assert.match(source, /Activation Staff Name/);
+  assert.match(source, /Payment Staff Name/);
   assert.match(source, /PAYMENT RECEIVED — ACTIVATE/);
   assert.match(source, /action:\s*"activate"/);
   assert.match(source, /applicationId:\s*application\.id/);
+  assert.match(source, /paymentMethod/);
+  assert.match(source, /discountCode/);
+  assert.match(source, /staffName/);
 });
 
 test("activation card readiness is participant-specific and a missing photo is non-blocking", () => {
