@@ -112,10 +112,6 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
     }
     const application = detailPayload.application;
     const participants = Array.isArray(application.participants) ? application.participants : [];
-    if (participants.some((participant: { under18AtSubmission?: boolean }) => participant.under18AtSubmission)) {
-      return false;
-    }
-
     const reviewResponse = await fetch(`/api/system/members/applications/${encodeURIComponent(applicationId)}`, {
       method: "PATCH",
       credentials: "same-origin",
@@ -142,8 +138,8 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
           nextOfKin: participant.nextOfKin,
           idVerified: true,
           studentEligibilityVerified: application.membershipType === "student" ? true : participant.studentEligibilityVerified,
-          guardianPresentVerified: participant.guardianPresentVerified,
-          guardianCosignVerified: participant.guardianCosignVerified,
+          guardianPresentVerified: participant.under18AtSubmission ? true : participant.guardianPresentVerified,
+          guardianCosignVerified: participant.under18AtSubmission ? true : participant.guardianCosignVerified,
         })),
       }),
     });
