@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { evaluateBarcodeAccess } from "@/lib/barcodeAccessCore";
 import { recordCanonicalCheckin } from "@/lib/checkinService";
 import { normalizeBarcodePayload } from "@/lib/memberCardCredentialCore";
+import { todayMaltaDate } from "@/lib/maltaDate";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
 
@@ -9,10 +10,6 @@ export const dynamic = "force-dynamic";
 
 function clean(value: unknown) {
   return String(value ?? "").trim();
-}
-
-function todayString() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 export async function POST(request: NextRequest) {
@@ -96,10 +93,11 @@ export async function POST(request: NextRequest) {
         | "unknown_member"
         | "unknown_card"
         | "disabled_card"
-        | "invalid_barcode"
-        | "photo_required";
+        | "invalid_barcode";
       granted: boolean;
     };
+
+    const hasPhoto = Boolean(member?.official_photo_path);
 
     if (!membershipNumber) {
       decision = { result: "invalid_barcode", granted: false };
@@ -113,14 +111,10 @@ export async function POST(request: NextRequest) {
           status: member.status,
           membershipExpiry: member.membership_expiry,
         },
-        today: todayString(),
+        today: todayMaltaDate(),
       });
 
-      if (membershipDecision.granted && !member.official_photo_path) {
-        decision = { result: "photo_required", granted: false };
-      } else {
-        decision = membershipDecision;
-      }
+      decision = membershipDecision;
     }
 
     let checkinId: string | null = null;
@@ -149,6 +143,7 @@ export async function POST(request: NextRequest) {
         system_user_id: auth.context.systemUserId,
         device_id: deviceId || null,
         result: decision.result,
+        photo_required_warning: !hasPhoto,
         membership_expiry_snapshot: member?.membership_expiry || null,
         checkin_id: checkinId,
       })
@@ -168,8 +163,6 @@ export async function POST(request: NextRequest) {
         enrollmentGymName = enrollmentGymResult.data?.name || "";
       }
     }
-
-    const hasPhoto = Boolean(member?.official_photo_path);
 
     return NextResponse.json({
       result: decision.result,
