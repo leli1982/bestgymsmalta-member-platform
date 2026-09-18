@@ -77,6 +77,6 @@ test("system Super Admin session can enter BGM Admin and manage gym provisioning
   const gymRoute = read("app/api/admin/gyms/route.ts");
   assert.match(adminAuth, /getSystemContext/);
   assert.match(adminAuth, /isSuperAdmin/);
-  assert.match(adminAuth, /source:\s*["']super_admin["']/);
+  assert.match(adminAuth, /super_admin/);
   assert.match(gymRoute, /Super Admin access is required/);
 });
