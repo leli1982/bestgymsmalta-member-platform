@@ -179,7 +179,7 @@ export default function MembershipDataAdmin({
           </button>
         </div>
         <p className="mt-3 text-xs font-bold text-white/40">
-          Accepted formats: the original 15-column legacy XLSX/CSV or the BGM 16-column exchange format with CardBarcode first. CardBarcode is optional; blank means no physical card will be linked by this import.
+          Accepted formats: the original 15-column legacy XLSX/CSV or the BGM 16-column exchange format. In the legacy file, pkCustomer is the existing scanned membership/card number and duplicate historical values are preserved. Every imported member receives a separate permanent BGM number.
         </p>
       </div>
 
@@ -219,15 +219,15 @@ export default function MembershipDataAdmin({
             <SummaryCard label="New" value={preview.newRows} />
             <SummaryCard label="Updates" value={preview.updateRows} />
             <SummaryCard label="Unchanged" value={preview.unchangedRows} />
-            <SummaryCard label="With card" value={preview.cardRows} />
-            <SummaryCard label="No card" value={preview.blankCardRows} />
+            <SummaryCard label="Card / PK" value={preview.cardRows} />
+            <SummaryCard label="No card / PK" value={preview.blankCardRows} />
             <SummaryCard label="Conflicts" value={preview.conflictRows} danger={preview.conflictRows > 0} />
             <SummaryCard label="Invalid" value={preview.invalidRows} danger={preview.invalidRows > 0} />
             <SummaryCard label="Deletions" value={0} />
           </div>
 
           <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-xs font-bold leading-5 text-emerald-100/80">
-            This import is non-destructive. Members omitted from the uploaded file are not deleted or archived. A different active card is never replaced by import; it is flagged for review instead.
+            This import is non-destructive. Active legacy members are never discarded because pkCustomer is duplicated. pkCustomer remains the old/current scanned card number, while each person receives a separate permanent BGM number. A different modern active card is never replaced by import; it is flagged for review instead.
           </div>
 
           {preview.issues.length > 0 && (
@@ -241,7 +241,7 @@ export default function MembershipDataAdmin({
                     <tr>
                       <th className="px-3 py-2">Row</th>
                       <th className="px-3 py-2">Type</th>
-                      <th className="px-3 py-2">Card barcode</th>
+                      <th className="px-3 py-2">Card / pkCustomer</th>
                       <th className="px-3 py-2">Member</th>
                       <th className="px-3 py-2">Gym / PK</th>
                       <th className="px-3 py-2">Reason</th>
