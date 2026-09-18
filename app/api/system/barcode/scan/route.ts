@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
     };
 
     const hasPhoto = Boolean(member?.official_photo_path);
+    const photoRequired = Boolean(member && !hasPhoto);
 
     if (!membershipNumber) {
       decision = { result: "invalid_barcode", granted: false };
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest) {
         system_user_id: auth.context.systemUserId,
         device_id: deviceId || null,
         result: decision.result,
-        photo_required_warning: !hasPhoto,
+        photo_required_warning: photoRequired,
         membership_expiry_snapshot: member?.membership_expiry || null,
         checkin_id: checkinId,
       })
