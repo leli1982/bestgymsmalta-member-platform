@@ -80,8 +80,11 @@ test("scan card mode includes a secondary manual entry fallback and preserves ca
   assert.match(modal, /409|conflict|already/i);
 });
 
-test("payment received activates only after prerequisites and asks for staff name", () => {
-  assert.match(modal, /activationStaffName/);
+test("payment received activates only after prerequisites and asks for controlled payment data", () => {
+  assert.match(modal, /staffName/);
+  assert.match(modal, /Payment Staff Name/);
+  assert.match(modal, /paymentMethod/);
+  assert.match(modal, /discountCode/);
   assert.match(modal, /action:\s*["']activate["']/);
   assert.match(modal, /MEMBERSHIP ACTIVE/);
   assert.match(modal, /hasPhoto/);
