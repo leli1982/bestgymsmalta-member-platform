@@ -248,7 +248,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "This application belongs to another gym." }, { status: 403 });
     }
 
-    if (application.application_kind === "new") {
+    const reusesExistingMember = Boolean(participant.existing_member_id);
+
+    if (!reusesExistingMember) {
       try {
         const reservation = await reserveExactCard(
           supabase,
@@ -290,8 +292,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (application.application_kind !== "renewal" || !participant.existing_member_id) {
-      return NextResponse.json({ error: "Renewal member identity is required." }, { status: 409 });
+    if (!participant.existing_member_id) {
+      return NextResponse.json({ error: "Existing member identity is required." }, { status: 409 });
     }
 
     const [memberResult, activeCardResult, existingBarcodeResult] = await Promise.all([
