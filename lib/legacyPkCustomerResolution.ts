@@ -1,5 +1,3 @@
-import { evaluateBarcodeAccess } from "./barcodeAccessCore";
-
 export type LegacyPkCustomerMember = {
   id: string;
   member_number: string | null;
@@ -34,6 +32,12 @@ export type LegacyPkCustomerResolution =
       liveMatches: LegacyPkCustomerMember[];
     };
 
+function isLiveMember(member: LegacyPkCustomerMember, today: string) {
+  if (member.status !== "active") return false;
+  if (member.membership_expiry && member.membership_expiry < today) return false;
+  return true;
+}
+
 export function resolveLegacyPkCustomerCandidates(
   matches: LegacyPkCustomerMember[],
   today: string
@@ -47,13 +51,7 @@ export function resolveLegacyPkCustomerCandidates(
   }
 
   const liveMatches = matches.filter((candidate) =>
-    evaluateBarcodeAccess({
-      member: {
-        status: candidate.status,
-        membershipExpiry: candidate.membership_expiry,
-      },
-      today,
-    }).granted
+    isLiveMember(candidate, today)
   );
 
   if (liveMatches.length === 1) {
