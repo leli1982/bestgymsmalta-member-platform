@@ -24,11 +24,13 @@ function read(url) {
   return fs.readFileSync(url, "utf8");
 }
 
-test("membership tools keep explicit NEW MEMBER and RENEW choices", () => {
+test("membership tools keep explicit direct New Member and Renew choices", () => {
   const dashboard = read(staffDashboardUrl);
   const wrapper = read(componentUrl);
-  assert.match(dashboard, /NEW MEMBER/);
-  assert.match(dashboard, /RENEW/);
+  assert.match(dashboard, /label=["']New Member["']/);
+  assert.match(dashboard, /label=["']Renew["']/);
+  assert.match(dashboard, /kind=new/);
+  assert.match(dashboard, /kind=renewal/);
   assert.match(wrapper, /StaffRenewalEnrollmentPage/);
   assert.match(wrapper, /RegistrationForm/);
 });
