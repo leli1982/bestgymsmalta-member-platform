@@ -1,4 +1,4 @@
-import { evaluateBarcodeAccess } from "./barcodeAccessCore.ts";
+import { evaluateBarcodeAccess } from "./barcodeAccessCore";
 
 export type LegacyPkCustomerMember = {
   id: string;
