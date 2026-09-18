@@ -13,7 +13,7 @@ export default function CardPage() {
             Your BGM access card
           </h1>
           <p className="mt-2 text-sm font-bold text-slate-600">
-            Your virtual card shows the same barcode as your currently issued physical BGM card.
+            Your virtual barcode uses your permanent BGM member number. Your physical card keeps its own preprinted barcode and both identify the same membership.
 
           </p>
         </div>
