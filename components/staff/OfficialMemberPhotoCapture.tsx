@@ -218,24 +218,27 @@ export default function OfficialMemberPhotoCapture({
         </div>
       )}
 
-      <div className="mt-4 aspect-square max-w-sm overflow-hidden rounded-2xl bg-zinc-950">
+      <div className="relative mt-4 aspect-square max-w-sm overflow-hidden rounded-2xl bg-zinc-950">
         {previewUrl ? (
           <img
             src={previewUrl}
             alt="Official member photo preview"
             className="h-full w-full object-cover"
           />
-        ) : cameraOpen ? (
-          <video
-            ref={videoRef}
-            playsInline
-            muted
-            className="h-full w-full object-cover"
-          />
         ) : (
-          <div className="flex h-full w-full items-center justify-center px-6 text-center text-sm font-bold text-zinc-500">
-            Choose the webcam or upload an existing image.
-          </div>
+          <>
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              className={cameraOpen ? "h-full w-full object-cover" : "hidden"}
+            />
+            {!cameraOpen && (
+              <div className="flex h-full w-full items-center justify-center px-6 text-center text-sm font-bold text-zinc-500">
+                Choose the webcam or upload an existing image.
+              </div>
+            )}
+          </>
         )}
       </div>
 
