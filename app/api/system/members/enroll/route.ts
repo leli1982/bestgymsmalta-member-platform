@@ -40,6 +40,25 @@ function isIsoDate(value: string) {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
+function addOneDayIso(dateValue: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue);
+  if (!match) return "";
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function maltaTodayIso() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Malta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
 function makeApplicationReference() {
   const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
   return `BGMAPP-${stamp}-${randomUUID().slice(0, 8).toUpperCase()}`;
@@ -334,7 +353,7 @@ export async function POST(request: NextRequest) {
     if (kind === "renewal") {
       const memberResult = await supabase
         .from("bgm_members")
-        .select("id")
+        .select("id, status, membership_expiry")
         .in("id", renewalMemberIds);
 
       if (memberResult.error) throw memberResult.error;
@@ -343,6 +362,30 @@ export async function POST(request: NextRequest) {
           { error: "One or more renewal members could not be confirmed." },
           { status: 404 }
         );
+      }
+
+      const today = maltaTodayIso();
+      const activeExpiries = (memberResult.data || [])
+        .filter(
+          (member) =>
+            member.status === "active" &&
+            Boolean(member.membership_expiry) &&
+            member.membership_expiry >= today
+        )
+        .map((member) => String(member.membership_expiry))
+        .sort();
+
+      const latestActiveExpiry = activeExpiries.at(-1);
+      if (latestActiveExpiry) {
+        const requiredStartDate = addOneDayIso(latestActiveExpiry);
+        if (startDate !== requiredStartDate) {
+          return NextResponse.json(
+            {
+              error: `This renewal must start on ${requiredStartDate}, the day after the current active membership expires.`,
+            },
+            { status: 409 }
+          );
+        }
       }
     }
 
