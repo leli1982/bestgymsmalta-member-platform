@@ -285,7 +285,7 @@ export default function RegistrationForm({
         {selectedPrice ? <div className="mt-4 flex items-center justify-between rounded-2xl bg-emerald-50 px-4 py-3"><span className="text-sm font-bold text-emerald-800">Current membership price</span><span className="text-xl font-black text-emerald-950">{formatEur(selectedPrice.amountCents)}</span></div> : null}
       </section>
 
-      {membershipType ? <RegistrationDocumentWarning membershipType={membershipType} acknowledged={documentReady} onAcknowledge={setDocumentReady} /> : null}
+      {membershipType ? <RegistrationDocumentWarning membershipType={membershipType} mode={mode} acknowledged={documentReady} onAcknowledge={setDocumentReady} /> : null}
 
       {membershipType && documentReady && participants.map((participant, index) => {
         let under18 = false;
