@@ -1,75 +1,22 @@
 -- BestGymsMalta permanent member identity hardening.
--- Permanent BGM membership numbers and physical card barcodes are separate identifiers.
--- Legacy transitional member_number values are preserved as card credentials only
--- when the member has no credential history, then every member receives BGM000000x.
+-- Permanent BGM membership numbers and physical-card/pkCustomer numbers are
+-- separate identifiers. Legacy manual-card numbers may be duplicated, so they
+-- must never be forced into a globally unique credential during backfill.
 
-do $$
-begin
-  if exists (
-    select 1
-    from public.bgm_members
-    where member_number is not null
-      and btrim(member_number) <> ''
-      and member_number !~ '^BGM[0-9]{7}$'
-    group by btrim(member_number)
-    having count(*) > 1
-  ) then
-    raise exception 'Duplicate transitional member/card numbers exist. Resolve them before permanent-number backfill.';
-  end if;
-
-  if exists (
-    select 1
-    from public.bgm_members m
-    join public.bgm_member_card_credentials c
-      on c.barcode_value = btrim(m.member_number)
-     and c.member_id is distinct from m.id
-    where m.member_number is not null
-      and btrim(m.member_number) <> ''
-      and m.member_number !~ '^BGM[0-9]{7}$'
-  ) then
-    raise exception 'A transitional member number is already owned by another card credential.';
-  end if;
-end;
-$$;
-
--- Preserve the old/preprinted physical card when an older transitional member
--- has no card-credential history yet. Never replace an already-managed card.
-insert into public.bgm_member_card_credentials (
-  barcode_value,
-  member_id,
-  application_member_id,
-  status,
-  reserved_at,
-  activated_at,
-  created_by_system_user_id,
-  updated_at
-)
-select
-  btrim(m.member_number),
-  m.id,
-  null,
-  'active',
-  now(),
-  now(),
-  null,
-  now()
-from public.bgm_members m
-where m.member_number is not null
-  and btrim(m.member_number) <> ''
-  and m.member_number !~ '^BGM[0-9]{7}$'
-  and not exists (
-    select 1
-    from public.bgm_member_card_credentials c
-    where c.member_id = m.id
-  )
-  and not exists (
-    select 1
-    from public.bgm_member_card_credentials c
-    where c.barcode_value = btrim(m.member_number)
-  );
+-- Preserve any transitional non-BGM member_number as pkCustomer when that field
+-- is still blank. This keeps the old/current physical-card number visible and
+-- scannable without merging or deleting duplicate legacy members.
+update public.bgm_members
+set legacy_pk_customer = btrim(member_number),
+    updated_at = now()
+where (legacy_pk_customer is null or btrim(legacy_pk_customer) = '')
+  and member_number is not null
+  and btrim(member_number) <> ''
+  and member_number !~ '^BGM[0-9]{7}$';
 
 -- Convert every missing/transitional person identifier into the permanent BGM
--- number. The physical barcode remains in bgm_member_card_credentials.
+-- number. The old/current card number remains separately in legacy_pk_customer
+-- or bgm_member_card_credentials.
 update public.bgm_members
 set member_number = public.bgm_next_member_number(),
     updated_at = now()
@@ -102,7 +49,7 @@ begin
      and old.member_number ~ '^BGM[0-9]{7}$'
      and new.member_number is distinct from old.member_number then
     -- Lifetime BGM identity is immutable. This also prevents older import code
-    -- from copying a physical CardBarcode back into member_number.
+    -- from copying a physical CardBarcode/pkCustomer into member_number.
     new.member_number := old.member_number;
   elsif new.member_number is null
      or btrim(new.member_number) = ''
