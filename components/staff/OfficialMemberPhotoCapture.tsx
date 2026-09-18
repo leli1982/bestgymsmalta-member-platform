@@ -10,6 +10,53 @@ type Props = {
   onSaved?: (photoUrl: string) => void;
 };
 
+const ACCEPTED_UPLOAD_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+
+function canvasToWebp(canvas: HTMLCanvasElement) {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Could not prepare photo."));
+      },
+      "image/webp",
+      0.86
+    );
+  });
+}
+
+async function uploadedImageToWebp(file: File) {
+  if (!ACCEPTED_UPLOAD_TYPES.includes(file.type as (typeof ACCEPTED_UPLOAD_TYPES)[number])) {
+    throw new Error("Upload a JPEG, PNG or WebP image.");
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    image.decoding = "async";
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("Could not read the selected image."));
+      image.src = objectUrl;
+    });
+
+    const side = Math.min(image.naturalWidth, image.naturalHeight);
+    if (!side) throw new Error("Could not read the selected image.");
+
+    const sx = (image.naturalWidth - side) / 2;
+    const sy = (image.naturalHeight - side) / 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = 720;
+    canvas.height = 720;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Could not prepare the selected image.");
+    context.drawImage(image, sx, sy, side, side, 0, 0, 720, 720);
+    return await canvasToWebp(canvas);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 export default function OfficialMemberPhotoCapture({
   applicationMemberId,
   memberId,
@@ -18,15 +65,25 @@ export default function OfficialMemberPhotoCapture({
   onSaved,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const uploadRef = useRef<HTMLInputElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [error, setError] = useState("");
+
+  function replacePreview(blob: Blob) {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    const url = URL.createObjectURL(blob);
+    setPhotoBlob(blob);
+    setPreviewUrl(url);
+  }
 
   function stopCamera() {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    setCameraOpen(false);
   }
 
   async function startCamera() {
@@ -34,24 +91,38 @@ export default function OfficialMemberPhotoCapture({
     stopCamera();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 1280 } },
+        video: {
+          facingMode: "user",
+          width: { ideal: 1280 },
+          height: { ideal: 1280 },
+        },
         audio: false,
       });
       streamRef.current = stream;
+      setCameraOpen(true);
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
     } catch {
-      setError("Camera access is required to capture the official member photo.");
+      setError("Camera access was not available. You can upload a photo instead.");
     }
   }
 
-  useEffect(() => () => stopCamera(), []);
+  useEffect(
+    () => () => {
+      stopCamera();
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    },
+    [previewUrl]
+  );
 
-  function capture() {
+  async function capture() {
     const video = videoRef.current;
-    if (!video || !video.videoWidth || !video.videoHeight) return;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      setError("Open the webcam and wait for the image before taking the photo.");
+      return;
+    }
 
     const side = Math.min(video.videoWidth, video.videoHeight);
     const sx = (video.videoWidth - side) / 2;
@@ -62,21 +133,36 @@ export default function OfficialMemberPhotoCapture({
     const context = canvas.getContext("2d");
     if (!context) return;
     context.drawImage(video, sx, sy, side, side, 0, 0, 720, 720);
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) {
-          setError("Could not capture photo. Please try again.");
-          return;
-        }
-        if (previewUrl) URL.revokeObjectURL(previewUrl);
-        const url = URL.createObjectURL(blob);
-        setPhotoBlob(blob);
-        setPreviewUrl(url);
-        stopCamera();
-      },
-      "image/webp",
-      0.86
-    );
+
+    try {
+      replacePreview(await canvasToWebp(canvas));
+      stopCamera();
+    } catch (captureError) {
+      setError(
+        captureError instanceof Error
+          ? captureError.message
+          : "Could not capture photo. Please try again."
+      );
+    }
+  }
+
+  async function selectUpload(file: File | null) {
+    if (!file) return;
+    setBusy(true);
+    setError("");
+    stopCamera();
+    try {
+      replacePreview(await uploadedImageToWebp(file));
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "Could not prepare the selected photo."
+      );
+    } finally {
+      setBusy(false);
+      if (uploadRef.current) uploadRef.current.value = "";
+    }
   }
 
   async function usePhoto() {
@@ -85,13 +171,19 @@ export default function OfficialMemberPhotoCapture({
     setError("");
     try {
       const body = new FormData();
-      body.set("file", new File([photoBlob], "official-photo.webp", { type: "image/webp" }));
+      body.set(
+        "file",
+        new File([photoBlob], "official-photo.webp", { type: "image/webp" })
+      );
       if (applicationMemberId) body.set("applicationMemberId", applicationMemberId);
       if (memberId) body.set("memberId", memberId);
       if (source) body.set("source", source);
       if (staffName?.trim()) body.set("staffName", staffName.trim());
 
-      const response = await fetch("/api/system/members/photo", { method: "POST", body });
+      const response = await fetch("/api/system/members/photo", {
+        method: "POST",
+        body,
+      });
       const data = await response.json();
       if (!response.ok) {
         setError(data.error || "Could not save official member photo.");
@@ -115,29 +207,103 @@ export default function OfficialMemberPhotoCapture({
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-4">
       <p className="font-bold">Official member photo</p>
-      <p className="mt-1 text-sm text-zinc-500">Centre the member&apos;s face clearly. This photo is private and used by reception for identity checks.</p>
+      <p className="mt-1 text-sm text-zinc-500">
+        Centre the member&apos;s face clearly. This photo is private and used by
+        reception for identity checks.
+      </p>
 
-      {error && <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      {error && (
+        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
-      <div className="mt-4 overflow-hidden rounded-2xl bg-zinc-950 aspect-square max-w-sm">
+      <div className="mt-4 aspect-square max-w-sm overflow-hidden rounded-2xl bg-zinc-950">
         {previewUrl ? (
-          <img src={previewUrl} alt="Official member photo preview" className="h-full w-full object-cover" />
+          <img
+            src={previewUrl}
+            alt="Official member photo preview"
+            className="h-full w-full object-cover"
+          />
+        ) : cameraOpen ? (
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            className="h-full w-full object-cover"
+          />
         ) : (
-          <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
+          <div className="flex h-full w-full items-center justify-center px-6 text-center text-sm font-bold text-zinc-500">
+            Choose the webcam or upload an existing image.
+          </div>
         )}
       </div>
+
+      <input
+        ref={uploadRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="sr-only"
+        onChange={(event) => void selectUpload(event.target.files?.[0] || null)}
+      />
 
       <div className="mt-4 flex flex-wrap gap-2">
         {!previewUrl && (
           <>
-            <button type="button" onClick={startCamera} className="rounded-xl border border-zinc-300 px-4 py-2 text-sm font-bold">Open Camera</button>
-            <button type="button" onClick={capture} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-bold text-white">Take Photo</button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void startCamera()}
+              className="rounded-xl border border-zinc-300 px-4 py-2 text-sm font-bold disabled:opacity-50"
+            >
+              Take Photo with Webcam
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => uploadRef.current?.click()}
+              className="rounded-xl border border-zinc-300 px-4 py-2 text-sm font-bold disabled:opacity-50"
+            >
+              Upload Photo
+            </button>
+            {cameraOpen && (
+              <button
+                type="button"
+                onClick={() => void capture()}
+                className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-bold text-white"
+              >
+                Take Photo
+              </button>
+            )}
           </>
         )}
+
         {previewUrl && (
           <>
-            <button type="button" disabled={busy} onClick={usePhoto} className="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{busy ? "Saving…" : "Use Photo"}</button>
-            <button type="button" disabled={busy} onClick={retake} className="rounded-xl border border-zinc-300 px-4 py-2 text-sm font-bold disabled:opacity-50">Retake</button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void usePhoto()}
+              className="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+            >
+              {busy ? "Saving…" : "Use Photo"}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void retake()}
+              className="rounded-xl border border-zinc-300 px-4 py-2 text-sm font-bold disabled:opacity-50"
+            >
+              Retake
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => uploadRef.current?.click()}
+              className="rounded-xl border border-zinc-300 px-4 py-2 text-sm font-bold disabled:opacity-50"
+            >
+              Upload Photo
+            </button>
           </>
         )}
       </div>
