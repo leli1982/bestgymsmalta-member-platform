@@ -231,7 +231,11 @@ export default function StaffDashboard({ user, onLogout }: Props) {
         </section>
 
         <div className="mt-5">
-          <StaffMembershipQueue refreshToken={queueRefreshToken} onCountChange={setQueueCount} />
+          <StaffMembershipQueue
+            refreshToken={queueRefreshToken}
+            onCountChange={setQueueCount}
+            compact
+          />
         </div>
 
         {membersOpen && (
