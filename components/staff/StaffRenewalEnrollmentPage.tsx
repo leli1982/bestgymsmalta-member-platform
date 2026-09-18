@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import StaffMembershipReviewModal from "@/components/staff/StaffMembershipReviewModal";
+import { calculateMembershipExpiry } from "@/lib/membershipEnrollmentCore";
+import type { MembershipDurationKey } from "@/lib/membershipSettingsCore";
 
 type SystemUser = {
   id: string;
@@ -107,6 +109,41 @@ function blankParticipant(): ParticipantForm {
   };
 }
 
+function addOneDayIso(dateValue: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue);
+  if (!match) return "";
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function maltaTodayIso() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Malta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function renewalStartForCandidates(candidates: Candidate[]) {
+  const today = maltaTodayIso();
+  const activeExpiries = candidates
+    .filter(
+      (candidate) =>
+        candidate.status === "active" &&
+        Boolean(candidate.membershipExpiry) &&
+        candidate.membershipExpiry >= today,
+    )
+    .map((candidate) => candidate.membershipExpiry)
+    .sort();
+
+  const latestActiveExpiry = activeExpiries.at(-1);
+  return latestActiveExpiry ? addOneDayIso(latestActiveExpiry) : "";
+}
+
 function participantFromCandidate(candidate: Candidate): ParticipantForm {
   const nameParts = candidate.fullName.trim().split(/\s+/).filter(Boolean);
   const fallbackFirstName = nameParts[0] || "";
@@ -148,6 +185,7 @@ export default function MembershipEnrollmentPage() {
   ]);
   const [searchQuery, setSearchQuery] = useState("");
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [selectedRenewalCandidates, setSelectedRenewalCandidates] = useState<Candidate[]>([]);
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [application, setApplication] = useState<ApplicationSummary | null>(null);
@@ -205,6 +243,7 @@ export default function MembershipEnrollmentPage() {
     setParticipants([blankParticipant()]);
     setSearchQuery("");
     setCandidates([]);
+    setSelectedRenewalCandidates([]);
     setApplication(null);
     setMessage("");
     setError("");
@@ -217,6 +256,7 @@ export default function MembershipEnrollmentPage() {
     setApplication(null);
     setStaffName("");
     setCandidates([]);
+    setSelectedRenewalCandidates([]);
     setSearchQuery("");
     setMessage("");
     setError("");
@@ -300,6 +340,25 @@ export default function MembershipEnrollmentPage() {
       }
       return [...current, participantFromCandidate(candidate)];
     });
+    setSelectedRenewalCandidates((current) => {
+      const withoutDuplicate = current.filter((item) => item.id !== candidate.id);
+      const limit = membershipType === "couples" ? 2 : 1;
+      const next =
+        withoutDuplicate.length >= limit
+          ? [...withoutDuplicate.slice(0, limit - 1), candidate]
+          : [...withoutDuplicate, candidate];
+      const automaticStart = renewalStartForCandidates(next);
+      if (automaticStart) {
+        setStartDate(automaticStart);
+        setExpiryDate(
+          calculateMembershipExpiry(
+            automaticStart,
+            durationKey as MembershipDurationKey,
+          ),
+        );
+      }
+      return next;
+    });
     setCandidates([]);
     setSearchQuery("");
   }
@@ -358,6 +417,23 @@ export default function MembershipEnrollmentPage() {
     setParticipants((current) =>
       current.filter((participant) => participant.existingMemberId !== memberId)
     );
+    setSelectedRenewalCandidates((current) => {
+      const next = current.filter((candidate) => candidate.id !== memberId);
+      const automaticStart = renewalStartForCandidates(next);
+      if (automaticStart) {
+        setStartDate(automaticStart);
+        setExpiryDate(
+          calculateMembershipExpiry(
+            automaticStart,
+            durationKey as MembershipDurationKey,
+          ),
+        );
+      } else {
+        setStartDate("");
+        setExpiryDate("");
+      }
+      return next;
+    });
   }
 
   async function submitApplication(event: React.FormEvent) {
@@ -661,7 +737,18 @@ export default function MembershipEnrollmentPage() {
                 <Field label="Duration">
                   <select
                     value={durationKey}
-                    onChange={(event) => setDurationKey(event.target.value)}
+                    onChange={(event) => {
+                      const nextDuration = event.target.value;
+                      setDurationKey(nextDuration);
+                      if (startDate) {
+                        setExpiryDate(
+                          calculateMembershipExpiry(
+                            startDate,
+                            nextDuration as MembershipDurationKey,
+                          ),
+                        );
+                      }
+                    }}
                     className={inputClass}
                   >
                     {DURATIONS.map((duration) => (
@@ -693,7 +780,18 @@ export default function MembershipEnrollmentPage() {
                     required
                     type="date"
                     value={startDate}
-                    onChange={(event) => setStartDate(event.target.value)}
+                    onChange={(event) => {
+                      const nextStart = event.target.value;
+                      setStartDate(nextStart);
+                      if (nextStart) {
+                        setExpiryDate(
+                          calculateMembershipExpiry(
+                            nextStart,
+                            durationKey as MembershipDurationKey,
+                          ),
+                        );
+                      }
+                    }}
                     className={inputClass}
                   />
                 </Field>
