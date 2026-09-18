@@ -41,8 +41,20 @@ test("launch reception uses barcode scanner UX", () => {
 
 test("staff home is scanner-ready while the full reception tile remains available", () => {
   assert.match(staffHome, /StaffHomeScanner/);
-  assert.match(staffHome, /Card \/ Reception/);
+  assert.match(staffHome, /Reception Tools/);
   assert.match(staffHome, /can\(["']barcode\.scan["']\)/);
   assert.match(staffHome, /href="\/staff\/reception"/);
   assert.match(staffHome, /disabled=\{!can\(["']barcode\.scan["']\)\}/);
+});
+
+
+test("staff home scanner provides audible success and warning feedback", () => {
+  const scanner = fs.readFileSync(
+    new URL("../components/staff/StaffHomeScanner.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(scanner, /AudioContext/);
+  assert.match(scanner, /playTone/);
+  assert.match(scanner, /success/);
+  assert.match(scanner, /warning/);
 });
