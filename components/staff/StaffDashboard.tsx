@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import StaffMemberBrowser from "@/components/staff/StaffMemberBrowser";
 import StaffMembershipQueue from "@/components/staff/StaffMembershipQueue";
+import StaffHomeScanner from "@/components/staff/StaffHomeScanner";
 import StaffRealtimeBridge from "@/components/staff/StaffRealtimeBridge";
 
 type SystemUser = {
@@ -167,6 +168,8 @@ export default function StaffDashboard({ user, onLogout }: Props) {
             </div>
           </div>
         </header>
+
+        <StaffHomeScanner user={user} />
 
         <section className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <Tile label="Members" icon={UsersRound} onClick={focusMembers} />
