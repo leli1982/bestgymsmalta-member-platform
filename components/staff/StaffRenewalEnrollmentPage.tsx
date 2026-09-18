@@ -419,7 +419,7 @@ export default function MembershipEnrollmentPage() {
       }
       setApplication(data.application);
       setMessage(
-        "Application saved. It is awaiting card confirmation and payment activation."
+        "Renewal prepared. Continue below with card verification, mandatory printing, payment and activation."
       );
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
@@ -532,7 +532,7 @@ export default function MembershipEnrollmentPage() {
               >
                 <span className="block text-2xl font-black">RENEWAL</span>
                 <span className="mt-2 block text-sm text-orange-900/70">
-                  Find the existing member first and keep their permanent number and barcode.
+                  Find the existing member first. Their permanent BGM number stays the same; the physical card is verified or replaced during completion.
                 </span>
               </button>
             </div>
@@ -592,7 +592,7 @@ export default function MembershipEnrollmentPage() {
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Member number, name, ID number, mobile or email"
-                  className="min-w-0 flex-1 rounded-xl border border-zinc-300 px-4 py-3 outline-none focus:border-orange-500"
+                  className="min-w-0 flex-1 rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950 outline-none focus:border-orange-500"
                 />
                 <button
                   disabled={searching}
@@ -760,7 +760,7 @@ export default function MembershipEnrollmentPage() {
               {submitting ? "Saving application…" : "SUBMIT MEMBERSHIP APPLICATION"}
             </button>
             <p className="text-center text-xs font-semibold text-zinc-500">
-              Submitting creates an awaiting-payment application only. Card confirmation and Payment Received are completed from the Staff Dashboard review.
+              After submission, continue here: verify the member card, print and confirm the membership form, then take payment and activate.
             </p>
           </form>
         )}
@@ -787,25 +787,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       {label}
       {children}
     </label>
-  );
-}
-
-function Summary({
-  label,
-  value,
-  emphasize = false,
-}: {
-  label: string;
-  value: string;
-  emphasize?: boolean;
-}) {
-  return (
-    <div className={`rounded-xl p-4 ${emphasize ? "bg-orange-50" : "bg-zinc-50"}`}>
-      <p className="text-xs font-black uppercase tracking-wide text-zinc-500">{label}</p>
-      <p className={`mt-1 font-bold ${emphasize ? "text-orange-900" : "text-zinc-900"}`}>
-        {value || "—"}
-      </p>
-    </div>
   );
 }
 
@@ -865,6 +846,13 @@ function ParticipantEditor({
           <input
             value={participant.addressLine2}
             onChange={(event) => onChange(index, "addressLine2", event.target.value)}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Town / Locality">
+          <input
+            value={participant.town}
+            onChange={(event) => onChange(index, "town", event.target.value)}
             className={inputClass}
           />
         </Field>
