@@ -7,10 +7,16 @@ const origin = "http://127.0.0.1:3100";
 const artifacts = "test-artifacts/member-ui";
 const member = {
   id: "browser-test-member", username: "browser-member", fullName: "Browser Test Member",
-  memberNumber: "OLD001", email: "browser@example.test", status: "active",
+  memberNumber: "BGM0000123", email: "browser@example.test", status: "active",
   membershipExpiry: "9999-12-31",
 };
-const readyCard = { member, cardLinked: true, cardBarcode: "NEW001aB", source: "credential" };
+const readyCard = {
+  member,
+  cardLinked: true,
+  cardBarcode: "BGM0000123",
+  physicalCardBarcode: "NEW001aB",
+  source: "member_number",
+};
 const gym = {
   id: "bgm-birkirkara", name: "BGM Birkirkara", status: "active", city: "Birkirkara",
   address: "Test gym address, Birkirkara", openingHours: "Monday – Friday: 06:00 – 22:00",
@@ -82,8 +88,8 @@ try {
   await page.getByPlaceholder("Your password").fill("test-password");
   await page.locator('form button[type="submit"]').click();
   await page.waitForURL(origin + "/card");
-  await visible(page.locator('svg[aria-label="Member barcode NEW001aB"]'));
-  assert.equal(await page.locator('svg[aria-label="Member barcode OLD001"]').count(), 0);
+  await visible(page.locator('svg[aria-label="Member barcode BGM0000123"]'));
+  assert.equal(await page.locator('svg[aria-label="Member barcode NEW001aB"]').count(), 0);
   await page.screenshot({ path: artifacts + "/card-390.png", fullPage: true });
   console.log("PASS stale saved profile → sign in → return to current card");
 
@@ -96,7 +102,7 @@ try {
     await route.fulfill({ json: readyCard });
   });
   await page.goto(origin + "/card");
-  await visible(page.locator('svg[aria-label="Member barcode NEW001aB"]'));
+  await visible(page.locator('svg[aria-label="Member barcode BGM0000123"]'));
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("bgmMemberSession")).id), member.id);
   delayNext = true;
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
@@ -110,7 +116,7 @@ try {
   await delayedRoute.fulfill({ json: readyCard });
   await page.waitForLoadState("networkidle");
   await visible(page.getByRole("heading", { name: "Sign in to show your card" }));
-  assert.equal(await page.locator('svg[aria-label="Member barcode NEW001aB"]').count(), 0);
+  assert.equal(await page.locator('svg[aria-label="Member barcode BGM0000123"]').count(), 0);
   assert.equal(await page.evaluate(() => localStorage.getItem("bgmMemberSession")), null);
   console.log("PASS cookie-backed profile restoration and stale response after logout");
 
@@ -118,15 +124,18 @@ try {
   let requestCount = 0;
   await page.route("**/api/member/card", (route) => route.fulfill(++requestCount === 1
     ? { status: 500, json: { error: "Temporary failure" } }
-    : { json: { ...readyCard, cardLinked: false, cardBarcode: null } }));
+    : { json: { ...readyCard, cardLinked: false, physicalCardBarcode: null } }));
   await page.goto(origin + "/card");
   await visible(page.getByRole("heading", { name: "Card temporarily unavailable" }));
   await noText("CARD NOT LINKED");
   await page.getByRole("button", { name: "Try again", exact: true }).click();
-  await visible(page.getByText("CARD NOT LINKED", { exact: true }));
+  await visible(page.locator('svg[aria-label="Member barcode BGM0000123"]'));
+  await page.getByRole("button", { name: "Show membership details" }).click();
+  await visible(page.getByText("Physical card", { exact: true }));
+  await visible(page.getByText("Not linked", { exact: true }));
   await lightLayout();
   await page.screenshot({ path: artifacts + "/card-unlinked-320.png", fullPage: true });
-  console.log("PASS request failure, retry and genuine unlinked card at 320px");
+  console.log("PASS request failure, retry and BGM virtual barcode without physical card at 320px");
 
   // Verify the real client-side gym rendering and navigation at narrow widths.
   for (const width of [320, 390]) {
