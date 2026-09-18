@@ -7,52 +7,49 @@ const root = new URL("..", import.meta.url).pathname;
 const scanRoutePath = join(root, "app/api/system/barcode/scan/route.ts");
 const finalizeRoutePath = join(root, "app/api/system/barcode/finalize/route.ts");
 const receptionComponentPath = join(root, "components/staff/BarcodeReceptionPage.tsx");
-const migrationPath = join(root, "supabase/migrations/20260911_100000_reception_photo_gate.sql");
+const migrationPath = join(root, "supabase/migrations/20260918_103000_nonblocking_photo_warning.sql");
 
-test("reception resolves opaque card credentials and gates active members without photos", () => {
+test("valid membership access is never denied only because the official photo is missing", () => {
   const route = readFileSync(scanRoutePath, "utf8");
   assert.match(route, /normalizeBarcodePayload/);
   assert.match(route, /bgm_member_card_credentials/);
-  assert.match(route, /barcode_value/);
-  assert.match(route, /unknown_card/);
-  assert.match(route, /disabled_card/);
-  assert.match(route, /photo_required/);
-  assert.match(route, /photoUrl/);
-  assert.doesNotMatch(route, /officialPhotoPath\s*:/);
+  assert.match(route, /const membershipDecision = evaluateBarcodeAccess/);
+  assert.match(route, /decision = membershipDecision/);
+  assert.doesNotMatch(route, /photo_required["']\s*,\s*granted:\s*false/);
+  assert.match(route, /photoRequired:\s*!hasPhoto/);
+  assert.match(route, /recordCanonicalCheckin/);
+  assert.match(route, /todayMaltaDate/);
+  assert.doesNotMatch(route, /new Date\(\)\.toISOString\(\)\.slice\(0,\s*10\)/);
 });
 
-test("photo-required access finalization is server-authorized and delegated to an idempotent database transaction", () => {
-  assert.equal(existsSync(finalizeRoutePath), true, "barcode finalize route must exist");
-  const route = readFileSync(finalizeRoutePath, "utf8");
-  assert.match(route, /requireSystemPermission\(request,\s*"barcode\.scan"\)/);
-  assert.match(route, /scanId/);
-  assert.match(route, /bgm_finalize_photo_required_barcode_access/);
-});
-
-test("database photo gate records PHOTO REQUIRED and finalizes exactly one canonical barcode check-in", () => {
-  assert.equal(existsSync(migrationPath), true, "reception photo-gate migration must exist");
+test("access scans store photo warning separately from the access result", () => {
+  assert.equal(existsSync(migrationPath), true, "nonblocking photo-warning migration must exist");
   const migration = readFileSync(migrationPath, "utf8");
-  assert.match(migration, /photo_required/);
-  assert.match(migration, /create or replace function public\.bgm_finalize_photo_required_barcode_access/);
-  assert.match(migration, /from public\.bgm_access_scans[\s\S]*for update/i);
-  assert.match(migration, /official_photo_path/);
-  assert.match(migration, /bgm_member_card_credentials/);
-  assert.match(migration, /insert into public\.bgm_member_checkins/);
-  assert.match(migration, /source[\s\S]*'barcode'/i);
-  assert.match(migration, /checkin_id/);
-  assert.match(migration, /result = 'granted'/);
-  assert.match(migration, /grant execute[\s\S]*service_role/i);
-  assert.match(migration, /revoke[\s\S]*authenticated/i);
+  const route = readFileSync(scanRoutePath, "utf8");
+
+  assert.match(migration, /photo_required_warning\s+boolean\s+not\s+null\s+default\s+false/i);
+  assert.match(route, /photo_required_warning:\s*!hasPhoto/);
+  assert.match(route, /result:\s*decision\.result/);
+  assert.match(route, /checkin_id:\s*checkinId/);
 });
 
-test("reception UI shows secure member photos, CARD REPLACED and inline PHOTO REQUIRED capture", () => {
+test("historical photo-required finalizer remains available only for old audit rows", () => {
+  assert.equal(existsSync(finalizeRoutePath), true, "historical barcode finalize route remains readable");
+  const route = readFileSync(finalizeRoutePath, "utf8");
+  assert.match(route, /bgm_finalize_photo_required_barcode_access/);
+  assert.doesNotMatch(readFileSync(receptionComponentPath, "utf8"), /\/api\/system\/barcode\/finalize/);
+});
+
+test("reception grants access normally and shows a separate repeating PHOTO REQUIRED warning", () => {
   const component = readFileSync(receptionComponentPath, "utf8");
-  assert.match(component, /OfficialMemberPhotoCapture/);
-  assert.match(component, /photo_required/);
+  assert.match(component, /ACCESS GRANTED/);
   assert.match(component, /PHOTO REQUIRED/);
-  assert.match(component, /disabled_card/);
-  assert.match(component, /CARD REPLACED/);
-  assert.match(component, /photoUrl/);
-  assert.match(component, /\/api\/system\/barcode\/finalize/);
+  assert.match(component, /photoRequired/);
+  assert.match(component, /Take Photo with Webcam/);
+  assert.match(component, /Upload Photo/);
+  assert.match(component, /Allow Entry \/ Close/);
+  assert.match(component, /OfficialMemberPhotoCapture/);
   assert.match(component, /memberId=/);
+  assert.doesNotMatch(component, /No check-in has been created yet/);
+  assert.doesNotMatch(component, /finalizePhotoAccess/);
 });
