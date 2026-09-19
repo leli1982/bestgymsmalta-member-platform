@@ -381,6 +381,20 @@ try {
   await page.getByText("Browser Queue Member", { exact: true }).click();
   await waitVisible(page.getByRole("heading", { name: "Review online application", exact: true }));
   await waitVisible(page.getByRole("button", { name: "CONFIRM REVIEW → CONTINUE", exact: true }));
+  // The global scanner must interrupt another Staff popup without losing
+  // the current applicant review or changing a focused checkbox.
+  const idCheck = page.getByLabel("ID / passport verified");
+  await idCheck.focus();
+  await page.keyboard.press("F9");
+  await page.keyboard.type("BGM0000123", { delay: 4 });
+  await page.keyboard.press("Enter");
+  const globalAccess = page.getByRole("dialog", { name: "ACCESS GRANTED" });
+  await waitVisible(globalAccess);
+  assert.equal(await idCheck.isChecked(), false);
+  await globalAccess.getByRole("button", { name: "Close / Return to Staff Task" }).click();
+  await waitVisible(page.getByRole("heading", { name: "Review online application", exact: true }));
+  assert.equal(await idCheck.isChecked(), false);
+
   const applicantPhoto = page.getByRole("img", { name: "Browser Queue Member photo" });
   await waitVisible(applicantPhoto);
   await applicantPhoto.evaluate(async (image) => {
