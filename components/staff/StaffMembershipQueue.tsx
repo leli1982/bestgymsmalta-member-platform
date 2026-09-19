@@ -51,7 +51,6 @@ function needsReview(application: QueueApplication) {
   // Staff-created applications enter the completion flow directly; public
   // online applications require reception review before completion.
   return application.source === "tablet"
-    && application.status === "submitted"
     && !application.reviewedBySystemUserId;
 }
 
