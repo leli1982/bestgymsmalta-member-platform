@@ -404,10 +404,13 @@ export default function StaffMembershipReviewModal({
   }
 
   async function reuseExistingMember(applicationMemberId: string) {
-    if (needsReview && dirty) {
-      setError("Match the existing member before changing application details. Close and reopen to discard unsaved edits, then link the member.");
-      return;
-    }
+    if (
+      needsReview &&
+      dirty &&
+      !window.confirm(
+        "Match this existing member now? Unsaved review edits will be discarded so identity and verification can be checked again."
+      )
+    ) return;
     if (!needsReview && !(await saveReviewIfDirty())) return;
     setActing(true);
     setError("");
