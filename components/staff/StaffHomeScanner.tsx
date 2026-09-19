@@ -91,8 +91,6 @@ function playTone(kind: "success" | "warning") {
 
 export default function StaffHomeScanner({ user }: { user: SystemUser }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const scannerBuffer = useRef("");
-  const scannerTimer = useRef<number | null>(null);
   const resetTimer = useRef<number | null>(null);
   const [value, setValue] = useState("");
   const [result, setResult] = useState<ScanResponse | null>(null);
@@ -153,53 +151,11 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
     }
   }
 
+  // The portal-wide scanner owns hardware keystrokes on every Staff route.
+  // Keep this home input only for deliberate manual entry.
   useEffect(() => {
     if (canScan) inputRef.current?.focus();
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (!canScan || result || scanning) return;
-      const target = event.target as HTMLElement | null;
-      const tag = target?.tagName?.toLowerCase();
-      if (
-        tag === "input" ||
-        tag === "textarea" ||
-        tag === "select" ||
-        target?.isContentEditable
-      ) {
-        return;
-      }
-
-      if (event.key === "Enter") {
-        const scanned = scannerBuffer.current;
-        scannerBuffer.current = "";
-        if (scannerTimer.current) clearTimeout(scannerTimer.current);
-        scannerTimer.current = null;
-        if (scanned) {
-          event.preventDefault();
-          void submitScan(scanned);
-        }
-        return;
-      }
-
-      if (event.key.length !== 1 || event.ctrlKey || event.metaKey || event.altKey) {
-        return;
-      }
-
-      scannerBuffer.current += event.key;
-      if (scannerTimer.current) clearTimeout(scannerTimer.current);
-      scannerTimer.current = window.setTimeout(() => {
-        scannerBuffer.current = "";
-        scannerTimer.current = null;
-      }, 160);
-    }
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      if (scannerTimer.current) clearTimeout(scannerTimer.current);
-      if (resetTimer.current) clearTimeout(resetTimer.current);
-    };
-  }, [canScan, result, scanning]);
+  }, [canScan]);
 
   if (!canScan) return null;
 
