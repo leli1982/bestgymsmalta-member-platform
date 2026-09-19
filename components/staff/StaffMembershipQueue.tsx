@@ -68,6 +68,7 @@ export default function StaffMembershipQueue({
   const [expanded, setExpanded] = useState(false);
   const seenIds = useRef(new Set<string>());
   const initialized = useRef(false);
+  const requestSequence = useRef(0);
   const audioContext = useRef<AudioContext | null>(null);
 
   const playArrival = useCallback(() => {
@@ -93,6 +94,8 @@ export default function StaffMembershipQueue({
   }, []);
 
   const loadQueue = useCallback(async () => {
+    const requestId = ++requestSequence.current;
+    setLoading(true);
     try {
       const response = await fetch("/api/system/members/applications", {
         cache: "no-store",
@@ -100,6 +103,8 @@ export default function StaffMembershipQueue({
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not load waiting applications.");
+      // Ignore an older poll if a newer refresh has already started.
+      if (requestId !== requestSequence.current) return;
       const next = (data.applications || []) as QueueApplication[];
       setApplications(next);
       onCountChange?.(next.length);
@@ -117,15 +122,21 @@ export default function StaffMembershipQueue({
         }
       }
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Could not load waiting applications.");
+      if (requestId === requestSequence.current) {
+        setError(requestError instanceof Error ? requestError.message : "Could not load waiting applications.");
+      }
     } finally {
-      setLoading(false);
+      if (requestId === requestSequence.current) setLoading(false);
     }
   }, [alertsArmed, onCountChange, playArrival]);
 
   useEffect(() => {
     void loadQueue();
   }, [loadQueue, refreshToken]);
+
+  useEffect(() => () => {
+    requestSequence.current += 1;
+  }, []);
 
   useEffect(() => {
     const recover = () => void loadQueue();
@@ -171,6 +182,7 @@ export default function StaffMembershipQueue({
           <div>
             <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">Membership applications</p>
             <h2 className="text-xl font-black text-zinc-950">{applications.length} WAITING</h2>
+            {loading && <p className="text-xs font-semibold text-zinc-500">Updating queue…</p>}
             <p className="mt-1 text-xs font-semibold text-zinc-500">
               {reviewCount} to review · {completionCount} to complete
             </p>
@@ -244,7 +256,10 @@ export default function StaffMembershipQueue({
       {selectedId && (
         <StaffMembershipReviewModal
           applicationId={selectedId}
-          onClose={() => setSelectedId(null)}
+          onClose={() => {
+            setSelectedId(null);
+            void loadQueue();
+          }}
           onChanged={handleChanged}
         />
       )}
