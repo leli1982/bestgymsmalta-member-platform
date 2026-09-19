@@ -45,6 +45,8 @@ const member = {
 
 let cardAssigned = false;
 let idVerified = false;
+let reviewed = false;
+let printConfirmed = false;
 let activated = false;
 const applicationId = "app-browser";
 const participantId = "participant-browser";
@@ -54,7 +56,9 @@ function queueApplication() {
     id: applicationId,
     reference: "BGMAPP-BROWSER",
     kind: "new",
-    status: "awaiting_payment",
+    source: "tablet",
+    reviewedBySystemUserId: reviewed ? user.id : null,
+    status: "submitted",
     membershipType: "single",
     enrollmentGymId: "bgm-browser-gym",
     enrollmentGymName: "Browser Gym",
@@ -78,7 +82,10 @@ function applicationDetail() {
     id: applicationId,
     reference: "BGMAPP-BROWSER",
     kind: "new",
-    status: "awaiting_payment",
+    source: "tablet",
+    reviewedBySystemUserId: reviewed ? user.id : null,
+    printConfirmedAt: printConfirmed ? "2026-09-15T12:00:00.000Z" : null,
+    status: "submitted",
     membershipType: "single",
     durationKey: "1_month",
     startDate: "2026-09-15",
@@ -241,6 +248,7 @@ try {
       assert.equal(payload.membershipType, "single");
       assert.equal(payload.participants?.[0]?.idVerified, true);
       idVerified = true;
+      reviewed = true;
       return route.fulfill({ json: { ok: true, review: { applicationId } } });
     }
     return route.fulfill({ json: { application: applicationDetail() } });
