@@ -235,7 +235,7 @@ export async function POST(request: NextRequest) {
 
     const applicationResult = await supabase
       .from("bgm_membership_applications")
-      .select("id, application_kind, enrollment_gym_id, status")
+      .select("id, application_kind, enrollment_gym_id, status, application_source, reviewed_by_system_user_id")
       .eq("id", participant.application_id)
       .maybeSingle();
     if (applicationResult.error) throw applicationResult.error;
@@ -248,6 +248,18 @@ export async function POST(request: NextRequest) {
     }
     if (!auth.context.isSuperAdmin && auth.context.gymId !== application.enrollment_gym_id) {
       return NextResponse.json({ error: "This application belongs to another gym." }, { status: 403 });
+    }
+
+    // An online submission is not ready for a physical card until reception
+    // has explicitly reviewed the application. Staff-created flows are unchanged.
+    if (
+      application.application_source === "tablet" &&
+      !application.reviewed_by_system_user_id
+    ) {
+      return NextResponse.json(
+        { error: "Confirm the online membership application review before assigning or verifying a card." },
+        { status: 409 }
+      );
     }
 
     const reusesExistingMember = Boolean(participant.existing_member_id);
