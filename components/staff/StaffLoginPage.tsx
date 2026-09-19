@@ -82,6 +82,7 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
         return;
       }
       setUser(data.user);
+      window.dispatchEvent(new Event("bgm-staff-auth-changed"));
       setPassword("");
     } catch {
       setError("Login failed.");
@@ -93,6 +94,7 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
   async function logout() {
     await fetch("/api/system/auth", { method: "DELETE" });
     setUser(null);
+    window.dispatchEvent(new Event("bgm-staff-auth-changed"));
     setUsername("");
     setPassword("");
   }
