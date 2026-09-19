@@ -23,6 +23,7 @@ import {
   resolveClientIp,
 } from "@/lib/publicEnrollmentSecurity";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { broadcastStaffMembershipRefresh } from "@/lib/staffRealtime";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -514,6 +515,11 @@ export async function POST(request: NextRequest) {
       console.error("Public membership application returned an unexpected identifier.");
       return NextResponse.json({ error: "Could not submit application." }, { status: 500 });
     }
+
+    // The application has been committed. Alert the subscribed reception
+    // dashboard immediately; the queue's polling remains the fallback.
+    // Broadcast failures are handled by the helper and do not reject submission.
+    await broadcastStaffMembershipRefresh(gym.id);
 
     return NextResponse.json(
       { ok: true, applicationId },
