@@ -254,6 +254,28 @@ export default function StaffMembershipReviewModal({
     return () => window.removeEventListener("focus", refreshAfterPrint);
   }, [loadDetail, dirty, acting, saving]);
 
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const channel = new BroadcastChannel("bgm-membership-print");
+    channel.onmessage = (event: MessageEvent) => {
+      if (
+        event.data?.type !== "print-confirmed" ||
+        event.data?.applicationId !== applicationId
+      ) return;
+      // Avoid overwriting changes being made in the review tab.
+      if (!dirty && !acting && !saving) {
+        void loadDetail().catch((requestError) => {
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : "Could not refresh the membership print status."
+          );
+        });
+      }
+    };
+    return () => channel.close();
+  }, [applicationId, loadDetail, dirty, acting, saving]);
+
   const reviewReady = useMemo(() => {
     if (!application || !form) return false;
     return (
