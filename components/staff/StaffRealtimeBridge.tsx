@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { createStaffRealtimeClient } from "@/lib/supabaseStaffBrowser";
 
 type RealtimeConfig =
@@ -21,6 +21,13 @@ export default function StaffRealtimeBridge({
   onQueueChanged,
   onConnectionChange,
 }: Props) {
+  // StaffDashboard renders a new connection-status callback on state updates.
+  // Keep the subscription stable rather than reconnecting on every render.
+  const queueChangedRef = useRef(onQueueChanged);
+  const connectionChangeRef = useRef(onConnectionChange);
+  queueChangedRef.current = onQueueChanged;
+  connectionChangeRef.current = onConnectionChange;
+
   useEffect(() => {
     let cancelled = false;
     let cleanup: (() => Promise<void>) | null = null;
@@ -34,7 +41,7 @@ export default function StaffRealtimeBridge({
         if (!response.ok) throw new Error("Could not load Realtime configuration.");
         const config = (await response.json()) as RealtimeConfig;
         if (cancelled || !config.enabled) {
-          onConnectionChange?.(false);
+          connectionChangeRef.current?.(false);
           return;
         }
 
@@ -48,19 +55,19 @@ export default function StaffRealtimeBridge({
             "broadcast",
             { event: "membership-queue-changed" },
             () => {
-              void onQueueChanged();
+              void queueChangedRef.current();
             }
           )
           .subscribe((status) => {
             if (cancelled) return;
             if (status === "SUBSCRIBED") {
-              onConnectionChange?.(true);
+              connectionChangeRef.current?.(true);
             } else if (
               status === "CHANNEL_ERROR" ||
               status === "TIMED_OUT" ||
               status === "CLOSED"
             ) {
-              onConnectionChange?.(false);
+              connectionChangeRef.current?.(false);
             }
           });
 
@@ -69,22 +76,25 @@ export default function StaffRealtimeBridge({
         };
       } catch (error) {
         console.error(error);
-        if (!cancelled) onConnectionChange?.(false);
+        if (!cancelled) connectionChangeRef.current?.(false);
       }
     }
 
-    const recover = () => void onQueueChanged();
+    const recover = () => void queueChangedRef.current();
     window.addEventListener("focus", recover);
-    document.addEventListener("visibilitychange", recover);
+    const recoverVisible = () => {
+      if (document.visibilityState === "visible") recover();
+    };
+    document.addEventListener("visibilitychange", recoverVisible);
     void initialize();
 
     return () => {
       cancelled = true;
       window.removeEventListener("focus", recover);
-      document.removeEventListener("visibilitychange", recover);
+      document.removeEventListener("visibilitychange", recoverVisible);
       if (cleanup) void cleanup();
     };
-  }, [onConnectionChange, onQueueChanged]);
+  }, []);
 
   return null;
 }
