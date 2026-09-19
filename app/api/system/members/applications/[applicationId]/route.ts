@@ -477,6 +477,53 @@ export async function PATCH(
     }
 
     if (action === "save_review") {
+      if (
+        application.application_source === "tablet" &&
+        !application.reviewed_by_system_user_id
+      ) {
+        const rowsResult = await supabase
+          .from("bgm_membership_application_members")
+          .select("id, under_18_at_submission, identity_match_state, matched_member_id, existing_member_id")
+          .eq("application_id", applicationId);
+        if (rowsResult.error) throw rowsResult.error;
+
+        const participantsById = new Map(
+          (rowsResult.data || []).map((participant) => [participant.id, participant])
+        );
+        if (
+          participantsById.size !== review.participants.length ||
+          review.participants.some((participant) => !participantsById.has(participant.id))
+        ) {
+          return validationResponse("The application participants have changed. Reopen the application and review again.", 409);
+        }
+
+        for (const participant of review.participants) {
+          const stored = participantsById.get(participant.id)!;
+          if (!participant.idVerified) {
+            return validationResponse("Verify each participant's ID before confirming the online review.", 409);
+          }
+          if (review.membershipType === "student" && !participant.studentEligibilityVerified) {
+            return validationResponse("Student eligibility must be verified before confirming the online review.", 409);
+          }
+          if (
+            stored.under_18_at_submission &&
+            (!participant.guardianPresentVerified || !participant.guardianCosignVerified)
+          ) {
+            return validationResponse("Guardian presence and co-sign must be verified before confirming the online review.", 409);
+          }
+          if (
+            stored.matched_member_id &&
+            !stored.existing_member_id &&
+            ["expired_inactive", "active"].includes(stored.identity_match_state)
+          ) {
+            return validationResponse("Resolve the existing member identity before confirming the online review.", 409);
+          }
+        }
+        if (review.membershipType === "couples" && !review.sameAddressVerified) {
+          return validationResponse("Verify the couple's shared address before confirming the online review.", 409);
+        }
+      }
+
       const result = await supabase.rpc(
         "bgm_apply_membership_application_review",
         {
