@@ -74,10 +74,12 @@ test("new membership queue exposes waiting state and recoverable refreshes", () 
   assert.match(queue, /Retry/);
 });
 
-test("review modal keeps the approved three primary actions", () => {
+test("review modal separates online review from the approved completion actions", () => {
+  assert.match(modal, /CONFIRM REVIEW → CONTINUE/);
   assert.match(modal, /SCAN CARD/);
   assert.match(modal, /PAYMENT RECEIVED/);
-  assert.match(modal, /PRINT FORM/);
+  assert.match(modal, /PRINT MEMBERSHIP/);
+  assert.match(modal, /printConfirmedAt/);
   assert.doesNotMatch(modal, /ACTIVATE MEMBER/);
 });
 
@@ -136,7 +138,7 @@ test("staff login username and password inputs always use readable dark-field st
 
 
 test("member detail popup gives the member photo strong visual priority", () => {
-  assert.match(browser, /sm:h-56/);
-  assert.match(browser, /sm:w-56/);
-  assert.match(browser, /max-w-2xl/);
+  assert.match(browser, /sm:h-80/);
+  assert.match(browser, /sm:w-80/);
+  assert.match(browser, /sm:max-w-4xl/);
 });
