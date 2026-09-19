@@ -85,7 +85,6 @@ export default function StaffGlobalScanner() {
   const burstLast = useRef(0);
   const burstTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const focusBeforeScan = useRef<HTMLElement | null>(null);
-  const requestSequence = useRef(0);
   const busy = useRef(false);
   const queuedCodes = useRef<string[]>([]);
   const processNextRef = useRef<() => void>(() => {});
@@ -297,7 +296,7 @@ export default function StaffGlobalScanner() {
       role="dialog"
       aria-modal="true"
       aria-label={problem ? "SCAN VERIFICATION ERROR" : result ? heading(result) : "VERIFYING MEMBER"}
-      className={\`fixed inset-0 z-[1000] flex items-center justify-center overflow-auto p-4 \${color}\`}
+      className={`fixed inset-0 z-[1000] flex items-center justify-center overflow-auto p-4 ${color}`}
     >
       <div className="w-full max-w-3xl rounded-3xl bg-white p-6 text-center shadow-2xl sm:p-9">
         {checking ? (
@@ -315,7 +314,7 @@ export default function StaffGlobalScanner() {
             ) : (
               <XCircle className="mx-auto h-16 w-16 text-red-600" />
             )}
-            <h2 className={\`mt-3 text-4xl font-black sm:text-6xl \${granted ? "text-emerald-700" : "text-red-700"}\`}>
+            <h2 className={`mt-3 text-4xl font-black sm:text-6xl ${granted ? "text-emerald-700" : "text-red-700"}`}>
               {heading(result)}
             </h2>
             {result.member ? (
@@ -325,7 +324,7 @@ export default function StaffGlobalScanner() {
                   {result.member.photoUrl && (
                     <img
                       src={result.member.photoUrl}
-                      alt={\`\${result.member.fullName} photo\`}
+                      alt={`${result.member.fullName} photo`}
                       className="absolute inset-0 h-full w-full object-cover"
                     />
                   )}
@@ -366,7 +365,7 @@ export default function StaffGlobalScanner() {
             className="mt-7 w-full rounded-2xl bg-zinc-950 px-5 py-4 text-lg font-black text-white"
           >
             {queuedCodes.current.length > 0
-              ? \`Close / Verify Next (\${queuedCodes.current.length} queued)\`
+              ? `Close / Verify Next (${queuedCodes.current.length} queued)`
               : "Close / Return to Staff Task"}
           </button>
         )}
