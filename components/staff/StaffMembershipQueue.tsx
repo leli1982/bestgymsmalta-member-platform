@@ -139,13 +139,22 @@ export default function StaffMembershipQueue({
 
   useEffect(() => {
     const recover = () => void loadQueue();
-    const interval = window.setInterval(recover, 30_000);
+    // Realtime is the immediate signal. Poll only as a backup if broadcasts
+    // are missed, including when a background Staff tab becomes visible again.
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") recover();
+    }, 15_000);
+    const recoverVisible = () => {
+      if (document.visibilityState === "visible") recover();
+    };
     window.addEventListener("focus", recover);
     window.addEventListener("online", recover);
+    document.addEventListener("visibilitychange", recoverVisible);
     return () => {
       window.clearInterval(interval);
       window.removeEventListener("focus", recover);
       window.removeEventListener("online", recover);
+      document.removeEventListener("visibilitychange", recoverVisible);
     };
   }, [loadQueue]);
 
