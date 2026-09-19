@@ -768,6 +768,11 @@ export default function StaffMembershipReviewModal({
                         Status: {participant.matchedMemberStatus || "unknown"} · Expiry:{" "}
                         {participant.matchedMembershipExpiry || "—"}
                       </p>
+                      {needsReview && (
+                        <p className="mt-3 text-xs font-semibold text-amber-900">
+                          Match the existing member before editing or confirming the online review.
+                        </p>
+                      )}
                       <button
                         type="button"
                         disabled={acting || saving}
@@ -1187,8 +1192,10 @@ export default function StaffMembershipReviewModal({
             <div className="sticky bottom-0 z-10 -mx-5 -mb-5 border-t border-zinc-200 bg-white/95 p-4 backdrop-blur sm:-mx-6 sm:-mb-6 sm:p-5">
               {dirty && (
                 <p className="mb-3 flex items-center gap-2 text-xs font-bold text-orange-700">
-                  <Save className="h-4 w-4" /> Corrections and verification will be saved
-                  before the next action.
+                  <Save className="h-4 w-4" />
+                  {needsReview
+                    ? "Unsaved review changes. Confirm the review to save them and continue."
+                    : "Corrections and verification will be saved before the next action."}
                 </p>
               )}
               {!needsReview && !allReady && (
