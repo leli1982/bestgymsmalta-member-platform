@@ -83,6 +83,19 @@ test("review modal separates online review from the approved completion actions"
   assert.doesNotMatch(modal, /ACTIVATE MEMBER/);
 });
 
+test("public tablet submissions immediately notify the queue and applicant photos load inside the review popup", () => {
+  const submitRoute = read("app/api/public/membership-enrollment/submit/route.ts");
+  const realtimeBridge = read("components/staff/StaffRealtimeBridge.tsx");
+  const applicantPhotoRoute = read("app/api/system/members/photo/route.ts");
+  assert.match(submitRoute, /broadcastStaffMembershipRefresh\(gym\.id\)/);
+  assert.match(realtimeBridge, /queueChangedRef\.current\(\)/);
+  assert.match(queue, /visibilitychange/);
+  assert.match(modal, /applicationPhotoUrl/);
+  assert.match(modal, /inline=1/);
+  assert.match(modal, /Retry photo/);
+  assert.match(applicantPhotoRoute, /download\(objectPath\)/);
+});
+
 test("scan card mode includes a secondary manual entry fallback and preserves card conflicts", () => {
   assert.match(modal, /manual/i);
   assert.match(modal, /applicationMemberId/);
