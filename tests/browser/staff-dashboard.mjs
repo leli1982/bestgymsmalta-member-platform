@@ -135,7 +135,8 @@ function applicationDetail() {
         guardianPresentVerified: false,
         guardianCosignVerified: false,
         hasPhoto: true,
-        photoUrl: null,
+        photoUrl: `/api/system/members/photo?applicationMemberId=${participantId}`,
+        applicationPhotoUrl: `/api/system/members/photo?applicationMemberId=${participantId}`,
         reservedBarcode: cardAssigned ? "CARD-12345" : null,
         currentBarcode: null,
         cardVerified: false,
@@ -273,6 +274,16 @@ try {
     route.fulfill({ json: { applications: activated ? [] : [queueApplication()] } })
   );
 
+  await page.route("**/api/system/members/photo?**", (route) => {
+    const url = new URL(route.request().url());
+    assert.equal(url.searchParams.get("applicationMemberId"), participantId);
+    assert.equal(url.searchParams.get("inline"), "1");
+    return route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="100"><rect width="80" height="100" fill="#999"/></svg>',
+    });
+  });
+
   await page.route(`**/api/system/members/applications/${applicationId}`, async (route) => {
     if (route.request().method() === "PATCH") {
       const payload = route.request().postDataJSON();
@@ -370,6 +381,16 @@ try {
   await page.getByText("Browser Queue Member", { exact: true }).click();
   await waitVisible(page.getByRole("heading", { name: "Review online application", exact: true }));
   await waitVisible(page.getByRole("button", { name: "CONFIRM REVIEW → CONTINUE", exact: true }));
+  const applicantPhoto = page.getByRole("img", { name: "Browser Queue Member photo" });
+  await waitVisible(applicantPhoto);
+  await applicantPhoto.evaluate(async (image) => {
+    if (!(image instanceof HTMLImageElement)) throw new Error("Expected applicant photo");
+    if (!image.complete) await new Promise((resolve, reject) => {
+      image.addEventListener("load", resolve, { once: true });
+      image.addEventListener("error", reject, { once: true });
+    });
+    if (image.naturalWidth === 0) throw new Error("Applicant photo failed to render");
+  });
   assert.equal(await page.getByRole("button", { name: "CONFIRM REVIEW → CONTINUE", exact: true }).isDisabled(), true);
   assert.equal(await page.getByRole("button", { name: "SCAN CARD", exact: true }).count(), 0);
   assert.equal(await page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }).count(), 0);
