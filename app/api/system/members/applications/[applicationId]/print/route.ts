@@ -18,7 +18,7 @@ export async function GET(
     const applicationResult = await supabase
       .from("bgm_membership_applications")
       .select(
-        "id, application_reference, application_kind, membership_type, duration_key, start_date, expiry_date, enrollment_gym_id, staff_name, status, submitted_at, payment_received_at, activated_at, base_price_cents, currency, discount_code_snapshot, discount_percentage_snapshot, discount_amount_cents, final_amount_cents, payment_method, payment_other_text, payment_staff_name, declaration_snapshot, same_address_verified_at"
+        "id, application_reference, application_kind, membership_type, duration_key, start_date, expiry_date, enrollment_gym_id, staff_name, status, submitted_at, payment_received_at, activated_at, base_price_cents, currency, discount_code_snapshot, discount_percentage_snapshot, discount_amount_cents, final_amount_cents, payment_method, payment_other_text, payment_staff_name, declaration_snapshot, same_address_verified_at, application_source, reviewed_by_system_user_id"
       )
       .eq("id", applicationId)
       .maybeSingle();
@@ -39,6 +39,17 @@ export async function GET(
       return NextResponse.json(
         { error: "This application belongs to another gym." },
         { status: 403 }
+      );
+    }
+
+    if (
+      application.application_source === "tablet" &&
+      !application.reviewed_by_system_user_id &&
+      ["submitted", "awaiting_payment"].includes(application.status)
+    ) {
+      return NextResponse.json(
+        { error: "Confirm the online application review before preparing the membership form for printing." },
+        { status: 409 }
       );
     }
 
@@ -296,6 +307,13 @@ export async function POST(
     ) {
       return NextResponse.json(
         { error: "Confirm the online application review before confirming the membership print." },
+        { status: 409 }
+      );
+    }
+
+    if (!["submitted", "awaiting_payment"].includes(application.status)) {
+      return NextResponse.json(
+        { error: "This membership application is no longer awaiting print confirmation." },
         { status: 409 }
       );
     }
