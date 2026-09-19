@@ -17,6 +17,8 @@ type QueueApplication = {
   id: string;
   reference: string;
   kind: "new" | "renewal";
+  source: "tablet" | "staff";
+  reviewedBySystemUserId: string | null;
   status: "submitted" | "awaiting_payment";
   membershipType: string;
   enrollmentGymId: string;
@@ -43,6 +45,14 @@ function formatSubmitted(value: string | null, fallback: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
+}
+
+function needsReview(application: QueueApplication) {
+  // Staff-created applications enter the completion flow directly; public
+  // online applications require reception review before completion.
+  return application.source === "tablet"
+    && application.status === "submitted"
+    && !application.reviewedBySystemUserId;
 }
 
 export default function StaffMembershipQueue({
@@ -150,6 +160,8 @@ export default function StaffMembershipQueue({
   const visibleApplications =
     compact && !expanded ? applications.slice(0, 4) : applications;
   const hiddenCount = Math.max(0, applications.length - visibleApplications.length);
+  const reviewCount = applications.filter(needsReview).length;
+  const completionCount = applications.length - reviewCount;
 
   return (
     <section id="staff-waiting" className="rounded-3xl border border-zinc-200 bg-white shadow-sm">
@@ -157,8 +169,11 @@ export default function StaffMembershipQueue({
         <div className="flex items-center gap-3">
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-[#ff5a0a]"><Bell className="h-6 w-6" /></span>
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">New membership queue</p>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">Membership applications</p>
             <h2 className="text-xl font-black text-zinc-950">{applications.length} WAITING</h2>
+            <p className="mt-1 text-xs font-semibold text-zinc-500">
+              {reviewCount} to review · {completionCount} to complete
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -167,11 +182,15 @@ export default function StaffMembershipQueue({
               Enable alerts
             </button>
           )}
-          {error && (
-            <button type="button" onClick={() => void loadQueue()} className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700">
-              <RefreshCcw className="h-4 w-4" /> Retry
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => void loadQueue()}
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-bold text-zinc-700 disabled:opacity-50"
+          >
+            <RefreshCcw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            {error ? "Retry" : "Refresh"}
+          </button>
         </div>
       </div>
 
@@ -193,10 +212,12 @@ export default function StaffMembershipQueue({
             <span className="min-w-0">
               <span className="block truncate font-black text-zinc-950">{application.participants.map((p) => p.fullName).join(" & ") || application.reference}</span>
               <span className="mt-1 block truncate text-sm text-zinc-500">
-                {application.kind === "renewal" ? "Renewal" : "New membership"} · {formatSubmitted(application.submittedAt, application.createdAt)} · {application.reference}
+                {application.source === "tablet" ? "Online application" : "Staff application"} · {application.kind === "renewal" ? "Renewal" : "New membership"} · {formatSubmitted(application.submittedAt, application.createdAt)} · {application.reference}
               </span>
             </span>
-            <span className="rounded-full bg-orange-100 px-3 py-1.5 text-[11px] font-black text-orange-800">WAITING</span>
+            <span className={`rounded-full px-3 py-1.5 text-[11px] font-black ${needsReview(application) ? "bg-orange-100 text-orange-800" : "bg-emerald-100 text-emerald-800"}`}>
+              {needsReview(application) ? "REVIEW" : "COMPLETE"}
+            </span>
           </button>
         ))}
       </div>
