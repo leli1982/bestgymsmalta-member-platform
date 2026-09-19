@@ -51,6 +51,9 @@ jobs:
       - name: Verify staff dashboard workflow in Chromium
         run: node tests/browser/staff-dashboard.mjs
 
+      - name: Verify global card scanner while Staff edit forms in Chromium
+        run: node tests/browser/staff-global-scanner.mjs
+
       - name: Verify membership A4 print in Chromium
         run: node tests/browser/membership-print-a4.mjs
 
@@ -73,7 +76,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: staff-ui-screenshots
-          path: test-artifacts/staff-ui
+          path: |
+            test-artifacts/staff-ui
+            test-artifacts/staff-global-scanner
           if-no-files-found: ignore
 
       - name: Save membership print screenshots
