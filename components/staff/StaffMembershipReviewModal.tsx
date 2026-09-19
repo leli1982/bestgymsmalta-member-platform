@@ -756,6 +756,14 @@ export default function StaffMembershipReviewModal({
                   key={participantForm.id}
                   className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6"
                 >
+                  {needsReview && participant?.identityMatchState === "active" && !reusesExistingMember && (
+                    <div className="mb-5 rounded-2xl border-2 border-red-300 bg-red-50 p-4">
+                      <p className="text-sm font-black text-red-800">Existing active membership found</p>
+                      <p className="mt-2 text-sm font-semibold text-zinc-800">
+                        Verify the existing membership at reception before proceeding with this application.
+                      </p>
+                    </div>
+                  )}
                   {possibleRenewal && (
                     <div className="mb-5 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4">
                       <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-700">
