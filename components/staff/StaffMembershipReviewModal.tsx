@@ -62,6 +62,7 @@ type Application = {
   id: string;
   reference: string;
   kind: "new" | "renewal";
+  source: "staff" | "tablet";
   status: string;
   membershipType: string;
   durationKey: string;
@@ -240,15 +241,42 @@ export default function StaffMembershipReviewModal({
     if (scanParticipantId) barcodeRef.current?.focus();
   }, [scanParticipantId, manualEntry]);
 
+  const dirty = Boolean(form && original && JSON.stringify(form) !== original);
+  const needsReview = Boolean(
+    application?.source === "tablet" && !application.reviewedBySystemUserId
+  );
+
   useEffect(() => {
     const refreshAfterPrint = () => {
-      void loadDetail().catch(() => {});
+      // An in-progress review must not be overwritten when Staff returns to this tab.
+      if (!dirty && !acting && !saving) void loadDetail().catch(() => {});
     };
     window.addEventListener("focus", refreshAfterPrint);
     return () => window.removeEventListener("focus", refreshAfterPrint);
-  }, [loadDetail]);
+  }, [loadDetail, dirty, acting, saving]);
 
-  const dirty = Boolean(form && original && JSON.stringify(form) !== original);
+  const reviewReady = useMemo(() => {
+    if (!application || !form) return false;
+    return (
+      application.participants.length > 0 &&
+      application.participants.every((participant, index) => {
+        const fields = form.participants[index];
+        if (!fields?.firstName.trim() || !fields.lastName.trim() || !fields.idVerified) return false;
+        if (form.membershipType === "student" && !fields.studentEligibilityVerified) return false;
+        if (
+          participant.under18AtSubmission &&
+          (!fields.guardianPresentVerified || !fields.guardianCosignVerified)
+        ) return false;
+        if (
+          participant.identityMatchState === "expired_inactive" &&
+          participant.matchedMemberId &&
+          !participant.existingMemberId
+        ) return false;
+        return true;
+      }) &&
+      (form.membershipType !== "couples" || form.sameAddressVerified)
+    );
+  }, [application, form]);
 
   const allReady = useMemo(() => {
     if (!application || !form) return false;
