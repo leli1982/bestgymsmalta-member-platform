@@ -60,6 +60,23 @@ async function signedApplicationPhoto(request: NextRequest) {
     return NextResponse.json({ error: "No official photo has been captured." }, { status: 404 });
   }
 
+  // In the Staff review popup, serve the image directly from our authenticated
+  // endpoint. It avoids a short-lived external redirect while the popup is open.
+  // Existing print and member-card photo URLs keep their current behaviour.
+  if (request.nextUrl.searchParams.get("inline") === "1") {
+    const downloaded = await supabase.storage.from(PHOTO_BUCKET).download(objectPath);
+    if (downloaded.error || !downloaded.data) {
+      throw downloaded.error || new Error("Could not download applicant photo.");
+    }
+    return new NextResponse(downloaded.data, {
+      headers: {
+        "Content-Type": "image/webp",
+        "Cache-Control": "private, no-store, max-age=0",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  }
+
   const signed = await supabase.storage
     .from(PHOTO_BUCKET)
     .createSignedUrl(objectPath, 60);
