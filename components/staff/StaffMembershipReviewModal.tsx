@@ -833,17 +833,13 @@ export default function StaffMembershipReviewModal({
 
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="flex items-center gap-4">
-                      {participant?.photoUrl ? (
-                        <img
-                          src={participant.photoUrl}
-                          alt=""
-                          className="h-24 w-24 rounded-3xl bg-zinc-100 object-cover"
-                        />
-                      ) : (
-                        <span className="flex h-24 w-24 items-center justify-center rounded-3xl bg-orange-50 text-orange-400">
-                          <UserRound className="h-9 w-9" />
-                        </span>
-                      )}
+                      <ApplicantPhoto
+                        key={participant.id}
+                        photoUrl={participant.applicationPhotoUrl
+                          ? `${participant.applicationPhotoUrl}&inline=1`
+                          : participant.photoUrl}
+                        fullName={`${participantForm.firstName} ${participantForm.lastName}`.trim()}
+                      />
                       <div>
                         <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">
                           Participant {index + 1}
@@ -1314,6 +1310,57 @@ export default function StaffMembershipReviewModal({
         )}
       </div>
     </div>
+  );
+}
+
+function ApplicantPhoto({
+  photoUrl,
+  fullName,
+}: {
+  photoUrl: string | null;
+  fullName: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const src = photoUrl
+    ? `${photoUrl}${photoUrl.includes("?") ? "&" : "?"}retry=${retry}`
+    : null;
+
+  useEffect(() => {
+    setFailed(false);
+    setRetry(0);
+  }, [photoUrl]);
+
+  if (!src || failed) {
+    return (
+      <div className="flex h-40 w-32 shrink-0 flex-col items-center justify-center gap-2 rounded-3xl border border-orange-200 bg-orange-50 p-2 text-center text-orange-700 sm:h-52 sm:w-44">
+        <UserRound className="h-9 w-9" aria-hidden="true" />
+        <span className="text-xs font-bold">
+          {failed ? "Photo could not load" : "No applicant photo"}
+        </span>
+        {failed && (
+          <button
+            type="button"
+            onClick={() => {
+              setFailed(false);
+              setRetry((value) => value + 1);
+            }}
+            className="rounded-lg border border-orange-300 bg-white px-3 py-1.5 text-xs font-black text-orange-800"
+          >
+            Retry photo
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={`${fullName || "Applicant"} photo`}
+      onError={() => setFailed(true)}
+      className="h-40 w-32 shrink-0 rounded-3xl border border-zinc-200 bg-zinc-100 object-cover sm:h-52 sm:w-44"
+    />
   );
 }
 
