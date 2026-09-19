@@ -267,7 +267,7 @@ export default function StaffMembershipReviewModal({
           (!fields.guardianPresentVerified || !fields.guardianCosignVerified)
         ) return false;
         if (
-          participant.identityMatchState === "expired_inactive" &&
+          (participant.identityMatchState === "expired_inactive" || participant.identityMatchState === "active") &&
           participant.matchedMemberId &&
           !participant.existingMemberId
         ) return false;
