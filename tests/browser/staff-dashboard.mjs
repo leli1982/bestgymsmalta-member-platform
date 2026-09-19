@@ -368,18 +368,19 @@ try {
   await page.getByRole("button", { name: "ALL", exact: true }).click();
 
   await page.getByText("Browser Queue Member", { exact: true }).click();
-  await waitVisible(page.getByRole("heading", { name: "Review membership", exact: true }));
-  await waitVisible(page.getByRole("button", { name: "SCAN CARD", exact: true }));
-  await waitVisible(page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }));
-  assert.equal(await page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }).isDisabled(), true);
+  await waitVisible(page.getByRole("heading", { name: "Review online application", exact: true }));
+  await waitVisible(page.getByRole("button", { name: "CONFIRM REVIEW → CONTINUE", exact: true }));
+  assert.equal(await page.getByRole("button", { name: "CONFIRM REVIEW → CONTINUE", exact: true }).isDisabled(), true);
+  assert.equal(await page.getByRole("button", { name: "SCAN CARD", exact: true }).count(), 0);
+  assert.equal(await page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }).count(), 0);
   await page.screenshot({ path: artifacts + "/review-1024.png", fullPage: true });
 
   await page.getByLabel("ID / passport verified").check();
-  assert.equal(
-    await page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }).isDisabled(),
-    true,
-    "ID verification alone must not bypass the card requirement"
-  );
+  await page.getByRole("button", { name: "CONFIRM REVIEW → CONTINUE", exact: true }).click();
+  await waitVisible(page.getByRole("heading", { name: "Complete membership", exact: true }));
+  await waitVisible(page.getByRole("button", { name: "SCAN CARD", exact: true }));
+  assert.equal(await page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }).isDisabled(), true);
+  assert.equal(await page.getByRole("button", { name: "PRINT MEMBERSHIP", exact: true }).isDisabled(), true);
 
   await page.getByRole("button", { name: "SCAN CARD", exact: true }).click();
   await waitVisible(page.getByPlaceholder("Scanner input", { exact: true }));
@@ -388,7 +389,25 @@ try {
   await page.getByPlaceholder("Enter card barcode manually").fill("CARD-12345");
   await page.getByRole("button", { name: "Confirm card", exact: true }).click();
   await page.getByText("CARD ASSIGNED ✓", { exact: true }).waitFor({ state: "visible", timeout: 15000 });
-  assert.equal(await page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }).isEnabled(), true);
+  assert.equal(await page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }).isDisabled(), true);
+  assert.equal(await page.getByRole("button", { name: "PRINT MEMBERSHIP", exact: true }).isEnabled(), true);
+
+  const popupEvent = page.waitForEvent("popup");
+  await page.getByRole("button", { name: "PRINT MEMBERSHIP", exact: true }).click();
+  const popup = await popupEvent;
+  popup.on("pageerror", (error) => pageErrors.push(error.message));
+  await waitVisible(popup.getByRole("button", { name: "Print Membership", exact: true }));
+  // The real print dialogue is platform-owned; verify both explicit UI steps.
+  await popup.evaluate(() => { window.print = () => {}; });
+  await popup.getByRole("button", { name: "Print Membership", exact: true }).click();
+  await waitVisible(popup.getByRole("button", { name: "CONFIRM PRINTED", exact: true }));
+  await popup.getByRole("button", { name: "CONFIRM PRINTED", exact: true }).click();
+  await waitVisible(popup.getByRole("button", { name: "Return to Staff Flow", exact: true }));
+  await popup.getByRole("button", { name: "Return to Staff Flow", exact: true }).click();
+  await page.bringToFront();
+  await page.waitForFunction(() => [...document.querySelectorAll("button")].some(
+    (button) => button.textContent?.includes("PAYMENT RECEIVED") && !button.disabled
+  ), { timeout: 15000 });
 
   await page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }).click();
   await waitVisible(page.getByText("Base Price", { exact: true }));
