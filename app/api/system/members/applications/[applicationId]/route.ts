@@ -67,7 +67,7 @@ async function loadApplication(
   const result = await supabase
     .from("bgm_membership_applications")
     .select(
-      "id, application_reference, application_kind, membership_type, duration_key, start_date, expiry_date, enrollment_gym_id, staff_name, status, submitted_at, payment_received_at, activated_at, created_at, updated_at, base_price_cents, currency, price_catalog_version_id, declaration_snapshot, same_address_verified_at, reviewed_by_system_user_id"
+      "id, application_reference, application_kind, application_source, membership_type, duration_key, start_date, expiry_date, enrollment_gym_id, staff_name, status, submitted_at, payment_received_at, activated_at, created_at, updated_at, base_price_cents, currency, price_catalog_version_id, declaration_snapshot, same_address_verified_at, reviewed_by_system_user_id"
     )
     .eq("id", applicationId)
     .maybeSingle();
@@ -289,6 +289,7 @@ export async function GET(
         id: application.id,
         reference: application.application_reference,
         kind: application.application_kind,
+        source: application.application_source || "staff",
         status: application.status,
         membershipType: application.membership_type,
         durationKey: application.duration_key,
