@@ -180,6 +180,38 @@ try {
 
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1024, height: 768 } });
+  await context.route(`**/api/system/members/applications/${applicationId}/print`, (route) => {
+    if (route.request().method() === "POST") {
+      assert.deepEqual(route.request().postDataJSON(), { action: "confirm_print" });
+      printConfirmed = true;
+      return route.fulfill({ json: { ok: true, confirmedAt: "2026-09-15T12:00:00.000Z" } });
+    }
+    assert.equal(route.request().method(), "GET");
+    const detail = applicationDetail();
+    return route.fulfill({
+      json: {
+        application: {
+          ...detail,
+          applicationReference: detail.reference,
+          applicationStaffName: "Browser Staff",
+          activationStaffName: null,
+          paymentMethod: null,
+          paymentStaffName: null,
+          discountCode: null,
+          discountPercentage: null,
+          discountAmountCents: null,
+          finalAmountCents: detail.basePriceCents,
+          participants: detail.participants.map((participant) => ({
+            ...participant,
+            memberId: null,
+            memberNumber: null,
+            barcode: cardAssigned ? "CARD-12345" : null,
+            photoUrl: null,
+          })),
+        },
+      },
+    });
+  });
   page = await context.newPage();
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
