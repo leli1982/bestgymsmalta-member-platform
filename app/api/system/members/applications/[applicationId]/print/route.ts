@@ -270,7 +270,7 @@ export async function POST(
     const supabase = getSupabaseAdmin();
     const applicationResult = await supabase
       .from("bgm_membership_applications")
-      .select("id, application_reference, enrollment_gym_id, status")
+      .select("id, application_reference, enrollment_gym_id, status, application_source, reviewed_by_system_user_id")
       .eq("id", applicationId)
       .maybeSingle();
 
@@ -287,6 +287,16 @@ export async function POST(
       return NextResponse.json(
         { error: "This application belongs to another gym." },
         { status: 403 }
+      );
+    }
+
+    if (
+      application.application_source === "tablet" &&
+      !application.reviewed_by_system_user_id
+    ) {
+      return NextResponse.json(
+        { error: "Confirm the online application review before confirming the membership print." },
+        { status: 409 }
       );
     }
 
