@@ -328,6 +328,10 @@ export default function StaffMembershipReviewModal({
 
   async function saveReviewIfDirty() {
     if (!form || !dirty) return true;
+    if (needsReview) {
+      setError("Confirm the online application review before proceeding to completion.");
+      return false;
+    }
     setSaving(true);
     setError("");
     try {
@@ -359,12 +363,53 @@ export default function StaffMembershipReviewModal({
 
   async function requestClose() {
     if (acting || saving) return;
+    if (needsReview) {
+      if (
+        dirty &&
+        !window.confirm(
+          "Close without confirming the review? Unsaved edits will be discarded; this application will remain in REVIEW."
+        )
+      ) return;
+      onClose();
+      return;
+    }
     if (!(await saveReviewIfDirty())) return;
     onClose();
   }
 
+  async function confirmReview() {
+    if (!form || !needsReview || !reviewReady || acting || saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/system/members/applications/${encodeURIComponent(applicationId)}`,
+        {
+          method: "PATCH",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...form, action: "save_review" }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not confirm membership review.");
+      await loadDetail();
+      await onChanged();
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error ? requestError.message : "Could not confirm membership review."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function reuseExistingMember(applicationMemberId: string) {
-    if (!(await saveReviewIfDirty())) return;
+    if (needsReview && dirty) {
+      setError("Match the existing member before changing application details. Close and reopen to discard unsaved edits, then link the member.");
+      return;
+    }
+    if (!needsReview && !(await saveReviewIfDirty())) return;
     setActing(true);
     setError("");
     try {
@@ -431,7 +476,7 @@ export default function StaffMembershipReviewModal({
   }
 
   function openScan(participantId?: string) {
-    if (!application) return;
+    if (!application || needsReview) return;
     const target =
       participantId ||
       application.participants.find((participant) =>
@@ -485,6 +530,10 @@ export default function StaffMembershipReviewModal({
   }
 
   async function openPrint() {
+    if (needsReview) {
+      setError("Confirm the online application review before printing.");
+      return;
+    }
     if (!(await saveReviewIfDirty())) return;
     window.open(
       `/staff/applications/${encodeURIComponent(applicationId)}/print`,
@@ -530,6 +579,10 @@ export default function StaffMembershipReviewModal({
 
   async function activateMembership(event: React.FormEvent) {
     event.preventDefault();
+    if (needsReview) {
+      setError("Confirm the online application review before taking payment.");
+      return;
+    }
     if (!application?.printConfirmedAt) {
       setError("Print and confirm the membership form before taking payment.");
       return;
