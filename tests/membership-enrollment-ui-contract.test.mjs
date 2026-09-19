@@ -46,24 +46,31 @@ test("new registration attributes staff accountability to the authenticated syst
   assert.match(renewal, /staffName/);
 });
 
-test("renewal keeps the permanent member number while allowing card keep or replacement", () => {
+test("renewal preserves the permanent member number and supports card verification or replacement", () => {
   const renewal = read(renewalUrl);
   const cardAssign = read(cardAssignUrl);
+  const reviewModal = read(new URL("../components/staff/StaffMembershipReviewModal.tsx", import.meta.url));
   assert.match(renewal, /\/api\/system\/members\/search/);
-  assert.match(renewal, /permanent member number/i);
+  assert.match(renewal, /permanent/i);
   assert.match(renewal, /memberNumber/);
+  assert.match(renewal, /StaffMembershipReviewModal/);
+  assert.match(reviewModal, /cardVerified/);
   assert.match(cardAssign, /renewalCardAction\s*=\s*["']keep["']/);
   assert.match(cardAssign, /renewalCardAction\s*=\s*["']replace["']/);
 });
 
-test("legacy renewal printing remains separate from payment activation", () => {
+test("unified renewal completion keeps printing separate from payment and activation", () => {
   const renewal = read(renewalUrl);
-  assert.match(renewal, /Print Application/);
-  assert.match(renewal, /window\.print\(\)/);
-  assert.match(renewal, /Printing does not activate/i);
-  assert.match(renewal, /Activation Staff Name/);
-  assert.match(renewal, /activationStaffName/);
-  assert.match(renewal, /PAYMENT RECEIVED — ACTIVATE/);
+  const reviewModal = read(new URL("../components/staff/StaffMembershipReviewModal.tsx", import.meta.url));
+  const printView = read(new URL("../components/staff/StaffApplicationPrint.tsx", import.meta.url));
+  assert.match(renewal, /StaffMembershipReviewModal/);
+  assert.match(reviewModal, /PRINT MEMBERSHIP/);
+  assert.match(reviewModal, /printConfirmedAt/);
+  assert.match(printView, /window\.print\(\)/);
+  assert.match(printView, /CONFIRM PRINTED/);
+  assert.match(reviewModal, /Payment Staff Name/);
+  assert.match(reviewModal, /PAYMENT RECEIVED — ACTIVATE/);
+  assert.match(reviewModal, /!application\.printConfirmedAt/);
 });
 
 test("staff enrollment route renders the membership enrollment component", () => {
