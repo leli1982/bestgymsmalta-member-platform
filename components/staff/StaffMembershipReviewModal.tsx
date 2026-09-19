@@ -670,7 +670,7 @@ export default function StaffMembershipReviewModal({
               {application?.reference || "Membership application"}
             </p>
             <h2 className="truncate text-xl font-black text-zinc-950">
-              {completionMode || application?.reviewedBySystemUserId || application?.status === "awaiting_payment" ? "Complete membership" : "Review membership"}
+              {needsReview ? "Review online application" : "Complete membership"}
             </h2>
             {application && (
               <p className="mt-0.5 text-xs font-semibold text-zinc-400">
@@ -702,6 +702,17 @@ export default function StaffMembershipReviewModal({
 
         {!loading && application && form && (
           <div className="space-y-5 p-5 sm:p-6">
+            {needsReview && (
+              <section className="rounded-3xl border border-orange-200 bg-orange-50 p-5 sm:p-6">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-700">STEP 1 · STAFF REVIEW</p>
+                <h3 className="mt-2 text-xl font-black text-zinc-950">Verify the online application</h3>
+                <p className="mt-2 text-sm font-semibold text-zinc-700">
+                  Compare each participant with their ID, resolve existing-member matches,
+                  verify student and guardian details where applicable, and confirm the membership dates.
+                  Card assignment, printing and payment follow after confirming this review.
+                </p>
+              </section>
+            )}
             <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
               <div className="grid gap-4 sm:grid-cols-3">
                 <Summary label="Historical base price" value={formatMoney(application.basePriceCents, application.currency)} />
@@ -916,7 +927,7 @@ export default function StaffMembershipReviewModal({
                     </div>
                   </div>
 
-                  <button
+                  {!needsReview && <button
                     type="button"
                     onClick={() => openScan(participant.id)}
                     className="mt-5 inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-3 py-2 text-sm font-black text-zinc-700"
@@ -927,7 +938,7 @@ export default function StaffMembershipReviewModal({
                       : reusesExistingMember
                         ? "Verify membership card"
                         : "Assign this card"}
-                  </button>
+                  </button>}
                 </section>
               );
             })}
@@ -1181,18 +1192,18 @@ export default function StaffMembershipReviewModal({
                   before the next action.
                 </p>
               )}
-              {!allReady && (
+              {!needsReview && !allReady && (
                 <p className="mb-3 text-xs font-bold text-amber-700">
                   Complete the required verification and card action for every participant
                   before printing. A missing photo does not block activation.
                 </p>
               )}
-              {allReady && !application.printConfirmedAt && (
+              {!needsReview && allReady && !application.printConfirmedAt && (
                 <p className="mb-3 text-xs font-bold text-orange-700">
                   Next step: print the membership form and confirm it was printed. Payment stays locked until this is done.
                 </p>
               )}
-              {application.printConfirmedAt && (
+              {!needsReview && application.printConfirmedAt && (
                 <p className="mb-3 text-xs font-bold text-emerald-700">
                   Membership form printed ✓ · Payment is now available.
                 </p>
