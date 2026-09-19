@@ -63,6 +63,13 @@ export default function StaffApplicationPrint({
         throw new Error(data.error || "Could not confirm printing.");
       }
       setPrintConfirmed(true);
+      // The print window uses noopener, so notify the original Staff tab
+      // through a same-origin channel rather than relying on tab focus.
+      if (typeof BroadcastChannel !== "undefined") {
+        const channel = new BroadcastChannel("bgm-membership-print");
+        channel.postMessage({ type: "print-confirmed", applicationId });
+        channel.close();
+      }
     } catch (requestError) {
       setError(
         requestError instanceof Error
