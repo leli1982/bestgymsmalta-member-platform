@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     let applicationsQuery = supabase
       .from("bgm_membership_applications")
       .select(
-        "id, application_reference, application_kind, membership_type, enrollment_gym_id, status, submitted_at, created_at"
+        "id, application_reference, application_kind, application_source, reviewed_by_system_user_id, membership_type, enrollment_gym_id, status, submitted_at, created_at"
       )
       .in("status", ["submitted", "awaiting_payment"])
       .order("created_at", { ascending: false });
@@ -96,6 +96,8 @@ export async function GET(request: NextRequest) {
       id: application.id,
       reference: application.application_reference,
       kind: application.application_kind,
+      source: application.application_source,
+      reviewedBySystemUserId: application.reviewed_by_system_user_id,
       status: application.status,
       membershipType: application.membership_type,
       enrollmentGymId: application.enrollment_gym_id,
