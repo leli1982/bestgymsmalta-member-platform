@@ -170,7 +170,6 @@ export default function StaffMembershipReviewModal({
   applicationId,
   onClose,
   onChanged,
-  completionMode = false,
 }: Props) {
   const [application, setApplication] = useState<Application | null>(null);
   const [form, setForm] = useState<ReturnType<typeof editableSnapshot> | null>(null);
@@ -1208,6 +1207,33 @@ export default function StaffMembershipReviewModal({
                   Membership form printed ✓ · Payment is now available.
                 </p>
               )}
+              {needsReview ? (
+                <>
+                  <p className="mb-3 text-sm font-bold text-orange-800">
+                    {reviewReady
+                      ? "Verification complete. Confirm the review to continue to card, print and payment."
+                      : "Verify ID, eligibility and guardian details, and resolve any existing-member match before confirming."}
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => void confirmReview()}
+                      disabled={!reviewReady || acting || saving}
+                      className="min-h-14 rounded-2xl bg-[#ff5a0a] px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-35"
+                    >
+                      {saving ? "CONFIRMING REVIEW…" : "CONFIRM REVIEW → CONTINUE"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRejectOpen(true)}
+                      disabled={acting || saving}
+                      className="min-h-14 rounded-2xl border-2 border-red-300 bg-red-50 px-4 py-3 text-sm font-black text-red-700 disabled:opacity-40"
+                    >
+                      Reject Application
+                    </button>
+                  </div>
+                </>
+              ) : (
               <div className="grid gap-3 sm:grid-cols-4">
                 <button
                   type="button"
@@ -1242,6 +1268,7 @@ export default function StaffMembershipReviewModal({
                   Reject Application
                 </button>
               </div>
+              )}
             </div>
           </div>
         )}
