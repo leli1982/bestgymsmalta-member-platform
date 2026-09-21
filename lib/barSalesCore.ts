@@ -47,7 +47,7 @@ export function snapshotBarSale(
   activeCatalog: BarCatalogItem[],
 ): { items: BarSalesSnapshotItem[]; totalCents: number; error: null } |
    { items: []; totalCents: 0; error: string } {
-  const invalid = (message: string) => ({ items: [] as [], totalCents: 0, error: message });
+  const invalid = (message: string) => ({ items: [] as [], totalCents: 0 as const, error: message });
   if (!Array.isArray(rawEntries) || rawEntries.length > 75) return invalid("Provide a valid Bar List.");
 
   const byId = new Map(activeCatalog.filter((item) => item.active).map((item) => [item.id, item]));
