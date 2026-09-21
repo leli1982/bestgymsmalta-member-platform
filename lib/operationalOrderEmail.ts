@@ -6,7 +6,9 @@ type OperationalOrderEmailInput = {
   gymName: string;
   staffName: string;
   notes?: string | null;
-  items: OperationalOrderItem[];
+  items: (OperationalOrderItem & { unitPriceCents?: number; lineTotalCents?: number })[];
+  barBusinessDate?: string;
+  barTotalCents?: number | null;
 };
 
 function escapeHtml(value: unknown) {
@@ -18,19 +20,28 @@ function escapeHtml(value: unknown) {
     .replace(/'/g, "&#039;");
 }
 
+function euros(cents: number) {
+  return new Intl.NumberFormat("en-MT", { style: "currency", currency: "EUR" }).format(cents / 100);
+}
+
 function titleForType(orderType: OperationalOrderType) {
   return orderType === "sundries" ? "Sundries" : "Bar";
 }
 
 export function buildOperationalOrderEmail(input: OperationalOrderEmailInput) {
   const title = titleForType(input.orderType);
-  const subject = `${title} order - ${input.gymName}`;
+  const subject = input.orderType === "bar"
+    ? `Bar sales ${input.barBusinessDate || ""} - ${input.gymName}`
+    : `${title} order - ${input.gymName}`;
 
   const textItems = input.items
     .map((item, index) => {
       const unit = item.unit ? ` ${item.unit}` : "";
       const notes = item.notes ? ` - ${item.notes}` : "";
-      return `${index + 1}. ${item.itemName}: ${item.quantity}${unit}${notes}`;
+      const amount = input.orderType === "bar" && item.unitPriceCents != null
+        ? ` × ${euros(item.unitPriceCents)} = ${euros(item.lineTotalCents || 0)}`
+        : "";
+      return `${index + 1}. ${item.itemName}: ${item.quantity}${unit}${amount}${notes}`;
     })
     .join("\n");
 
@@ -39,8 +50,11 @@ export function buildOperationalOrderEmail(input: OperationalOrderEmailInput) {
     `Gym: ${input.gymName}`,
     `Staff Name: ${input.staffName}`,
     `Order ID: ${input.orderId}`,
+    ...(input.orderType === "bar" ? [`Business date (Malta): ${input.barBusinessDate || "—"}`] : []),
     "",
     textItems,
+    ...(input.orderType === "bar" && input.barTotalCents != null
+      ? [`BAR TOTAL: ${euros(input.barTotalCents)}`] : []),
     input.notes ? `\nNotes: ${input.notes}` : "",
   ]
     .filter(Boolean)
@@ -52,7 +66,10 @@ export function buildOperationalOrderEmail(input: OperationalOrderEmailInput) {
       const notes = item.notes
         ? `<div style="color:#666;font-size:13px;margin-top:2px;">${escapeHtml(item.notes)}</div>`
         : "";
-      return `<li style="margin-bottom:10px;"><strong>${escapeHtml(item.itemName)}</strong>: ${escapeHtml(item.quantity)}${unit}${notes}</li>`;
+      const amount = input.orderType === "bar" && item.unitPriceCents != null
+        ? ` × ${escapeHtml(euros(item.unitPriceCents))} = <strong>${escapeHtml(euros(item.lineTotalCents || 0))}</strong>`
+        : "";
+      return `<li style="margin-bottom:10px;"><strong>${escapeHtml(item.itemName)}</strong>: ${escapeHtml(item.quantity)}${unit}${amount}${notes}</li>`;
     })
     .join("");
 
@@ -64,9 +81,12 @@ export function buildOperationalOrderEmail(input: OperationalOrderEmailInput) {
         <tr><td style="padding:6px 0;font-weight:bold;">Gym</td><td style="padding:6px 0;">${escapeHtml(input.gymName)}</td></tr>
         <tr><td style="padding:6px 0;font-weight:bold;">Staff Name</td><td style="padding:6px 0;">${escapeHtml(input.staffName)}</td></tr>
         <tr><td style="padding:6px 0;font-weight:bold;">Order ID</td><td style="padding:6px 0;">${escapeHtml(input.orderId)}</td></tr>
+        ${input.orderType === "bar" ? `<tr><td style="padding:6px 0;font-weight:bold;">Business date</td><td>${escapeHtml(input.barBusinessDate || "—")}</td></tr>` : ""}
       </table>
       <h3>Items</h3>
       <ol style="padding-left:22px;">${htmlItems}</ol>
+      ${input.orderType === "bar" && input.barTotalCents != null
+        ? `<p style="font-size:20px;font-weight:bold;">BAR TOTAL: ${escapeHtml(euros(input.barTotalCents))}</p>` : ""}
       ${input.notes ? `<h3>Notes</h3><p>${escapeHtml(input.notes)}</p>` : ""}
       <p style="color:#777;font-size:12px;margin-top:24px;">BestGymsMalta</p>
     </div>
