@@ -10,7 +10,9 @@ type SendOperationalOrderInput = {
   gymName: string;
   staffName: string;
   notes?: string | null;
-  items: OperationalOrderItem[];
+  items: (OperationalOrderItem & { unitPriceCents?: number; lineTotalCents?: number })[];
+  barBusinessDate?: string;
+  barTotalCents?: number | null;
 };
 
 let cachedTransporter:
