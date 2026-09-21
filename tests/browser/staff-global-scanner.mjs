@@ -101,17 +101,17 @@ try {
   assert.equal(await name.evaluate((input) => document.activeElement === input), true,
     "Staff input focus must be restored after the access overlay");
 
-  const item = page.getByPlaceholder("Item", { exact: true });
-  await item.fill("Water bottles");
+  const item = page.getByRole("spinbutton", { name: "Toilet paper quantity" });
+  await item.fill("4");
   await item.focus();
   await sendConfiguredScan("BGM0000999");
   const denied = page.getByRole("dialog", { name: "MEMBERSHIP EXPIRED" });
   await denied.waitFor({ state: "visible", timeout: 15000 });
   await denied.getByText("DO NOT ALLOW ACCESS until verified by reception.").waitFor();
-  assert.equal(await item.inputValue(), "Water bottles");
+  assert.equal(await item.inputValue(), "4");
   await page.screenshot({ path: artifacts + "/sundries-declined.png" });
   await denied.getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
-  assert.equal(await item.inputValue(), "Water bottles");
+  assert.equal(await item.inputValue(), "4");
   assert.equal(await name.inputValue(), "Maria Borg");
 
   await page.goto(origin + "/staff/bar");
