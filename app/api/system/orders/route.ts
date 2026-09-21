@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { todayMaltaDate } from "@/lib/maltaDate";
+import { snapshotBarSale, type BarCatalogItem } from "@/lib/barSalesCore";
 import { requireSystemPermission } from "@/lib/systemAuth";
 import {
   canTransitionOrderStatus,
@@ -91,7 +93,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from("bgm_operational_orders")
       .select(
-        "id, order_type, gym_id, staff_name, status, notes, submitted_at, ordered_at, completed_at, cancelled_at, notification_status, notification_sent_at, email_notification_status, email_notification_sent_at, email_notification_error, push_notification_status, push_notification_sent_at, push_notification_error, created_at, updated_at"
+        "id, order_type, gym_id, staff_name, status, notes, submitted_at, business_date, total_cents, ordered_at, completed_at, cancelled_at, notification_status, notification_sent_at, email_notification_status, email_notification_sent_at, email_notification_error, push_notification_status, push_notification_sent_at, push_notification_error, created_at, updated_at"
       )
       .eq("order_type", orderType)
       .order("submitted_at", { ascending: false })
@@ -123,7 +125,7 @@ export async function GET(request: NextRequest) {
       orderIds.length
         ? supabase
             .from("bgm_operational_order_items")
-            .select("id, order_id, item_name, quantity, unit, notes, sort_order")
+            .select("id, order_id, item_name, quantity, unit, notes, sort_order, catalog_item_id, unit_price_cents, line_total_cents")
             .in("order_id", orderIds)
             .order("sort_order", { ascending: true })
         : Promise.resolve({ data: [], error: null }),
@@ -152,13 +154,48 @@ export async function GET(request: NextRequest) {
       ])
     );
 
+    // The historical daily sum includes all saved Bar Lists (not merely the
+    // 200 most recent rows shown in the history panel). Cancelled lists are excluded.
+    let todayTotalCents: number | null = null;
+    if (orderType === "bar") {
+      const today = todayMaltaDate();
+      let offset = 0;
+      let sum = 0;
+      let count = 0;
+      while (true) {
+        let totalsQuery = supabase.from("bgm_operational_orders")
+          .select("total_cents")
+          .eq("order_type", "bar")
+          .eq("business_date", today)
+          .neq("status", "cancelled")
+          .range(offset, offset + 499);
+        const scopedGymId = auth.context.isSuperAdmin
+          ? clean(request.nextUrl.searchParams.get("gymId")) : (auth.context.gymId || "");
+        if (scopedGymId) totalsQuery = totalsQuery.eq("gym_id", scopedGymId);
+        const totalsResult = await totalsQuery;
+        if (totalsResult.error) throw totalsResult.error;
+        const rows = totalsResult.data || [];
+        for (const row of rows) {
+          if (row.total_cents != null) {
+            sum += Number(row.total_cents);
+            count++;
+          }
+        }
+        if (rows.length < 500) break;
+        offset += 500;
+      }
+      todayTotalCents = count ? sum : 0;
+    }
+
     return NextResponse.json({
+      businessDate: orderType === "bar" ? todayMaltaDate() : null,
+      todayTotalCents,
       orders: orders.map((order) => ({
         ...order,
         gym_name: gymById.get(order.gym_id) || order.gym_id,
         items: itemsByOrder.get(order.id) || [],
       })),
-    });
+    }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
@@ -189,7 +226,26 @@ export async function POST(request: NextRequest) {
     const staffName =
       staffNameInput || (auth.context.isSuperAdmin ? "Super Admin" : "");
     const notes = clean(body.notes);
-    const items = normalizeOrderItems(body.items);
+    const supabase = getSupabaseAdmin();
+    let items: ReturnType<typeof normalizeOrderItems> = [];
+    let barTotalCents: number | null = null;
+    if (orderType === "bar") {
+      const catalogResult = await supabase.from("bgm_bar_catalog_items")
+        .select("id,name,price_cents,is_other,active,sort_order,updated_at")
+        .eq("active", true);
+      if (catalogResult.error) throw catalogResult.error;
+      const catalog: BarCatalogItem[] = (catalogResult.data || []).map((row) => ({
+        id: row.id, name: row.name, priceCents: row.price_cents,
+        isOther: row.is_other, active: row.active, sortOrder: row.sort_order,
+        updatedAt: row.updated_at,
+      }));
+      const snapshot = snapshotBarSale(body.barEntries, catalog);
+      if (snapshot.error) return NextResponse.json({ error: snapshot.error }, { status: 409 });
+      items = snapshot.items;
+      barTotalCents = snapshot.totalCents;
+    } else {
+      items = normalizeOrderItems(body.items);
+    }
 
     if (!staffName) {
       return NextResponse.json(
@@ -215,7 +271,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = getSupabaseAdmin();
     const gymResult = await supabase
       .from("bgm_gyms")
       .select("id, name, short_name")
@@ -237,6 +292,7 @@ export async function POST(request: NextRequest) {
         staff_name: staffName,
         status: "submitted",
         notes: notes || null,
+        ...(orderType === "bar" ? { business_date: todayMaltaDate(), total_cents: barTotalCents } : {}),
         notification_status: "pending",
         email_notification_status: notificationSettings.email_enabled
           ? "pending"
@@ -246,7 +302,7 @@ export async function POST(request: NextRequest) {
           : "disabled",
       })
       .select(
-        "id, order_type, gym_id, staff_name, status, notes, submitted_at, notification_status"
+        "id, order_type, gym_id, staff_name, status, notes, submitted_at, business_date, total_cents, notification_status"
       )
       .single();
 
@@ -261,6 +317,13 @@ export async function POST(request: NextRequest) {
         unit: item.unit,
         notes: item.notes,
         sort_order: index,
+        ...(orderType === "bar" && "catalogItemId" in item
+          ? {
+              catalog_item_id: item.catalogItemId,
+              unit_price_cents: item.unitPriceCents,
+              line_total_cents: item.lineTotalCents,
+            }
+          : {}),
       }))
     );
 
@@ -280,6 +343,7 @@ export async function POST(request: NextRequest) {
         gymId,
         staffName,
         itemCount: items.length,
+        ...(orderType === "bar" ? { totalCents: barTotalCents, businessDate: todayMaltaDate() } : {}),
       },
     });
 
@@ -301,6 +365,7 @@ export async function POST(request: NextRequest) {
           staffName,
           notes: notes || null,
           items,
+          ...(orderType === "bar" ? { barBusinessDate: todayMaltaDate(), barTotalCents } : {}),
         });
         emailStatus = "sent";
         emailSentAt = new Date().toISOString();
