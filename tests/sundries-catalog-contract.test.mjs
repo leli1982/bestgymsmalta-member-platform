@@ -18,7 +18,8 @@ test("standard sundries catalog includes the requested items once, icons and zer
   }
   assert.equal((catalog.match(/name: "Staples"/g) || []).length, 1);
   assert.equal((catalog.match(/\{ name: "/g) || []).length, 13);
-  assert.match(catalog, /icon: ToiletPaper/);
+  assert.match(catalog, /icon: ToiletRollIcon/);
+  assert.match(catalog, /function ToiletRollIcon/);
   assert.match(catalog, /quantity: "0"/);
   assert.match(catalog, /min="0"/);
   assert.match(catalog, /Add custom item/);
