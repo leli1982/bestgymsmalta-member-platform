@@ -20,6 +20,17 @@ test("standard sundries catalog includes the requested items once, icons and zer
   assert.equal((catalog.match(/\{ name: "/g) || []).length, 13);
   assert.match(catalog, /icon: ToiletRollIcon/);
   assert.match(catalog, /function ToiletRollIcon/);
+  for (const icon of [
+    "TissueBoxIcon", "SoapDispenserIcon", "FloorCleanerIcon",
+    "MembershipFormsIcon", "BarSalesIcon", "MembershipSalesSheetIcon",
+    "StaplerIcon",
+  ]) {
+    assert.match(catalog, new RegExp("function " + icon));
+    assert.match(catalog, new RegExp("icon: " + icon));
+  }
+  assert.match(catalog, /icon: StickyNote/);
+  assert.match(catalog, /h-16 w-16/);
+  assert.match(catalog, /h-12 w-12/);
   assert.match(catalog, /quantity: "0"/);
   assert.match(catalog, /min="0"/);
   assert.match(catalog, /Add custom item/);
