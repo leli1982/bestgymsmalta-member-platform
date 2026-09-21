@@ -174,7 +174,8 @@ export default function StaffGlobalScanner() {
     setChecking(false);
     const previous = focusBeforeScan.current;
     if (previous?.isConnected) {
-      window.setTimeout(() => previous.focus({ preventScroll: true }), 0);
+      // Restore immediately, before the next form keystroke arrives.
+      previous.focus({ preventScroll: true });
     }
     window.setTimeout(() => processNextRef.current(), 0);
   }, []);
