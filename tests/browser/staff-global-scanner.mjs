@@ -114,8 +114,20 @@ try {
   assert.equal(await item.inputValue(), "4");
   assert.equal(await name.inputValue(), "Maria Borg");
 
+  await context.route("**/api/system/bar/catalog", (route) =>
+    route.fulfill({ json: { items: [
+      { id: "bar-water", name: "Water 500 ml", priceCents: 150,
+        isOther: false, active: true, sortOrder: 0, updatedAt: "2026-09-21T00:00:00Z" },
+    ] } })
+  );
+  await context.route("**/api/system/bar/today?**", (route) =>
+    route.fulfill({ json: {
+      gymId: user.gymId, businessDate: "2026-09-21",
+      totalCents: 0, submittedCount: 0, unpricedCount: 0,
+    } })
+  );
   await page.goto(origin + "/staff/bar");
-  const barName = page.getByPlaceholder("e.g. Maria Borg");
+  const barName = page.getByRole("textbox", { name: "Bar Staff name" });
   await barName.waitFor({ state: "visible", timeout: 15000 });
   await barName.fill("Bar Staff");
   await barName.focus();
