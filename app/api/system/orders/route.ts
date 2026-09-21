@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { todayMaltaDate } from "@/lib/maltaDate";
+import { todayMaltaDate, isValidCalendarDate } from "@/lib/maltaDate";
 import { snapshotBarSale, type BarCatalogItem, type BarSalesSnapshotItem } from "@/lib/barSalesCore";
 import { requireSystemPermission } from "@/lib/systemAuth";
 import {
@@ -89,6 +89,11 @@ export async function GET(request: NextRequest) {
     );
     if (auth.error || !auth.context) return auth.error;
 
+    const requestedDate = clean(request.nextUrl.searchParams.get("businessDate"));
+    if (requestedDate && !isValidCalendarDate(requestedDate)) {
+      return NextResponse.json({ error: "Invalid Bar business date." }, { status: 400 });
+    }
+
     const supabase = getSupabaseAdmin();
     let query = supabase
       .from("bgm_operational_orders")
@@ -111,6 +116,8 @@ export async function GET(request: NextRequest) {
       const requestedGymId = clean(request.nextUrl.searchParams.get("gymId"));
       if (requestedGymId) query = query.eq("gym_id", requestedGymId);
     }
+
+    if (orderType === "bar" && requestedDate) query = query.eq("business_date", requestedDate);
 
     const orderResult = await query;
     if (orderResult.error) throw orderResult.error;
