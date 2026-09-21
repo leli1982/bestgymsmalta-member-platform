@@ -14,9 +14,30 @@ import {
   ReceiptText,
   SprayCan,
   StickyNote,
-  ToiletPaper,
   Trash2,
 } from "lucide-react";
+
+function ToiletRollIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      width="24"
+      height="24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M8 3h9c2.4 0 4 3.9 4 9s-1.6 9-4 9H8" />
+      <ellipse cx="8" cy="12" rx="5" ry="9" />
+      <ellipse cx="8" cy="12" rx="1.5" ry="2.8" />
+      <path d="M17 21v-5" />
+    </svg>
+  );
+}
 
 export type SundriesDraftItem = {
   itemName: string;
@@ -27,7 +48,7 @@ export type SundriesDraftItem = {
 };
 
 export const SUNDRIES_CATALOG = [
-  { name: "Toilet paper", icon: ToiletPaper },
+  { name: "Toilet paper", icon: ToiletRollIcon },
   { name: "Gym tissues", icon: PackagePlus },
   { name: "Hand soap", icon: Droplets },
   { name: "Floor liquid", icon: SprayCan },
