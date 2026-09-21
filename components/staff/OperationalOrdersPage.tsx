@@ -5,6 +5,7 @@ import {
   nextOperationalOrderActions,
   orderTypePresentation,
 } from "@/lib/operationalOrdersPresentation";
+import SundriesCatalogForm, { initialSundriesItems, type SundriesDraftItem } from "@/components/staff/SundriesCatalogForm";
 import type {
   OperationalOrderStatus,
   OperationalOrderType,
@@ -50,12 +51,7 @@ type Order = {
   items: OrderItem[];
 };
 
-type DraftItem = {
-  itemName: string;
-  quantity: string;
-  unit: string;
-  notes: string;
-};
+type DraftItem = SundriesDraftItem;
 
 const emptyItem = (): DraftItem => ({
   itemName: "",
@@ -73,9 +69,12 @@ export default function OperationalOrdersPage({
   const [user, setUser] = useState<SystemUser | null>(null);
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [selectedGymId, setSelectedGymId] = useState("");
+  const [historyGymId, setHistoryGymId] = useState("");
   const [staffName, setStaffName] = useState("");
   const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<DraftItem[]>([emptyItem()]);
+  const [items, setItems] = useState<DraftItem[]>(() =>
+    orderType === "sundries" ? initialSundriesItems() : [emptyItem()]
+  );
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -101,8 +100,8 @@ export default function OperationalOrdersPage({
     setHistoryLoading(true);
     try {
       const params = new URLSearchParams({ type: orderType });
-      if (user?.isSuperAdmin && selectedGymId) {
-        params.set("gymId", selectedGymId);
+      if (user?.isSuperAdmin && historyGymId) {
+        params.set("gymId", historyGymId);
       }
       const response = await fetch(`/api/system/orders?${params.toString()}`, {
         cache: "no-store",
@@ -115,7 +114,7 @@ export default function OperationalOrdersPage({
     } finally {
       setHistoryLoading(false);
     }
-  }, [canViewHistory, orderType, selectedGymId, user?.isSuperAdmin]);
+  }, [canViewHistory, historyGymId, orderType, user?.isSuperAdmin]);
 
   useEffect(() => {
     async function initialise() {
@@ -130,14 +129,17 @@ export default function OperationalOrdersPage({
         const currentUser = authData.user as SystemUser;
         setUser(currentUser);
 
+        // Load the current gym directory rather than hard-coding locations.
+        // The server always uses the logged-in Staff member's assigned gym;
+        // only Super Admin is allowed to choose a different order location.
+        const gymsResponse = await fetch("/api/gyms", { cache: "no-store" });
+        const gymsData = gymsResponse.ok ? await gymsResponse.json() : { gyms: [] };
+        const availableGyms = (gymsData.gyms || []) as Gym[];
+        setGyms(availableGyms);
         if (currentUser.isSuperAdmin) {
-          const gymsResponse = await fetch("/api/gyms", { cache: "no-store" });
-          const gymsData = await gymsResponse.json();
-          const availableGyms = (gymsData.gyms || []) as Gym[];
-          setGyms(availableGyms);
           const firstGym =
             availableGyms.find((gym) => gym.status === "active") || availableGyms[0];
-          setSelectedGymId(firstGym?.id || "");
+          setSelectedGymId(currentUser.gymId || firstGym?.id || "");
         } else {
           setSelectedGymId(currentUser.gymId || "");
         }
@@ -180,8 +182,21 @@ export default function OperationalOrdersPage({
       setError("Staff Name is required.");
       return;
     }
+    if (orderType === "sundries" && items.some((item) =>
+      item.quantity.trim() !== "" &&
+      (!Number.isSafeInteger(Number(item.quantity)) || Number(item.quantity) < 0)
+    )) {
+      setError("Each sundries quantity must be a whole number of 0 or more.");
+      return;
+    }
+    if (orderType === "sundries" && items.some((item) =>
+      item.custom && Number(item.quantity) > 0 && !item.itemName.trim()
+    )) {
+      setError("Enter a name for each custom item with a quantity above 0.");
+      return;
+    }
     if (!cleanItems.length) {
-      setError("Add at least one valid item.");
+      setError("Set at least one item quantity above 0 before submitting.");
       return;
     }
     if (!selectedGymId) {
@@ -210,7 +225,7 @@ export default function OperationalOrdersPage({
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not submit order.");
 
-      setItems([emptyItem()]);
+      setItems(orderType === "sundries" ? initialSundriesItems() : [emptyItem()]);
       setNotes("");
       setMessage(
         data.notificationStatus === "sent"
@@ -243,6 +258,8 @@ export default function OperationalOrdersPage({
     }
   }
 
+  const locationName = gyms.find((gym) => gym.id === selectedGymId)?.name || selectedGymId || "Gym not selected";
+
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-zinc-100 text-zinc-600">
@@ -261,6 +278,9 @@ export default function OperationalOrdersPage({
             <a href="/staff" className="text-sm font-semibold text-orange-600">← Staff Home</a>
             <h1 className="mt-2 text-3xl font-bold">{presentation.pluralTitle}</h1>
             <p className="mt-1 text-sm text-zinc-500">{user.displayName}</p>
+            <p className="mt-2 inline-flex rounded-full bg-orange-50 px-3 py-1.5 text-xs font-black text-orange-700">
+              Order location: {locationName}
+            </p>
           </div>
           <a
             href={orderType === "sundries" ? "/staff/bar" : "/staff/sundries"}
@@ -323,15 +343,26 @@ export default function OperationalOrdersPage({
                 <h2 className="text-xl font-bold">New {presentation.title}</h2>
                 <p className="mt-1 text-sm text-zinc-500">Add only the items required for this order.</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setItems((current) => [...current, emptyItem()])}
-                className="rounded-xl border border-zinc-300 px-4 py-2 text-sm font-semibold"
-              >
-                + Add Item
-              </button>
+              {orderType === "bar" && (
+                <button
+                  type="button"
+                  onClick={() => setItems((current) => [...current, emptyItem()])}
+                  className="rounded-xl border border-zinc-300 px-4 py-2 text-sm font-semibold"
+                >
+                  + Add Item
+                </button>
+              )}
             </div>
 
+            {orderType === "sundries" ? (
+              <SundriesCatalogForm
+                items={items}
+                updateItem={updateItem}
+                addCustom={() => setItems((current) => [...current, { ...emptyItem(), quantity: "0", custom: true }])}
+                removeCustom={(index) => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+              />
+            ) : (
+              <>
             <div className="mt-5 space-y-3">
               {items.map((item, index) => (
                 <div key={index} className="grid gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 md:grid-cols-[2fr_0.7fr_1fr_2fr_auto]">
@@ -379,6 +410,26 @@ export default function OperationalOrdersPage({
               ))}
             </div>
 
+              </>
+            )}
+
+            {orderType === "sundries" && (
+              <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-4">
+                <p className="text-sm font-black text-orange-800">Review request · {locationName}</p>
+                {cleanItems.length > 0 ? (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {cleanItems.map((item, index) => (
+                      <span key={index} className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-zinc-900">
+                        {item.itemName} × {item.quantity}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm text-zinc-600">Choose at least one item; all quantities can remain 0 until needed.</p>
+                )}
+              </div>
+            )}
+
             <label className="mt-4 block text-sm font-semibold">
               Order Notes
               <textarea
@@ -394,7 +445,7 @@ export default function OperationalOrdersPage({
               disabled={submitting}
               className="mt-5 rounded-xl bg-zinc-900 px-6 py-3 font-bold text-white disabled:opacity-50"
             >
-              {submitting ? "Submitting…" : `Submit ${presentation.title}`}
+              {submitting ? "Submitting…" : orderType === "sundries" ? `Submit Sundries Order (${cleanItems.length} items)` : `Submit ${presentation.title}`}
             </button>
           </form>
         )}
@@ -406,12 +457,30 @@ export default function OperationalOrdersPage({
                 <h2 className="text-xl font-bold">History</h2>
                 <p className="mt-1 text-sm text-zinc-500">Saved orders and their current status.</p>
               </div>
-              <button
-                onClick={() => void loadOrders()}
-                className="rounded-xl border border-zinc-300 px-4 py-2 text-sm font-semibold"
-              >
-                Refresh
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                {user.isSuperAdmin && (
+                  <label className="text-xs font-bold text-zinc-600">
+                    View orders from
+                    <select
+                      aria-label="Filter order history by gym"
+                      value={historyGymId}
+                      onChange={(event) => setHistoryGymId(event.target.value)}
+                      className="ml-2 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-900"
+                    >
+                      <option value="">All gyms</option>
+                      {gyms.map((gym) => (
+                        <option key={gym.id} value={gym.id}>{gym.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <button
+                  onClick={() => void loadOrders()}
+                  className="rounded-xl border border-zinc-300 px-4 py-2 text-sm font-semibold"
+                >
+                  Refresh
+                </button>
+              </div>
             </div>
 
             {historyLoading ? (
