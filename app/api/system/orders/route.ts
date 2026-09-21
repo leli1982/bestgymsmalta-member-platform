@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { todayMaltaDate } from "@/lib/maltaDate";
-import { snapshotBarSale, type BarCatalogItem } from "@/lib/barSalesCore";
+import { snapshotBarSale, type BarCatalogItem, type BarSalesSnapshotItem } from "@/lib/barSalesCore";
 import { requireSystemPermission } from "@/lib/systemAuth";
 import {
   canTransitionOrderStatus,
@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
       staffNameInput || (auth.context.isSuperAdmin ? "Super Admin" : "");
     const notes = clean(body.notes);
     const supabase = getSupabaseAdmin();
-    let items: ReturnType<typeof normalizeOrderItems> = [];
+    let items: (ReturnType<typeof normalizeOrderItems>[number] | BarSalesSnapshotItem)[] = [];
     let barTotalCents: number | null = null;
     if (orderType === "bar") {
       const catalogResult = await supabase.from("bgm_bar_catalog_items")
