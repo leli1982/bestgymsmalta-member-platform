@@ -7,6 +7,7 @@ import {
   Bell,
   Boxes,
   Clock3,
+  ClipboardList,
   Dumbbell,
   LogOut,
   RefreshCw,
@@ -221,6 +222,13 @@ export default function StaffDashboard({ user, onLogout }: Props) {
             disabled={!can("orders.bar.submit")}
           />
           <Tile label="Punch Clock" icon={Clock3} disabled />
+          {user.isSuperAdmin && (
+            <Tile
+              label="Operations"
+              icon={ClipboardList}
+              href="/staff/operations"
+            />
+          )}
           {user.isSuperAdmin && (
             <Tile
               label="Membership Settings"
