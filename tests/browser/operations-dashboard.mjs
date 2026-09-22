@@ -117,7 +117,7 @@ try {
     const value = order.locator("span.tabular-nums").first();
     assert.equal(await value.evaluate((element) => getComputedStyle(element).color), expectedColor);
     await order.getByRole("button", { name: "Show details for " + id }).click();
-    const detail = order.getByText("Total Sales:").locator("span");
+    const detail = order.locator("p").filter({ hasText: "Total Sales:" }).locator("span");
     assert.equal(await detail.evaluate((element) => getComputedStyle(element).color), expectedColor);
   }
   await page.getByText("€11.25").first().waitFor();
