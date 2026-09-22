@@ -126,6 +126,19 @@ try {
   assert.equal(captured.some((params) => params.includes("gymId=bgm-marsa")), true);
   await page.screenshot({ path: artifactDir + "/super-admin-operations.png", fullPage: true });
 
+  await page.goto(origin + "/staff/admin");
+  await page.getByRole("heading", { name: "Super Admin", exact: true })
+    .waitFor({ state: "visible", timeout: 15000 });
+  for (const name of [
+    "Operations dashboard", "Bar reports", "Bar catalogue & prices", "Membership settings",
+  ]) {
+    await page.getByRole("link", { name: new RegExp(name) }).first()
+      .waitFor({ state: "visible" });
+  }
+  assert.equal(await page.locator('a[href="/staff/bar/catalog"]').count(), 1);
+  assert.equal(await page.locator('a[href="/staff/bar/reports"]').count(), 1);
+  await page.screenshot({ path: artifactDir + "/super-admin-home.png", fullPage: true });
+
   const staffContext = await browser.newContext();
   await staffContext.route("**/api/system/auth", (route) =>
     route.fulfill({ json: { authenticated: true, user: {
@@ -133,6 +146,9 @@ try {
     } } }));
   await staffContext.route("**/api/gyms", (route) => route.fulfill({ json: { gyms } }));
   const ordinaryStaff = await staffContext.newPage();
+  await ordinaryStaff.goto(origin + "/staff/admin");
+  await ordinaryStaff.getByText("Super Admin access required.").waitFor({ state: "visible" });
+  assert.equal(await ordinaryStaff.locator('a[href="/staff/bar/catalog"]').count(), 0);
   await ordinaryStaff.goto(origin + "/staff/operations");
   await ordinaryStaff.getByText("Super Admin access required.").waitFor({ state: "visible" });
   assert.equal(await ordinaryStaff.getByRole("heading", { name: "Operations dashboard" }).count(), 0);
