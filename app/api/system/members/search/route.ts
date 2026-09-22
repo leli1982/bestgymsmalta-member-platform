@@ -258,9 +258,9 @@ export async function GET(request: NextRequest) {
     console.error(activeCardResult.error);
     return NextResponse.json({ error: "Could not search member cards." }, { status: 500 });
   }
-  const cardMemberIds = [...new Set(
+  const cardMemberIds = Array.from(new Set(
     (activeCardResult.data || []).map((card) => card.member_id).filter((id): id is string => Boolean(id))
-  )];
+  ));
   if (cardMemberIds.length) {
     const cardMembersResult = await supabase
       .from("bgm_members")
