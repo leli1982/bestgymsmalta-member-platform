@@ -225,6 +225,24 @@ try {
       email_notification_status: "sent", push_notification_status: "sent",
       items: [{ id: "line-1", item_name: "Water 500ml", quantity: 2,
         unit_price_cents: 150, line_total_cents: 300, notes: null }],
+    }, {
+      id: "bar-equal-cash", gym_id: gym.id, gym_name: gym.name,
+      staff_name: "Test Equal", status: "submitted", business_date: "2026-09-21",
+      cash_found_cents: 290, total_cents: 290, notes: null,
+      submitted_at: "2026-09-21T18:00:00Z", email_notification_status: "sent",
+      push_notification_status: "not_configured", items: [],
+    }, {
+      id: "bar-above-cash", gym_id: gym.id, gym_name: gym.name,
+      staff_name: "Test Above", status: "submitted", business_date: "2026-09-21",
+      cash_found_cents: 0, total_cents: 175, notes: null,
+      submitted_at: "2026-09-21T18:05:00Z", email_notification_status: "sent",
+      push_notification_status: "not_configured", items: [],
+    }, {
+      id: "bar-missing-cash", gym_id: gym.id, gym_name: gym.name,
+      staff_name: "Legacy", status: "submitted", business_date: "2026-09-21",
+      cash_found_cents: null, total_cents: 150, notes: null,
+      submitted_at: "2026-09-21T18:10:00Z", email_notification_status: "sent",
+      push_notification_status: "not_configured", items: [],
     }] } }));
   await admin.goto(origin + "/staff/bar/reports");
   await admin.getByText("Water 500ml × 2").waitFor({ state: "visible", timeout: 15000 });
@@ -232,6 +250,17 @@ try {
   await admin.getByText("€8.75").first().waitFor();
   await admin.getByText("Total Cash Found:").waitFor();
   await admin.getByText("€12.65").waitFor();
+  for (const [id, amount, expectedColor] of [
+    ["bar-browser-report", "€8.75", "rgb(185, 28, 28)"],
+    ["bar-equal-cash", "€2.90", "rgb(4, 120, 87)"],
+    ["bar-above-cash", "€1.75", "rgb(4, 120, 87)"],
+    ["bar-missing-cash", "€1.50", "rgb(9, 9, 11)"],
+  ]) {
+    const article = admin.getByRole("article").filter({ hasText: id });
+    const value = article.locator("p.text-2xl");
+    assert.equal((await value.textContent()).trim(), amount);
+    assert.equal(await value.evaluate((element) => getComputedStyle(element).color), expectedColor);
+  }
   await admin.screenshot({ path: artifactDir + "/super-admin-bar-report.png", fullPage: true });
   console.log("PASS Bar Staff prices, +/- quantities, Others, submitted totals, scanner preservation, Super Admin catalogue and reports");
 } finally {

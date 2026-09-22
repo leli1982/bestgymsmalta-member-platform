@@ -6,6 +6,7 @@ import {
   ClipboardList, PackageCheck, RefreshCcw, ShoppingBasket, Store, TriangleAlert,
 } from "lucide-react";
 import { formatBarEuro } from "@/lib/barSalesCore";
+import { barSalesComparisonColor } from "@/lib/barCashComparison";
 import { todayMaltaDate } from "@/lib/maltaDate";
 import { nextOperationalOrderActions } from "@/lib/operationalOrdersPresentation";
 import type { OperationalOrderStatus, OperationalOrderType } from "@/lib/operationalOrdersCore";
@@ -276,7 +277,7 @@ export default function OperationsDashboardAdmin() {
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     <span className={"rounded-full px-3 py-1 text-xs font-black uppercase " + statusClass(order.status)}>{order.status}</span>
                     {order.order_type === "bar" && (
-                      <span className="rounded-xl bg-zinc-950 px-3 py-2 text-sm font-black tabular-nums text-white">
+                      <span className={"rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-black tabular-nums " + barSalesComparisonColor(order.total_cents, order.cash_found_cents)}>
                         {order.total_cents === null ? "Historical price unavailable" : formatBarEuro(order.total_cents)}
                       </span>
                     )}
@@ -307,7 +308,7 @@ export default function OperationsDashboardAdmin() {
                     </div>
                     {order.order_type === "bar" && (
                       <div className="mt-3 flex flex-wrap gap-4 text-sm text-zinc-700">
-                        <p><strong>Total Sales:</strong> {order.total_cents == null ? "Historical price unavailable" : formatBarEuro(order.total_cents)}</p>
+                        <p><strong>Total Sales:</strong> <span className={"font-black tabular-nums " + barSalesComparisonColor(order.total_cents, order.cash_found_cents)}>{order.total_cents == null ? "Historical price unavailable" : formatBarEuro(order.total_cents)}</span></p>
                         <p><strong>Total Cash Found:</strong> {order.cash_found_cents == null ? "Not recorded" : formatBarEuro(order.cash_found_cents)}</p>
                       </div>
                     )}

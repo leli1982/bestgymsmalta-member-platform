@@ -55,7 +55,7 @@ try {
       id: "bar-birkirkara", order_type: "bar",
       gym_id: "bgm-birkirkara", gym_name: "Birkirkara Fitness", staff_name: "Keith",
       status: "submitted", submitted_at: "2026-09-22T09:30:00Z",
-      business_date: "2026-09-22", total_cents: 875,
+      business_date: "2026-09-22", total_cents: 875, cash_found_cents: 875,
       email_notification_status: "sent", push_notification_status: "sent",
       notes: "Morning", items: [{ id: "bar-line", item_name: "Water", quantity: 5,
         unit: null, notes: null, unit_price_cents: 175, line_total_cents: 875 }],
@@ -63,7 +63,7 @@ try {
     {
       id: "bar-marsa", order_type: "bar", gym_id: "bgm-marsa", gym_name: "Marsa Fitness",
       staff_name: "Regina", status: "submitted", submitted_at: "2026-09-22T08:15:00Z",
-      business_date: "2026-09-22", total_cents: 250,
+      business_date: "2026-09-22", total_cents: 250, cash_found_cents: 375,
       email_notification_status: "sent", push_notification_status: "sent",
       notes: null, items: [{ id: "bar-line-marsa", item_name: "Coffee",
         quantity: 2, unit: null, notes: null, unit_price_cents: 125, line_total_cents: 250 }],
@@ -109,6 +109,17 @@ try {
     background: "rgb(255, 255, 255)", color: "rgb(24, 24, 27)", colorScheme: "light",
   }, "Super Admin operations filters must have readable light theme");
   assert.equal(await page.getByRole("article").count(), 4);
+  for (const [id, expectedColor] of [
+    ["bar-birkirkara", "rgb(4, 120, 87)"],
+    ["bar-marsa", "rgb(185, 28, 28)"],
+  ]) {
+    const order = page.getByRole("article").filter({ hasText: id });
+    const value = order.locator("span.tabular-nums").first();
+    assert.equal(await value.evaluate((element) => getComputedStyle(element).color), expectedColor);
+    await order.getByRole("button", { name: "Show details for " + id }).click();
+    const detail = order.getByText("Total Sales:").locator("span");
+    assert.equal(await detail.evaluate((element) => getComputedStyle(element).color), expectedColor);
+  }
   await page.getByText("€11.25").first().waitFor();
   await page.getByText("Notification failures").waitFor();
   await page.getByRole("button", { name: "Show details for sundries-birkirkara" }).click();

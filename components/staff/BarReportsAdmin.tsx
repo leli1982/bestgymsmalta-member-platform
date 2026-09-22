@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, ClipboardList, RefreshCcw } from "lucide-react";
 import { formatBarEuro } from "@/lib/barSalesCore";
+import { barSalesComparisonColor } from "@/lib/barCashComparison";
 import { todayMaltaDate } from "@/lib/maltaDate";
 
 type Gym = { id: string; name: string };
@@ -142,7 +143,7 @@ export default function BarReportsAdmin() {
                       }).format(new Date(order.submitted_at))} · {order.id}</p>
                       <p className="mt-1 text-xs text-zinc-500">Status: {order.status} · Email: {order.email_notification_status} · Push: {order.push_notification_status}</p>
                     </div>
-                    <p className="text-2xl font-black tabular-nums text-zinc-950">
+                    <p className={"text-2xl font-black tabular-nums " + barSalesComparisonColor(order.total_cents, order.cash_found_cents)}>
                       {order.total_cents == null ? "Price unavailable" : formatBarEuro(order.total_cents)}
                     </p>
                   </div>
@@ -156,7 +157,7 @@ export default function BarReportsAdmin() {
                     ))}
                   </div>
                   <div className="mt-4 flex flex-wrap justify-between gap-3 rounded-xl border border-zinc-200 p-3 text-sm">
-                    <p><strong>Total Sales:</strong> {order.total_cents == null ? "Historical price unavailable" : formatBarEuro(order.total_cents)}</p>
+                    <p><strong>Total Sales:</strong> <span className={"font-black tabular-nums " + barSalesComparisonColor(order.total_cents, order.cash_found_cents)}>{order.total_cents == null ? "Historical price unavailable" : formatBarEuro(order.total_cents)}</span></p>
                     <p><strong>Total Cash Found:</strong> {order.cash_found_cents == null ? "Not recorded" : formatBarEuro(order.cash_found_cents)}</p>
                   </div>
                   {order.notes && <p className="mt-3 text-sm text-zinc-700"><ClipboardList className="mr-1 inline h-4 w-4"/> Notes: {order.notes}</p>}
