@@ -190,7 +190,7 @@ try {
   await visits.getByRole("region", { name: "Check-ins by visited gym" })
     .getByRole("button", { name: /Birkirkara Fitness/ }).click();
   const breakdown = visits.getByRole("region", { name: "Selected gym enrollment breakdown" });
-  await breakdown.getByRole("heading", { name: "Visitors at Birkirkara Fitness" }).waitFor();
+  await breakdown.getByRole("heading", { name: "Visitors at Birkirkara Fitness", exact: true }).waitFor();
   for (const origin of ["Birkirkara Fitness", "Tal-Qroqq Fitness", "Naxxar Fitness"]) {
     await breakdown.getByText(origin, { exact: true }).waitFor();
   }
@@ -202,7 +202,7 @@ try {
   const statsGym = visits.getByRole("combobox", { name: "Check-in statistics gym" });
   await statsGym.selectOption("bgm-naxxar");
   await summary.getByText("2", { exact: true }).first().waitFor();
-  await breakdown.getByRole("heading", { name: "Visitors at Naxxar Fitness" }).waitFor();
+  await breakdown.getByRole("heading", { name: "Visitors at Naxxar Fitness", exact: true }).waitFor();
   await visits.locator('input[aria-label="Check-in statistics from date"]').fill("2026-09-01");
   await visits.locator('input[aria-label="Check-in statistics to date"]').fill("2026-09-15");
   assert.ok(scanStatQueries.some((query) => query.gymId === "bgm-naxxar" &&
