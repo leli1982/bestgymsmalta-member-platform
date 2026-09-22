@@ -119,7 +119,7 @@ try {
   }
 
   await page.goto(origin + "/staff/admin/gyms");
-  await page.getByRole("heading", { name: "Gym locations" }).waitFor({ state: "visible" });
+  await page.getByRole("heading", { name: "Gym locations", exact: true }).waitFor({ state: "visible" });
   await page.getByRole("button", { name: /Add new gym/ }).click();
   await page.getByRole("textbox", { name: "Gym name" }).fill("Naxxar");
   await page.getByRole("textbox", { name: "Gym short name" }).fill("NX");
