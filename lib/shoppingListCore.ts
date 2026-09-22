@@ -49,8 +49,8 @@ export function buildShoppingList(orders: ShoppingListOrder[]) {
   }
   const orderByName = (a: string, b: string) => a.localeCompare(b, "en", { sensitivity: "base" });
   return {
-    totals: [...totals.values()].sort((a, b) => orderByName(a.name, b.name) || orderByName(a.unit || "", b.unit || "")),
-    gyms: [...gyms.values()]
+    totals: Array.from(totals.values()).sort((a, b) => orderByName(a.name, b.name) || orderByName(a.unit || "", b.unit || "")),
+    gyms: Array.from(gyms.values())
       .map((gym) => ({ ...gym, orders: gym.orders.sort((a, b) =>
         a.submitted_at.localeCompare(b.submitted_at) || orderByName(a.id, b.id)) }))
       .sort((a, b) => orderByName(a.gymName, b.gymName)),

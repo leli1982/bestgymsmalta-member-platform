@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       if (rows.length < batchSize) break;
     }
 
-    const gymIds = [...new Set(orders.map((order) => order.gym_id))];
+    const gymIds = Array.from(new Set(orders.map((order) => order.gym_id)));
     const gyms = new Map<string, string>();
     for (let index = 0; index < gymIds.length; index += batchSize) {
       const result = await supabase.from("bgm_gyms")
