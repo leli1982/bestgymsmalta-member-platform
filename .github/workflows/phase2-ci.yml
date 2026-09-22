@@ -63,6 +63,9 @@ jobs:
       - name: Verify Super Admin gym and account management in Chromium
         run: node tests/browser/super-admin-management.mjs
 
+      - name: Verify Super Admin Shopping List in Chromium
+        run: node tests/browser/shopping-list.mjs
+
       - name: Verify membership A4 print in Chromium
         run: node tests/browser/membership-print-a4.mjs
 
