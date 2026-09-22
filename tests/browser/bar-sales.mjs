@@ -246,7 +246,7 @@ try {
     }] } }));
   await admin.goto(origin + "/staff/bar/reports");
   await admin.getByText("Water 500ml × 2").waitFor({ state: "visible", timeout: 15000 });
-  await admin.getByRole("article").getByText("Birkirkara Fitness").waitFor();
+  await admin.getByRole("article").filter({ hasText: "bar-browser-report" }).getByText("Birkirkara Fitness").waitFor();
   await admin.getByText("€8.75").first().waitFor();
   await admin.getByText("Total Cash Found:").waitFor();
   await admin.getByText("€12.65").waitFor();
