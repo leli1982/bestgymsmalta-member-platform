@@ -248,7 +248,7 @@ try {
   await admin.getByText("Water 500ml × 2").waitFor({ state: "visible", timeout: 15000 });
   await admin.getByRole("article").filter({ hasText: "bar-browser-report" }).getByText("Birkirkara Fitness").waitFor();
   await admin.getByText("€8.75").first().waitFor();
-  await admin.getByText("Total Cash Found:").waitFor();
+  await admin.getByRole("article").filter({ hasText: "bar-browser-report" }).getByText("Total Cash Found:").waitFor();
   await admin.getByText("€12.65").waitFor();
   for (const [id, amount, expectedColor] of [
     ["bar-browser-report", "€8.75", "rgb(185, 28, 28)"],
