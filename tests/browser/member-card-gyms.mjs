@@ -90,7 +90,7 @@ try {
   await page.waitForURL(origin + "/card");
   await visible(page.locator('svg[aria-label="Member barcode NEW001aB"]'));
   assert.equal(await page.locator('svg[aria-label="Member barcode BGM0000123"]').count(), 0);
-  await visible(page.getByText("BGM0000123", { exact: true }));
+  await visible(page.getByText("BGM0000123", { exact: true }).first());
   await page.screenshot({ path: artifacts + "/card-390.png", fullPage: true });
   console.log("PASS stale saved profile → sign in → return to current card");
 
@@ -132,7 +132,7 @@ try {
   await page.getByRole("button", { name: "Try again", exact: true }).click();
   await visible(page.getByText("Card not assigned. Staff can still find you using your BGM membership number."));
   assert.equal(await page.locator('svg[aria-label^="Member barcode"]').count(), 0);
-  await visible(page.getByText("BGM0000123", { exact: true }));
+  await visible(page.getByText("BGM0000123", { exact: true }).first());
   await page.getByRole("button", { name: "Show membership details" }).click();
   await visible(page.getByText("Current card number", { exact: true }));
   await visible(page.getByText("Not assigned", { exact: true }));
