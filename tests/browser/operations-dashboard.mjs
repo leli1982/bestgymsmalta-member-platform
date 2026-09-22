@@ -29,6 +29,7 @@ try {
   const gyms = [
     { id: "bgm-birkirkara", name: "Birkirkara Fitness", status: "active" },
     { id: "bgm-marsa", name: "Marsa Fitness", status: "active" },
+    { id: "bgm-naxxar", name: "Naxxar Fitness", status: "active" },
   ];
   const sundries = [
     {
@@ -104,6 +105,41 @@ try {
       byType: { single: selected ? 1 : 2, couples: selected ? 1 : 2, student: selected ? 0 : 1 },
     } });
   });
+  const scanStatQueries = [];
+  await context.route("**/api/system/scan-visit-stats?**", (route) => {
+    const query = new URL(route.request().url()).searchParams;
+    scanStatQueries.push(Object.fromEntries(query.entries()));
+    const selected = query.get("gymId");
+    const birk = {
+      gymId: "bgm-birkirkara", gymName: "Birkirkara Fitness", visits: 10, uniqueMembers: 9,
+      origins: [
+        { gymId: "bgm-naxxar", gymName: "Naxxar Fitness", visits: 6, uniqueMembers: 6 },
+        { gymId: "bgm-birkirkara", gymName: "Birkirkara Fitness", visits: 2, uniqueMembers: 2 },
+        { gymId: "bgm-tal-qroqq", gymName: "Tal-Qroqq Fitness", visits: 2, uniqueMembers: 1 },
+      ],
+      byDay: [{ date: query.get("from"), visits: 10 }],
+      byHour: Array.from({ length: 24 }, (_, hour) => ({ hour, visits: hour === 10 ? 10 : 0 })),
+    };
+    const naxxar = {
+      gymId: "bgm-naxxar", gymName: "Naxxar Fitness", visits: 2, uniqueMembers: 2,
+      origins: [{ gymId: "bgm-naxxar", gymName: "Naxxar Fitness", visits: 2, uniqueMembers: 2 }],
+      byDay: [{ date: query.get("from"), visits: 2 }],
+      byHour: Array.from({ length: 24 }, (_, hour) => ({ hour, visits: hour === 16 ? 2 : 0 })),
+    };
+    const byGym = selected ? [birk, naxxar].filter((gym) => gym.gymId === selected) : [birk, naxxar];
+    return route.fulfill({ json: {
+      range: { from: query.get("from"), to: query.get("to"), gymId: selected || "",
+        gymName: selected ? byGym[0]?.gymName || "" : "All gyms" },
+      visits: byGym.reduce((total, gym) => total + gym.visits, 0),
+      uniqueMembers: selected ? byGym[0]?.uniqueMembers || 0 : 10,
+      gymsWithVisits: byGym.length, byGym,
+      byDay: [{ date: query.get("from"), visits: byGym.reduce((total, gym) => total + gym.visits, 0) }],
+      byHour: Array.from({ length: 24 }, (_, hour) => ({
+        hour, visits: byGym.reduce((total, gym) => total + gym.byHour[hour].visits, 0),
+      })),
+      definition: "Successful barcode/NFC check-ins; repeats within two hours count once.",
+    } });
+  });
   let update = null;
   await context.route("**/api/system/orders", (route) => {
     assert.equal(route.request().method(), "PATCH");
@@ -147,6 +183,34 @@ try {
     "Gym and Malta date range must be applied together");
   await gymFilter.selectOption("");
   await membership.getByRole("region", { name: "New memberships by gym" }).waitFor();
+  const visits = page.getByRole("region", { name: "Gym check-in statistics" });
+  await visits.getByRole("heading", { name: "Gym check-in statistics" }).waitFor();
+  const summary = visits.locator('div[aria-label="Check-in statistics summary"]');
+  await summary.getByText("12", { exact: true }).waitFor();
+  await visits.getByRole("region", { name: "Check-ins by visited gym" })
+    .getByRole("button", { name: /Birkirkara Fitness/ }).click();
+  const breakdown = visits.getByRole("region", { name: "Selected gym enrollment breakdown" });
+  await breakdown.getByRole("heading", { name: "Visitors at Birkirkara Fitness" }).waitFor();
+  for (const origin of ["Birkirkara Fitness", "Tal-Qroqq Fitness", "Naxxar Fitness"]) {
+    await breakdown.getByText(origin, { exact: true }).waitFor();
+  }
+  const origins = breakdown.getByRole("region", { name: "Enrollment gyms of visitors at Birkirkara Fitness" });
+  assert.equal(await origins.locator("span.tabular-nums").allTextContents().then((values) =>
+    values.filter((value) => /\bvisits$/.test(value)).join("; ")), "6 visits; 2 visits; 2 visits");
+  await visits.getByRole("region", { name: /Check-ins by date · Birkirkara Fitness/ }).waitFor();
+  await visits.getByRole("region", { name: /Check-ins by hour \(Malta\) · Birkirkara Fitness/ }).waitFor();
+  const statsGym = visits.getByRole("combobox", { name: "Check-in statistics gym" });
+  await statsGym.selectOption("bgm-naxxar");
+  await summary.getByText("2", { exact: true }).first().waitFor();
+  await breakdown.getByRole("heading", { name: "Visitors at Naxxar Fitness" }).waitFor();
+  await visits.locator('input[aria-label="Check-in statistics from date"]').fill("2026-09-01");
+  await visits.locator('input[aria-label="Check-in statistics to date"]').fill("2026-09-15");
+  assert.ok(scanStatQueries.some((query) => query.gymId === "bgm-naxxar" &&
+    query.from === "2026-09-01" && query.to === "2026-09-15"));
+  await statsGym.selectOption("");
+  await summary.getByText("12", { exact: true }).waitFor();
+  assert.equal(await page.getByRole("article").count(), 4,
+    "Check-in charts must not modify Sundries and Bar operations cards");
   assert.equal(await page.getByRole("article").count(), 4,
     "Membership stats must not modify Sundries and Bar operations cards");
   for (const [id, expectedColor] of [
