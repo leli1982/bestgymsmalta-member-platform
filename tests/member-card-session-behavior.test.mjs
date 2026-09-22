@@ -133,8 +133,9 @@ test("real login cookie restores the profile and current card without any local 
   assert.equal(cardResponse.status, 200);
   const data = await cardResponse.json();
   assert.equal(data.member.id, member.id);
-  assert.equal(data.cardBarcode, member.member_number);
-  assert.equal(data.member.legacyPkCustomer, member.legacy_pk_customer);
+  assert.equal(data.cardBarcode, credential.barcode_value);
+  assert.equal(data.member.memberNumber, member.member_number);
+  assert.equal(data.member.legacyPkCustomer, undefined);
   assert.equal(data.physicalCardBarcode, credential.barcode_value);
   assert.equal(data.cardLinked, true);
   assert.equal(data.member.password_hash, undefined);
@@ -143,31 +144,33 @@ test("real login cookie restores the profile and current card without any local 
   assert.equal(app.queries.filter((q) => q.table === "bgm_member_card_credentials").every((q) => q.value === member.id), true);
 });
 
-test("a retired physical card never removes the permanent virtual BGM barcode", async () => {
+test("a retired physical card removes the usable barcode but preserves the friendly BGM number", async () => {
   const app = harness({ credentials: [{ ...credential, status: "revoked" }] });
   const response = await app.card(request("/api/member/card", validToken()));
   const data = await response.json();
   assert.equal(response.status, 200);
   assert.equal(data.cardLinked, false);
-  assert.equal(data.cardBarcode, member.member_number);
+  assert.equal(data.cardBarcode, null);
+  assert.equal(data.member.memberNumber, member.member_number);
   assert.equal(data.physicalCardBarcode, null);
   assert.deepEqual(resolveMemberCardResponse(200, data), {
     kind: "ready",
     member: data.member,
     cardLinked: false,
-    cardBarcode: member.member_number,
+    cardBarcode: null,
     physicalCardBarcode: "",
   });
 });
 
-test("members with no physical credential still receive their permanent BGM virtual barcode", async () => {
+test("members with no active card retain the BGM number without a scannable barcode", async () => {
   const app = harness({ credentials: [] });
   const response = await app.card(request("/api/member/card", validToken()));
   const data = await response.json();
-  assert.equal(data.cardBarcode, member.member_number);
+  assert.equal(data.cardBarcode, null);
+  assert.equal(data.member.memberNumber, member.member_number);
   assert.equal(data.cardLinked, false);
   assert.equal(data.physicalCardBarcode, null);
-  assert.equal(data.source, "member_number");
+  assert.equal(data.source, null);
 });
 
 test("database errors are unavailable cards and never CARD NOT LINKED", async () => {
@@ -187,4 +190,5 @@ test("only a successful verified card response can display a barcode or an unlin
   assert.equal(resolveMemberCardResponse(200, null).kind, "unavailable");
   assert.equal(resolveMemberCardResponse(200, { cardLinked: false }).kind, "unavailable");
   assert.equal(resolveMemberCardResponse(200, { ...cached, cardBarcode: "" }).kind, "unavailable");
+  assert.equal(resolveMemberCardResponse(200, { ...cached, cardBarcode: "WRONG", physicalCardBarcode: "OTHER" }).kind, "unavailable");
 });

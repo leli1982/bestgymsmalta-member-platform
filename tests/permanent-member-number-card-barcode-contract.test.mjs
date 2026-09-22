@@ -38,17 +38,17 @@ test("barcode reception resolves physical cards, BGM numbers and legacy pkCustom
   }
 });
 
-test("member app virtual barcode is the permanent BGM member number while physical card stays separate", () => {
+test("member app barcode uses active physical card and displays BGM number separately", () => {
   const api = read("app/api/member/card/route.ts");
   const card = read("components/member/MemberCard.tsx");
   const state = read("lib/memberCardState.ts");
 
-  assert.equal(api.includes("cardBarcode: memberNumber"), true);
-  assert.equal(api.includes("physicalCardBarcode"), true);
+  assert.equal(api.includes("cardBarcode: activeCredential?.barcode_value || null"), true);
   assert.equal(api.includes("member_number"), true);
-  assert.equal(card.includes("<MemberBarcode memberNumber={cardBarcode} />"), true);
-  assert.match(card, /BGM member number/i);
-  assert.match(card, /Physical card/i);
+  assert.equal(card.includes("<MemberBarcode memberNumber={assignedCardNumber} />"), true);
+  assert.match(card, /member\.memberNumber/);
+  assert.doesNotMatch(card, /legacyPkCustomer|Legacy pkCustomer/);
+  assert.match(card, /Card not assigned/);
   assert.equal(state.includes("physicalCardBarcode"), true);
 });
 
