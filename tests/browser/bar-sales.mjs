@@ -189,7 +189,7 @@ try {
   await starterAdmin.goto(origin + "/staff/bar/catalog");
   await starterAdmin.getByRole("button", { name: "Review starter sheet" }).click();
   await starterAdmin.getByLabel("Starter Bar Sales sheet preview")
-    .getByText("Isotonic").waitFor({ state: "visible", timeout: 15000 });
+    .getByRole("cell", { name: "Isotonic", exact: true }).waitFor({ state: "visible", timeout: 15000 });
   await starterAdmin.getByRole("button", { name: "Publish 2 products + Others to Staff" }).click();
   await starterAdmin.getByRole("textbox", { name: "Isotonic price" })
     .waitFor({ state: "visible", timeout: 15000 });
