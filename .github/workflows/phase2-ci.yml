@@ -57,6 +57,9 @@ jobs:
       - name: Verify Bar List and Super Admin catalogue in Chromium
         run: node tests/browser/bar-sales.mjs
 
+      - name: Verify Super Admin operations dashboard in Chromium
+        run: node tests/browser/operations-dashboard.mjs
+
       - name: Verify membership A4 print in Chromium
         run: node tests/browser/membership-print-a4.mjs
 
@@ -83,6 +86,7 @@ jobs:
             test-artifacts/staff-ui
             test-artifacts/staff-global-scanner
             test-artifacts/bar-sales
+            test-artifacts/operations-dashboard
           if-no-files-found: ignore
 
       - name: Save membership print screenshots
