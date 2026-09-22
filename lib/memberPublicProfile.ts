@@ -1,7 +1,7 @@
 import type { AppMember } from "./memberSession";
 
 export const MEMBER_PROFILE_COLUMNS =
-  "id, username, member_number, full_name, email, phone, status, membership_expiry, temp_password_must_change";
+  "id, username, member_number, full_name, email, phone, status, membership_expiry, legacy_pk_customer, temp_password_must_change";
 
 type MemberRow = {
   id: string;
@@ -12,6 +12,7 @@ type MemberRow = {
   phone?: string | null;
   status?: string | null;
   membership_expiry?: string | null;
+  legacy_pk_customer?: string | null;
   temp_password_must_change?: boolean | null;
 };
 
@@ -20,6 +21,7 @@ export function publicMemberProfile(member: MemberRow): AppMember {
     id: member.id,
     username: member.username || "",
     memberNumber: member.member_number || "",
+    legacyPkCustomer: member.legacy_pk_customer || "",
     fullName: member.full_name || "",
     email: member.email || "",
     phone: member.phone || "",

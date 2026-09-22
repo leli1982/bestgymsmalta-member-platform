@@ -125,6 +125,9 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
   }
 
   const { member, cardLinked, cardBarcode, physicalCardBarcode } = state;
+  const legacyCardNumber = String(member.legacyPkCustomer || "").trim();
+  const secondaryCardNumber = physicalCardBarcode || legacyCardNumber;
+  const secondaryCardLabel = physicalCardBarcode ? "Assigned card number" : "Legacy pkCustomer";
   const active = member.status === "active"
     && (!member.membershipExpiry || member.membershipExpiry.slice(0, 10) >= new Date().toISOString().slice(0, 10));
   const expiryText = member.membershipExpiry
@@ -172,6 +175,7 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
                   <MemberBarcode memberNumber={cardBarcode} />
                 </div>
                 <p className="mt-1 text-[8px] font-semibold text-slate-400">BGM member number · tap for details</p>
+                {secondaryCardNumber && <p className="mt-1 truncate text-[8px] font-semibold text-slate-500">{secondaryCardLabel}: {secondaryCardNumber}</p>}
               </div>
             </div>
             
@@ -187,9 +191,10 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
                 <h2 className="mt-1 truncate text-base font-black">{member.fullName || member.username}</h2>
                 <p className="mt-2 text-[9px] font-semibold text-slate-400">BGM member number</p>
                 <p className="truncate text-xs font-black">{cardBarcode}</p>
-                <p className="mt-1 text-[9px] font-semibold text-slate-400">
-                  Physical card: {cardLinked && physicalCardBarcode ? physicalCardBarcode : "Not linked"}
+                <p className="mt-1 text-[9px] font-semibold text-slate-500">
+                  {secondaryCardNumber ? secondaryCardLabel + ": " + secondaryCardNumber : "Card number: Not assigned"}
                 </p>
+                {legacyCardNumber && physicalCardBarcode && legacyCardNumber !== physicalCardBarcode && <p className="mt-1 text-[9px] font-semibold text-slate-500">Legacy pkCustomer: {legacyCardNumber}</p>}
                 <p className="mt-1 text-[9px] font-semibold text-slate-400">Valid until {expiryText}</p>
               </div>
               <ShieldCheck className="shrink-0 text-[#ff5a0a]" size={29} strokeWidth={3} />
@@ -227,6 +232,7 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
             <p className="mt-3 text-center text-xs text-slate-500">
               Present this BGM member number barcode at reception.
             </p>
+            {secondaryCardNumber && <p className="mt-2 text-center text-xs font-semibold text-slate-600">{secondaryCardLabel}: <span className="font-mono font-black text-zinc-900">{secondaryCardNumber}</span></p>}
           </div>
           <div className="mt-6">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-zinc-50 p-4">
@@ -260,10 +266,10 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
                 <dd className="mt-1 break-all font-mono text-lg font-black text-[#c2410c]">{cardBarcode}</dd>
               </div>
               <div className="rounded-2xl bg-zinc-50 p-4">
-                <dt className="text-xs font-semibold text-slate-500">Physical card</dt>
-                <dd className="mt-1 break-all font-mono text-sm font-black">
-                  {cardLinked && physicalCardBarcode ? physicalCardBarcode : "Not linked"}
-                </dd>
+                <dt className="text-xs font-semibold text-slate-500">{secondaryCardNumber ? secondaryCardLabel : "Card number"}</dt>
+                <dd className="mt-1 break-all font-mono text-sm font-black">{secondaryCardNumber || "Not assigned"}</dd>
+                {legacyCardNumber && physicalCardBarcode && legacyCardNumber !== physicalCardBarcode && <p className="mt-2 break-all text-xs font-semibold text-slate-500">Legacy pkCustomer: {legacyCardNumber}</p>}
+                {!cardLinked && <p className="mt-2 text-xs text-slate-500">Physical card not linked</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><dt className="text-xs text-slate-500">Valid until</dt><dd className="mt-1 text-sm font-bold">{expiryText}</dd></div>

@@ -16,7 +16,7 @@ const testSecret = "member-session-regression-test-only";
 const password = "member-session-test-password";
 const member = {
   id: "00000000-0000-4000-8000-000000000001", username: "test-member",
-  member_number: "BGM0000123", full_name: "Test Member", email: "member@example.test",
+  member_number: "BGM0000123", legacy_pk_customer: "OLDPK001", full_name: "Test Member", email: "member@example.test",
   status: "active", membership_expiry: "9999-12-31", app_enrolled: true,
   password_hash: bcrypt.hashSync(password, 4),
 };
@@ -134,6 +134,7 @@ test("real login cookie restores the profile and current card without any local 
   const data = await cardResponse.json();
   assert.equal(data.member.id, member.id);
   assert.equal(data.cardBarcode, member.member_number);
+  assert.equal(data.member.legacyPkCustomer, member.legacy_pk_customer);
   assert.equal(data.physicalCardBarcode, credential.barcode_value);
   assert.equal(data.cardLinked, true);
   assert.equal(data.member.password_hash, undefined);

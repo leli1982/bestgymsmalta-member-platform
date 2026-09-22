@@ -2,6 +2,7 @@ export type AppMember = {
   id: string;
   username: string;
   memberNumber: string;
+  legacyPkCustomer?: string;
   fullName: string;
   email: string;
   phone?: string;
