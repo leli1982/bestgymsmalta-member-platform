@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   ArrowLeft, ArrowUpRight, Beer, Bell, Building2, ClipboardList, Dumbbell,
-  FileBarChart2, KeyRound, RefreshCw, Settings2, ShieldCheck, UserPlus, UsersRound, Barcode,
+  FileBarChart2, KeyRound, RefreshCw, Settings2, ShieldCheck, UserPlus, UsersRound, Barcode, ShoppingBasket,
 } from "lucide-react";
 
 type AdminUser = { displayName: string; isSuperAdmin: boolean };
@@ -19,6 +19,11 @@ const sections: Section[] = [
     href: "/staff/operations", label: "Operations dashboard",
     description: "Review Sundries and Bar submissions across all gyms.",
     icon: ClipboardList, group: "Operations",
+  },
+  {
+    href: "/staff/admin/shopping-list", label: "Shopping List",
+    description: "Combined Sundries quantities to buy, grouped gym deliveries, and individual Delivered controls.",
+    icon: ShoppingBasket, group: "Operations",
   },
   {
     href: "/staff/bar/reports", label: "Bar reports",
