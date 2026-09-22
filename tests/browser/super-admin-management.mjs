@@ -127,7 +127,7 @@ try {
   await page.getByText(origin + "/join/naxxar", { exact: true }).waitFor();
   assert.equal(await page.getByText(origin + "/staff/nx", { exact: true }).count(), 0,
     "Short display name must not replace the gym's URL slug");
-  await page.getByLabel("Gym Staff password").fill("browser-test-password");
+  await page.locator('input[aria-label="Gym Staff password"]').fill("browser-test-password");
   await page.getByRole("button", { name: "Add gym and create addresses" }).click();
   await page.getByRole("status").filter({ hasText: "Gym saved." }).waitFor({ state: "visible" });
   assert.equal(provisioned.length, 1, "Gym provisioning should create one shared Staff Portal account");
@@ -140,7 +140,7 @@ try {
   await page.getByRole("status").filter({ hasText: "Set a Staff Portal password" }).waitFor({ state: "visible" });
   assert.equal(await page.getByRole("textbox", { name: "Gym name" }).inputValue(), "Gozo");
   assert.equal(await page.getByRole("combobox", { name: "Gym status" }).inputValue(), "active");
-  await page.getByLabel("Gym Staff password").waitFor({ state: "visible" });
+  await page.locator('input[aria-label="Gym Staff password"]').waitFor({ state: "visible" });
 
   await page.goto(origin + "/staff/admin/super-admins");
   await page.getByRole("heading", { name: "Super Admin accounts", exact: true }).waitFor({ state: "visible" });
