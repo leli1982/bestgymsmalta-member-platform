@@ -175,7 +175,7 @@ export default function OperationsDashboardAdmin() {
   if (!allowed) return <main className="min-h-screen bg-zinc-50 p-8">Super Admin access required. <a href="/staff" className="underline">Staff Home</a></main>;
 
   return (
-    <main className="min-h-screen bg-[#f6f6f6] px-4 py-6 text-zinc-950 sm:px-8">
+    <main className="bgm-admin-light min-h-screen bg-[#f6f6f6] px-4 py-6 text-zinc-950 sm:px-8">
       <div className="mx-auto max-w-7xl space-y-5">
         <header className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
           <a href="/staff" className="inline-flex items-center gap-2 text-sm font-black text-orange-700">

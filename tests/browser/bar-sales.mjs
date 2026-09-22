@@ -5,6 +5,16 @@ import { chromium } from "playwright";
 
 const origin = "http://127.0.0.1:3115";
 const artifactDir = "test-artifacts/bar-sales";
+async function assertLightAdminControl(control, label) {
+  const appearance = await control.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { background: style.backgroundColor, color: style.color, colorScheme: style.colorScheme };
+  });
+  assert.equal(appearance.background, "rgb(255, 255, 255)", label + " must have a white input background");
+  assert.equal(appearance.color, "rgb(24, 24, 27)", label + " must have dark readable input text");
+  assert.equal(appearance.colorScheme, "light", label + " must use the light native control palette");
+}
+
 const server = spawn(
   process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", "3115", "-H", "127.0.0.1"],
   { stdio: ["ignore", "pipe", "pipe"] },
@@ -149,11 +159,14 @@ try {
   await admin.goto(origin + "/staff/bar/catalog");
   await admin.getByRole("textbox", { name: "New Bar product name" })
     .waitFor({ state: "visible", timeout: 15000 });
+  await assertLightAdminControl(admin.getByRole("textbox", { name: "New Bar product name" }), "New Bar product");
+  await assertLightAdminControl(admin.getByRole("textbox", { name: "New Bar unit price" }), "New Bar price");
   await admin.getByRole("textbox", { name: "New Bar product name" }).fill("Orange juice");
   await admin.getByRole("textbox", { name: "New Bar unit price" }).fill("2.90");
   await admin.getByRole("button", { name: "Add product" }).click();
   await admin.getByRole("textbox", { name: "Orange juice name" }).waitFor();
   assert.equal(await admin.getByRole("textbox", { name: "Orange juice price" }).inputValue(), "2.90");
+  await assertLightAdminControl(admin.getByRole("textbox", { name: "Orange juice price" }), "Published product price");
 
   // Initial sheet must be reviewed by Super Admin before it appears in Staff Bar.
   const starterContext = await browser.newContext({ viewport: { width: 1130, height: 850 } });

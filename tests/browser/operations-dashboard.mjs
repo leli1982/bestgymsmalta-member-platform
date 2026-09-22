@@ -101,6 +101,13 @@ try {
   await page.getByRole("heading", { name: "Operations dashboard" })
     .waitFor({ state: "visible", timeout: 15000 });
   await page.getByText("4 records shown").waitFor({ state: "visible", timeout: 15000 });
+  const filterColors = await page.getByRole("combobox", { name: "Filter operations gym" }).evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { background: style.backgroundColor, color: style.color, colorScheme: style.colorScheme };
+  });
+  assert.deepEqual(filterColors, {
+    background: "rgb(255, 255, 255)", color: "rgb(24, 24, 27)", colorScheme: "light",
+  }, "Super Admin operations filters must have readable light theme");
   assert.equal(await page.getByRole("article").count(), 4);
   await page.getByText("€11.25").first().waitFor();
   await page.getByText("Notification failures").waitFor();

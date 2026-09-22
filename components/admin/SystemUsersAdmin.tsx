@@ -109,7 +109,7 @@ export default function SystemUsersAdmin() {
   if (loading) return <div className="p-8 text-zinc-600">Loading system users…</div>;
 
   return (
-    <main className="min-h-screen bg-zinc-100 px-4 py-8 text-zinc-900 sm:px-8">
+    <main className="bgm-admin-light min-h-screen bg-zinc-100 px-4 py-8 text-zinc-900 sm:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
