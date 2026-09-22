@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseEuroCents, snapshotBarSale, formatBarEuro } from "../lib/barSalesCore.ts";
+import { parseEuroCents, snapshotBarSale, formatBarEuro, sortBarCatalog } from "../lib/barSalesCore.ts";
 
 const catalog = [
   { id: "water", name: "Water 500 ml", priceCents: 150, isOther: false, active: true, sortOrder: 0, updatedAt: "2026-09-21" },
@@ -64,4 +64,14 @@ test("Others may be entered more than once with independent staff-set prices", (
   ], catalog);
   assert.equal(r.error, null);
   assert.equal(r.totalCents, 280);
+});
+
+test("Bar catalogue is alphabetical regardless of admin display positions, with Others last", () => {
+  const ordered = sortBarCatalog([
+    { name: "ZMA", isOther: false, sortOrder: 0 },
+    { name: "Others", isOther: true, sortOrder: -10 },
+    { name: "amix HMB", isOther: false, sortOrder: 100 },
+    { name: "Banana", isOther: false, sortOrder: 1 },
+  ]);
+  assert.deepEqual(ordered.map((item) => item.name), ["amix HMB", "Banana", "ZMA", "Others"]);
 });

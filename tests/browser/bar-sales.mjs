@@ -67,8 +67,8 @@ try {
     assert.equal(submitted.notes, "Evening shift");
     assert.equal(submitted.cashFoundCents, 1265, "Cash must be submitted separately from calculated sales.");
     assert.deepEqual(submitted.barEntries, [
-      { catalogItemId: "water", quantity: 2, expectedPriceCents: 150 },
       { catalogItemId: "protein", quantity: 1, expectedPriceCents: 225 },
+      { catalogItemId: "water", quantity: 2, expectedPriceCents: 150 },
       { catalogItemId: "others", quantity: 2, otherName: "Forgotten drink", otherPriceCents: 175 },
     ]);
     dayCents += 875;
@@ -96,7 +96,8 @@ try {
   await page.getByRole("button", { name: "Increase Other item 1" }).click();
   await page.getByRole("textbox", { name: "Bar List notes" }).fill("Evening shift");
   await page.getByRole("textbox", { name: "Total Cash Found" }).fill("12.65");
-  await page.getByLabel("Total Sales calculated").getByText("€8.75").waitFor();
+  await page.getByLabel("Total Sales calculated").waitFor({ state: "visible" });
+  assert.ok((await page.getByLabel("Total Sales calculated").textContent()).includes("8.75"));
   await page.getByText("BAR TOTAL FOR THE DAY").waitFor();
   assert.equal(await page.getByText("€12.50").count() > 0, true, "Daily total includes earlier and unsent lists");
 
