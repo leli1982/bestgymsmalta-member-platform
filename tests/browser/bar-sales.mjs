@@ -94,6 +94,7 @@ try {
   await page.goto(origin + "/staff/bar");
   const name = page.getByRole("textbox", { name: "Bar Staff name" });
   await name.waitFor({ state: "visible", timeout: 15000 });
+  assert.equal(await page.getByRole("link", { name: "Edit Bar List" }).count(), 0, "Gym Staff must not be offered catalogue editing");
   await name.fill("Maria");
   await page.getByRole("button", { name: "Increase Water 500ml" }).click();
   await page.getByRole("button", { name: "Increase Water 500ml" }).click();
@@ -156,7 +157,13 @@ try {
     return route.fulfill({ json: { items: products } });
   });
   const admin = await adminContext.newPage();
-  await admin.goto(origin + "/staff/bar/catalog");
+  await admin.goto(origin + "/staff/bar");
+  const editBarList = admin.getByRole("link", { name: "Edit Bar List" });
+  await editBarList.waitFor({ state: "visible", timeout: 15000 });
+  assert.equal(await editBarList.getAttribute("href"), "/staff/bar/catalog");
+  await editBarList.click();
+  await admin.getByRole("heading", { name: "Bar catalogue & prices" })
+    .waitFor({ state: "visible", timeout: 15000 });
   await admin.getByRole("textbox", { name: "New Bar product name" })
     .waitFor({ state: "visible", timeout: 15000 });
   await assertLightAdminControl(admin.getByRole("textbox", { name: "New Bar product name" }), "New Bar product");

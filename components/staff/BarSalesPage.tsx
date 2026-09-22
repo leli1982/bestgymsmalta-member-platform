@@ -231,7 +231,7 @@ export default function BarSalesPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               {user.isSuperAdmin && (
-                <a href="/staff/bar/catalog" className="rounded-xl bg-orange-50 px-4 py-3 text-sm font-black text-orange-700">Manage catalogue & prices</a>
+                <a href="/staff/bar/catalog" className="inline-flex items-center gap-2 rounded-xl bg-[#ff5a0a] px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-orange-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600"><ClipboardList className="h-4 w-4" aria-hidden="true"/> Edit Bar List</a>
               )}
               {user.isSuperAdmin && (
                 <a href="/staff/bar/reports" className="rounded-xl border border-zinc-200 px-4 py-3 text-sm font-black text-zinc-800">All-gym reports</a>
