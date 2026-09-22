@@ -84,6 +84,26 @@ try {
       .filter((item) => !gym || item.gym_id === gym);
     return route.fulfill({ json: { orders: items } });
   });
+  const statsQueries = [];
+  await context.route("**/api/system/membership-stats?**", (route) => {
+    const query = new URL(route.request().url()).searchParams;
+    statsQueries.push(Object.fromEntries(query.entries()));
+    const selected = query.get("gymId");
+    const all = [
+      { gymId: "bgm-birkirkara", gymName: "Birkirkara Fitness", count: 3 },
+      { gymId: "bgm-marsa", gymName: "Marsa Fitness", count: 2 },
+    ];
+    const byGym = selected ? all.filter((entry) => entry.gymId === selected) : all;
+    return route.fulfill({ json: {
+      range: { from: query.get("from"), to: query.get("to"), gymId: selected || "",
+        gymName: selected ? byGym[0]?.gymName || "" : "All gyms" },
+      total: byGym.reduce((sum, item) => sum + item.count, 0),
+      gymsWithEnrollments: byGym.length,
+      byGym,
+      byDay: [{ date: query.get("from"), count: byGym.reduce((sum, item) => sum + item.count, 0) }],
+      byType: { single: selected ? 1 : 2, couples: selected ? 1 : 2, student: selected ? 0 : 1 },
+    } });
+  });
   let update = null;
   await context.route("**/api/system/orders", (route) => {
     assert.equal(route.request().method(), "PATCH");
@@ -108,7 +128,27 @@ try {
   assert.deepEqual(filterColors, {
     background: "rgb(255, 255, 255)", color: "rgb(24, 24, 27)", colorScheme: "light",
   }, "Super Admin operations filters must have readable light theme");
-  assert.equal(await page.getByRole("article").count(), 4);
+  const membership = page.getByRole("region", { name: "New membership statistics" });
+  await membership.getByRole("heading", { name: "New membership statistics" }).waitFor();
+  await membership.getByText("5", { exact: true }).first().waitFor();
+  await membership.getByRole("region", { name: "New membership graphs" }).waitFor();
+  await membership.getByRole("region", { name: "New memberships by gym" }).waitFor();
+  await membership.getByRole("region", { name: "Gym membership totals" }).waitFor();
+  const gymFilter = membership.getByRole("combobox", { name: "Membership statistics gym" });
+  await gymFilter.selectOption("bgm-marsa");
+  await membership.getByRole("region", { name: "Membership statistics summary" }).getByText("2", { exact: true }).first().waitFor();
+  await membership.getByRole("region", { name: "Membership types at Marsa Fitness" }).waitFor();
+  assert.ok(statsQueries.some((query) => query.gymId === "bgm-marsa"));
+  await membership.getByRole("textbox", { name: "Membership statistics from date" }).fill("2026-09-01");
+  await membership.getByRole("textbox", { name: "Membership statistics to date" }).fill("2026-09-15");
+  await membership.getByText("2026-09-01 → 2026-09-15").waitFor();
+  assert.ok(statsQueries.some((query) => query.from === "2026-09-01" &&
+    query.to === "2026-09-15" && query.gymId === "bgm-marsa"),
+    "Gym and Malta date range must be applied together");
+  await gymFilter.selectOption("");
+  await membership.getByRole("region", { name: "New memberships by gym" }).waitFor();
+  assert.equal(await page.getByRole("article").count(), 4,
+    "Membership stats must not modify Sundries and Bar operations cards");
   for (const [id, expectedColor] of [
     ["bar-birkirkara", "rgb(4, 120, 87)"],
     ["bar-marsa", "rgb(4, 120, 87)"],
