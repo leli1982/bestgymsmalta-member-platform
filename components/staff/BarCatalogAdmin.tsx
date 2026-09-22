@@ -5,6 +5,7 @@ import { ArrowLeft, Plus, RefreshCw, Save } from "lucide-react";
 import { parseEuroCents, type BarCatalogItem } from "@/lib/barSalesCore";
 
 type Edit = { name: string; price: string; sortOrder: number; active: boolean };
+type StarterItem = { name: string; priceCents: number; sortOrder: number };
 const editable = (item: BarCatalogItem): Edit => ({
   name: item.name,
   price: item.priceCents === null ? "" : (item.priceCents / 100).toFixed(2),
@@ -21,6 +22,9 @@ export default function BarCatalogAdmin() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [starter, setStarter] = useState<StarterItem[] | null>(null);
+  const [starterNotes, setStarterNotes] = useState<string[]>([]);
+  const [loadingStarter, setLoadingStarter] = useState(false);
 
   const load = useCallback(async () => {
     const response = await fetch("/api/system/bar/catalog", { cache: "no-store" });
@@ -68,6 +72,29 @@ export default function BarCatalogAdmin() {
     }
   }
 
+  async function previewStarter() {
+    setLoadingStarter(true);
+    setError("");
+    try {
+      const response = await fetch("/api/system/bar/catalog?starter=1", { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not load the starter sheet.");
+      setStarter(data.items || []);
+      setStarterNotes(data.reviewNotes || []);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not load the starter sheet.");
+    } finally {
+      setLoadingStarter(false);
+    }
+  }
+
+  async function publishStarter() {
+    const ok = await write("POST", {
+      starterImport: true, confirmation: "PUBLISH_STARTER_BAR_CATALOG",
+    });
+    if (ok) setStarter(null);
+  }
+
   async function add(event: React.FormEvent) {
     event.preventDefault();
     const cents = parseEuroCents(price);
@@ -103,6 +130,46 @@ export default function BarCatalogAdmin() {
         </header>
         {error && <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</p>}
         {message && <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">{message}</p>}
+        {catalog.length === 0 && (
+          <section className="rounded-3xl border border-orange-200 bg-orange-50 p-5">
+            <h2 className="text-xl font-black">Import your Bar Sales sheet</h2>
+            <p className="mt-1 text-sm text-zinc-700">
+              Review all printed products and prices first. Nothing becomes visible to Staff until you publish.
+              Import is available only while this catalogue is empty; it never overwrites existing products.
+            </p>
+            <button type="button" onClick={() => void previewStarter()} disabled={saving || loadingStarter}
+              className="mt-3 rounded-xl bg-zinc-950 px-4 py-3 text-sm font-black text-white disabled:opacity-50">
+              {loadingStarter ? "Loading sheet…" : starter ? "Reload sheet preview" : "Review starter sheet"}
+            </button>
+            {starter && (
+              <div className="mt-4 space-y-3" aria-label="Starter Bar Sales sheet preview">
+                <p className="text-sm font-black">{starter.length} products + Others (no preset price)</p>
+                <div className="rounded-xl border border-orange-200 bg-white p-3 text-sm text-zinc-700">
+                  {starterNotes.map((note) => <p key={note} className="mb-1 last:mb-0">{note}</p>)}
+                </div>
+                <div className="max-h-80 overflow-auto rounded-xl border border-zinc-200 bg-white">
+                  <table className="w-full text-left text-sm">
+                    <thead className="sticky top-0 bg-zinc-950 text-white">
+                      <tr><th className="px-3 py-2">Product</th><th className="px-3 py-2 text-right">Unit price</th></tr>
+                    </thead>
+                    <tbody>
+                      {starter.map((item) => (
+                        <tr key={item.name} className="border-t border-zinc-100">
+                          <td className="px-3 py-2">{item.name}</td>
+                          <td className="px-3 py-2 text-right font-bold tabular-nums">€{(item.priceCents / 100).toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <button type="button" disabled={saving} onClick={() => void publishStarter()}
+                  className="rounded-xl bg-[#ff5a0a] px-5 py-3 text-sm font-black text-white disabled:opacity-50">
+                  Publish {starter.length} products + Others to Staff
+                </button>
+              </div>
+            )}
+          </section>
+        )}
         <form onSubmit={add} className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
           <h2 className="text-xl font-black">Add Bar item</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px_auto] sm:items-end">

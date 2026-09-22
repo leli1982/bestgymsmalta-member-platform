@@ -149,6 +149,48 @@ try {
   await admin.getByRole("textbox", { name: "Orange juice name" }).waitFor();
   assert.equal(await admin.getByRole("textbox", { name: "Orange juice price" }).inputValue(), "2.90");
 
+  // Initial sheet must be reviewed by Super Admin before it appears in Staff Bar.
+  const starterContext = await browser.newContext({ viewport: { width: 1130, height: 850 } });
+  let starterPublished = [];
+  await starterContext.route("**/api/system/auth", (route) => route.fulfill({
+    json: { authenticated: true, user: { ...staff, isSuperAdmin: true, displayName: "Super Admin" } },
+  }));
+  await starterContext.route("**/api/system/bar/catalog?starter=1", (route) => {
+    assert.equal(route.request().method(), "GET");
+    return route.fulfill({ json: {
+      items: [
+        { name: "Still Small Water", priceCents: 80, sortOrder: 10 },
+        { name: "Isotonic", priceCents: 200, sortOrder: 20 },
+      ],
+      reviewNotes: ["Isotonic is €2.00 based on the handwritten price correction."],
+    } });
+  });
+  await starterContext.route("**/api/system/bar/catalog", (route) => {
+    if (route.request().method() === "POST") {
+      assert.deepEqual(route.request().postDataJSON(), {
+        starterImport: true, confirmation: "PUBLISH_STARTER_BAR_CATALOG",
+      });
+      starterPublished = [
+        { id: "seed-water", name: "Still Small Water", priceCents: 80, isOther: false, active: true, sortOrder: 10 },
+        { id: "seed-isotonic", name: "Isotonic", priceCents: 200, isOther: false, active: true, sortOrder: 20 },
+        { id: "seed-others", name: "Others", priceCents: null, isOther: true, active: true, sortOrder: 9999 },
+      ];
+      return route.fulfill({ status: 201, json: { importedCount: starterPublished.length } });
+    }
+    return route.fulfill({ json: { items: starterPublished } });
+  });
+  const starterAdmin = await starterContext.newPage();
+  await starterAdmin.goto(origin + "/staff/bar/catalog");
+  await starterAdmin.getByRole("button", { name: "Review starter sheet" }).click();
+  await starterAdmin.getByLabel("Starter Bar Sales sheet preview")
+    .getByText("Isotonic").waitFor({ state: "visible", timeout: 15000 });
+  await starterAdmin.getByRole("button", { name: "Publish 2 products + Others to Staff" }).click();
+  await starterAdmin.getByRole("textbox", { name: "Isotonic price" })
+    .waitFor({ state: "visible", timeout: 15000 });
+  assert.equal(await starterAdmin.getByRole("textbox", { name: "Isotonic price" }).inputValue(), "2.00");
+  assert.equal(starterPublished.length, 3);
+  await starterContext.close();
+
   await adminContext.route("**/api/system/orders?**", (route) =>
     route.fulfill({ json: { orders: [{
       id: "bar-browser-report", gym_id: gym.id, gym_name: gym.name,

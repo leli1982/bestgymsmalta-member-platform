@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSuperAdmin, requireSystemPermission } from "@/lib/systemAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { BAR_MAX_PRICE_CENTS } from "@/lib/barSalesCore";
+import { BAR_STARTER_SHEET, BAR_STARTER_REVIEW_NOTES } from "@/lib/barStarterCatalog";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,14 @@ function cleanName(raw: unknown) {
 
 export async function GET(request: NextRequest) {
   try {
+    if (request.nextUrl.searchParams.get("starter") === "1") {
+      const admin = await requireSuperAdmin(request);
+      if (admin.error || !admin.context) return admin.error;
+      return NextResponse.json(
+        { items: BAR_STARTER_SHEET, reviewNotes: BAR_STARTER_REVIEW_NOTES },
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
+    }
     const auth = await requireSystemPermission(request, "orders.bar.submit");
     if (auth.error || !auth.context) return auth.error;
     const supabase = getSupabaseAdmin();
@@ -57,6 +66,43 @@ export async function POST(request: NextRequest) {
     const auth = await requireSuperAdmin(request);
     if (auth.error || !auth.context) return auth.error;
     const body = await request.json();
+    if (body.starterImport === true) {
+      if (body.confirmation !== "PUBLISH_STARTER_BAR_CATALOG") {
+        return jsonError("Review and explicitly confirm the starter list before publishing.", 400);
+      }
+      const supabase = getSupabaseAdmin();
+      const existing = await supabase.from("bgm_bar_catalog_items")
+        .select("id").limit(1);
+      if (existing.error) throw existing.error;
+      if (existing.data?.length) {
+        return jsonError("The catalogue already contains products. The starter import never replaces an existing catalogue.", 409);
+      }
+      // One multi-row insert: constraint failures roll back the entire request.
+      const rows = [
+        ...BAR_STARTER_SHEET.map((item) => ({
+          name: item.name, price_cents: item.priceCents,
+          sort_order: item.sortOrder, is_other: false, active: true,
+          updated_by_system_user_id: auth.context.systemUserId,
+        })),
+        {
+          name: "Others", price_cents: null, sort_order: 9999,
+          is_other: true, active: true,
+          updated_by_system_user_id: auth.context.systemUserId,
+        },
+      ];
+      const inserted = await supabase.from("bgm_bar_catalog_items")
+        .insert(rows).select("id");
+      if (inserted.error) {
+        if (inserted.error.code === "23505") {
+          return jsonError("The catalogue changed during import. Refresh and review it before trying again.", 409);
+        }
+        throw inserted.error;
+      }
+      return NextResponse.json(
+        { importedCount: inserted.data?.length || 0 },
+        { status: 201 },
+      );
+    }
     const isOther = body.isOther === true;
     const name = isOther ? "Others" : cleanName(body.name);
     if (!name || name.length > 120) return jsonError("Provide a product name (maximum 120 characters).", 400);
