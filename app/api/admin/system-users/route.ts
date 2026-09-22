@@ -220,6 +220,21 @@ export async function PATCH(request: NextRequest) {
     if (currentResult.error) throw currentResult.error;
     if (!currentResult.data) return NextResponse.json({ error: "System user not found." }, { status: 404 });
 
+    // Prevent accidental lockout: keep at least one active Super Admin and
+    // do not allow a logged-in administrator to disable their own account.
+    if (body.active === false && currentResult.data.is_super_admin && currentResult.data.active) {
+      if (auth.context?.systemUserId === id) {
+        return NextResponse.json({ error: "You cannot disable your own Super Admin account." }, { status: 400 });
+      }
+      const activeAdmins = await supabase.from("bgm_system_users")
+        .select("id", { count: "exact", head: true })
+        .eq("is_super_admin", true).eq("active", true);
+      if (activeAdmins.error) throw activeAdmins.error;
+      if ((activeAdmins.count || 0) <= 1) {
+        return NextResponse.json({ error: "At least one active Super Admin must remain." }, { status: 400 });
+      }
+    }
+
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (body.username !== undefined) {
       const username = normalizeSystemUsername(String(body.username));

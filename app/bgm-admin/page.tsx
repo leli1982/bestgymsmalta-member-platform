@@ -47,7 +47,7 @@ type AdminGym = {
   id: string;
   name: string;
   shortName: string;
-  status: "active" | "coming_soon";
+  status: "active" | "inactive" | "coming_soon";
   city: string;
   address: string;
   latitude: number | "";
@@ -1348,12 +1348,14 @@ export default function BgmAdminPage() {
                         updateGymForm({
                           status: event.target.value as
                             | "active"
+                            | "inactive"
                             | "coming_soon",
                         })
                       }
                       className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold outline-none"
                     >
                       <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
                       <option value="coming_soon">Coming Soon</option>
                     </select>
 

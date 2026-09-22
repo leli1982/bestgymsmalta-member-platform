@@ -135,6 +135,8 @@ export default function SystemUsersAdmin({
         {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</div>}
         {message && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">{message}</div>}
 
+        {scope === "gym_staff" && initialGymId && !availableGyms.some((gym) => gym.id === initialGymId) ?
+          <p className="rounded-xl border border-zinc-200 bg-white p-4 text-sm font-bold text-zinc-600">This gym already has a Staff Portal login. Edit its username, password or active status in the account below.</p> :
         <form onSubmit={(event) => void createUser(event)} className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
           <h2 className="text-xl font-black">{role ? "Add Super Admin login" : "Assign a Staff Portal login"}</h2>
           {scope === "all" && <div className="mt-4 flex gap-3">
@@ -155,7 +157,7 @@ export default function SystemUsersAdmin({
           {!role && <div className="mt-4"><GymStaffAccessSummary/></div>}
           {role && <p className="mt-4 rounded-xl bg-orange-50 p-4 text-sm font-bold text-orange-800">Super Admin accounts have unrestricted BGM management access. Only assign this role to trusted people.</p>}
           <button type="submit" disabled={saving || loading} className="mt-5 rounded-xl bg-[#ff5a0a] px-5 py-3 font-black text-white disabled:opacity-50">Create login</button>
-        </form>
+        </form>}
 
         <section className="space-y-3" aria-label="Existing logins">
           <h2 className="text-xl font-black">Existing {scope === "super_admin" ? "Super Admin accounts" : scope === "gym_staff" ? "Staff Portal logins" : "system users"}</h2>

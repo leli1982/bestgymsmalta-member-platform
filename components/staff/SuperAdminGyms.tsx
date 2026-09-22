@@ -133,6 +133,11 @@ export default function SuperAdminGyms() {
   }
   async function toggleActive(gym: Gym) {
     if (saving) return;
+    if (gym.status !== "active" && !gym.staffProvisioned) {
+      selectGym({ ...gym, status: "active" });
+      setMessage("Set a Staff Portal password, then save to activate " + gym.name + ".");
+      return;
+    }
     if (gym.status === "active" && !window.confirm("Mark " + gym.name + " inactive? Its staff login and tablet registration will stop working until reactivated.")) return;
     setSaving(true); setError(""); setMessage("");
     try {
