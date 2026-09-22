@@ -13,9 +13,9 @@ const member = {
 const readyCard = {
   member,
   cardLinked: true,
-  cardBarcode: "BGM0000123",
+  cardBarcode: "NEW001aB",
   physicalCardBarcode: "NEW001aB",
-  source: "member_number",
+  source: "physical_card",
 };
 const gym = {
   id: "bgm-birkirkara", name: "BGM Birkirkara", status: "active", city: "Birkirkara",
@@ -88,8 +88,9 @@ try {
   await page.getByPlaceholder("Your password").fill("test-password");
   await page.locator('form button[type="submit"]').click();
   await page.waitForURL(origin + "/card");
-  await visible(page.locator('svg[aria-label="Member barcode BGM0000123"]'));
-  assert.equal(await page.locator('svg[aria-label="Member barcode NEW001aB"]').count(), 0);
+  await visible(page.locator('svg[aria-label="Member barcode NEW001aB"]'));
+  assert.equal(await page.locator('svg[aria-label="Member barcode BGM0000123"]').count(), 0);
+  await visible(page.getByText("BGM0000123", { exact: true }));
   await page.screenshot({ path: artifacts + "/card-390.png", fullPage: true });
   console.log("PASS stale saved profile → sign in → return to current card");
 
@@ -102,7 +103,7 @@ try {
     await route.fulfill({ json: readyCard });
   });
   await page.goto(origin + "/card");
-  await visible(page.locator('svg[aria-label="Member barcode BGM0000123"]'));
+  await visible(page.locator('svg[aria-label="Member barcode NEW001aB"]'));
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("bgmMemberSession")).id), member.id);
   delayNext = true;
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
@@ -116,7 +117,7 @@ try {
   await delayedRoute.fulfill({ json: readyCard });
   await page.waitForLoadState("networkidle");
   await visible(page.getByRole("heading", { name: "Sign in to show your card" }));
-  assert.equal(await page.locator('svg[aria-label="Member barcode BGM0000123"]').count(), 0);
+  assert.equal(await page.locator('svg[aria-label="Member barcode NEW001aB"]').count(), 0);
   assert.equal(await page.evaluate(() => localStorage.getItem("bgmMemberSession")), null);
   console.log("PASS cookie-backed profile restoration and stale response after logout");
 
@@ -124,18 +125,20 @@ try {
   let requestCount = 0;
   await page.route("**/api/member/card", (route) => route.fulfill(++requestCount === 1
     ? { status: 500, json: { error: "Temporary failure" } }
-    : { json: { ...readyCard, cardLinked: false, physicalCardBarcode: null } }));
+    : { json: { ...readyCard, cardLinked: false, cardBarcode: null, physicalCardBarcode: null, source: null } }));
   await page.goto(origin + "/card");
   await visible(page.getByRole("heading", { name: "Card temporarily unavailable" }));
   await noText("CARD NOT LINKED");
   await page.getByRole("button", { name: "Try again", exact: true }).click();
-  await visible(page.locator('svg[aria-label="Member barcode BGM0000123"]'));
+  await visible(page.getByText("Card not assigned. Staff can still find you using your BGM membership number."));
+  assert.equal(await page.locator('svg[aria-label^="Member barcode"]').count(), 0);
+  await visible(page.getByText("BGM0000123", { exact: true }));
   await page.getByRole("button", { name: "Show membership details" }).click();
-  await visible(page.getByText("Physical card", { exact: true }));
-  await visible(page.getByText("Not linked", { exact: true }));
+  await visible(page.getByText("Current card number", { exact: true }));
+  await visible(page.getByText("Not assigned", { exact: true }));
   await lightLayout();
   await page.screenshot({ path: artifacts + "/card-unlinked-320.png", fullPage: true });
-  console.log("PASS request failure, retry and BGM virtual barcode without physical card at 320px");
+  console.log("PASS request failure, retry and unassigned card without scannable barcode at 320px");
 
   // Verify the real client-side gym rendering and navigation at narrow widths.
   for (const width of [320, 390]) {
