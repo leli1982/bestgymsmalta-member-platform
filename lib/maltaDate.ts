@@ -88,3 +88,26 @@ export function addMembershipDurationDate(
 
   return formatCalendarDate(date);
 }
+
+/** Inclusive/exclusive UTC instants for a full Malta calendar date, including DST switch days. */
+export function maltaDayUtcRange(calendarDate: string): { start: string; end: string } {
+  const { year, month, day } = parseCalendarDate(calendarDate);
+  const midnightUtc = Date.UTC(year, month - 1, day);
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Malta",
+    hour: "2-digit",
+    hourCycle: "h23",
+  });
+  // Malta stays UTC+1/+2. At 00:00 UTC its local time is 01:00 or 02:00;
+  // use each boundary's own offset so DST days last 23 or 25 hours.
+  const localMidnight = (utcMidnight: number): string => {
+    const hour = Number(formatter.formatToParts(new Date(utcMidnight))
+      .find((part) => part.type === "hour")?.value);
+    if (hour !== 1 && hour !== 2) throw new Error("Could not determine the Malta UTC offset.");
+    return new Date(utcMidnight - hour * 60 * 60 * 1000).toISOString();
+  };
+  return {
+    start: localMidnight(midnightUtc),
+    end: localMidnight(midnightUtc + 24 * 60 * 60 * 1000),
+  };
+}
