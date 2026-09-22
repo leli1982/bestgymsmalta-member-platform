@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { todayMaltaDate, isValidCalendarDate } from "@/lib/maltaDate";
+import { todayMaltaDate, isValidCalendarDate, maltaDayUtcRange } from "@/lib/maltaDate";
 import { snapshotBarSale, type BarCatalogItem, type BarSalesSnapshotItem } from "@/lib/barSalesCore";
 import { requireSystemPermission } from "@/lib/systemAuth";
 import {
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
 
     const requestedDate = clean(request.nextUrl.searchParams.get("businessDate"));
     if (requestedDate && !isValidCalendarDate(requestedDate)) {
-      return NextResponse.json({ error: "Invalid Bar business date." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid Malta order date." }, { status: 400 });
     }
 
     const supabase = getSupabaseAdmin();
@@ -117,7 +117,14 @@ export async function GET(request: NextRequest) {
       if (requestedGymId) query = query.eq("gym_id", requestedGymId);
     }
 
-    if (orderType === "bar" && requestedDate) query = query.eq("business_date", requestedDate);
+    if (requestedDate) {
+      if (orderType === "bar") {
+        query = query.eq("business_date", requestedDate);
+      } else {
+        const { start, end } = maltaDayUtcRange(requestedDate);
+        query = query.gte("submitted_at", start).lt("submitted_at", end);
+      }
+    }
 
     const orderResult = await query;
     if (orderResult.error) throw orderResult.error;
