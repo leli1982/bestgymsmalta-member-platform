@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { formatBarEuro } from "@/lib/barSalesCore";
 import { barSalesComparisonColor } from "@/lib/barCashComparison";
+import MembershipStatsAdmin from "@/components/staff/MembershipStatsAdmin";
 import { todayMaltaDate } from "@/lib/maltaDate";
 import { nextOperationalOrderActions } from "@/lib/operationalOrdersPresentation";
 import type { OperationalOrderStatus, OperationalOrderType } from "@/lib/operationalOrdersCore";
@@ -247,6 +248,8 @@ export default function OperationsDashboardAdmin() {
           Summary counts and the Bar total reflect the records loaded for the selected date and gym (up to 200 of each type), not an all-time accounting report.
           The Bar total excludes cancelled lists and historical lists without price snapshots.
         </p>
+
+        <MembershipStatsAdmin />
 
         <section aria-label="Incoming requests and sales" className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
