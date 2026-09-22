@@ -8,6 +8,7 @@ import {
 import { formatBarEuro } from "@/lib/barSalesCore";
 import { barSalesComparisonColor } from "@/lib/barCashComparison";
 import MembershipStatsAdmin from "@/components/staff/MembershipStatsAdmin";
+import ScanVisitStatsAdmin from "@/components/staff/ScanVisitStatsAdmin";
 import { todayMaltaDate } from "@/lib/maltaDate";
 import { nextOperationalOrderActions } from "@/lib/operationalOrdersPresentation";
 import type { OperationalOrderStatus, OperationalOrderType } from "@/lib/operationalOrdersCore";
@@ -250,6 +251,7 @@ export default function OperationsDashboardAdmin() {
         </p>
 
         <MembershipStatsAdmin />
+        <ScanVisitStatsAdmin />
 
         <section aria-label="Incoming requests and sales" className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
