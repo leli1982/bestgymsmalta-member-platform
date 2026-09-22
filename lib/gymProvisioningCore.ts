@@ -37,7 +37,8 @@ export function buildGymProvisioningIdentity({
 }) {
   const fullName = clean(name);
   const preferredName = clean(shortName) || fullName;
-  const routeSlug = normalizeGymRouteSlug(preferredName);
+  // Public URLs must be derived from the gym name, not its optional short display label.
+  const routeSlug = normalizeGymRouteSlug(fullName);
 
   if (!fullName || !routeSlug) {
     throw new Error("A valid gym name is required.");

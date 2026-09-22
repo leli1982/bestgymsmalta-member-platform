@@ -113,6 +113,7 @@ function dbGymToAdminGym(gym: any, staff?: any) {
     joinPath: gym.public_enrollment_slug ? `/join/${gym.public_enrollment_slug}` : null,
     staffPath: gym.public_enrollment_slug ? `/staff/${gym.public_enrollment_slug}` : null,
     staffProvisioned: Boolean(staff?.id),
+    staffSystemUserId: staff?.id || null,
     staffUsername: staff?.username || null,
     staffActive: Boolean(staff?.active),
     status: gym.status,
@@ -298,6 +299,7 @@ export async function POST(request: NextRequest) {
     if (mode === "create") {
       const gym = body.gym || {};
       const targetStatus = clean(gym.status) || "coming_soon";
+      if (!["active", "inactive", "coming_soon"].includes(targetStatus)) return NextResponse.json({ error: "Invalid gym status." }, { status: 400 });
       const staffPassword = String(body.staffPassword || "");
       let identity;
 
@@ -414,6 +416,7 @@ export async function POST(request: NextRequest) {
 
       const currentStaff = await getGymStaff(supabase, requestedId);
       const targetStatus = clean(gym.status) || currentResult.data.status;
+      if (!["active", "inactive", "coming_soon"].includes(targetStatus)) return NextResponse.json({ error: "Invalid gym status." }, { status: 400 });
       const becomingActive =
         currentResult.data.status !== "active" && targetStatus === "active";
       const needsStaffProvisioning = targetStatus === "active" && !currentStaff;

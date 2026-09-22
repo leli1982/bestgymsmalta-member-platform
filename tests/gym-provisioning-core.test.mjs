@@ -28,3 +28,17 @@ test("gym provisioning derives id, join route, staff route and shared staff user
 test("provisioning rejects a name that cannot produce a safe slug", () => {
   assert.throws(() => buildGymProvisioningIdentity({ name: "---", shortName: "" }), /gym name/i);
 });
+
+test("new gym URLs derive from the entered gym name, not a different short label", () => {
+  assert.deepEqual(
+    buildGymProvisioningIdentity({ name: "Naxxar", shortName: "NX" }),
+    {
+      gymId: "bgm-naxxar",
+      routeSlug: "naxxar",
+      joinPath: "/join/naxxar",
+      staffPath: "/staff/naxxar",
+      staffUsername: "naxxarfitness",
+      staffDisplayName: "NX Staff",
+    }
+  );
+});
