@@ -25,8 +25,8 @@ test("counts one membership per activated new application, groups gyms/days/type
   ]);
   assert.deepEqual(report.byGym, [
     { gymId: "bgm-marsa", gymName: "Marsa Fitness", count: 2 },
-    { gymId: "bgm-birkirkara", gymName: "Birkirkara Fitness", count: 1 },
     { gymId: "bgm-historic", gymName: "bgm-historic", count: 1 },
+    { gymId: "bgm-birkirkara", gymName: "Birkirkara Fitness", count: 1 },
   ]);
   assert.deepEqual(report.byType, { single: 2, couples: 1, student: 1 });
 });
