@@ -8,7 +8,7 @@ export type MemberCardState =
       kind: "ready";
       member: AppMember;
       cardLinked: boolean;
-      cardBarcode: string;
+      cardBarcode: string | null;
       physicalCardBarcode: string;
     };
 
@@ -28,8 +28,12 @@ export function resolveMemberCardResponse(
     status !== 200 ||
     !data?.member?.id ||
     typeof data.cardLinked !== "boolean" ||
-    typeof data.cardBarcode !== "string" ||
-    !data.cardBarcode
+    (data.cardLinked && (
+      typeof data.cardBarcode !== "string" ||
+      !data.cardBarcode.trim() ||
+      data.cardBarcode !== data.physicalCardBarcode
+    )) ||
+    (!data.cardLinked && Boolean(data.cardBarcode))
   ) {
     return {
       kind: "unavailable",
@@ -41,7 +45,7 @@ export function resolveMemberCardResponse(
     kind: "ready",
     member: data.member,
     cardLinked: data.cardLinked,
-    cardBarcode: data.cardBarcode,
+    cardBarcode: data.cardLinked ? data.cardBarcode || null : null,
     physicalCardBarcode:
       typeof data.physicalCardBarcode === "string"
         ? data.physicalCardBarcode

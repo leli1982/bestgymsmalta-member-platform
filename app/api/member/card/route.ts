@@ -47,12 +47,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         member: publicMemberProfile(memberResult.data),
-        // The member-app barcode is the lifetime BGM member number.
-        cardBarcode: memberNumber,
-        // The preprinted physical card remains a separate replaceable credential.
+        // The app barcode encodes the CURRENT active physical card, not the lifetime BGM number.
+        // Staff reception can still look up the permanent member number separately.
+        cardBarcode: activeCredential?.barcode_value || null,
         cardLinked: Boolean(activeCredential),
         physicalCardBarcode: activeCredential?.barcode_value || null,
-        source: "member_number",
+        source: activeCredential ? "physical_card" : null,
         memberStatus: memberResult.data.status,
         membershipExpiry: memberResult.data.membership_expiry || null,
       },

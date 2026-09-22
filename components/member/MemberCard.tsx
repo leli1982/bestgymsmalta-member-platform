@@ -125,9 +125,7 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
   }
 
   const { member, cardLinked, cardBarcode, physicalCardBarcode } = state;
-  const legacyCardNumber = String(member.legacyPkCustomer || "").trim();
-  const secondaryCardNumber = physicalCardBarcode || legacyCardNumber;
-  const secondaryCardLabel = physicalCardBarcode ? "Assigned card number" : "Legacy pkCustomer";
+  const assignedCardNumber = cardLinked ? cardBarcode || "" : "";
   const active = member.status === "active"
     && (!member.membershipExpiry || member.membershipExpiry.slice(0, 10) >= new Date().toISOString().slice(0, 10));
   const expiryText = member.membershipExpiry
@@ -172,10 +170,10 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
 
               <div className="min-w-0 text-center">
                 <div className="[&>div]:p-0 [&_p]:mt-0 [&_p]:text-[8px] [&_p]:tracking-[.08em] [&_svg]:max-h-[48px]">
-                  <MemberBarcode memberNumber={cardBarcode} />
+                  {assignedCardNumber ? <MemberBarcode memberNumber={assignedCardNumber} /> : <p className="py-4 text-[10px] font-bold text-amber-700">Card not assigned</p>}
                 </div>
-                <p className="mt-1 text-[8px] font-semibold text-slate-400">BGM member number · tap for details</p>
-                {secondaryCardNumber && <p className="mt-1 truncate text-[8px] font-semibold text-slate-500">{secondaryCardLabel}: {secondaryCardNumber}</p>}
+                <p className="mt-1 truncate font-mono text-[10px] font-black text-zinc-950">{member.memberNumber}</p>
+                <p className="mt-1 text-[8px] font-semibold text-slate-500">{assignedCardNumber ? "Current card: " + assignedCardNumber : "BGM member number · tap for details"}</p>
               </div>
             </div>
             
@@ -190,11 +188,8 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
                 <p className="text-[9px] font-black uppercase tracking-[.16em] text-[#ff5a0a]">Member Details</p>
                 <h2 className="mt-1 truncate text-base font-black">{member.fullName || member.username}</h2>
                 <p className="mt-2 text-[9px] font-semibold text-slate-400">BGM member number</p>
-                <p className="truncate text-xs font-black">{cardBarcode}</p>
-                <p className="mt-1 text-[9px] font-semibold text-slate-500">
-                  {secondaryCardNumber ? secondaryCardLabel + ": " + secondaryCardNumber : "Card number: Not assigned"}
-                </p>
-                {legacyCardNumber && physicalCardBarcode && legacyCardNumber !== physicalCardBarcode && <p className="mt-1 text-[9px] font-semibold text-slate-500">Legacy pkCustomer: {legacyCardNumber}</p>}
+                <p className="truncate text-xs font-black">{member.memberNumber}</p>
+                <p className="mt-1 text-[9px] font-semibold text-slate-500">Current card: {assignedCardNumber || "Not assigned"}</p>
                 <p className="mt-1 text-[9px] font-semibold text-slate-400">Valid until {expiryText}</p>
               </div>
               <ShieldCheck className="shrink-0 text-[#ff5a0a]" size={29} strokeWidth={3} />
@@ -221,18 +216,18 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
                 <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#c2410c]">BestGymsMalta</p>
                 <h2 className="mt-3 break-words text-2xl font-black leading-tight">{member.fullName || member.username}</h2>
                 <p className="mt-2 text-xs font-bold text-slate-500">Digital membership card</p>
+                <p className="mt-2 font-mono text-lg font-black text-[#c2410c]">{member.memberNumber}</p>
               </div>
               <div className="relative h-16 w-16 shrink-0 rounded-full bg-zinc-950 p-2">
                 <Image src="/bgm-logo.png" alt="BestGymsMalta" fill priority className="object-contain p-2" />
               </div>
             </div>
             <div className="mt-7 rounded-2xl border border-zinc-200 bg-white p-2">
-              <MemberBarcode memberNumber={cardBarcode} />
+              {assignedCardNumber ? <MemberBarcode memberNumber={assignedCardNumber} /> : <p className="py-9 text-center text-sm font-bold text-amber-700">Card not assigned. Staff can still find you using your BGM membership number.</p>}
             </div>
             <p className="mt-3 text-center text-xs text-slate-500">
-              Present this BGM member number barcode at reception.
+              {assignedCardNumber ? "Present this current card barcode at reception." : "Ask staff to assign a card at reception."}
             </p>
-            {secondaryCardNumber && <p className="mt-2 text-center text-xs font-semibold text-slate-600">{secondaryCardLabel}: <span className="font-mono font-black text-zinc-900">{secondaryCardNumber}</span></p>}
           </div>
           <div className="mt-6">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-zinc-50 p-4">
@@ -263,12 +258,11 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
               </div>
               <div className="rounded-2xl bg-orange-50 p-4">
                 <dt className="text-xs font-semibold text-slate-500">BGM member number</dt>
-                <dd className="mt-1 break-all font-mono text-lg font-black text-[#c2410c]">{cardBarcode}</dd>
+                <dd className="mt-1 break-all font-mono text-lg font-black text-[#c2410c]">{member.memberNumber}</dd>
               </div>
               <div className="rounded-2xl bg-zinc-50 p-4">
-                <dt className="text-xs font-semibold text-slate-500">{secondaryCardNumber ? secondaryCardLabel : "Card number"}</dt>
-                <dd className="mt-1 break-all font-mono text-sm font-black">{secondaryCardNumber || "Not assigned"}</dd>
-                {legacyCardNumber && physicalCardBarcode && legacyCardNumber !== physicalCardBarcode && <p className="mt-2 break-all text-xs font-semibold text-slate-500">Legacy pkCustomer: {legacyCardNumber}</p>}
+                <dt className="text-xs font-semibold text-slate-500">Current card number</dt>
+                <dd className="mt-1 break-all font-mono text-sm font-black">{assignedCardNumber || "Not assigned"}</dd>
                 {!cardLinked && <p className="mt-2 text-xs text-slate-500">Physical card not linked</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">
