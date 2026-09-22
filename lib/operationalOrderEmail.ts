@@ -9,6 +9,7 @@ type OperationalOrderEmailInput = {
   items: (OperationalOrderItem & { unitPriceCents?: number; lineTotalCents?: number })[];
   barBusinessDate?: string;
   barTotalCents?: number | null;
+  barCashFoundCents?: number | null;
 };
 
 function escapeHtml(value: unknown) {
@@ -54,7 +55,9 @@ export function buildOperationalOrderEmail(input: OperationalOrderEmailInput) {
     "",
     textItems,
     ...(input.orderType === "bar" && input.barTotalCents != null
-      ? [`BAR TOTAL: ${euros(input.barTotalCents)}`] : []),
+      ? [`TOTAL SALES: ${euros(input.barTotalCents)}`] : []),
+    ...(input.orderType === "bar" && input.barCashFoundCents != null
+      ? [`TOTAL CASH FOUND: ${euros(input.barCashFoundCents)}`] : []),
     input.notes ? `\nNotes: ${input.notes}` : "",
   ]
     .filter(Boolean)
@@ -86,7 +89,9 @@ export function buildOperationalOrderEmail(input: OperationalOrderEmailInput) {
       <h3>Items</h3>
       <ol style="padding-left:22px;">${htmlItems}</ol>
       ${input.orderType === "bar" && input.barTotalCents != null
-        ? `<p style="font-size:20px;font-weight:bold;">BAR TOTAL: ${escapeHtml(euros(input.barTotalCents))}</p>` : ""}
+        ? `<p style="font-size:20px;font-weight:bold;">TOTAL SALES: ${escapeHtml(euros(input.barTotalCents))}</p>` : ""}
+      ${input.orderType === "bar" && input.barCashFoundCents != null
+        ? `<p style="font-size:18px;font-weight:bold;">TOTAL CASH FOUND: ${escapeHtml(euros(input.barCashFoundCents))}</p>` : ""}
       ${input.notes ? `<h3>Notes</h3><p>${escapeHtml(input.notes)}</p>` : ""}
       <p style="color:#777;font-size:12px;margin-top:24px;">BestGymsMalta</p>
     </div>

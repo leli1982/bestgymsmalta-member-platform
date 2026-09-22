@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSuperAdmin, requireSystemPermission } from "@/lib/systemAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { BAR_MAX_PRICE_CENTS } from "@/lib/barSalesCore";
+import { BAR_MAX_PRICE_CENTS, sortBarCatalog } from "@/lib/barSalesCore";
 import { BAR_STARTER_SHEET, BAR_STARTER_REVIEW_NOTES } from "@/lib/barStarterCatalog";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const result = await query;
     if (result.error) throw result.error;
     return NextResponse.json(
-      { items: (result.data || []).map(mapItem) },
+      { items: sortBarCatalog((result.data || []).map(mapItem)) },
       { headers: { "Cache-Control": "private, no-store" } },
     );
   } catch (error) {

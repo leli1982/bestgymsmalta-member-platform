@@ -65,6 +65,7 @@ try {
     assert.equal(submitted.gymId, undefined, "Staff must not be able to select another gym");
     assert.equal(submitted.staffName, "Maria");
     assert.equal(submitted.notes, "Evening shift");
+    assert.equal(submitted.cashFoundCents, 1265, "Cash must be submitted separately from calculated sales.");
     assert.deepEqual(submitted.barEntries, [
       { catalogItemId: "water", quantity: 2, expectedPriceCents: 150 },
       { catalogItemId: "protein", quantity: 1, expectedPriceCents: 225 },
@@ -94,6 +95,8 @@ try {
   await page.getByRole("button", { name: "Increase Other item 1" }).click();
   await page.getByRole("button", { name: "Increase Other item 1" }).click();
   await page.getByRole("textbox", { name: "Bar List notes" }).fill("Evening shift");
+  await page.getByRole("textbox", { name: "Total Cash Found" }).fill("12.65");
+  await page.getByLabel("Total Sales calculated").getByText("€8.75").waitFor();
   await page.getByText("BAR TOTAL FOR THE DAY").waitFor();
   assert.equal(await page.getByText("€12.50").count() > 0, true, "Daily total includes earlier and unsent lists");
 
@@ -107,6 +110,7 @@ try {
   assert.equal(await water.inputValue(), "2", "Scan must not overwrite selected quantity");
   await dialog.getByRole("button", { name: "Close / Return to Staff Task" }).click();
   assert.equal(await name.inputValue(), "Maria");
+  assert.equal(await page.getByRole("textbox", { name: "Total Cash Found" }).inputValue(), "12.65");
   assert.equal(await water.inputValue(), "2");
   assert.equal(await page.getByRole("textbox", { name: "Other item 1 name" }).inputValue(), "Forgotten drink");
   assert.equal(await page.getByRole("textbox", { name: "Bar List notes" }).inputValue(), "Evening shift");
@@ -117,6 +121,7 @@ try {
     .waitFor({ state: "visible", timeout: 15000 });
   assert.ok(submitted, "Staff submission must reach the orders endpoint");
   assert.equal(await water.inputValue(), "0", "Successful submission resets the draft");
+  assert.equal(await page.getByRole("textbox", { name: "Total Cash Found" }).inputValue(), "", "New shift starts with blank cash count");
   await page.getByText("BAR TOTAL FOR THE DAY").waitFor();
   assert.equal(await page.getByText("€12.50").count() > 0, true);
   assert.deepEqual(errors, [], "Bar List must not trigger browser errors");
@@ -194,7 +199,7 @@ try {
   await adminContext.route("**/api/system/orders?**", (route) =>
     route.fulfill({ json: { orders: [{
       id: "bar-browser-report", gym_id: gym.id, gym_name: gym.name,
-      staff_name: "Maria", status: "submitted", business_date: "2026-09-21",
+      staff_name: "Maria", status: "submitted", business_date: "2026-09-21", cash_found_cents: 1265,
       submitted_at: "2026-09-21T17:00:00Z", total_cents: 875, notes: "Evening shift",
       email_notification_status: "sent", push_notification_status: "sent",
       items: [{ id: "line-1", item_name: "Water 500ml", quantity: 2,
@@ -204,6 +209,8 @@ try {
   await admin.getByText("Water 500ml × 2").waitFor({ state: "visible", timeout: 15000 });
   await admin.getByRole("article").getByText("Birkirkara Fitness").waitFor();
   await admin.getByText("€8.75").first().waitFor();
+  await admin.getByText("Total Cash Found:").waitFor();
+  await admin.getByText("€12.65").waitFor();
   await admin.screenshot({ path: artifactDir + "/super-admin-bar-report.png", fullPage: true });
   console.log("PASS Bar Staff prices, +/- quantities, Others, submitted totals, scanner preservation, Super Admin catalogue and reports");
 } finally {

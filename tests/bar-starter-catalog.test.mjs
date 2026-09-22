@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BAR_STARTER_SHEET, BAR_STARTER_REVIEW_NOTES } from "../../lib/barStarterCatalog.ts";
+import { BAR_STARTER_SHEET, BAR_STARTER_REVIEW_NOTES } from "../lib/barStarterCatalog.ts";
 
 test("two-page printed Bar Sales sheet is complete and priced in integer cents", () => {
   assert.equal(BAR_STARTER_SHEET.length, 69);

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { todayMaltaDate, isValidCalendarDate, maltaDayUtcRange } from "@/lib/maltaDate";
-import { snapshotBarSale, type BarCatalogItem, type BarSalesSnapshotItem } from "@/lib/barSalesCore";
+import { snapshotBarSale, BAR_MAX_PRICE_CENTS, type BarCatalogItem, type BarSalesSnapshotItem } from "@/lib/barSalesCore";
 import { requireSystemPermission } from "@/lib/systemAuth";
 import {
   canTransitionOrderStatus,
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from("bgm_operational_orders")
       .select(
-        "id, order_type, gym_id, staff_name, status, notes, submitted_at, business_date, total_cents, ordered_at, completed_at, cancelled_at, notification_status, notification_sent_at, email_notification_status, email_notification_sent_at, email_notification_error, push_notification_status, push_notification_sent_at, push_notification_error, created_at, updated_at"
+        "id, order_type, gym_id, staff_name, status, notes, submitted_at, business_date, total_cents, cash_found_cents, ordered_at, completed_at, cancelled_at, notification_status, notification_sent_at, email_notification_status, email_notification_sent_at, email_notification_error, push_notification_status, push_notification_sent_at, push_notification_error, created_at, updated_at"
       )
       .eq("order_type", orderType)
       .order("submitted_at", { ascending: false })
@@ -243,7 +243,13 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseAdmin();
     let items: (ReturnType<typeof normalizeOrderItems>[number] | BarSalesSnapshotItem)[] = [];
     let barTotalCents: number | null = null;
+    let barCashFoundCents: number | null = null;
     if (orderType === "bar") {
+      if (!Number.isSafeInteger(body.cashFoundCents) || body.cashFoundCents < 0 ||
+        body.cashFoundCents > BAR_MAX_PRICE_CENTS) {
+        return NextResponse.json({ error: "Enter a valid Total Cash Found amount after counting cash." }, { status: 400 });
+      }
+      barCashFoundCents = body.cashFoundCents;
       const catalogResult = await supabase.from("bgm_bar_catalog_items")
         .select("id,name,price_cents,is_other,active,sort_order,updated_at")
         .eq("active", true);
@@ -306,7 +312,7 @@ export async function POST(request: NextRequest) {
         staff_name: staffName,
         status: "submitted",
         notes: notes || null,
-        ...(orderType === "bar" ? { business_date: todayMaltaDate(), total_cents: barTotalCents } : {}),
+        ...(orderType === "bar" ? { business_date: todayMaltaDate(), total_cents: barTotalCents, cash_found_cents: barCashFoundCents } : {}),
         notification_status: "pending",
         email_notification_status: notificationSettings.email_enabled
           ? "pending"
@@ -316,7 +322,7 @@ export async function POST(request: NextRequest) {
           : "disabled",
       })
       .select(
-        "id, order_type, gym_id, staff_name, status, notes, submitted_at, business_date, total_cents, notification_status"
+        "id, order_type, gym_id, staff_name, status, notes, submitted_at, business_date, total_cents, cash_found_cents, notification_status"
       )
       .single();
 
@@ -357,7 +363,7 @@ export async function POST(request: NextRequest) {
         gymId,
         staffName,
         itemCount: items.length,
-        ...(orderType === "bar" ? { totalCents: barTotalCents, businessDate: todayMaltaDate() } : {}),
+        ...(orderType === "bar" ? { totalCents: barTotalCents, cashFoundCents: barCashFoundCents, businessDate: todayMaltaDate() } : {}),
       },
     });
 
@@ -379,7 +385,7 @@ export async function POST(request: NextRequest) {
           staffName,
           notes: notes || null,
           items,
-          ...(orderType === "bar" ? { barBusinessDate: todayMaltaDate(), barTotalCents } : {}),
+          ...(orderType === "bar" ? { barBusinessDate: todayMaltaDate(), barTotalCents, barCashFoundCents } : {}),
         });
         emailStatus = "sent";
         emailSentAt = new Date().toISOString();

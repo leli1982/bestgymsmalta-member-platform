@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ClipboardList, Minus, Package, Plus, RefreshCcw, Send, ShoppingBasket, Trash2 } from "lucide-react";
-import { formatBarEuro, parseEuroCents, type BarCatalogItem } from "@/lib/barSalesCore";
+import { formatBarEuro, parseEuroCents, sortBarCatalog, type BarCatalogItem } from "@/lib/barSalesCore";
 
 type User = { gymId: string | null; displayName: string; isSuperAdmin: boolean; permissions: string[] };
 type Gym = { id: string; name: string; status?: string };
@@ -45,6 +45,7 @@ export default function BarSalesPage() {
   const [extras, setExtras] = useState<Extra[]>([]);
   const [staffName, setStaffName] = useState("");
   const [notes, setNotes] = useState("");
+  const [cashFound, setCashFound] = useState("");
   const [day, setDay] = useState<DaySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -57,14 +58,14 @@ export default function BarSalesPage() {
 
   const canSubmit = Boolean(user && (user.isSuperAdmin || user.permissions.includes("orders.bar.submit")));
   const gymName = gyms.find((gym) => gym.id === gymId)?.name || gymId || "Select a gym";
-  const activeProducts = useMemo(() => catalog.filter((item) => item.active && !item.isOther), [catalog]);
+  const activeProducts = useMemo(() => sortBarCatalog(catalog.filter((item) => item.active && !item.isOther)), [catalog]);
   const othersItem = catalog.find((item) => item.active && item.isOther);
 
   const loadCatalog = useCallback(async () => {
     const response = await fetch("/api/system/bar/catalog", { cache: "no-store" });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Could not load current Bar prices.");
-    const next = (payload.items || []) as BarCatalogItem[];
+    const next = sortBarCatalog((payload.items || []) as BarCatalogItem[]);
     const before = catalogRef.current;
     if (before.length &&
       JSON.stringify(before.map((item) => [item.id, item.priceCents, item.name, item.active, item.sortOrder]))
@@ -148,6 +149,7 @@ export default function BarSalesPage() {
   const draftCents = selectedItems.reduce((sum, item) => sum + item.lineTotalCents, 0)
     + chosenExtras.reduce((sum, item) => sum + item.quantity * (parseEuroCents(item.price) || 0), 0);
   const numberOfLines = selectedItems.length + chosenExtras.length;
+  const cashFoundCents = parseEuroCents(cashFound);
 
   const addExtra = () => setExtras((current) => [
     ...current, { id: nextExtraId.current++, name: "", quantity: 0, price: "" },
@@ -175,6 +177,7 @@ export default function BarSalesPage() {
     if (!staffName.trim() || !gymId || numberOfLines === 0 || invalidExtras) {
       setError("Choose your gym, enter Staff name and at least one quantity; complete all Others item names and prices."); return;
     }
+    if (cashFoundCents === null) { setError("Count the cash and enter a valid Total Cash Found amount before sending."); return; }
     setSaving(true);
     try {
       const otherEntries = othersItem ? chosenExtras.map((item) => ({
@@ -185,7 +188,7 @@ export default function BarSalesPage() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           orderType: "bar", gymId: user?.isSuperAdmin ? gymId : undefined,
-          staffName: staffName.trim(), notes,
+          staffName: staffName.trim(), notes, cashFoundCents,
           barEntries: [
             ...selectedItems.map((item) => ({
               catalogItemId: item.catalogItemId, quantity: item.quantity,
@@ -197,7 +200,7 @@ export default function BarSalesPage() {
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Could not submit the Bar list.");
-      setQuantities({}); setExtras([]); setNotes(""); setCatalogChanged(false);
+      setQuantities({}); setExtras([]); setNotes(""); setCashFound(""); setCatalogChanged(false);
       setMessage("Bar List saved for " + gymName + " · " +
         formatBarEuro(payload.order?.total_cents || 0) + ". " +
         (payload.emailNotificationStatus === "sent"
@@ -339,6 +342,21 @@ export default function BarSalesPage() {
           )}
 
           <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl bg-orange-50 p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-orange-700">Total Sales</p>
+                <p className="mt-2 text-3xl font-black tabular-nums" aria-label="Total Sales calculated">{formatBarEuro(draftCents)}</p>
+                <p className="mt-1 text-xs text-zinc-600">Calculated automatically from this list's quantities and published prices.</p>
+              </div>
+              <label className="block rounded-2xl border border-zinc-200 bg-white p-4 text-sm font-black">
+                Total Cash Found (€)
+                <input aria-label="Total Cash Found" required value={cashFound}
+                  onChange={(event) => setCashFound(event.target.value)}
+                  inputMode="decimal" placeholder="0.00"
+                  className="mt-2 block w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-lg text-zinc-950" />
+                <span className="mt-1 block text-xs font-medium text-zinc-600">Enter the cash counted at the end of the shift. Enter 0.00 if none.</span>
+              </label>
+            </div>
             <label className="text-sm font-black">Notes (optional)
               <textarea aria-label="Bar List notes" value={notes} onChange={(e) => setNotes(e.target.value)}
                 rows={3} maxLength={1000} placeholder="Anything Super Admin should know?"
@@ -346,7 +364,7 @@ export default function BarSalesPage() {
             </label>
             <div className="mt-5 space-y-2 rounded-2xl bg-zinc-950 p-5 text-white">
               <div className="flex justify-between gap-3 text-sm"><span>Submitted today · {gymName}</span><strong>{day ? formatBarEuro(day.totalCents) : "—"}</strong></div>
-              <div className="flex justify-between gap-3 text-sm"><span>Current list ({numberOfLines} items)</span><strong>{formatBarEuro(draftCents)}</strong></div>
+              <div className="flex justify-between gap-3 text-sm"><span>Total Sales · current list ({numberOfLines} items)</span><strong>{formatBarEuro(draftCents)}</strong></div>
               <div className="border-t border-zinc-700 pt-3 flex flex-wrap justify-between gap-3 text-xl font-black">
                 <span>BAR TOTAL FOR THE DAY</span>
                 <span className="tabular-nums text-orange-400">{day ? formatBarEuro(day.totalCents + draftCents) : "—"}</span>
@@ -354,7 +372,7 @@ export default function BarSalesPage() {
               <p className="text-xs text-zinc-400">Includes earlier submitted lists from this gym today, plus the current unsent list. Cancelled lists are excluded.</p>
               {day && <p className="text-xs text-zinc-400">{day.businessDate} · {day.submittedCount} lists submitted</p>}
             </div>
-            <button type="submit" disabled={!canSubmit || saving || !gymId || !day || !numberOfLines || invalidExtras || catalogChanged}
+            <button type="submit" disabled={!canSubmit || saving || !gymId || !day || !numberOfLines || invalidExtras || catalogChanged || cashFoundCents === null}
               className="mt-4 flex w-full items-center justify-center gap-3 rounded-2xl bg-[#ff5a0a] px-5 py-4 text-lg font-black text-white disabled:opacity-40">
               <Send className="h-6 w-6"/> {saving ? "SENDING BAR LIST…" : "SEND BAR LIST"}
             </button>

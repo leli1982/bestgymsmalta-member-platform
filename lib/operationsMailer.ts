@@ -13,6 +13,7 @@ type SendOperationalOrderInput = {
   items: (OperationalOrderItem & { unitPriceCents?: number; lineTotalCents?: number })[];
   barBusinessDate?: string;
   barTotalCents?: number | null;
+  barCashFoundCents?: number | null;
 };
 
 let cachedTransporter:

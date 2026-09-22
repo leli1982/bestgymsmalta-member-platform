@@ -30,6 +30,14 @@ export const BAR_MAX_PRICE_CENTS = 100_000_000;
 export const BAR_MAX_TOTAL_CENTS = 2_000_000_000;
 export const BAR_MAX_QUANTITY = 10000;
 
+/** Always show products alphabetically; keep the custom-priced Others section last. */
+export function sortBarCatalog<T extends Pick<BarCatalogItem, "name" | "isOther">>(items: T[]): T[] {
+  return [...items].sort((a, b) =>
+    Number(a.isOther) - Number(b.isOther) ||
+    a.name.localeCompare(b.name, "en", { sensitivity: "base" })
+  );
+}
+
 export function parseEuroCents(value: unknown): number | null {
   if (typeof value !== "string" || !/^(?:0|[1-9]\d{0,5})(?:\.\d{1,2})?$/.test(value.trim())) return null;
   const [euros, cents = ""] = value.trim().split(".");

@@ -31,6 +31,7 @@ type Order = {
   submitted_at: string;
   business_date: string | null;
   total_cents: number | null;
+  cash_found_cents: number | null;
   email_notification_status: string;
   push_notification_status: string;
   items: OrderLine[];
@@ -304,6 +305,12 @@ export default function OperationsDashboardAdmin() {
                         </div>
                       ))}
                     </div>
+                    {order.order_type === "bar" && (
+                      <div className="mt-3 flex flex-wrap gap-4 text-sm text-zinc-700">
+                        <p><strong>Total Sales:</strong> {order.total_cents == null ? "Historical price unavailable" : formatBarEuro(order.total_cents)}</p>
+                        <p><strong>Total Cash Found:</strong> {order.cash_found_cents == null ? "Not recorded" : formatBarEuro(order.cash_found_cents)}</p>
+                      </div>
+                    )}
                     {order.notes && <p className="mt-3 text-sm text-zinc-700"><strong>Notes:</strong> {order.notes}</p>}
                     {order.order_type === "bar" && order.business_date && (
                       <p className="mt-2 text-xs font-semibold text-zinc-500">Business date: {order.business_date}</p>

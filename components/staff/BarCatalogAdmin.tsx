@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Plus, RefreshCw, Save } from "lucide-react";
-import { parseEuroCents, type BarCatalogItem } from "@/lib/barSalesCore";
+import { parseEuroCents, sortBarCatalog, type BarCatalogItem } from "@/lib/barSalesCore";
 
 type Edit = { name: string; price: string; sortOrder: number; active: boolean };
 type StarterItem = { name: string; priceCents: number; sortOrder: number };
@@ -30,7 +30,7 @@ export default function BarCatalogAdmin() {
     const response = await fetch("/api/system/bar/catalog", { cache: "no-store" });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Could not load the Bar catalogue.");
-    const items = (payload.items || []) as BarCatalogItem[];
+    const items = sortBarCatalog((payload.items || []) as BarCatalogItem[]);
     setCatalog(items);
     setEdits(Object.fromEntries(items.map((item) => [item.id, editable(item)])));
   }, []);
@@ -153,7 +153,7 @@ export default function BarCatalogAdmin() {
                       <tr><th className="px-3 py-2">Product</th><th className="px-3 py-2 text-right">Unit price</th></tr>
                     </thead>
                     <tbody>
-                      {starter.map((item) => (
+                      {[...starter].sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" })).map((item) => (
                         <tr key={item.name} className="border-t border-zinc-100">
                           <td className="px-3 py-2">{item.name}</td>
                           <td className="px-3 py-2 text-right font-bold tabular-nums">€{(item.priceCents / 100).toFixed(2)}</td>
@@ -192,7 +192,7 @@ export default function BarCatalogAdmin() {
         </form>
         <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div><h2 className="text-xl font-black">Published products</h2><p className="mt-1 text-sm text-zinc-500">Edit a price, change display order or hide an item from Staff.</p></div>
+            <div><h2 className="text-xl font-black">Published products</h2><p className="mt-1 text-sm text-zinc-500">Edit prices or hide items from Staff. Products always appear alphabetically; Others appears last.</p></div>
             <button onClick={() => void load().catch((e) => setError(String(e)))} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-2 text-sm font-bold"><RefreshCw className="h-4 w-4"/> Refresh</button>
           </div>
           {catalog.length === 0 ? <p className="mt-4 rounded-xl bg-zinc-50 p-4">No products yet. Add your first item above.</p> : (
@@ -201,7 +201,7 @@ export default function BarCatalogAdmin() {
                 const edit = edits[item.id];
                 if (!edit) return null;
                 return (
-                  <div key={item.id} className="grid gap-3 rounded-2xl border border-zinc-200 p-3 sm:grid-cols-[minmax(0,2fr)_140px_95px_auto_auto] sm:items-end">
+                  <div key={item.id} className="grid gap-3 rounded-2xl border border-zinc-200 p-3 sm:grid-cols-[minmax(0,2fr)_140px_auto_auto] sm:items-end">
                     <label className="text-xs font-bold text-zinc-600">Product
                       <input aria-label={item.name + " name"} value={edit.name} disabled={item.isOther} maxLength={120}
                         onChange={(e) => setEdits((s) => ({ ...s, [item.id]: { ...s[item.id], name: e.target.value } }))}
@@ -211,11 +211,6 @@ export default function BarCatalogAdmin() {
                       <input aria-label={item.name + " price"} inputMode="decimal"
                         value={item.isOther ? "Staff enters price" : edit.price} disabled={item.isOther}
                         onChange={(e) => setEdits((s) => ({ ...s, [item.id]: { ...s[item.id], price: e.target.value } }))}
-                        className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-2 py-2 text-sm text-zinc-950"/>
-                    </label>
-                    <label className="text-xs font-bold text-zinc-600">Position
-                      <input aria-label={item.name + " display position"} type="number" value={edit.sortOrder}
-                        onChange={(e) => setEdits((s) => ({ ...s, [item.id]: { ...s[item.id], sortOrder: Number(e.target.value) } }))}
                         className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-2 py-2 text-sm text-zinc-950"/>
                     </label>
                     <label className="flex items-center gap-2 pb-2 text-xs font-bold text-zinc-600">

@@ -23,6 +23,7 @@ type Report = {
   business_date: string | null;
   submitted_at: string;
   total_cents: number | null;
+  cash_found_cents: number | null;
   notes: string | null;
   email_notification_status: string;
   push_notification_status: string;
@@ -153,6 +154,10 @@ export default function BarReportsAdmin() {
                           : formatBarEuro(item.unit_price_cents) + " each · " + formatBarEuro(item.line_total_cents || 0)}</span>
                       </div>
                     ))}
+                  </div>
+                  <div className="mt-4 flex flex-wrap justify-between gap-3 rounded-xl border border-zinc-200 p-3 text-sm">
+                    <p><strong>Total Sales:</strong> {order.total_cents == null ? "Historical price unavailable" : formatBarEuro(order.total_cents)}</p>
+                    <p><strong>Total Cash Found:</strong> {order.cash_found_cents == null ? "Not recorded" : formatBarEuro(order.cash_found_cents)}</p>
                   </div>
                   {order.notes && <p className="mt-3 text-sm text-zinc-700"><ClipboardList className="mr-1 inline h-4 w-4"/> Notes: {order.notes}</p>}
                 </article>
