@@ -111,7 +111,7 @@ try {
   assert.equal(await page.getByRole("article").count(), 4);
   for (const [id, expectedColor] of [
     ["bar-birkirkara", "rgb(4, 120, 87)"],
-    ["bar-marsa", "rgb(185, 28, 28)"],
+    ["bar-marsa", "rgb(4, 120, 87)"],
   ]) {
     const order = page.getByRole("article").filter({ hasText: id });
     const value = order.locator("span.tabular-nums").first();

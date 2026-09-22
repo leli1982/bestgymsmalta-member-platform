@@ -251,9 +251,9 @@ try {
   await admin.getByRole("article").filter({ hasText: "bar-browser-report" }).getByText("Total Cash Found:").waitFor();
   await admin.getByText("€12.65").waitFor();
   for (const [id, amount, expectedColor] of [
-    ["bar-browser-report", "€8.75", "rgb(185, 28, 28)"],
+    ["bar-browser-report", "€8.75", "rgb(4, 120, 87)"],
     ["bar-equal-cash", "€2.90", "rgb(4, 120, 87)"],
-    ["bar-above-cash", "€1.75", "rgb(4, 120, 87)"],
+    ["bar-above-cash", "€1.75", "rgb(185, 28, 28)"],
     ["bar-missing-cash", "€1.50", "rgb(9, 9, 11)"],
   ]) {
     const article = admin.getByRole("article").filter({ hasText: id });
