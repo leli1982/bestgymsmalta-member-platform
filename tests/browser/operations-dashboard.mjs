@@ -205,6 +205,7 @@ try {
   await breakdown.getByRole("heading", { name: "Visitors at Naxxar Fitness", exact: true }).waitFor();
   await visits.locator('input[aria-label="Check-in statistics from date"]').fill("2026-09-01");
   await visits.locator('input[aria-label="Check-in statistics to date"]').fill("2026-09-15");
+  await visits.getByText("2026-09-01 → 2026-09-15").waitFor({ state: "visible" });
   assert.ok(scanStatQueries.some((query) => query.gymId === "bgm-naxxar" &&
     query.from === "2026-09-01" && query.to === "2026-09-15"));
   await statsGym.selectOption("");
