@@ -152,7 +152,7 @@ export default function MembershipStatsAdmin() {
       {loading && !stats && <p className="text-sm font-semibold text-zinc-600">Loading membership statistics…</p>}
       {stats && !error && (
         <>
-          <div className="grid gap-3 sm:grid-cols-3" aria-label="Membership statistics summary">
+          <section className="grid gap-3 sm:grid-cols-3" aria-label="Membership statistics summary">
             <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
               <p className="text-xs font-black text-orange-800">New memberships</p>
               <p className="mt-2 text-4xl font-black tabular-nums text-zinc-950">{stats.total}</p>
@@ -166,9 +166,9 @@ export default function MembershipStatsAdmin() {
               <p className="mt-3 flex items-center gap-2 text-sm font-black"><CalendarDays className="h-4 w-4 text-orange-600"/>{stats.range.from === stats.range.to ? stats.range.from : stats.range.from + " → " + stats.range.to}</p>
               <p className="mt-2 text-xs font-semibold text-zinc-500">{stats.range.gymName}</p>
             </div>
-          </div>
+          </section>
 
-          <div className="grid gap-4 lg:grid-cols-2" aria-label="New membership graphs">
+          <section className="grid gap-4 lg:grid-cols-2" aria-label="New membership graphs">
             <section className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4" aria-label="New memberships by activation date">
               <h3 className="flex items-center gap-2 text-base font-black"><BarChart3 className="h-5 w-5 text-orange-600"/> New memberships by date</h3>
               <p className="mt-1 text-xs text-zinc-600">Dates with activations, in Malta local time; dates with zero are omitted.</p>
@@ -187,7 +187,7 @@ export default function MembershipStatsAdmin() {
             </section>
             <ComparisonBars title={gymId ? "Membership types at " + stats.range.gymName : "New memberships by gym"}
               data={gymId ? typeChart : groupChart}/>
-          </div>
+          </section>
 
           <ComparisonBars title="Membership types (selected gyms and dates)" data={typeChart}/>
           {!gymId && stats.byGym.length > 0 && (

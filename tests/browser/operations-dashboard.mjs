@@ -139,8 +139,8 @@ try {
   await membership.getByRole("region", { name: "Membership statistics summary" }).getByText("2", { exact: true }).first().waitFor();
   await membership.getByRole("region", { name: "Membership types at Marsa Fitness" }).waitFor();
   assert.ok(statsQueries.some((query) => query.gymId === "bgm-marsa"));
-  await membership.getByRole("textbox", { name: "Membership statistics from date" }).fill("2026-09-01");
-  await membership.getByRole("textbox", { name: "Membership statistics to date" }).fill("2026-09-15");
+  await membership.locator('input[aria-label="Membership statistics from date"]').fill("2026-09-01");
+  await membership.locator('input[aria-label="Membership statistics to date"]').fill("2026-09-15");
   await membership.getByText("2026-09-01 → 2026-09-15").waitFor();
   assert.ok(statsQueries.some((query) => query.from === "2026-09-01" &&
     query.to === "2026-09-15" && query.gymId === "bgm-marsa"),
