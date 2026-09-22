@@ -246,6 +246,44 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  // Staff can find an account with either its permanent BGM number (above)
+  // or its CURRENT active physical card number; a retired card is never usable.
+  const activeCardResult = await supabase
+    .from("bgm_member_card_credentials")
+    .select("member_id")
+    .eq("barcode_value", query)
+    .eq("status", "active")
+    .limit(2);
+  if (activeCardResult.error) {
+    console.error(activeCardResult.error);
+    return NextResponse.json({ error: "Could not search member cards." }, { status: 500 });
+  }
+  const cardMemberIds = [...new Set(
+    (activeCardResult.data || []).map((card) => card.member_id).filter((id): id is string => Boolean(id))
+  )];
+  if (cardMemberIds.length) {
+    const cardMembersResult = await supabase
+      .from("bgm_members")
+      .select(MEMBER_SEARCH_FIELDS)
+      .in("id", cardMemberIds);
+    if (cardMembersResult.error) {
+      console.error(cardMembersResult.error);
+      return NextResponse.json({ error: "Could not find the member assigned to this card." }, { status: 500 });
+    }
+    const candidates = (cardMembersResult.data || [])
+      .map((member) => toCandidate(member, canViewOfficialPhoto, today, gymNames))
+      .filter((candidate) => matchesStaffMemberFilter(candidate.classification, requestedStatus));
+    return NextResponse.json({
+      candidates,
+      exactMembershipNumber: false,
+      exactCardNumber: true,
+      page: 1,
+      limit,
+      filter: requestedStatus,
+      hasMore: false,
+    });
+  }
+
   const pattern = `%${escapeLikePattern(query)}%`;
   const searchPoolLimit = Math.min(200, Math.max(50, page * limit * 2));
 
