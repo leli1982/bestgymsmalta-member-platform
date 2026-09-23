@@ -31,7 +31,7 @@ export function validateMemberProfile(value: unknown):
     || profile.firstName.length > 100 || profile.lastName.length > 100) {
     return { ok: false, error: "Enter a first and last name (100 characters maximum each)." };
   }
-  if (profile.email && (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(profile.email) || profile.email.length > 254)) {
+  if (profile.email && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email) || profile.email.length > 254)) {
     return { ok: false, error: "Enter a valid email address." };
   }
   if (Object.values(profile).some((field) => field.length > 500)) {
