@@ -49,11 +49,11 @@ test("joint request whitelist requires partner and all three immutable version c
 });
 test("later migration labels immediate and future joint cancellation distinctly without rewriting past audit events", () => {
   const auditMigration = read("supabase/migrations/20260923_150000_couples_immediate_cancellation_audit.sql");
-  assert.match(auditMigration, /p_effective_date = v_today then 'member\\.couples_cancellation\\.immediate'/);
-  assert.match(auditMigration, /when p_action = 'cancel' then 'member\\.couples_cancellation\\.schedule'/);
-  assert.match(auditMigration, /else 'member\\.couples_cancellation\\.withdraw'/);
-  assert.match(auditMigration, /revoke all on function public\\.bgm_super_admin_couples_cancellation/);
-  assert.match(auditMigration, /to service_role/);
+  assert.ok(auditMigration.includes("p_effective_date = v_today then 'member.couples_cancellation.immediate'"));
+  assert.ok(auditMigration.includes("when p_action = 'cancel' then 'member.couples_cancellation.schedule'"));
+  assert.ok(auditMigration.includes("else 'member.couples_cancellation.withdraw'"));
+  assert.ok(auditMigration.includes("revoke all on function public.bgm_super_admin_couples_cancellation"));
+  assert.ok(auditMigration.includes("to service_role"));
   assert.doesNotMatch(auditMigration, /update public\\.bgm_audit_log|delete from public\\.bgm_audit_log/i);
 });
 
