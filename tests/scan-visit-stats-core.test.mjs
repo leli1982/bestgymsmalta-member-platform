@@ -27,7 +27,10 @@ test("compares visited gyms, counts check-ins separately from unique members and
     "naxxar-b": "naxxar", "unknown-a": null,
   };
   const names = { birk: "Birkirkara", qroqq: "Tal-Qroqq", naxxar: "Naxxar", marsa: "Marsa" };
-  const s = summariseScanVisits(rows, origins, names);
+  const s = summariseScanVisits(rows.map((row) => ({
+    ...row, enrollment_gym_id_at_checkin: origins[row.member_id],
+    enrollment_snapshot_recorded: true,
+  })), names);
   assert.equal(s.visits, 7);
   assert.equal(s.uniqueMembers, 5, "A member visiting two gyms counts once across all gyms");
   assert.equal(s.byGym[0].gymId, "birk");
@@ -48,7 +51,7 @@ test("compares visited gyms, counts check-ins separately from unique members and
   });
 });
 test("empty range returns zeros with no misleading gym ranking", () => {
-  const s = summariseScanVisits([], {}, {});
+  const s = summariseScanVisits([], {});
   assert.equal(s.visits, 0);
   assert.equal(s.uniqueMembers, 0);
   assert.deepEqual(s.byGym, []);
@@ -65,6 +68,20 @@ test("Super Admin scanner stats API uses canonical successful barcode and NFC ch
   assert.match(api, /maltaDayUtcRange\(to\)\.end/);
   assert.match(api, /if \(gymId\) query = query\.eq\("gym_id", gymId\)/);
   assert.match(api, /offset \+= pageSize/);
-  assert.match(api, /\.in\("id", memberIds\.slice\(offset, offset \+ memberBatchSize\)\)/);
+  assert.match(api, /enrollment_gym_id_at_checkin,enrollment_snapshot_recorded/);
+  assert.doesNotMatch(api, /from\("bgm_members"\)/);
   assert.match(api, /maxRows/);
+});
+
+test("past visits retain their captured enrollment origin when a member moves gyms later", () => {
+  const rows = [
+    { ...visit("pre", "birk", "same-member", "2026-09-20T08:00:00Z"), enrollment_gym_id_at_checkin: "marsa", enrollment_snapshot_recorded: true },
+    { ...visit("post", "birk", "same-member", "2026-09-23T08:00:00Z"), enrollment_gym_id_at_checkin: "mosta", enrollment_snapshot_recorded: true },
+    { ...visit("legacy", "birk", "same-member", "2026-09-19T08:00:00Z"), enrollment_gym_id_at_checkin: null, enrollment_snapshot_recorded: false },
+    { ...visit("no-original", "birk", "other-member", "2026-09-23T09:00:00Z"), enrollment_gym_id_at_checkin: null, enrollment_snapshot_recorded: true },
+  ];
+  const summary = summariseScanVisits(rows, { birk: "Birkirkara", marsa: "Marsa", mosta: "Mosta" });
+  const originCounts = Object.fromEntries(summary.byGym[0].origins.map((origin) => [origin.gymId, origin.visits]));
+  assert.deepEqual(originCounts, { marsa: 1, mosta: 1, "historical-unverified": 1, unknown: 1 });
+  assert.equal(summary.byGym[0].origins.find((origin) => origin.gymId === "historical-unverified").gymName, "Historical enrollment gym unverified");
 });

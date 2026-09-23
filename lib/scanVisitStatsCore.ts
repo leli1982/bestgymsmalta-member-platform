@@ -3,6 +3,8 @@ export type CanonicalScanVisit = {
   member_id: string;
   gym_id: string;
   checkin_at: string;
+  enrollment_gym_id_at_checkin: string | null;
+  enrollment_snapshot_recorded: boolean;
 };
 export type VisitGym = {
   gymId: string;
@@ -46,12 +48,13 @@ function gymBucket(id: string): GymBucket {
   return { ...bucket(id), origins: new Map<string, Bucket>(), byDay: new Map<string, number>(), byHour: Array(24).fill(0) };
 }
 const unknownGym = "unknown";
+const unverifiedHistoricalGym = "historical-unverified";
 const titleFor = (id: string, names: Record<string, string>) =>
-  id === unknownGym ? "Enrollment gym unknown" : names[id] || id;
+  id === unknownGym ? "Enrollment gym unknown" :
+  id === unverifiedHistoricalGym ? "Historical enrollment gym unverified" : names[id] || id;
 
 export function summariseScanVisits(
   rows: CanonicalScanVisit[],
-  memberEnrollmentGyms: Record<string, string | null>,
   gymNames: Record<string, string>,
 ) {
   const gyms = new Map<string, GymBucket>();
@@ -62,7 +65,11 @@ export function summariseScanVisits(
     if (!memberId || !gymId) continue;
     const day = visitMaltaDate(row.checkin_at);
     const hour = visitMaltaHour(row.checkin_at);
-    const originId = memberEnrollmentGyms[memberId] || unknownGym;
+    // Never join historical visits to the member's CURRENT enrollment gym:
+    // a reassignment would retroactively alter historical origin statistics.
+    const originId = row.enrollment_snapshot_recorded
+      ? (row.enrollment_gym_id_at_checkin || unknownGym)
+      : unverifiedHistoricalGym;
     let gym = gyms.get(gymId);
     if (!gym) { gym = gymBucket(gymId); gyms.set(gymId, gym); }
     gym.visits++;

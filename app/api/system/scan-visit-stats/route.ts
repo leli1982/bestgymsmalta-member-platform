@@ -7,7 +7,6 @@ import { summariseScanVisits, type CanonicalScanVisit } from "@/lib/scanVisitSta
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 const pageSize = 500;
-const memberBatchSize = 300;
 const maxRows = 100_000;
 
 // This report counts accepted staffed card check-ins, not every scan attempt:
@@ -47,7 +46,7 @@ export async function GET(request: NextRequest) {
     const scans: CanonicalScanVisit[] = [];
     for (let offset = 0; ; offset += pageSize) {
       let query = supabase.from("bgm_member_checkins")
-        .select("id,member_id,gym_id,checkin_at")
+        .select("id,member_id,gym_id,checkin_at,enrollment_gym_id_at_checkin,enrollment_snapshot_recorded")
         .in("source", ["barcode", "nfc"])
         .gte("checkin_at", start).lt("checkin_at", end)
         .order("checkin_at", { ascending: true }).order("id", { ascending: true })
@@ -65,19 +64,10 @@ export async function GET(request: NextRequest) {
       if (batch.length < pageSize) break;
     }
 
-    const memberIds = Array.from(new Set(scans.map((scan) => scan.member_id).filter(Boolean)));
-    const enrollmentGyms: Record<string, string | null> = {};
-    for (let offset = 0; offset < memberIds.length; offset += memberBatchSize) {
-      const result = await supabase.from("bgm_members").select("id,enrollment_gym_id")
-        .in("id", memberIds.slice(offset, offset + memberBatchSize));
-      if (result.error) throw result.error;
-      for (const member of result.data || []) enrollmentGyms[member.id] = member.enrollment_gym_id;
-    }
-
     return NextResponse.json({
       range: { from, to, gymId, gymName: gymId ? names[gymId] : "All gyms" },
-      ...summariseScanVisits(scans, enrollmentGyms, names),
-      definition: "Successful barcode/NFC check-ins; repeated scans within two hours at the same gym count once. Self-service QR and denied scans are excluded. Enrollment gym is the member's currently recorded enrollment gym.",
+      ...summariseScanVisits(scans, names),
+      definition: "Successful staffed barcode/NFC check-ins; repeats within two hours at one gym count once. Self-service QR and denied scans are excluded. Enrollment origin is captured when each new visit is recorded. For older visits without a snapshot, historical enrollment origin is unverified and is never replaced with the member's current gym.",
     }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     console.error("Could not load gym check-in statistics:", error);
