@@ -96,3 +96,66 @@ export function validateCancellationCommand(value: unknown):
     expectedMemberUpdatedAt: input.expectedMemberUpdatedAt as string,
     expectedMembershipUpdatedAt: input.expectedMembershipUpdatedAt as string | null };
 }
+
+/** The joint command names both people but never trusts the caller to supply their relationship. */
+export type CouplesCancellationContext = {
+  memberStatus: string; partnerStatus: string;
+  memberExpiry: string | null; partnerExpiry: string | null;
+  membershipExpiry: string; membershipStatus: string;
+  memberEffectiveDate: string | null; partnerEffectiveDate: string | null;
+  membershipEffectiveDate: string | null; today: string;
+  memberCurrentMatches: number; partnerCurrentMatches: number;
+};
+export function resolveCouplesCancellation(context: CouplesCancellationContext) {
+  const c = context;
+  const synchronized = c.memberEffectiveDate === c.partnerEffectiveDate
+    && c.memberEffectiveDate === c.membershipEffectiveDate;
+  const canWithdraw = Boolean(c.memberEffectiveDate && c.memberEffectiveDate > c.today && synchronized);
+  if (c.memberCurrentMatches !== 1 || c.partnerCurrentMatches !== 1
+    || c.memberExpiry !== c.membershipExpiry || c.partnerExpiry !== c.membershipExpiry) {
+    return { allowed: false, canWithdraw: false, reason: "The current membership relationship is ambiguous. Review both members before changing it." };
+  }
+  if (!synchronized) return { allowed: false, canWithdraw: false, reason: "The partners have inconsistent cancellation history. Review their records before continuing." };
+  if (isCancellationEffective(c.memberEffectiveDate, c.today))
+    return { allowed: false, canWithdraw: false, reason: "Cancellation has taken effect. Use an authorised new-membership process." };
+  if (c.memberStatus !== "active" || c.partnerStatus !== "active"
+    || c.membershipStatus !== "active" || c.membershipExpiry < c.today)
+    return { allowed: false, canWithdraw: false, reason: "Both partners and the shared membership must be active and unexpired." };
+  return { allowed: true, canWithdraw,
+    reason: "Joint action: both partners and the shared couples membership will be updated together and audited separately." };
+}
+
+export function validateCouplesCancellationCommand(value: unknown):
+  | { ok: true; action: "cancel" | "withdraw"; effectiveDate: string | null;
+      reason: string; membershipId: string; partnerId: string;
+      expectedMemberUpdatedAt: string; expectedPartnerUpdatedAt: string;
+      expectedMembershipUpdatedAt: string }
+  | { ok: false; error: string } {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return { ok: false, error: "Invalid joint cancellation request." };
+  const data = value as Record<string, unknown>;
+  if (Object.keys(data).sort().join(",") !==
+    "action,effectiveDate,expectedMemberUpdatedAt,expectedMembershipUpdatedAt,expectedPartnerUpdatedAt,membershipId,partnerId,reason")
+    return { ok: false, error: "Only joint cancellation fields may be submitted." };
+  if (data.action !== "cancel" && data.action !== "withdraw")
+    return { ok: false, error: "Choose cancellation or withdrawal." };
+  const id = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const stamp = (x: unknown) => typeof x === "string" && Boolean(x) && Number.isFinite(Date.parse(x));
+  if (!id.test(String(data.membershipId)) || !id.test(String(data.partnerId))
+    || !stamp(data.expectedMemberUpdatedAt) || !stamp(data.expectedPartnerUpdatedAt)
+    || !stamp(data.expectedMembershipUpdatedAt))
+    return { ok: false, error: "Reload both members before changing their shared membership." };
+  if (typeof data.reason !== "string" || data.reason.trim().length > 500)
+    return { ok: false, error: "Cancellation notes must be at most 500 characters." };
+  if (data.action === "cancel" && !validMembershipDate(data.effectiveDate))
+    return { ok: false, error: "Choose a valid cancellation effective date." };
+  if (data.action === "withdraw" && data.effectiveDate !== null)
+    return { ok: false, error: "Withdrawal cannot set an effective date." };
+  return { ok: true, action: data.action,
+    effectiveDate: data.effectiveDate as string | null,
+    reason: data.reason.trim(), membershipId: data.membershipId as string,
+    partnerId: data.partnerId as string,
+    expectedMemberUpdatedAt: data.expectedMemberUpdatedAt as string,
+    expectedPartnerUpdatedAt: data.expectedPartnerUpdatedAt as string,
+    expectedMembershipUpdatedAt: data.expectedMembershipUpdatedAt as string };
+}

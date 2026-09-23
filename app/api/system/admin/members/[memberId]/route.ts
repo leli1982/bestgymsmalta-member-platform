@@ -3,7 +3,7 @@ import { requireSuperAdmin } from "@/lib/systemAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { validateMemberProfile } from "@/lib/superAdminMemberProfileCore";
 import { resolveMemberDateEdit } from "@/lib/memberDateEditCore";
-import { resolveMemberCancellation } from "@/lib/memberCancellationCore";
+import { resolveMemberCancellation, resolveCouplesCancellation } from "@/lib/memberCancellationCore";
 import { todayMaltaDate } from "@/lib/maltaDate";
 
 export const dynamic = "force-dynamic";
@@ -40,13 +40,13 @@ export async function GET(
     const membershipIds = linkRows.map((link) => link.membership_id);
     const membershipsResult = membershipIds.length
       ? await db.from("bgm_memberships")
-        .select("id,application_id,membership_type,duration_key,start_date,expiry_date,enrollment_gym_id,status,created_at,updated_at")
+        .select("id,application_id,membership_type,duration_key,start_date,expiry_date,enrollment_gym_id,status,cancellation_effective_date,created_at,updated_at")
         .in("id", membershipIds).order("created_at", { ascending: false })
       : { data: [], error: null };
     if (membershipsResult.error) throw membershipsResult.error;
     const membershipRows = membershipsResult.data || [];
     const participantsResult = membershipIds.length
-      ? await db.from("bgm_membership_members").select("membership_id").in("membership_id", membershipIds)
+      ? await db.from("bgm_membership_members").select("membership_id,member_id,member_role").in("membership_id", membershipIds)
       : { data: [], error: null };
     if (participantsResult.error) throw participantsResult.error;
     const participantCounts = new Map<string, number>();
@@ -75,6 +75,59 @@ export async function GET(
         updated_at: row.updated_at, participantCount: participantCounts.get(row.id) || 0,
       })),
     });
+    // A joint editor is exposed only after both identities and the single current
+    // couples contract are resolved. The SQL action independently revalidates all
+    // relationships and version tokens under row locks.
+    let couplesCancellationEdit = null;
+    const currentCouples = membershipRows.filter((row) =>
+      row.membership_type === "couples" && row.status === "active"
+      && row.expiry_date === member.membership_expiry
+      && participantCounts.get(row.id) === 2);
+    if (currentCouples.length === 1) {
+      const contract = currentCouples[0];
+      const people = (participantsResult.data || []).filter((row) => row.membership_id === contract.id);
+      const partnerLink = people.find((row) => row.member_id !== member.id);
+      if (partnerLink && people.length === 2 && people.some((row) => row.member_id === member.id)
+        && new Set(people.map((row) => row.member_id)).size === 2) {
+        const [partnerResult, partnerLinksResult] = await Promise.all([
+          db.from("bgm_members")
+            .select("id,full_name,member_number,status,membership_expiry,cancellation_effective_date,updated_at")
+            .eq("id", partnerLink.member_id).maybeSingle(),
+          db.from("bgm_membership_members").select("membership_id").eq("member_id", partnerLink.member_id),
+        ]);
+        if (partnerResult.error) throw partnerResult.error;
+        if (partnerLinksResult.error) throw partnerLinksResult.error;
+        const partner = partnerResult.data;
+        const partnerIds = (partnerLinksResult.data || []).map((row) => row.membership_id);
+        const partnerMemberships = partnerIds.length
+          ? await db.from("bgm_memberships").select("id,status,expiry_date").in("id", partnerIds)
+          : { data: [], error: null };
+        if (partnerMemberships.error) throw partnerMemberships.error;
+        if (partner) {
+          const resolution = resolveCouplesCancellation({
+            memberStatus: member.status, partnerStatus: partner.status,
+            memberExpiry: member.membership_expiry, partnerExpiry: partner.membership_expiry,
+            membershipExpiry: contract.expiry_date, membershipStatus: contract.status,
+            memberEffectiveDate: member.cancellation_effective_date,
+            partnerEffectiveDate: partner.cancellation_effective_date,
+            membershipEffectiveDate: contract.cancellation_effective_date,
+            today: todayMaltaDate(),
+            memberCurrentMatches: membershipRows.filter((row) =>
+              row.status !== "cancelled" && row.expiry_date === member.membership_expiry).length,
+            partnerCurrentMatches: (partnerMemberships.data || []).filter((row) =>
+              row.status !== "cancelled" && row.expiry_date === partner.membership_expiry).length,
+          });
+          couplesCancellationEdit = {
+            ...resolution, membershipId: contract.id,
+            expectedMembershipUpdatedAt: contract.updated_at,
+            effectiveDate: contract.cancellation_effective_date,
+            today: todayMaltaDate(), expiryDate: contract.expiry_date,
+            partner: { id: partner.id, fullName: partner.full_name || "Member name not recorded",
+              memberNumber: partner.member_number, updatedAt: partner.updated_at },
+          };
+        }
+      }
+    }
     const applicationIds = membershipRows.map((row) => row.application_id).filter((id): id is string => Boolean(id));
     const applicationsResult = applicationIds.length
       ? await db.from("bgm_membership_applications")
@@ -117,6 +170,7 @@ export async function GET(
       activeCardNumber: cardsResult.data?.[0]?.barcode_value || null,
       dateEdit,
       cancellationEdit: { ...cancellationEdit, today: todayMaltaDate() },
+      couplesCancellationEdit,
       gyms: gymResult.data || [],
       memberships: membershipRows.map((row) => ({
         id: row.id,

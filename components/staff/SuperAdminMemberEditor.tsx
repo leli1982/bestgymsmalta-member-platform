@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ArrowLeft, BadgeCheck, RefreshCcw, Save, ShieldCheck, UserRound } from "lucide-react";
 import { EDITABLE_PROFILE_FIELDS, type MemberProfileDraft } from "@/lib/superAdminMemberProfileCore";
 import SuperAdminMemberCancellation, { type CancellationEdit } from "@/components/staff/SuperAdminMemberCancellation";
+import SuperAdminCouplesCancellation, { type CouplesCancellationEdit } from "@/components/staff/SuperAdminCouplesCancellation";
 
 type Member = MemberProfileDraft & {
   id: string; memberNumber: string; fullName: string; status: string;
@@ -35,6 +36,7 @@ type Detail = {
   member: Member; activeCardNumber: string | null;
   dateEdit: DateEdit;
   cancellationEdit: CancellationEdit;
+  couplesCancellationEdit?: CouplesCancellationEdit | null;
   gyms: Array<{ id: string; name: string; status: string }>;
   memberships: Membership[];
 };
@@ -340,6 +342,15 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                 onBusyChange={setCancelBusy}
                 onUpdated={load}
               />
+              {detail.couplesCancellationEdit && <SuperAdminCouplesCancellation
+                member={member}
+                edit={detail.couplesCancellationEdit}
+                otherEditsPending={changed || gymChanged || dateChanged}
+                disabled={saving || gymSaving || dateSaving || loading}
+                onDraftChange={setCancelDraftDirty}
+                onBusyChange={setCancelBusy}
+                onUpdated={load}
+              />}
               <p className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-3 text-sm text-orange-900">Archive, Restore and other account-status changes remain separate actions. Cancellation does not alter the original Excel record or payment transactions.</p>
             </section>
             <section className="rounded-3xl border border-zinc-200 bg-white p-5 sm:p-7">
