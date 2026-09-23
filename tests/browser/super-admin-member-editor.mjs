@@ -49,6 +49,31 @@ try {
       payment_received_at: "2026-12-01T10:00:00Z",
     },
   }];
+  let dateEdit = {
+    allowed: true,
+    reason: "Current individual membership identified; historical payments are preserved.",
+    membershipId: "00000000-0000-4000-8000-000000000456",
+    expectedMembershipUpdatedAt: "2026-09-23T08:00:00.000Z",
+    startDate: "2026-12-01",
+    expiryDate: "2026-12-31",
+  };
+  let dateChange = null;
+  await context.route("**/api/system/admin/members/" + memberId + "/membership-dates", async (route) => {
+    assert.equal(route.request().method(), "PATCH");
+    dateChange = route.request().postDataJSON();
+    assert.deepEqual(Object.keys(dateChange).sort(), [
+      "expectedMemberUpdatedAt", "expectedMembershipUpdatedAt", "expiryDate", "membershipId", "startDate",
+    ]);
+    assert.equal(dateChange.expectedMemberUpdatedAt, member.updatedAt);
+    assert.equal(dateChange.membershipId, dateEdit.membershipId);
+    assert.equal(dateChange.expectedMembershipUpdatedAt, dateEdit.expectedMembershipUpdatedAt);
+    assert.equal(dateChange.startDate, "2026-12-01");
+    assert.equal(dateChange.expiryDate, "2027-01-31");
+    member = { ...member, membershipExpiry: dateChange.expiryDate, updatedAt: "2026-09-23T08:03:00.000Z" };
+    memberships[0].expiryDate = dateChange.expiryDate;
+    dateEdit = { ...dateEdit, expiryDate: dateChange.expiryDate, expectedMembershipUpdatedAt: "2026-09-23T08:03:00.000Z" };
+    return route.fulfill({ json: { ok: true, changed: true, updatedAt: member.updatedAt } });
+  });
   let received = null;
   let gymChange = null;
   await context.route("**/api/system/admin/members/" + memberId + "/enrollment-gym", async (route) => {
@@ -71,7 +96,7 @@ try {
       member = { ...member, ...received.profile, fullName: received.profile.firstName + " " + received.profile.lastName, updatedAt: "2026-09-23T08:01:00.000Z" };
       return route.fulfill({ json: { ok: true, updatedAt: member.updatedAt } });
     }
-    return route.fulfill({ json: { member, activeCardNumber: "CARD-0099", gyms, memberships } });
+    return route.fulfill({ json: { member, activeCardNumber: "CARD-0099", dateEdit, gyms, memberships } });
   });
   await page.goto(origin + "/staff/admin/members/" + memberId);
   await page.getByRole("heading", { name: "Member editor" }).waitFor();
@@ -99,8 +124,21 @@ try {
   assert.equal(member.memberNumber, "BGM0000123");
   assert.equal(await page.locator("main").evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.screenshot({ path: artifacts + "/member-gym-changed-390.png", fullPage: true });
+
+  await page.getByLabel("Current membership expiry", { exact: true }).fill("2027-01-31");
+  assert.equal(await page.getByRole("button", { name: "Save membership dates" }).isEnabled(), true);
+  assert.equal(await page.getByRole("button", { name: "Save enrollment gym" }).isEnabled(), false);
+  await page.getByRole("button", { name: "Save membership dates" }).click();
+  await page.getByText("Membership dates corrected and audited. Current expiry updated; original payment history was not changed.").waitFor();
+  assert.equal(dateChange.expiryDate, "2027-01-31");
+  assert.equal(member.membershipExpiry, "2027-01-31");
+  assert.equal(memberships[0].expiryDate, "2027-01-31");
+  assert.equal(memberships[0].application.final_amount_cents, 5000);
+  assert.equal(member.originalEnrollmentGym, "Mosta");
+  assert.equal(member.memberNumber, "BGM0000123");
+  await page.screenshot({ path: artifacts + "/member-dates-corrected-390.png", fullPage: true });
   assert.deepEqual(clientErrors, []);
-  console.log("PASS member profile and separate enrollment-gym actions preserve original gym, shared membership and permanent identity");
+  console.log("PASS separate profile, enrollment gym and current membership date corrections preserve original gym, payment records and permanent identity");
 } finally {
   if (browser) await browser.close();
   server.kill("SIGTERM");
