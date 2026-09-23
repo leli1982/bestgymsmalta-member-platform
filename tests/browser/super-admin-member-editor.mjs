@@ -33,6 +33,7 @@ try {
     membershipPeriod: null, enrollmentGymId: "bgm-mosta",
     originalEnrollmentGym: "Mosta", legacyPkCustomer: "PK-OLD-001",
     photoUrl: null, updatedAt: "2026-09-23T08:00:00.000Z",
+    cancellationEffectiveDate: null, cancellationReason: "", cancellationRecordedAt: null,
   };
   const gyms = [
     { id: "bgm-mosta", name: "Mosta", status: "active" },
@@ -58,6 +59,8 @@ try {
     expiryDate: "2026-12-31",
   };
   let dateChange = null;
+  let cancellationChange = null;
+  page.on("dialog", (dialog) => void dialog.accept());
   await context.route("**/api/system/admin/members/" + memberId + "/membership-dates", async (route) => {
     assert.equal(route.request().method(), "PATCH");
     dateChange = route.request().postDataJSON();
@@ -73,6 +76,24 @@ try {
     memberships[0].expiryDate = dateChange.expiryDate;
     dateEdit = { ...dateEdit, expiryDate: dateChange.expiryDate, expectedMembershipUpdatedAt: "2026-09-23T08:03:00.000Z" };
     return route.fulfill({ json: { ok: true, changed: true, updatedAt: member.updatedAt } });
+  });
+  await context.route("**/api/system/admin/members/" + memberId + "/cancellation", async (route) => {
+    assert.equal(route.request().method(), "POST");
+    cancellationChange = route.request().postDataJSON();
+    assert.deepEqual(Object.keys(cancellationChange).sort(), ["action", "effectiveDate", "expectedMemberUpdatedAt", "expectedMembershipUpdatedAt", "membershipId", "reason"]);
+    assert.equal(cancellationChange.expectedMemberUpdatedAt, member.updatedAt);
+    assert.equal(cancellationChange.membershipId, dateEdit.membershipId);
+    assert.equal(cancellationChange.expectedMembershipUpdatedAt, dateEdit.expectedMembershipUpdatedAt);
+    if (cancellationChange.action === "withdraw") {
+      assert.equal(cancellationChange.effectiveDate, null);
+      member = { ...member, cancellationEffectiveDate: null, cancellationReason: "", updatedAt: "2026-09-23T08:05:00.000Z" };
+    } else {
+      assert.equal(cancellationChange.effectiveDate, "2026-10-15");
+      member = { ...member, cancellationEffectiveDate: cancellationChange.effectiveDate,
+        cancellationReason: cancellationChange.reason, updatedAt: "2026-09-23T08:04:00.000Z" };
+    }
+    dateEdit = { ...dateEdit, expectedMembershipUpdatedAt: member.updatedAt };
+    return route.fulfill({ json: { ok: true, changed: true, effectiveDate: member.cancellationEffectiveDate, updatedAt: member.updatedAt } });
   });
   let received = null;
   let gymChange = null;
@@ -96,7 +117,16 @@ try {
       member = { ...member, ...received.profile, fullName: received.profile.firstName + " " + received.profile.lastName, updatedAt: "2026-09-23T08:01:00.000Z" };
       return route.fulfill({ json: { ok: true, updatedAt: member.updatedAt } });
     }
-    return route.fulfill({ json: { member, activeCardNumber: "CARD-0099", dateEdit, gyms, memberships } });
+    const cancellationEdit = {
+      allowed: member.status === "active",
+      reason: "Current individual membership verified. Cancellation does not alter expiry or payments.",
+      membershipId: dateEdit.membershipId,
+      expectedMembershipUpdatedAt: dateEdit.expectedMembershipUpdatedAt,
+      effectiveDate: member.cancellationEffectiveDate,
+      canWithdraw: Boolean(member.cancellationEffectiveDate && member.cancellationEffectiveDate > "2026-09-23"),
+      today: "2026-09-23",
+    };
+    return route.fulfill({ json: { member, activeCardNumber: "CARD-0099", dateEdit, cancellationEdit, gyms, memberships } });
   });
   await page.goto(origin + "/staff/admin/members/" + memberId);
   await page.getByRole("heading", { name: "Member editor" }).waitFor();
@@ -137,8 +167,26 @@ try {
   assert.equal(member.originalEnrollmentGym, "Mosta");
   assert.equal(member.memberNumber, "BGM0000123");
   await page.screenshot({ path: artifacts + "/member-dates-corrected-390.png", fullPage: true });
+
+  await page.getByLabel("Cancellation effective date").fill("2026-10-15");
+  assert.equal(await page.getByRole("button", { name: "Save personal details" }).isEnabled(), false);
+  await page.getByRole("button", { name: "Schedule cancellation" }).click();
+  await page.getByText("Membership cancellation recorded and audited. Access stops on 2026-10-15 (Malta date).").waitFor();
+  assert.equal(cancellationChange.action, "cancel");
+  assert.equal(member.cancellationEffectiveDate, "2026-10-15");
+  assert.equal(member.membershipExpiry, "2027-01-31");
+  assert.equal(memberships[0].application.final_amount_cents, 5000);
+  await page.screenshot({ path: artifacts + "/member-cancellation-pending-390.png", fullPage: true });
+  await page.getByRole("button", { name: "Withdraw pending cancellation" }).click();
+  await page.getByText("Pending membership cancellation withdrawn and audited.").waitFor();
+  assert.equal(cancellationChange.action, "withdraw");
+  assert.equal(member.cancellationEffectiveDate, null);
+  assert.equal(member.memberNumber, "BGM0000123");
+  assert.equal(member.originalEnrollmentGym, "Mosta");
+  assert.equal(memberships[0].application.final_amount_cents, 5000);
+  await page.screenshot({ path: artifacts + "/member-cancellation-withdrawn-390.png", fullPage: true });
   assert.deepEqual(clientErrors, []);
-  console.log("PASS separate profile, enrollment gym and current membership date corrections preserve original gym, payment records and permanent identity");
+  console.log("PASS separate member profile, gym, date and cancellation flows preserve historic identity and payments with fictional data");
 } finally {
   if (browser) await browser.close();
   server.kill("SIGTERM");
