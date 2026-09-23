@@ -7,6 +7,7 @@ export type BarcodeAccessResult =
 type BarcodeMemberState = {
   status?: string | null;
   membershipExpiry?: string | null;
+  cancellationEffectiveDate?: string | null;
 };
 
 export function evaluateBarcodeAccess({
@@ -18,6 +19,10 @@ export function evaluateBarcodeAccess({
 }): { result: BarcodeAccessResult; granted: boolean } {
   if (!member) {
     return { result: "unknown_member", granted: false };
+  }
+
+  if (member.cancellationEffectiveDate && member.cancellationEffectiveDate <= today) {
+    return { result: "inactive", granted: false };
   }
 
   if (member.status !== "active") {

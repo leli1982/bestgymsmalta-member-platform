@@ -6,12 +6,14 @@ export type StaffMemberFilter = "all" | "active" | "expired";
 export function classifyStaffMember(input: {
   status?: string | null;
   membershipExpiry?: string | null;
+  cancellationEffectiveDate?: string | null;
   today: string;
 }): StaffMemberClassification {
   const result = evaluateBarcodeAccess({
     member: {
       status: input.status,
       membershipExpiry: input.membershipExpiry,
+      cancellationEffectiveDate: input.cancellationEffectiveDate,
     },
     today: input.today,
   }).result;

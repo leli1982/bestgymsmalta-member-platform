@@ -10,7 +10,7 @@ import { requireSystemPermission } from "@/lib/systemAuth";
 export const dynamic = "force-dynamic";
 
 const MEMBER_SELECT =
-  "id, member_number, full_name, status, membership_expiry, enrollment_gym_id, official_photo_path, legacy_pk_customer";
+  "id, member_number, full_name, status, membership_expiry, cancellation_effective_date, enrollment_gym_id, official_photo_path, legacy_pk_customer";
 
 function clean(value: unknown) {
   return String(value ?? "").trim();
@@ -21,6 +21,7 @@ function accessFor(member: any) {
     member: {
       status: member.status,
       membershipExpiry: member.membership_expiry,
+      cancellationEffectiveDate: member.cancellation_effective_date,
     },
     today: todayMaltaDate(),
   });
