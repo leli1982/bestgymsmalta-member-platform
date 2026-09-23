@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSuperAdmin } from "@/lib/systemAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { validateMemberProfile } from "@/lib/superAdminMemberProfileCore";
+import { resolveMemberDateEdit } from "@/lib/memberDateEditCore";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -37,11 +38,31 @@ export async function GET(
     const membershipIds = linkRows.map((link) => link.membership_id);
     const membershipsResult = membershipIds.length
       ? await db.from("bgm_memberships")
-        .select("id,application_id,membership_type,duration_key,start_date,expiry_date,enrollment_gym_id,status,created_at")
+        .select("id,application_id,membership_type,duration_key,start_date,expiry_date,enrollment_gym_id,status,created_at,updated_at")
         .in("id", membershipIds).order("created_at", { ascending: false })
       : { data: [], error: null };
     if (membershipsResult.error) throw membershipsResult.error;
     const membershipRows = membershipsResult.data || [];
+    const participantsResult = membershipIds.length
+      ? await db.from("bgm_membership_members").select("membership_id").in("membership_id", membershipIds)
+      : { data: [], error: null };
+    if (participantsResult.error) throw participantsResult.error;
+    const participantCounts = new Map<string, number>();
+    for (const row of participantsResult.data || []) {
+      participantCounts.set(row.membership_id, (participantCounts.get(row.membership_id) || 0) + 1);
+    }
+    const dateEdit = resolveMemberDateEdit(
+      member.membership_expiry,
+      member.enrollment_date,
+      membershipRows.map((row) => ({
+        id: row.id,
+        status: row.status,
+        start_date: row.start_date,
+        expiry_date: row.expiry_date,
+        updated_at: row.updated_at,
+        participantCount: participantCounts.get(row.id) || 0,
+      }))
+    );
     const applicationIds = membershipRows.map((row) => row.application_id).filter((id): id is string => Boolean(id));
     const applicationsResult = applicationIds.length
       ? await db.from("bgm_membership_applications")
@@ -79,6 +100,7 @@ export async function GET(
         updatedAt: member.updated_at,
       },
       activeCardNumber: cardsResult.data?.[0]?.barcode_value || null,
+      dateEdit,
       gyms: gymResult.data || [],
       memberships: membershipRows.map((row) => ({
         id: row.id,
@@ -89,6 +111,7 @@ export async function GET(
         expiryDate: row.expiry_date,
         enrollmentGymId: row.enrollment_gym_id,
         status: row.status,
+        participantCount: participantCounts.get(row.id) || 0,
         createdAt: row.created_at,
         application: row.application_id ? applications.get(row.application_id) || null : null,
       })),
