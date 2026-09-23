@@ -3,11 +3,13 @@ import { requireSuperAdmin } from "@/lib/systemAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { validateMemberProfile } from "@/lib/superAdminMemberProfileCore";
 import { resolveMemberDateEdit } from "@/lib/memberDateEditCore";
+import { resolveMemberCancellation } from "@/lib/memberCancellationCore";
+import { todayMaltaDate } from "@/lib/maltaDate";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const MEMBER_COLUMNS = "id, member_number, first_name, last_name, full_name, email, mobile, id_number, date_of_birth, address_line_1, address_line_2, town, postcode, next_of_kin, status, membership_expiry, enrollment_date, membership_period, enrollment_gym_id, legacy_gym, legacy_pk_customer, official_photo_path, updated_at";
+const MEMBER_COLUMNS = "id, member_number, first_name, last_name, full_name, email, mobile, id_number, date_of_birth, address_line_1, address_line_2, town, postcode, next_of_kin, status, membership_expiry, enrollment_date, membership_period, enrollment_gym_id, legacy_gym, legacy_pk_customer, official_photo_path, cancellation_effective_date, cancellation_reason, cancellation_recorded_at, updated_at";
 
 const MEMBER_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const noStore = { "Cache-Control": "private, no-store, max-age=0" };
@@ -63,6 +65,16 @@ export async function GET(
         participantCount: participantCounts.get(row.id) || 0,
       }))
     );
+    const cancellationEdit = resolveMemberCancellation({
+      memberStatus: member.status,
+      membershipExpiry: member.membership_expiry,
+      cancellationEffectiveDate: member.cancellation_effective_date,
+      today: todayMaltaDate(),
+      memberships: membershipRows.map((row) => ({
+        id: row.id, status: row.status, expiry_date: row.expiry_date,
+        updated_at: row.updated_at, participantCount: participantCounts.get(row.id) || 0,
+      })),
+    });
     const applicationIds = membershipRows.map((row) => row.application_id).filter((id): id is string => Boolean(id));
     const applicationsResult = applicationIds.length
       ? await db.from("bgm_membership_applications")
@@ -91,6 +103,9 @@ export async function GET(
         nextOfKin: member.next_of_kin || "",
         status: member.status,
         membershipExpiry: member.membership_expiry || null,
+        cancellationEffectiveDate: member.cancellation_effective_date || null,
+        cancellationReason: member.cancellation_reason || "",
+        cancellationRecordedAt: member.cancellation_recorded_at || null,
         enrollmentDate: member.enrollment_date || null,
         membershipPeriod: member.membership_period || null,
         enrollmentGymId: member.enrollment_gym_id || null,
@@ -101,6 +116,7 @@ export async function GET(
       },
       activeCardNumber: cardsResult.data?.[0]?.barcode_value || null,
       dateEdit,
+      cancellationEdit: { ...cancellationEdit, today: todayMaltaDate() },
       gyms: gymResult.data || [],
       memberships: membershipRows.map((row) => ({
         id: row.id,
