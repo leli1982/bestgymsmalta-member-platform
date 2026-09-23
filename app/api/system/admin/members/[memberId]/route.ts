@@ -6,14 +6,7 @@ import { validateMemberProfile } from "@/lib/superAdminMemberProfileCore";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const MEMBER_COLUMNS = [
-  "id", "member_number", "first_name", "last_name", "full_name",
-  "email", "mobile", "id_number", "date_of_birth", "address_line_1",
-  "address_line_2", "town", "postcode", "next_of_kin", "status",
-  "membership_expiry", "enrollment_date", "membership_period",
-  "enrollment_gym_id", "legacy_gym", "legacy_pk_customer",
-  "official_photo_path", "updated_at",
-].join(",");
+const MEMBER_COLUMNS = "id, member_number, first_name, last_name, full_name, email, mobile, id_number, date_of_birth, address_line_1, address_line_2, town, postcode, next_of_kin, status, membership_expiry, enrollment_date, membership_period, enrollment_gym_id, legacy_gym, legacy_pk_customer, official_photo_path, updated_at";
 
 const MEMBER_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const noStore = { "Cache-Control": "private, no-store, max-age=0" };
