@@ -61,6 +61,6 @@ test("Super Admin browser opens profile editor; member and payment contexts are 
   assert.match(browse, /\/staff\/admin\/members\//);
   assert.match(editor, /Save personal details/);
   assert.match(editor, /No linked membership transaction is recorded/);
-  assert.match(editor, /not changed by the personal-details button/);
+  assert.match(editor, /not saved by the personal-details button/);
   assert.doesNotMatch(editor, /method: "DELETE"/);
 });
