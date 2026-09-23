@@ -123,7 +123,7 @@ try {
   assert.equal(await jointButton.isDisabled(), true, "joint action must not discard unsaved profile draft");
   await page.getByRole("textbox", { name: "First name" }).fill("Alex");
   await page.getByLabel("Effective date — both partners").fill("2026-10-15");
-  await page.getByLabel("Notes (optional)").fill("Requested jointly");
+  await page.getByRole("textbox", { name: "Notes (optional)", exact: true }).fill("Requested jointly");
   await jointButton.click();
   await page.getByText("A partner changed elsewhere. Reload both members.").waitFor();
   assert.equal(member.cancellationEffectiveDate, null, "failed action must not alter first member");
