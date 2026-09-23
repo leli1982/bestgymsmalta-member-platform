@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { getOrCreateOfflineDeviceId } from "@/lib/offlineRosterClient";
 import OfficialMemberPhotoCapture from "@/components/staff/OfficialMemberPhotoCapture";
+import { looksLikeKeyboardBarcode, shouldHoldScannerCandidate, MAX_CONTIGUOUS_GAP_MS } from "@/lib/staffKeyboardScanCore";
 
 type StaffUser = {
   gymId: string | null;
@@ -31,14 +32,58 @@ type AccessResult = {
 };
 
 /**
- * A scanner configured to emit F9, then the card number, then Enter
- * can be distinguished from normal typing even when Staff edit a form.
- * Unprefixed keyboard-wedge scans are recognised only outside editable
- * controls, where rapid scanner input cannot corrupt a typed form.
+ * Keep explicit F9 support and recognise fast unprefixed scans from ordinary
+ * USB scanners. Text fields are snapshotted and restored for recognised scans.
+ * Number/date/password/contenteditable fields use the reliable Scan card dialog.
  */
 const SCANNER_PREFIX = "F9";
-const MIN_UNPREFIXED_LENGTH = 7;
-const MAX_AVERAGE_KEY_INTERVAL_MS = 65;
+
+type ScannerEditable = HTMLInputElement | HTMLTextAreaElement;
+type EditableBurst = {
+  field: ScannerEditable;
+  originalValue: string;
+  originalStart: number | null;
+  originalEnd: number | null;
+  held: string;
+};
+
+function activeScannerEditable(target: EventTarget | null): ScannerEditable | null {
+  if (!(target instanceof HTMLElement)) return null;
+  const field = target.closest("input,textarea");
+  if (field instanceof HTMLTextAreaElement) return field;
+  if (!(field instanceof HTMLInputElement)) return null;
+  if (!["text", "search", "email", "tel", "url"].includes(field.type)) return null;
+  if (field.dataset.bgmScanInput === "true" || /scan.*(card|barcode)|barcode scanner/i.test(field.placeholder)) {
+    return null; // Dedicated card inputs own their own scanner keystrokes.
+  }
+  return field;
+}
+
+function dispatchEditableInput(field: ScannerEditable) {
+  field.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function restoreEditableInput(burst: EditableBurst) {
+  if (!burst.field.isConnected) return;
+  const proto = burst.field instanceof HTMLTextAreaElement
+    ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+  // Use the native setter to notify React's controlled input tracker properly.
+  const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
+  if (setter) setter.call(burst.field, burst.originalValue);
+  else burst.field.value = burst.originalValue;
+  if (burst.originalStart !== null && burst.originalEnd !== null) {
+    burst.field.setSelectionRange(burst.originalStart, burst.originalEnd);
+  }
+  dispatchEditableInput(burst.field);
+}
+
+function replayHeldKeys(burst: EditableBurst | null) {
+  if (!burst?.held || !burst.field.isConnected) return;
+  const position = burst.field.selectionStart ?? burst.field.value.length;
+  const end = burst.field.selectionEnd ?? position;
+  burst.field.setRangeText(burst.held, position, end, "end");
+  dispatchEditableInput(burst.field);
+}
 
 function heading(result: AccessResult) {
   if (result.granted) return "ACCESS GRANTED";
@@ -82,6 +127,10 @@ export default function StaffGlobalScanner() {
   const [networkError, setNetworkError] = useState("");
   const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [manualScanOpen, setManualScanOpen] = useState(false);
+  const [manualCode, setManualCode] = useState("");
+  const manualInputRef = useRef<HTMLInputElement | null>(null);
+  const editableBurst = useRef<EditableBurst | null>(null);
   const scannerActive = useRef(false);
   const scannerBuffer = useRef("");
   const burstStart = useRef(0);
@@ -172,6 +221,20 @@ export default function StaffGlobalScanner() {
 
   processNextRef.current = processNext;
 
+  useEffect(() => {
+    if (manualScanOpen) manualInputRef.current?.focus();
+  }, [manualScanOpen]);
+
+  const submitManualScan = (event: React.FormEvent) => {
+    event.preventDefault();
+    const code = manualCode.trim();
+    if (!code) return;
+    setManualScanOpen(false);
+    setManualCode("");
+    queuedCodes.current.push(code);
+    processNextRef.current();
+  };
+
   const closeResult = useCallback(() => {
     setResult(null);
     setPhotoLoadFailed(false);
@@ -186,13 +249,15 @@ export default function StaffGlobalScanner() {
   }, []);
 
   useEffect(() => {
-    if (!canScan) return;
+    if (!canScan || pathname.startsWith("/staff/reception") || manualScanOpen) return;
 
     const clearTimer = () => {
       if (burstTimeout.current) clearTimeout(burstTimeout.current);
       burstTimeout.current = null;
     };
-    const resetBuffer = () => {
+    const resetBuffer = (replay = true) => {
+      if (replay) replayHeldKeys(editableBurst.current);
+      editableBurst.current = null;
       scannerActive.current = false;
       scannerBuffer.current = "";
       burstStart.current = 0;
@@ -201,103 +266,175 @@ export default function StaffGlobalScanner() {
     };
     const submit = (value: string) => {
       const code = value.trim();
-      if (code.length < 3) return;
+      if (!code) return;
       queuedCodes.current.push(code);
       processNextRef.current();
     };
+    const stopKey = (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === SCANNER_PREFIX || event.code === SCANNER_PREFIX) {
-        if (!scannerActive.current) {
-          focusBeforeScan.current = document.activeElement as HTMLElement | null;
-        }
-        scannerActive.current = true;
-        scannerBuffer.current = "";
-        clearTimer();
-        event.preventDefault();
-        event.stopImmediatePropagation();
+      if (event.isComposing || event.key === "Dead") {
+        resetBuffer();
         return;
       }
-
+      if (event.key === SCANNER_PREFIX || event.code === SCANNER_PREFIX) {
+        // Prefixed scanners are always unambiguous: no text enters the editor.
+        resetBuffer();
+        focusBeforeScan.current = document.activeElement as HTMLElement | null;
+        scannerActive.current = true;
+        stopKey(event);
+        return;
+      }
       if (scannerActive.current) {
-        // The prefix makes scanner input distinguishable from Staff typing:
-        // no part of the scan reaches the currently focused form field.
-        event.preventDefault();
-        event.stopImmediatePropagation();
+        stopKey(event);
         if (event.key === "Enter") {
-          const value = scannerBuffer.current;
-          resetBuffer();
-          submit(value);
+          const code = scannerBuffer.current;
+          resetBuffer(false);
+          submit(code);
         } else if (event.key === "Escape") {
-          resetBuffer();
+          resetBuffer(false);
         } else if (
-          event.key.length === 1 &&
-          !event.ctrlKey &&
-          !event.metaKey &&
-          !event.altKey
+          event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey
         ) {
           scannerBuffer.current += event.key;
           clearTimer();
-          burstTimeout.current = setTimeout(resetBuffer, 4_000);
+          burstTimeout.current = setTimeout(() => resetBuffer(false), 4000);
         }
         return;
       }
 
+      const field = activeScannerEditable(event.target);
       const target = event.target as HTMLElement | null;
-      const editable = target?.closest(
-        "input, textarea, select, [contenteditable='true']"
-      );
-      // Without a scanner prefix, never intercept scans inside an editor:
-      // a keyboard-wedge scan is otherwise indistinguishable from user typing.
-      if (editable || event.ctrlKey || event.metaKey || event.altKey) {
+      const insideEditable = Boolean(target?.closest("input,textarea,select,[contenteditable='true']"));
+      if (event.ctrlKey || event.metaKey || event.altKey || event.repeat) {
+        resetBuffer();
+        return;
+      }
+      if (insideEditable && !field) {
+        // This is a native scanner input, a numeric field or another editor:
+        // never steal keys or interfere with the form. Use Scan card if needed.
         resetBuffer();
         return;
       }
 
       if (event.key === "Enter") {
         const code = scannerBuffer.current;
-        const elapsed = burstLast.current - burstStart.current;
-        const scannerLike = code.length >= MIN_UNPREFIXED_LENGTH &&
-          elapsed / Math.max(1, code.length - 1) <= MAX_AVERAGE_KEY_INTERVAL_MS;
-        resetBuffer();
+        const lastGapMs = burstLast.current > 0 ? Date.now() - burstLast.current : Infinity;
+        const scannerLike = looksLikeKeyboardBarcode(
+          code, burstLast.current - burstStart.current, lastGapMs,
+        );
+        const burst = editableBurst.current;
         if (scannerLike) {
-          focusBeforeScan.current = document.activeElement as HTMLElement | null;
-          event.preventDefault();
-          event.stopImmediatePropagation();
+          if (burst) restoreEditableInput(burst);
+          focusBeforeScan.current = (burst?.field ?? document.activeElement) as HTMLElement | null;
+          stopKey(event);
+          resetBuffer(false);
           submit(code);
+        } else {
+          resetBuffer();
         }
         return;
       }
-      if (event.key.length !== 1) {
+
+      if (event.key === "Escape" || event.key.length !== 1) {
         resetBuffer();
         return;
       }
-      const now = Date.now();
-      if (!scannerBuffer.current || now - burstLast.current > 160) {
-        scannerBuffer.current = "";
-        burstStart.current = now;
+      if (!/^[a-z0-9_-]$/i.test(event.key)) {
+        resetBuffer();
+        return;
       }
-      scannerBuffer.current += event.key;
+
+      const now = Date.now();
+      const lastGapMs = burstLast.current ? now - burstLast.current : 0;
+      if (!scannerBuffer.current || lastGapMs > MAX_CONTIGUOUS_GAP_MS ||
+          (editableBurst.current && editableBurst.current.field !== field)) {
+        resetBuffer();
+        burstStart.current = now;
+        if (field) {
+          editableBurst.current = {
+            field,
+            originalValue: field.value,
+            originalStart: field.selectionStart,
+            originalEnd: field.selectionEnd,
+            held: "",
+          };
+        }
+      }
+      const nextCode = scannerBuffer.current + event.key;
+      const elapsedMs = now - burstStart.current;
+      // Hold characters from the fourth rapid key onward. The first few keys
+      // are reversible; any held human typing is replayed on a pause or Enter.
+      if (field && editableBurst.current &&
+          (editableBurst.current.held ||
+            shouldHoldScannerCandidate(nextCode.length, elapsedMs, lastGapMs))) {
+        editableBurst.current.held += event.key;
+        stopKey(event);
+      }
+      scannerBuffer.current = nextCode;
       burstLast.current = now;
       clearTimer();
-      burstTimeout.current = setTimeout(resetBuffer, 160);
+      burstTimeout.current = setTimeout(() => resetBuffer(), MAX_CONTIGUOUS_GAP_MS);
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => {
       window.removeEventListener("keydown", onKeyDown, true);
       resetBuffer();
     };
-  }, [canScan]);
+  }, [canScan, pathname, manualScanOpen]);
 
   useEffect(() => {
     if (!result && !networkError && !checking) processNextRef.current();
   }, [result, networkError, checking]);
 
-  if (!canScan || (!result && !networkError && !checking)) return null;
+  if (!canScan || pathname.startsWith("/staff/reception")) return null;
   const granted = Boolean(result?.granted);
   const problem = Boolean(networkError);
   const color = problem ? "bg-amber-600" : granted ? "bg-emerald-600" : "bg-red-600";
 
   return (
+    <>
+      {!result && !networkError && !checking && !manualScanOpen && (
+        <button
+          type="button"
+          onClick={() => {
+            focusBeforeScan.current = document.activeElement as HTMLElement | null;
+            setManualCode("");
+            setManualScanOpen(true);
+          }}
+          className="fixed bottom-4 left-4 z-[90] rounded-2xl bg-orange-500 px-4 py-3 text-sm font-black text-white shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"
+        >
+          Scan card
+        </button>
+      )}
+      {manualScanOpen && (
+        <div role="dialog" aria-modal="true" aria-label="Scan card" className="fixed inset-0 z-[1001] flex items-center justify-center bg-zinc-950/80 p-4">
+          <form onSubmit={submitManualScan} className="w-full max-w-md rounded-3xl bg-white p-6 text-zinc-900 shadow-2xl">
+            <h2 className="text-2xl font-black">Scan card</h2>
+            <p className="mt-2 text-sm font-semibold text-zinc-600">
+              Scan your physical card here. This does not change the Staff form you were editing.
+            </p>
+            <input
+              ref={manualInputRef}
+              data-bgm-scan-input="true"
+              value={manualCode}
+              onChange={(event) => setManualCode(event.target.value)}
+              placeholder="Scan or enter card barcode"
+              autoComplete="off"
+              className="mt-4 w-full rounded-xl border-2 border-orange-400 px-4 py-3 font-mono text-lg font-bold"
+            />
+            <div className="mt-4 flex gap-3">
+              <button type="button" onClick={() => { setManualScanOpen(false); setManualCode(""); focusBeforeScan.current?.focus({ preventScroll: true }); }}
+                className="flex-1 rounded-xl border border-zinc-300 px-4 py-3 font-bold">Cancel</button>
+              <button type="submit" disabled={!manualCode.trim()}
+                className="flex-1 rounded-xl bg-orange-500 px-4 py-3 font-black text-white disabled:opacity-40">Verify card</button>
+            </div>
+          </form>
+        </div>
+      )}
+      {(result || networkError || checking) && (
     <div
       role="dialog"
       aria-modal="true"
@@ -394,5 +531,7 @@ export default function StaffGlobalScanner() {
         )}
       </div>
     </div>
+      )}
+    </>
   );
 }

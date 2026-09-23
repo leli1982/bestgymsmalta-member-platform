@@ -196,6 +196,7 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
               autoCapitalize="off"
               value={value}
               onChange={(event) => setValue(event.target.value)}
+              data-bgm-scan-input="true"
               placeholder="Barcode scanner input"
               className="min-w-0 flex-1 rounded-2xl border border-emerald-200 bg-white px-4 py-3 font-mono text-base font-bold outline-none focus:border-emerald-500"
             />
