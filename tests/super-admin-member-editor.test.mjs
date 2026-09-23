@@ -61,7 +61,8 @@ test("Super Admin browser opens profile editor; member and payment contexts are 
   assert.match(browse, /\/staff\/admin\/members\//);
   assert.match(editor, /Save personal details/);
   assert.match(editor, /No linked membership transaction is recorded/);
-  assert.match(editor, /Archive, Restore and other account-status changes remain separate actions/);
+  assert.match(editor, /SuperAdminMemberAccountActions/);
+  assert.match(editor, /Cancellation remains separate from Archive, Restore and permanent deletion/);
   assert.match(editor, /SuperAdminMemberCancellation/);
   assert.doesNotMatch(editor, /method: "DELETE"/);
 });
