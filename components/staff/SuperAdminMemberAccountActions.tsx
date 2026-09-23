@@ -27,7 +27,10 @@ export default function SuperAdminMemberAccountActions({
   const [confirmedNumber, setConfirmedNumber] = useState("");
   useEffect(() => {
     setReason(""); setError(""); setMessage(""); setAssessment(null); setConfirmedNumber("");
-  }, [member.id, member.updatedAt]);
+  }, [member.id]);
+  useEffect(() => {
+    setAssessment(null); setConfirmedNumber("");
+  }, [member.updatedAt]);
   const archived = member.status === "archived";
   const blocked = busy || disabled || otherEditsPending || loadingAssessment;
 
@@ -44,10 +47,7 @@ export default function SuperAdminMemberAccountActions({
         body: JSON.stringify({ action, expectedUpdatedAt: member.updatedAt, reason }),
       });
       const data = await response.json();
-      if (!response.ok || !data.ok) {
-        // The RPC response does not need to contain ok: confirmation is HTTP status and a resulting status.
-        if (!response.ok) throw new Error(data.error || "Could not update account status.");
-      }
+      if (!response.ok || !data.status) throw new Error(data.error || "Could not update account status.");
       await onUpdated();
       setMessage(action === "archive"
         ? "Member archived and audited. App and gym entry are blocked."

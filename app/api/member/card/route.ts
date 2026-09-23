@@ -29,6 +29,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Member account not found." }, { status: 404, headers: { "Cache-Control": "private, no-store, max-age=0" } });
     }
 
+    if (memberResult.data.status === "archived") {
+      return NextResponse.json({ error: "This member account is archived." },
+        { status: 403, headers: { "Cache-Control": "private, no-store, max-age=0" } });
+    }
+
     const credentialsResult = await supabase
       .from("bgm_member_card_credentials")
       .select("barcode_value, status, activated_at, updated_at")

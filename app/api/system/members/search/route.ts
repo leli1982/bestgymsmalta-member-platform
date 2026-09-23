@@ -182,6 +182,7 @@ export async function GET(request: NextRequest) {
     let browseQuery = supabase
       .from("bgm_members")
       .select(MEMBER_SEARCH_FIELDS)
+      .neq("status", "archived")
       .order("full_name", { ascending: true });
 
     if (requestedStatus === "expired") {
@@ -224,6 +225,7 @@ export async function GET(request: NextRequest) {
     .from("bgm_members")
     .select(MEMBER_SEARCH_FIELDS)
     .eq("member_number", exactMemberNumber)
+    .neq("status", "archived")
     .limit(1);
 
   if (exactResult.error) {
@@ -270,7 +272,8 @@ export async function GET(request: NextRequest) {
     const cardMembersResult = await supabase
       .from("bgm_members")
       .select(MEMBER_SEARCH_FIELDS)
-      .in("id", cardMemberIds);
+      .in("id", cardMemberIds)
+      .neq("status", "archived");
     if (cardMembersResult.error) {
       console.error(cardMembersResult.error);
       return NextResponse.json({ error: "Could not find the member assigned to this card." }, { status: 500 });
@@ -304,37 +307,44 @@ export async function GET(request: NextRequest) {
     supabase
       .from("bgm_members")
       .select(MEMBER_SEARCH_FIELDS)
+      .neq("status", "archived")
       .ilike("member_number", pattern)
       .limit(searchPoolLimit),
     supabase
       .from("bgm_members")
       .select(MEMBER_SEARCH_FIELDS)
+      .neq("status", "archived")
       .ilike("full_name", pattern)
       .limit(searchPoolLimit),
     supabase
       .from("bgm_members")
       .select(MEMBER_SEARCH_FIELDS)
+      .neq("status", "archived")
       .ilike("id_number", pattern)
       .limit(searchPoolLimit),
     supabase
       .from("bgm_members")
       .select(MEMBER_SEARCH_FIELDS)
+      .neq("status", "archived")
       .ilike("mobile", pattern)
       .limit(searchPoolLimit),
     supabase
       .from("bgm_members")
       .select(MEMBER_SEARCH_FIELDS)
+      .neq("status", "archived")
       .ilike("phone", pattern)
       .limit(searchPoolLimit),
     supabase
       .from("bgm_members")
       .select(MEMBER_SEARCH_FIELDS)
+      .neq("status", "archived")
       .ilike("email", pattern)
       .limit(searchPoolLimit),
     supabase
       .from("bgm_members")
       .select(MEMBER_SEARCH_FIELDS)
       .eq("legacy_pk_customer", query)
+      .neq("status", "archived")
       .limit(searchPoolLimit),
   ]);
 
