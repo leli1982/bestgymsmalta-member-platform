@@ -249,7 +249,7 @@ export async function POST(request: NextRequest) {
             hasPhoto,
             photoRequired: !hasPhoto,
             photoUrl: hasPhoto
-              ? `/api/system/members/photo/${encodeURIComponent(member.id)}`
+              ? `/api/system/members/photo/${encodeURIComponent(member.id)}?inline=1`
               : null,
           }
         : null,
