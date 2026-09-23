@@ -187,8 +187,42 @@ try {
   assert.equal(await barName.inputValue(), "Leli Apap");
   assert.equal(await page.getByRole("dialog", { name: "ACCESS GRANTED" }).count(), 0);
 
-  // Reliable one-click fallback for numeric/atypical fields where auto-recognition
-  // is intentionally disabled to protect quantities and price inputs.
+  // Regression: barcode scans when a number/quantity input is focused must
+  // NEVER modify the quantity, its React state or the calculated Bar total.
+  const barQuantity = page.getByRole("spinbutton", { name: "Water 500 ml quantity" });
+  await barQuantity.fill("4");
+  await page.waitForTimeout(200);
+  const totalBeforeNumericScans = await page.getByLabel("Total Sales calculated").textContent();
+  for (const barcode of ["X06956", "59060154"]) {
+    await barQuantity.focus();
+    await page.keyboard.type(barcode, { delay: 4 });
+    await page.keyboard.press("Enter");
+    const numericResult = page.getByRole("dialog", { name: "ACCESS GRANTED" });
+    await numericResult.waitFor({ state: "visible" });
+    assert.equal(await barQuantity.inputValue(), "4",
+      "Barcode " + barcode + " must not enter focused quantity input");
+    await numericResult.getByRole("button", { name: "Close / Return to Staff Task" }).click();
+    assert.equal(await barQuantity.inputValue(), "4",
+      "Bar quantity must still be four after closing scanned member result");
+    assert.equal(await page.getByLabel("Total Sales calculated").textContent(),
+      totalBeforeNumericScans, "Scan must not change the Bar total or quantity state");
+  }
+
+  // Ordinary human quantity typing must be replayed and still update React
+  // after the short buffered scanner-detection interval.
+  await barQuantity.fill("");
+  await barQuantity.focus();
+  await page.keyboard.type("2", { delay: 40 });
+  await page.waitForTimeout(260);
+  assert.equal(await barQuantity.inputValue(), "2",
+    "A single normally typed quantity digit must be retained");
+  await barQuantity.fill("4");
+  await page.waitForTimeout(100);
+  assert.equal(await page.getByLabel("Total Sales calculated").textContent(),
+    totalBeforeNumericScans, "Quantity must still be editable after scanning");
+
+  // Reliable one-click fallback for unusual fields or scanner timing.
+
   await barName.fill("Bar Staff");
   const barCash = page.getByRole("spinbutton", { name: /total cash found/i });
   if (await barCash.count()) {
@@ -203,7 +237,7 @@ try {
     await page.getByRole("dialog", { name: "ACCESS GRANTED" })
       .getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
   }
-  assert.equal(scans, (await barCash.count()) ? 7 : 6, "Every submitted scan must be verified exactly once");
+  assert.equal(scans, (await barCash.count()) ? 9 : 8, "Every submitted scan must be verified exactly once");
   assert.deepEqual(pageErrors, [], "Global scanner must not trigger browser errors");
   console.log("PASS global scanner verifies active and expired cards across Sundries and Bar without losing Staff form input");
 } finally {
