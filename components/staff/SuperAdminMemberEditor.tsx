@@ -56,6 +56,10 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
   const [profile, setProfile] = useState<MemberProfileDraft | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [gymSelection, setGymSelection] = useState("");
+  const [gymSaving, setGymSaving] = useState(false);
+  const [gymMessage, setGymMessage] = useState("");
+  const [gymError, setGymError] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -70,6 +74,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
       if (!response.ok) throw new Error(result.error || "Could not load member.");
       setDetail(result as Detail);
       setProfile(profileOf(result.member));
+      setGymSelection(result.member.enrollmentGymId || "");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not load member.");
     } finally {
@@ -103,8 +108,37 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
     }
   }
 
+  async function saveGym() {
+    if (!detail || gymSaving || saving || !gymSelection || changed) return;
+    setGymSaving(true);
+    setGymError("");
+    setGymMessage("");
+    try {
+      const response = await fetch(`/api/system/admin/members/${encodeURIComponent(memberId)}/enrollment-gym`, {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enrollmentGymId: gymSelection,
+          expectedUpdatedAt: detail.member.updatedAt,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not change the enrollment gym.");
+      await load();
+      setGymMessage(result.changed
+        ? "Current enrollment gym changed and audited. Future visits will use this gym."
+        : "The selected gym is already assigned to this member.");
+    } catch (caught) {
+      setGymError(caught instanceof Error ? caught.message : "Could not change the enrollment gym.");
+    } finally {
+      setGymSaving(false);
+    }
+  }
+
   const member = detail?.member;
   const changed = Boolean(member && profile && JSON.stringify(profile) !== JSON.stringify(profileOf(member)));
+  const gymChanged = Boolean(member && gymSelection && gymSelection !== (member.enrollmentGymId || ""));
 
   return (
     <main className="bgm-admin-light min-h-screen bg-[#f6f6f6] px-4 py-6 text-zinc-950 sm:px-8">
@@ -178,7 +212,32 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                   <dt className="text-xs font-bold uppercase text-zinc-500">{label}</dt><dd className="mt-1 break-words font-bold">{value}</dd>
                 </div>)}
               </dl>
-              <p className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-3 text-sm text-orange-900">Gym reassignment and expiry/status changes will be added with historical check-in snapshots and membership-specific safeguards. They are not saved by the personal-details button.</p>
+              <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-4">
+                <h3 className="text-base font-black text-orange-950">Reassign current enrollment gym</h3>
+                <p className="mt-2 text-sm text-orange-950">This changes only this member’s current gym, affecting future check-in attribution. Existing visit snapshots, the original Excel gym and shared couples membership records stay unchanged. Visits recorded before snapshots existed have unverified historical origin.</p>
+                <label className="mt-4 block text-sm font-bold text-zinc-900" htmlFor="member-current-enrollment-gym">New enrollment gym</label>
+                <select id="member-current-enrollment-gym" value={gymSelection}
+                  onChange={(event) => { setGymSelection(event.target.value); setGymMessage(""); setGymError(""); }}
+                  disabled={gymSaving || saving || loading}
+                  className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 disabled:opacity-60">
+                  <option value="">Select an active gym</option>
+                  {member.enrollmentGymId && !detail.gyms.some((gym) => gym.id === member.enrollmentGymId && gym.status === "active") && (
+                    <option value={member.enrollmentGymId} disabled>Current gym (inactive): {gymName(detail.gyms, member.enrollmentGymId)}</option>
+                  )}
+                  {detail.gyms.filter((gym) => gym.status === "active").map((gym) => (
+                    <option key={gym.id} value={gym.id}>{gym.name}</option>
+                  ))}
+                </select>
+                {changed && <p className="mt-2 text-sm font-bold text-amber-800">Save or discard your unsaved personal details before changing the gym.</p>}
+                {gymError && <p role="alert" className="mt-2 text-sm font-bold text-red-800">{gymError}</p>}
+                {gymMessage && <p role="status" className="mt-2 text-sm font-bold text-emerald-800">{gymMessage}</p>}
+                <button type="button" onClick={() => void saveGym()}
+                  disabled={!gymChanged || changed || saving || gymSaving || loading}
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-zinc-300">
+                  <Save size={17}/>{gymSaving ? "Saving gym…" : "Save enrollment gym"}
+                </button>
+              </div>
+              <p className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-3 text-sm text-orange-900">Membership expiry and status changes will be added with membership-specific safeguards. They are not saved by the personal-details or enrollment-gym buttons.</p>
             </section>
             <section className="rounded-3xl border border-zinc-200 bg-white p-5 sm:p-7">
               <h2 className="text-xl font-black">Membership and payment records</h2>
