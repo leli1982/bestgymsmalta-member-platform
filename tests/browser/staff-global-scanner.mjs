@@ -147,7 +147,7 @@ try {
   await unprogrammed.waitFor({ state: "visible" });
   assert.equal(await barName.inputValue(), "Bar Staff",
     "Unprogrammed scanner must not append a barcode to Staff name");
-  await unprogrammed.getByRole("button", { name: /Close \\/ Return to Staff Task/ }).click();
+  await unprogrammed.getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
   assert.equal(await barName.inputValue(), "Bar Staff",
     "Controlled Staff name must still be intact after closing result");
   assert.equal(await barName.evaluate(input => document.activeElement === input), true,
@@ -176,7 +176,7 @@ try {
     await page.getByRole("dialog", { name: "ACCESS GRANTED" }).waitFor();
     assert.equal(await barCash.inputValue(), "15", "Manual scan must not alter cash amount");
     await page.getByRole("dialog", { name: "ACCESS GRANTED" })
-      .getByRole("button", { name: /Close \\/ Return to Staff Task/ }).click();
+      .getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
   }
   assert.equal(scans, (await barCash.count()) ? 5 : 4, "Every submitted scan must be verified exactly once");
   assert.deepEqual(pageErrors, [], "Global scanner must not trigger browser errors");
