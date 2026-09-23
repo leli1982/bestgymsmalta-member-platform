@@ -57,7 +57,7 @@ try {
   await context.route("**/api/system/barcode/scan", (route) => {
     assert.equal(route.request().method(), "POST");
     const code = route.request().postDataJSON().membershipNumber;
-    assert.ok(["BGM0000123", "BGM0000999", "BGM0000777"].includes(code));
+    assert.ok(["BGM0000123", "BGM0000999", "BGM0000777", "X06956", "59060154"].includes(code));
     scans++;
     const granted = code !== "BGM0000999";
     return route.fulfill({
@@ -153,6 +153,31 @@ try {
   assert.equal(await barName.evaluate(input => document.activeElement === input), true,
     "Scanner must restore focus to the Staff name field");
 
+  // Real-world TEST card formats: six-character letter-and-digits and eight digits.
+  // Both unprogrammed scans must be recognised without touching the Staff form.
+  for (const barcode of ["X06956", "59060154"]) {
+    await barName.fill("Bar Staff");
+    await barName.focus();
+    await page.keyboard.type(barcode, { delay: 4 });
+    await page.keyboard.press("Enter");
+    const cardResult = page.getByRole("dialog", { name: "ACCESS GRANTED" });
+    await cardResult.waitFor({ state: "visible" });
+    assert.equal(await barName.inputValue(), "Bar Staff",
+      "Scanner appended a " + barcode.length + "-character card to Staff name");
+    await cardResult.getByText(barcode, { exact: true }).first().waitFor();
+    await cardResult.getByRole("button", { name: /Close \\/ Return to Staff Task/ }).click();
+    assert.equal(await barName.inputValue(), "Bar Staff");
+  }
+
+  // Six ordinary letters, even if entered quickly and followed by Enter,
+  // must remain in the form rather than being mistaken for the short card format.
+  await barName.fill("");
+  await barName.focus();
+  await page.keyboard.type("Manuel", { delay: 4 });
+  await page.keyboard.press("Enter");
+  assert.equal(await barName.inputValue(), "Manuel");
+  assert.equal(await page.getByRole("dialog", { name: "ACCESS GRANTED" }).count(), 0);
+
   // A person typing normally without Enter must never cause a scan. Fast typing
   // held in the scanner candidate buffer must be replayed into the form.
   await barName.fill("");
@@ -178,7 +203,7 @@ try {
     await page.getByRole("dialog", { name: "ACCESS GRANTED" })
       .getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
   }
-  assert.equal(scans, (await barCash.count()) ? 5 : 4, "Every submitted scan must be verified exactly once");
+  assert.equal(scans, (await barCash.count()) ? 7 : 6, "Every submitted scan must be verified exactly once");
   assert.deepEqual(pageErrors, [], "Global scanner must not trigger browser errors");
   console.log("PASS global scanner verifies active and expired cards across Sundries and Bar without losing Staff form input");
 } finally {
