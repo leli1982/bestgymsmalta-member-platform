@@ -5,6 +5,7 @@ import { ArrowLeft, BadgeCheck, RefreshCcw, Save, ShieldCheck, UserRound } from 
 import { EDITABLE_PROFILE_FIELDS, type MemberProfileDraft } from "@/lib/superAdminMemberProfileCore";
 import SuperAdminMemberCancellation, { type CancellationEdit } from "@/components/staff/SuperAdminMemberCancellation";
 import SuperAdminCouplesCancellation, { type CouplesCancellationEdit } from "@/components/staff/SuperAdminCouplesCancellation";
+import SuperAdminMemberAccountActions from "@/components/staff/SuperAdminMemberAccountActions";
 
 type Member = MemberProfileDraft & {
   id: string; memberNumber: string; fullName: string; status: string;
@@ -13,6 +14,7 @@ type Member = MemberProfileDraft & {
   originalEnrollmentGym: string | null; legacyPkCustomer: string | null;
   photoUrl: string | null; updatedAt: string;
   cancellationEffectiveDate: string | null; cancellationReason: string; cancellationRecordedAt: string | null;
+  archivedAt: string | null; archivedReason: string | null;
 };
 type Membership = {
   id: string; role: string; membershipType: string; duration: string;
@@ -337,7 +339,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                 member={member}
                 edit={detail.cancellationEdit}
                 otherEditsPending={changed || gymChanged || dateChanged}
-                disabled={saving || gymSaving || dateSaving || loading}
+                disabled={saving || gymSaving || dateSaving || loading || cancelBusy}
                 onDraftChange={setCancelDraftDirty}
                 onBusyChange={setCancelBusy}
                 onUpdated={load}
@@ -351,8 +353,12 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                 onBusyChange={setCancelBusy}
                 onUpdated={load}
               />}
-              <p className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-3 text-sm text-orange-900">Archive, Restore and other account-status changes remain separate actions. Cancellation does not alter the original Excel record or payment transactions.</p>
+              <p className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-3 text-sm text-orange-900">Cancellation remains separate from Archive, Restore and permanent deletion. Historical Excel records and payments are not altered by this form.</p>
             </section>
+            <SuperAdminMemberAccountActions member={member}
+              otherEditsPending={changed || gymChanged || dateChanged || cancelDraftDirty}
+              disabled={saving || gymSaving || dateSaving || loading || cancelBusy}
+              onBusyChange={setCancelBusy} onUpdated={load}/>
             <section className="rounded-3xl border border-zinc-200 bg-white p-5 sm:p-7">
               <h2 className="text-xl font-black">Membership and payment records</h2>
               <p className="mt-2 text-sm text-zinc-600">Read-only current records. Couples may share one membership. Historical Excel members may have no linked payment record.</p>

@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import StaffMemberBrowser from "@/components/staff/StaffMemberBrowser";
 import StaffMembershipQueue from "@/components/staff/StaffMembershipQueue";
+import SuperAdminArchivedMembers from "@/components/staff/SuperAdminArchivedMembers";
 
 export default function SuperAdminMembershipTools() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
-  const [tool, setTool] = useState<"members" | "waiting">("members");
+  const [tool, setTool] = useState<"members" | "waiting" | "archive">("members");
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get("tool");
-    setTool(requested === "waiting" ? "waiting" : "members");
+    setTool(requested === "waiting" ? "waiting" : requested === "archive" ? "archive" : "members");
     let active = true;
     void fetch("/api/system/auth", { cache: "no-store" }).then(async (response) => {
       const result = await response.json();
@@ -30,11 +31,12 @@ export default function SuperAdminMembershipTools() {
             <a href="?tool=members" className={tool === "members" ? "rounded-xl bg-orange-600 px-4 py-3 font-bold text-white" : "rounded-xl bg-orange-50 px-4 py-3 font-bold text-orange-700"}>Members</a>
             <a href="/staff/members/enroll?kind=new" className="rounded-xl bg-zinc-100 px-4 py-3 font-bold">New membership</a>
             <a href="/staff/members/enroll?kind=renewal" className="rounded-xl bg-zinc-100 px-4 py-3 font-bold">Renew</a>
+            <a href="?tool=archive" className={tool === "archive" ? "rounded-xl bg-orange-600 px-4 py-3 font-bold text-white" : "rounded-xl bg-orange-50 px-4 py-3 font-bold text-orange-700"}>Archive</a>
             <a href="?tool=waiting" className={tool === "waiting" ? "rounded-xl bg-orange-600 px-4 py-3 font-bold text-white" : "rounded-xl bg-orange-50 px-4 py-3 font-bold text-orange-700"}>Waiting</a>
             <a href="/staff/reception" className="rounded-xl bg-zinc-100 px-4 py-3 font-bold">Reception tools</a>
           </nav>
         </header>
-        {tool === "members" ? <StaffMemberBrowser canRenew canEdit/> : <StaffMembershipQueue/>}
+        {tool === "members" ? <StaffMemberBrowser canRenew canEdit/> : tool === "archive" ? <SuperAdminArchivedMembers/> : <StaffMembershipQueue/>}
       </div>
     </main>
   );

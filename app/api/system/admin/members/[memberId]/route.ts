@@ -9,7 +9,7 @@ import { todayMaltaDate } from "@/lib/maltaDate";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const MEMBER_COLUMNS = "id, member_number, first_name, last_name, full_name, email, mobile, id_number, date_of_birth, address_line_1, address_line_2, town, postcode, next_of_kin, status, membership_expiry, enrollment_date, membership_period, enrollment_gym_id, legacy_gym, legacy_pk_customer, official_photo_path, cancellation_effective_date, cancellation_reason, cancellation_recorded_at, updated_at";
+const MEMBER_COLUMNS = "id, member_number, first_name, last_name, full_name, email, mobile, id_number, date_of_birth, address_line_1, address_line_2, town, postcode, next_of_kin, status, membership_expiry, enrollment_date, membership_period, enrollment_gym_id, legacy_gym, legacy_pk_customer, official_photo_path, cancellation_effective_date, cancellation_reason, cancellation_recorded_at, archived_at, archived_reason, updated_at";
 
 const MEMBER_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const noStore = { "Cache-Control": "private, no-store, max-age=0" };
@@ -159,6 +159,8 @@ export async function GET(
         cancellationEffectiveDate: member.cancellation_effective_date || null,
         cancellationReason: member.cancellation_reason || "",
         cancellationRecordedAt: member.cancellation_recorded_at || null,
+        archivedAt: member.archived_at || null,
+        archivedReason: member.archived_reason || null,
         enrollmentDate: member.enrollment_date || null,
         membershipPeriod: member.membership_period || null,
         enrollmentGymId: member.enrollment_gym_id || null,
