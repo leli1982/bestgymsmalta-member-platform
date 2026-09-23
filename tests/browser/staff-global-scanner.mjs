@@ -165,7 +165,7 @@ try {
     assert.equal(await barName.inputValue(), "Bar Staff",
       "Scanner appended a " + barcode.length + "-character card to Staff name");
     await cardResult.getByText(barcode, { exact: true }).first().waitFor();
-    await cardResult.getByRole("button", { name: /Close \\/ Return to Staff Task/ }).click();
+    await cardResult.getByRole("button", { name: "Close / Return to Staff Task" }).click();
     assert.equal(await barName.inputValue(), "Bar Staff");
   }
 
