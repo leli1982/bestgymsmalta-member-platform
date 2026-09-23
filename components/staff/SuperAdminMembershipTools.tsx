@@ -25,6 +25,7 @@ export default function SuperAdminMembershipTools() {
         <header className="rounded-3xl border border-zinc-200 bg-white p-5">
           <a href="/staff/admin" className="font-bold text-orange-700">← Super Admin</a>
           <h1 className="mt-3 text-3xl font-black">Membership Tools</h1>
+          <p className="mt-2 text-sm text-zinc-600">Find a member, open their record and choose Edit Member Details to update personal information.</p>
           <nav className="mt-4 flex flex-wrap gap-2" aria-label="Membership tools">
             <a href="?tool=members" className={tool === "members" ? "rounded-xl bg-orange-600 px-4 py-3 font-bold text-white" : "rounded-xl bg-orange-50 px-4 py-3 font-bold text-orange-700"}>Members</a>
             <a href="/staff/members/enroll?kind=new" className="rounded-xl bg-zinc-100 px-4 py-3 font-bold">New membership</a>
@@ -33,7 +34,7 @@ export default function SuperAdminMembershipTools() {
             <a href="/staff/reception" className="rounded-xl bg-zinc-100 px-4 py-3 font-bold">Reception tools</a>
           </nav>
         </header>
-        {tool === "members" ? <StaffMemberBrowser canRenew/> : <StaffMembershipQueue/>}
+        {tool === "members" ? <StaffMemberBrowser canRenew canEdit/> : <StaffMembershipQueue/>}
       </div>
     </main>
   );

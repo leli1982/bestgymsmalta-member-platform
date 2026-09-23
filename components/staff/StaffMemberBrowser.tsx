@@ -34,6 +34,7 @@ type SearchResponse = {
 type Props = {
   focusToken?: number;
   canRenew?: boolean;
+  canEdit?: boolean;
 };
 
 const FILTERS: Array<{ key: Filter; label: string }> = [
@@ -53,7 +54,7 @@ function statusLabel(classification: Classification) {
   return "INACTIVE";
 }
 
-export default function StaffMemberBrowser({ focusToken = 0, canRenew = false }: Props) {
+export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, canEdit = false }: Props) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [members, setMembers] = useState<StaffMember[]>([]);
@@ -252,6 +253,12 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false }:
               ))}
             </dl>
 
+            {canEdit && (
+              <a href={`/staff/admin/members/${encodeURIComponent(selected.id)}`}
+                className="mt-5 flex w-full items-center justify-center rounded-2xl border border-orange-300 bg-orange-50 px-5 py-4 text-base font-black text-orange-800 hover:bg-orange-100">
+                EDIT MEMBER DETAILS
+              </a>
+            )}
             {canRenew && selected.memberNumber && (
               <a
                 href={`/staff/members/enroll?kind=renewal&memberNumber=${encodeURIComponent(selected.memberNumber)}`}

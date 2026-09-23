@@ -14,7 +14,6 @@ as $$
 declare
   v_before public.bgm_members%rowtype;
   v_after public.bgm_members%rowtype;
-  v_gym_id text;
   v_keys text[] := array[
     'firstName', 'lastName', 'email', 'mobile', 'dateOfBirth', 'idNumber',
     'addressLine1', 'addressLine2', 'town', 'postcode', 'nextOfKin'
@@ -60,7 +59,61 @@ begin
     raise exception 'A member profile field is too long.';
   end if;
   if nullif(p_profile->>'dateOfBirth', '') is not null then
-    if p_profile->>'dateOfBirth' !~ '^\\d{4}-\\d{2}-\\d{2}$' then
+    if p_profile->>'dateOfBirth' !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}
+      raise exception 'Enter a valid date of birth.';
+    end if;
+    if (p_profile->>'dateOfBirth')::date > (now() at time zone 'Europe/Malta')::date then
+      raise exception 'Date of birth cannot be in the future.';
+    end if;
+  end if;
+  v_old := jsonb_build_object(
+    'firstName', v_before.first_name, 'lastName', v_before.last_name,
+    'email', v_before.email, 'mobile', v_before.mobile,
+    'dateOfBirth', v_before.date_of_birth, 'idNumber', v_before.id_number,
+    'addressLine1', v_before.address_line_1, 'addressLine2', v_before.address_line_2,
+    'town', v_before.town, 'postcode', v_before.postcode, 'nextOfKin', v_before.next_of_kin
+  );
+  update public.bgm_members
+  set first_name = btrim(p_profile->>'firstName'),
+      last_name = btrim(p_profile->>'lastName'),
+      full_name = btrim(p_profile->>'firstName') || ' ' || btrim(p_profile->>'lastName'),
+      email = nullif(lower(btrim(p_profile->>'email')), ''),
+      mobile = nullif(btrim(p_profile->>'mobile'), ''),
+      date_of_birth = nullif(p_profile->>'dateOfBirth', '')::date,
+      id_number = nullif(btrim(p_profile->>'idNumber'), ''),
+      address_line_1 = nullif(btrim(p_profile->>'addressLine1'), ''),
+      address_line_2 = nullif(btrim(p_profile->>'addressLine2'), ''),
+      town = nullif(btrim(p_profile->>'town'), ''),
+      postcode = nullif(btrim(p_profile->>'postcode'), ''),
+      next_of_kin = nullif(btrim(p_profile->>'nextOfKin'), ''),
+      updated_at = clock_timestamp()
+  where id = p_member_id
+  returning * into v_after;
+  v_new := jsonb_build_object(
+    'firstName', v_after.first_name, 'lastName', v_after.last_name,
+    'email', v_after.email, 'mobile', v_after.mobile,
+    'dateOfBirth', v_after.date_of_birth, 'idNumber', v_after.id_number,
+    'addressLine1', v_after.address_line_1, 'addressLine2', v_after.address_line_2,
+    'town', v_after.town, 'postcode', v_after.postcode, 'nextOfKin', v_after.next_of_kin
+  );
+  if v_old is distinct from v_new then
+    insert into public.bgm_audit_log (
+      system_user_id, context_gym_id, action_key, entity_type, entity_id, member_id,
+      before_data, after_data
+    ) values (
+      p_system_user_id, v_before.enrollment_gym_id,
+      'member.profile.update', 'member', p_member_id::text, p_member_id, v_old, v_new
+    );
+  end if;
+  return jsonb_build_object('id', v_after.id, 'updatedAt', v_after.updated_at);
+end;
+$$;
+
+revoke all on function public.bgm_super_admin_update_member_profile(uuid, uuid, timestamptz, jsonb)
+  from public, anon, authenticated;
+grant execute on function public.bgm_super_admin_update_member_profile(uuid, uuid, timestamptz, jsonb)
+  to service_role;
+ then
       raise exception 'Enter a valid date of birth.';
     end if;
     if (p_profile->>'dateOfBirth')::date > (now() at time zone 'Europe/Malta')::date then
