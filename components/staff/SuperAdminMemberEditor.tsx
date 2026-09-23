@@ -108,7 +108,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!detail || !profile || saving) return;
+    if (!detail || !profile || saving || gymSaving || dateSaving || gymChanged || dateChanged) return;
     setSaving(true);
     setMessage("");
     setError("");
@@ -131,7 +131,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
   }
 
   async function saveGym() {
-    if (!detail || gymSaving || saving || !gymSelection || changed) return;
+    if (!detail || gymSaving || saving || dateSaving || !gymSelection || changed || dateChanged) return;
     setGymSaving(true);
     setGymError("");
     setGymMessage("");
@@ -246,11 +246,12 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                 ))}
               </div>
               <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-zinc-100 pt-5">
-                <button disabled={!changed || saving || loading || gymSaving || dateSaving} type="submit"
+                <button disabled={!changed || gymChanged || dateChanged || saving || loading || gymSaving || dateSaving} type="submit"
                   className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-5 py-3 font-black text-white disabled:cursor-not-allowed disabled:bg-zinc-300">
                   <Save size={17} /> {saving ? "Saving…" : "Save personal details"}
                 </button>
                 {changed && <span className="text-sm font-medium text-amber-700">You have unsaved changes.</span>}
+                {(gymChanged || dateChanged) && <span className="text-sm font-medium text-amber-700">Save or discard your gym or membership date changes before saving personal details.</span>}
               </div>
             </form>
             <section className="rounded-3xl border border-zinc-200 bg-white p-5 sm:p-7">
@@ -260,7 +261,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                 {([
                   ["Original enrollment gym (Excel)", member.originalEnrollmentGym || "Not recorded"],
                   ["Current enrollment gym", gymName(detail.gyms, member.enrollmentGymId)],
-                  ["Original enrollment date", member.enrollmentDate || "Unknown — not provided in original Excel"],
+                  ["Recorded member start date", member.enrollmentDate || "Unknown — not provided in original Excel"],
                   ["Current membership expiry (ExpiryDate1)", member.membershipExpiry || "Not recorded"],
                 ] as Array<[string, string]>).map(([label, value]) => <div key={label} className="rounded-xl bg-zinc-50 p-4">
                   <dt className="text-xs font-bold uppercase text-zinc-500">{label}</dt><dd className="mt-1 break-words font-bold">{value}</dd>
@@ -295,6 +296,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                 <h3 className="text-base font-black text-zinc-950">Correct current membership dates</h3>
                 <p className="mt-2 text-sm text-zinc-600">This is a correction of an existing membership, not a renewal or payment. Changing expiry can change scanner access for an active member. Inactive or cancelled status will not be reactivated. Past visits, application/payment snapshots and the original Excel gym stay unchanged.</p>
                 <p className="mt-2 text-sm font-semibold text-zinc-700">{detail.dateEdit.reason}</p>
+                <p className="mt-2 text-xs text-zinc-600">A shared membership requires a separate joint correction; this form will not change the other member’s dates.</p>
                 {detail.dateEdit.membershipId && <p className="mt-2 text-xs text-zinc-500">Editing the current individual membership record. Previously purchased membership periods and transactions remain historical records.</p>}
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <label className="block text-sm font-bold text-zinc-900">
