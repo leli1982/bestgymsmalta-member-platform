@@ -55,6 +55,9 @@ jobs:
       - name: Verify Super Admin member editor with fictional records in Chromium
         run: node tests/browser/super-admin-member-editor.mjs
 
+      - name: Verify shared couples cancellation with fictional records in Chromium
+        run: node tests/browser/super-admin-couples-member-editor.mjs
+
       - name: Verify staff dashboard workflow in Chromium
         run: node tests/browser/staff-dashboard.mjs
 
@@ -99,6 +102,7 @@ jobs:
             test-artifacts/staff-ui
             test-artifacts/staff-global-scanner
             test-artifacts/super-admin-member-editor
+            test-artifacts/super-admin-couples-editor
             test-artifacts/bar-sales
             test-artifacts/operations-dashboard
           if-no-files-found: ignore

@@ -12,7 +12,7 @@ export type CouplesCancellationEdit = {
 export default function SuperAdminCouplesCancellation({
   member, edit, otherEditsPending, disabled, onDraftChange, onBusyChange, onUpdated,
 }: {
-  member: { id: string; fullName: string; memberNumber: string; updatedAt: string };
+  member: { id: string; fullName: string; memberNumber: string; updatedAt: string; cancellationReason: string };
   edit: CouplesCancellationEdit;
   otherEditsPending: boolean; disabled: boolean;
   onDraftChange: (dirty: boolean) => void;
@@ -20,16 +20,16 @@ export default function SuperAdminCouplesCancellation({
   onUpdated: () => Promise<void>;
 }) {
   const [date, setDate] = useState(edit.effectiveDate || edit.today);
-  const [reason, setReason] = useState("");
+  const [reason, setReason] = useState(member.cancellationReason || "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   useEffect(() => {
     setDate(edit.effectiveDate || edit.today);
-    setReason("");
+    setReason(member.cancellationReason || "");
     onDraftChange(false);
-  }, [edit.effectiveDate, edit.today, member.updatedAt, edit.partner.updatedAt, onDraftChange]);
-  const changed = date !== (edit.effectiveDate || edit.today) || Boolean(reason.trim());
+  }, [edit.effectiveDate, edit.today, member.updatedAt, edit.partner.updatedAt, member.cancellationReason, onDraftChange]);
+  const changed = date !== (edit.effectiveDate || edit.today) || reason !== (member.cancellationReason || "");
   const invalid = !date || date < edit.today || date > edit.expiryDate;
   const blocked = disabled || busy || otherEditsPending || !edit.allowed;
   async function submit(action: "cancel" | "withdraw") {
@@ -81,12 +81,12 @@ export default function SuperAdminCouplesCancellation({
     <div className="mt-3 grid gap-3 sm:grid-cols-2">
       <label className="text-sm font-bold text-zinc-950">Effective date — both partners
         <input type="date" value={date} min={edit.today} max={edit.expiryDate} disabled={blocked}
-          onChange={(event) => { setDate(event.target.value); onDraftChange(event.target.value !== (edit.effectiveDate || edit.today) || Boolean(reason.trim())); setError(""); setMessage(""); }}
+          onChange={(event) => { setDate(event.target.value); onDraftChange(event.target.value !== (edit.effectiveDate || edit.today) || reason !== (member.cancellationReason || "")); setError(""); setMessage(""); }}
           className="mt-1 block w-full rounded-xl border border-red-200 bg-white px-4 py-3 text-base disabled:opacity-60" />
       </label>
       <label className="text-sm font-bold text-zinc-950">Notes (optional)
         <textarea rows={2} maxLength={500} value={reason} disabled={blocked}
-          onChange={(event) => { setReason(event.target.value); onDraftChange(date !== (edit.effectiveDate || edit.today) || Boolean(event.target.value.trim())); setError(""); setMessage(""); }}
+          onChange={(event) => { setReason(event.target.value); onDraftChange(date !== (edit.effectiveDate || edit.today) || event.target.value !== (member.cancellationReason || "")); setError(""); setMessage(""); }}
           className="mt-1 block w-full rounded-xl border border-red-200 bg-white px-4 py-3 text-base disabled:opacity-60" />
       </label>
     </div>
@@ -97,7 +97,7 @@ export default function SuperAdminCouplesCancellation({
       <button type="button" disabled={blocked || invalid || Boolean(edit.effectiveDate && !changed)}
         onClick={() => void submit("cancel")}
         className="rounded-xl bg-red-700 px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-zinc-300">
-        {busy ? "Processing…" : date === edit.today ? "Cancel BOTH memberships now" : "Schedule cancellation for BOTH"}
+        {busy ? "Processing…" : date === edit.today ? "Cancel shared membership for BOTH now" : "Schedule cancellation for BOTH"}
       </button>
       {edit.canWithdraw && <button type="button" disabled={blocked} onClick={() => void submit("withdraw")}
         className="rounded-xl border border-zinc-300 bg-white px-5 py-3 text-sm font-black text-zinc-950 disabled:opacity-50">
