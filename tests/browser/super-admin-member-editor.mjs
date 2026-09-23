@@ -34,7 +34,10 @@ try {
     originalEnrollmentGym: "Mosta", legacyPkCustomer: "PK-OLD-001",
     photoUrl: null, updatedAt: "2026-09-23T08:00:00.000Z",
   };
-  const gyms = [{ id: "bgm-mosta", name: "Mosta", status: "active" }];
+  const gyms = [
+    { id: "bgm-mosta", name: "Mosta", status: "active" },
+    { id: "bgm-marsa", name: "Marsa", status: "active" },
+  ];
   const memberships = [{
     id: "membership-test-1", role: "primary", membershipType: "single",
     duration: "1_month", startDate: "2026-12-01", expiryDate: "2026-12-31",
@@ -47,6 +50,16 @@ try {
     },
   }];
   let received = null;
+  let gymChange = null;
+  await context.route("**/api/system/admin/members/" + memberId + "/enrollment-gym", async (route) => {
+    assert.equal(route.request().method(), "PATCH");
+    gymChange = route.request().postDataJSON();
+    assert.deepEqual(Object.keys(gymChange).sort(), ["enrollmentGymId", "expectedUpdatedAt"]);
+    assert.equal(gymChange.expectedUpdatedAt, member.updatedAt);
+    assert.equal(gymChange.enrollmentGymId, "bgm-marsa");
+    member = { ...member, enrollmentGymId: "bgm-marsa", updatedAt: "2026-09-23T08:02:00.000Z" };
+    return route.fulfill({ json: { ok: true, changed: true, updatedAt: member.updatedAt } });
+  });
   await context.route("**/api/system/admin/members/" + memberId, async (route) => {
     if (route.request().method() === "PATCH") {
       received = route.request().postDataJSON();
@@ -75,8 +88,19 @@ try {
   assert.equal(member.memberNumber, "BGM0000123");
   assert.equal(member.membershipExpiry, "2026-12-31");
   await page.screenshot({ path: artifacts + "/member-after-390.png", fullPage: true });
+  await page.getByRole("combobox", { name: "New enrollment gym" }).selectOption("bgm-marsa");
+  assert.equal(await page.getByRole("button", { name: "Save enrollment gym" }).isEnabled(), true);
+  await page.getByRole("button", { name: "Save enrollment gym" }).click();
+  await page.getByText("Current enrollment gym changed and audited. Future visits will use this gym.").waitFor();
+  await page.getByText("Marsa", { exact: true }).first().waitFor();
+  assert.equal(gymChange.enrollmentGymId, "bgm-marsa");
+  assert.equal(member.originalEnrollmentGym, "Mosta");
+  assert.equal(memberships[0].enrollmentGymId, "bgm-mosta");
+  assert.equal(member.memberNumber, "BGM0000123");
+  assert.equal(await page.locator("main").evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.screenshot({ path: artifacts + "/member-gym-changed-390.png", fullPage: true });
   assert.deepEqual(clientErrors, []);
-  console.log("PASS Super Admin member editor displays stable identifiers, preserves membership records, and submits only approved personal fields");
+  console.log("PASS member profile and separate enrollment-gym actions preserve original gym, shared membership and permanent identity");
 } finally {
   if (browser) await browser.close();
   server.kill("SIGTERM");
