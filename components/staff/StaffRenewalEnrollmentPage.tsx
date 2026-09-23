@@ -675,6 +675,7 @@ export default function MembershipEnrollmentPage() {
                 <input
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
+                  data-bgm-scan-input="true"
                   placeholder="Member number, name, ID number, mobile or email"
                   className="min-w-0 flex-1 rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950 outline-none focus:border-orange-500"
                 />

@@ -273,6 +273,7 @@ export default function PendingMembershipActions() {
                           <div className="flex gap-2">
                             <input
                               inputMode="text"
+                              data-bgm-scan-input="true"
                               value={barcodes[participant.id] || ""}
                               onChange={(event) => setBarcodes((current) => ({ ...current, [participant.id]: event.target.value }))}
                               onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void processCard(application, participant); } }}
@@ -291,6 +292,7 @@ export default function PendingMembershipActions() {
                               <input
                                 autoFocus
                                 inputMode="text"
+                                data-bgm-scan-input="true"
                                 value={barcodes[participant.id] || ""}
                                 onChange={(event) => setBarcodes((current) => ({ ...current, [participant.id]: event.target.value }))}
                                 onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void processCard(application, participant); } }}

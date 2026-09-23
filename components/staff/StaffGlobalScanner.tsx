@@ -55,7 +55,7 @@ function activeScannerEditable(target: EventTarget | null): ScannerEditable | nu
   if (field instanceof HTMLTextAreaElement) return field;
   if (!(field instanceof HTMLInputElement)) return null;
   if (!["text", "search", "email", "tel", "url", "number"].includes(field.type)) return null;
-  if (field.dataset.bgmScanInput === "true" || /scan.*(card|barcode)|barcode scanner/i.test(field.placeholder)) {
+  if (field.dataset.bgmScanInput === "true") {
     return null; // Dedicated card inputs own their own scanner keystrokes.
   }
   return field;
@@ -291,6 +291,15 @@ export default function StaffGlobalScanner() {
       event.stopImmediatePropagation();
     };
     const onKeyDown = (event: KeyboardEvent) => {
+      // A selected, explicitly marked card-assignment/verification input owns
+      // the entire keyboard-wedge scan including Enter. This MUST precede F9
+      // handling and burst recognition, or the global reader steals the barcode.
+      const focusedInput = document.activeElement;
+      if (focusedInput instanceof HTMLElement &&
+          focusedInput.closest('[data-bgm-scan-input="true"]')) {
+        resetBuffer();
+        return;
+      }
       if (event.isComposing || event.key === "Dead") {
         resetBuffer();
         return;

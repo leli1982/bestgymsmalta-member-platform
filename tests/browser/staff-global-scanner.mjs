@@ -187,6 +187,41 @@ try {
   assert.equal(await barName.inputValue(), "Leli Apap");
   assert.equal(await page.getByRole("dialog", { name: "ACCESS GRANTED" }).count(), 0);
 
+  // Card assignment and renewal must take precedence over the global
+  // entrance reader. A dedicated focused card field receives the scanner
+  // keyboard input and Enter; no access scan should be submitted.
+  const assignedBefore = scans;
+  const assignmentInput = await page.evaluate(() => {
+    const input = document.createElement("input");
+    input.setAttribute("data-bgm-scan-input", "true");
+    input.setAttribute("aria-label", "Membership assignment scanner input");
+    input.placeholder = "Scanner input";
+    document.body.appendChild(input);
+    input.focus();
+    return true;
+  });
+  assert.equal(assignmentInput, true);
+  const focusedAssignment = page.getByRole("textbox", { name: "Membership assignment scanner input" });
+  await page.keyboard.type("X06956", { delay: 4 });
+  await page.keyboard.press("Enter");
+  assert.equal(await focusedAssignment.inputValue(), "X06956",
+    "The global reader must let the selected membership scanner input receive the entire card");
+  assert.equal(scans, assignedBefore,
+    "A dedicated enrollment scanner input must NOT cause an entrance-access check");
+  assert.equal(await page.getByRole("dialog", { name: "ACCESS GRANTED" }).count(), 0);
+  await focusedAssignment.evaluate((input) => input.remove());
+
+  // Outside a dedicated card field, the same physical code should again
+  // trigger global entrance verification as expected.
+  await barName.focus();
+  await page.keyboard.type("X06956", { delay: 4 });
+  await page.keyboard.press("Enter");
+  await page.getByRole("dialog", { name: "ACCESS GRANTED" }).waitFor();
+  await page.getByRole("dialog", { name: "ACCESS GRANTED" })
+    .getByRole("button", { name: "Close / Return to Staff Task" }).click();
+  assert.equal(await barName.inputValue(), "Bar Staff",
+    "Focused Staff fields must still be protected after a card assignment");
+
   // Regression: barcode scans when a number/quantity input is focused must
   // NEVER modify the quantity, its React state or the calculated Bar total.
   const barQuantity = page.getByRole("spinbutton", { name: "Water 500 ml quantity" });
@@ -237,7 +272,7 @@ try {
     await page.getByRole("dialog", { name: "ACCESS GRANTED" })
       .getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
   }
-  assert.equal(scans, (await barCash.count()) ? 9 : 8, "Every submitted scan must be verified exactly once");
+  assert.equal(scans, (await barCash.count()) ? 10 : 9, "Every submitted scan must be verified exactly once");
   assert.deepEqual(pageErrors, [], "Global scanner must not trigger browser errors");
   console.log("PASS global scanner verifies active and expired cards across Sundries and Bar without losing Staff form input");
 } finally {

@@ -146,7 +146,7 @@ export default function IssueNewCardPanel() {
       <form onSubmit={search} className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="text-lg font-black">Find member</h2>
         <div className="mt-3 flex gap-2">
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name, member number, mobile or email" className="min-w-0 flex-1 rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950" />
+          <input data-bgm-scan-input="true" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name, member number, mobile or email" className="min-w-0 flex-1 rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950" />
           <button disabled={busy} className="rounded-xl bg-zinc-900 px-5 py-3 font-bold text-white disabled:opacity-40">Search</button>
         </div>
         {candidates.length > 0 && (
@@ -186,7 +186,7 @@ export default function IssueNewCardPanel() {
               </select>
             </label>
             <label className="text-sm font-bold">New preprinted card
-              <input value={barcode} onChange={(event) => setBarcode(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void replaceCard(); } }} autoFocus placeholder="Scan new card barcode" className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 font-mono text-zinc-950 placeholder:text-zinc-400 caret-zinc-950" />
+              <input data-bgm-scan-input="true" value={barcode} onChange={(event) => setBarcode(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void replaceCard(); } }} autoFocus placeholder="Scan new card barcode" className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 font-mono text-zinc-950 placeholder:text-zinc-400 caret-zinc-950" />
             </label>
           </div>
           <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">Issue New Card changes the card only. It does not renew or extend the membership.</p>

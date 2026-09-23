@@ -1045,6 +1045,7 @@ export default function StaffMembershipReviewModal({
                 <form onSubmit={submitCard} className="mt-4 flex flex-col gap-3 sm:flex-row">
                   <input
                     ref={barcodeRef}
+                    data-bgm-scan-input="true"
                     value={barcodeValue}
                     onChange={(event) => setBarcodeValue(event.target.value)}
                     placeholder={manualEntry ? "Enter card barcode manually" : "Scanner input"}
