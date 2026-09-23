@@ -4,7 +4,9 @@
  * only accepts long, compact and fast strings terminated by Enter. The manual
  * Scan card dialog is the reliable fallback for unusual devices/field types.
  */
-export const MIN_SCAN_LENGTH = 7;
+// Some preprinted physical cards (e.g. X06956) contain only six characters.
+// Short scans require a letter followed by five digits to reduce false triggers.
+export const MIN_SCAN_LENGTH = 6;
 export const MAX_SCAN_LENGTH = 128;
 export const MAX_AVERAGE_INTERVAL_MS = 65;
 export const MAX_CONTIGUOUS_GAP_MS = 160;
@@ -18,7 +20,9 @@ export function looksLikeKeyboardBarcode(
   return (
     text.length >= MIN_SCAN_LENGTH &&
     text.length <= MAX_SCAN_LENGTH &&
-    /^[a-z0-9_-]+$/i.test(text) &&
+    (text.length === MIN_SCAN_LENGTH
+      ? /^[a-z][0-9]{5}$/i.test(text)
+      : /^[a-z0-9_-]+$/i.test(text)) &&
     elapsedMs >= 0 &&
     elapsedMs / Math.max(1, text.length - 1) <= MAX_AVERAGE_INTERVAL_MS &&
     lastGapMs <= MAX_CONTIGUOUS_GAP_MS
