@@ -88,7 +88,8 @@ function replayHeldKeys(burst: EditableBurst | null) {
     // Use the native setter so React sees a genuine change when normal human
     // quantity typing is replayed after the short scanner-detection window.
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
-    const nextValue = burst.field.value + burst.held;
+    const nextValue = burst.field.value === "0" && /^[0-9]+$/.test(burst.held)
+      ? burst.held : burst.field.value + burst.held;
     if (setter) setter.call(burst.field, nextValue);
     else burst.field.value = nextValue;
     dispatchEditableInput(burst.field);
