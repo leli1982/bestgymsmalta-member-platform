@@ -47,6 +47,16 @@ test("joint request whitelist requires partner and all three immutable version c
     { ...command, payment: "free" }, { ...command, reason: "X".repeat(501) },
   ]) assert.equal(validateCouplesCancellationCommand(bad).ok, false, JSON.stringify(bad));
 });
+test("later migration labels immediate and future joint cancellation distinctly without rewriting past audit events", () => {
+  const auditMigration = read("supabase/migrations/20260923_150000_couples_immediate_cancellation_audit.sql");
+  assert.match(auditMigration, /p_effective_date = v_today then 'member\\.couples_cancellation\\.immediate'/);
+  assert.match(auditMigration, /when p_action = 'cancel' then 'member\\.couples_cancellation\\.schedule'/);
+  assert.match(auditMigration, /else 'member\\.couples_cancellation\\.withdraw'/);
+  assert.match(auditMigration, /revoke all on function public\\.bgm_super_admin_couples_cancellation/);
+  assert.match(auditMigration, /to service_role/);
+  assert.doesNotMatch(auditMigration, /update public\\.bgm_audit_log|delete from public\\.bgm_audit_log/i);
+});
+
 test("joint endpoint enforces server super admin and one audited DB transaction", () => {
   const route = read("app/api/system/admin/members/[memberId]/couples-cancellation/route.ts");
   const sql = read("supabase/migrations/20260923_140000_super_admin_couples_cancellation.sql");
