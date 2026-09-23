@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { getOrCreateOfflineDeviceId } from "@/lib/offlineRosterClient";
+import OfficialMemberPhotoCapture from "@/components/staff/OfficialMemberPhotoCapture";
 
 type StaffUser = {
   gymId: string | null;
@@ -19,6 +20,7 @@ type AccessResult = {
   credentialKind?: string | null;
   cardStatus?: string | null;
   member?: {
+    id: string;
     memberNumber: string;
     fullName: string;
     status: string;
@@ -78,6 +80,7 @@ export default function StaffGlobalScanner() {
   const [user, setUser] = useState<StaffUser | null>(null);
   const [result, setResult] = useState<AccessResult | null>(null);
   const [networkError, setNetworkError] = useState("");
+  const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
   const [checking, setChecking] = useState(false);
   const scannerActive = useRef(false);
   const scannerBuffer = useRef("");
@@ -126,6 +129,7 @@ export default function StaffGlobalScanner() {
     setChecking(true);
     setNetworkError("");
     setResult(null);
+    setPhotoLoadFailed(false);
     try {
       const response = await fetch("/api/system/barcode/scan", {
         method: "POST",
@@ -170,6 +174,7 @@ export default function StaffGlobalScanner() {
 
   const closeResult = useCallback(() => {
     setResult(null);
+    setPhotoLoadFailed(false);
     setNetworkError("");
     setChecking(false);
     const previous = focusBeforeScan.current;
@@ -322,10 +327,11 @@ export default function StaffGlobalScanner() {
               <div className="mx-auto mt-6 flex max-w-xl flex-wrap items-center justify-center gap-5 text-left">
                 <div className="relative flex h-36 w-36 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-zinc-100 text-5xl font-black text-zinc-300">
                   {result.member.fullName.slice(0, 1)}
-                  {result.member.photoUrl && (
+                  {result.member.photoUrl && !photoLoadFailed && (
                     <img
                       src={result.member.photoUrl}
                       alt={`${result.member.fullName} photo`}
+                      onError={() => setPhotoLoadFailed(true)}
                       className="absolute inset-0 h-full w-full object-cover"
                     />
                   )}
@@ -347,10 +353,26 @@ export default function StaffGlobalScanner() {
                 DO NOT ALLOW ACCESS until verified by reception.
               </p>
             )}
-            {granted && result.member?.photoRequired && (
-              <p className="mt-5 rounded-2xl bg-amber-50 p-4 text-lg font-black text-amber-800">
-                PHOTO REQUIRED — verify identity and capture the official photo when practical.
-              </p>
+            {granted && result.member && (result.member.photoRequired || photoLoadFailed) && (
+              <div className="mt-5 rounded-2xl bg-amber-50 p-4 text-left text-amber-900">
+                <p className="text-center text-lg font-black">PHOTO REQUIRED</p>
+                <p className="mt-1 text-center text-sm font-semibold">
+                  Entry remains granted. Capture the official member photo now or close this warning.
+                </p>
+                <div className="mx-auto mt-4 max-w-sm">
+                  <OfficialMemberPhotoCapture
+                    memberId={result.member.id}
+                    source="reception_capture"
+                    onSaved={(photoUrl) => {
+                      const memberId = result.member?.id;
+                      setPhotoLoadFailed(false);
+                      setResult(current => current?.member && current.member.id === memberId
+                        ? { ...current, member: { ...current.member, photoRequired: false, photoUrl } }
+                        : current);
+                    }}
+                  />
+                </div>
+              </div>
             )}
             {granted && result.duplicate && (
               <p className="mt-3 font-semibold text-zinc-600">

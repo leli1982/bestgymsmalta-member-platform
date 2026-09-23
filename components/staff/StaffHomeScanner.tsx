@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Barcode, CheckCircle2, XCircle } from "lucide-react";
+import OfficialMemberPhotoCapture from "@/components/staff/OfficialMemberPhotoCapture";
 import { getOrCreateOfflineDeviceId } from "@/lib/offlineRosterClient";
 
 type SystemUser = {
@@ -96,6 +97,7 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
   const [result, setResult] = useState<ScanResponse | null>(null);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState("");
+  const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
 
   const canScan =
     Boolean(user.gymId) &&
@@ -105,6 +107,7 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
     if (resetTimer.current) clearTimeout(resetTimer.current);
     resetTimer.current = null;
     setResult(null);
+    setPhotoLoadFailed(false);
     setValue("");
     setError("");
     window.setTimeout(() => inputRef.current?.focus(), 0);
@@ -134,6 +137,7 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
       }
 
       const scan = data as ScanResponse;
+      setPhotoLoadFailed(false);
       setResult(scan);
       setValue("");
       playTone(scan.granted ? "success" : "warning");
@@ -260,10 +264,11 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
                 <div className="flex items-center justify-center gap-4">
                   <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-zinc-100 text-3xl font-black text-zinc-300">
                     {result.member.fullName.slice(0, 1).toUpperCase()}
-                    {result.member.photoUrl && (
+                    {result.member.photoUrl && !photoLoadFailed && (
                       <img
                         src={result.member.photoUrl}
                         alt=""
+                        onError={() => setPhotoLoadFailed(true)}
                         className="absolute inset-0 h-full w-full object-cover"
                       />
                     )}
@@ -301,12 +306,25 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
                   </div>
                 </div>
 
-                {result.granted && result.member.photoRequired && (
+                {result.granted && (result.member.photoRequired || photoLoadFailed) && (
                   <div className="mt-5 rounded-2xl border-4 border-amber-300 bg-amber-50 p-4">
                     <p className="text-2xl font-black text-amber-700">PHOTO REQUIRED</p>
                     <p className="mt-1 text-sm font-bold text-amber-900">
-                      Entry is still granted. Use Card / Reception when practical to capture the official photo.
+                      Entry is still granted. Take an official photo now or close and scan the next member.
                     </p>
+                    <div className="mx-auto mt-4 max-w-sm text-left">
+                      <OfficialMemberPhotoCapture
+                        memberId={result.member.id}
+                        source="reception_capture"
+                        onSaved={(photoUrl) => {
+                          const memberId = result.member?.id;
+                          setPhotoLoadFailed(false);
+                          setResult(current => current?.member && current.member.id === memberId
+                            ? { ...current, member: { ...current.member, photoRequired: false, photoUrl } }
+                            : current);
+                        }}
+                      />
+                    </div>
                   </div>
                 )}
 

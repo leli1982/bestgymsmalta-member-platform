@@ -147,6 +147,7 @@ export default function BarcodeReceptionPage() {
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState("");
+  const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
 
   const canScan = useMemo(
     () =>
@@ -192,6 +193,7 @@ export default function BarcodeReceptionPage() {
     if (resetTimer.current) clearTimeout(resetTimer.current);
     resetTimer.current = null;
     setResult(null);
+    setPhotoLoadFailed(false);
     setMembershipNumber("");
     setError("");
     setTimeout(() => inputRef.current?.focus(), 0);
@@ -224,6 +226,7 @@ export default function BarcodeReceptionPage() {
       }
 
       const scan = data as ScanResponse;
+      setPhotoLoadFailed(false);
       setResult(scan);
       setMembershipNumber("");
       const view = presentation(scan.result);
@@ -296,7 +299,7 @@ export default function BarcodeReceptionPage() {
         ? { ...baseView, title: "CARD NOT ACTIVE" }
         : baseView;
     const success = view.severity === "success";
-    const needsPhoto = Boolean(result.granted && result.member?.photoRequired);
+    const needsPhoto = Boolean(result.granted && result.member && (result.member.photoRequired || photoLoadFailed));
     const backgroundClass = success ? "bg-green-600" : "bg-red-600";
     const titleClass = success ? "text-green-600" : "text-red-600";
 
@@ -343,18 +346,18 @@ export default function BarcodeReceptionPage() {
               <div>
                 <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-3xl bg-zinc-100 text-6xl font-black text-zinc-300">
                   <span>{result.member.fullName.slice(0, 1).toUpperCase() || "?"}</span>
-                  {result.member.photoUrl && (
+                  {result.member.photoUrl && !photoLoadFailed && (
                     <img
                       src={result.member.photoUrl}
                       alt={`${result.member.fullName} official photo`}
                       className="absolute inset-0 h-full w-full object-cover"
                       onError={(event) => {
-                        event.currentTarget.style.display = "none";
+                        setPhotoLoadFailed(true);
                       }}
                     />
                   )}
                 </div>
-                {result.member.photoRequired && (
+                {(result.member.photoRequired || photoLoadFailed) && (
                   <p className="mt-3 rounded-xl bg-amber-50 p-3 text-center text-sm font-black text-amber-800">
                     PHOTO REQUIRED
                   </p>
@@ -417,8 +420,9 @@ export default function BarcodeReceptionPage() {
                   source="reception_capture"
                   onSaved={(photoUrl) => {
                     const memberId = result.member?.id;
+                    setPhotoLoadFailed(false);
                     setResult((current) =>
-                      current?.member
+                      current?.member && current.member.id === memberId
                         ? {
                             ...current,
                             member: {
