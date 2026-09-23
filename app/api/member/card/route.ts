@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getMemberRequestSession } from "@/lib/memberAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { MEMBER_PROFILE_COLUMNS, publicMemberProfile } from "@/lib/memberPublicProfile";
+import { isCancellationEffective } from "@/lib/memberCancellationCore";
+import { todayMaltaDate } from "@/lib/maltaDate";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +55,7 @@ export async function GET(request: NextRequest) {
         cardLinked: Boolean(activeCredential),
         physicalCardBarcode: activeCredential?.barcode_value || null,
         source: activeCredential ? "physical_card" : null,
-        memberStatus: memberResult.data.status,
+        memberStatus: isCancellationEffective(memberResult.data.cancellation_effective_date, todayMaltaDate()) ? "inactive" : memberResult.data.status,
         membershipExpiry: memberResult.data.membership_expiry || null,
       },
       {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
+import { todayMaltaDate } from "@/lib/maltaDate";
 import {
   normalizeMembershipNumber,
   parseMembershipNumber,
@@ -14,7 +15,7 @@ import {
 export const dynamic = "force-dynamic";
 
 const MEMBER_SEARCH_FIELDS =
-  "id, member_number, first_name, last_name, full_name, status, membership_expiry, mobile, phone, email, id_number, address_line_1, address_line_2, town, postcode, date_of_birth, next_of_kin, enrollment_gym_id, legacy_pk_customer, legacy_gym, official_photo_path";
+  "id, member_number, first_name, last_name, full_name, status, membership_expiry, cancellation_effective_date, mobile, phone, email, id_number, address_line_1, address_line_2, town, postcode, date_of_birth, next_of_kin, enrollment_gym_id, legacy_pk_customer, legacy_gym, official_photo_path";
 const VALID_FILTERS = new Set<StaffMemberFilter>(["all", "active", "expired"]);
 
 function escapeLikePattern(value: string) {
@@ -35,6 +36,7 @@ function toCandidate(
   const classification = classifyStaffMember({
     status: member.status,
     membershipExpiry: member.membership_expiry,
+    cancellationEffectiveDate: member.cancellation_effective_date,
     today,
   });
   const hasOfficialPhoto = Boolean(member.official_photo_path);
@@ -45,9 +47,11 @@ function toCandidate(
     firstName: member.first_name || "",
     lastName: member.last_name || "",
     fullName: member.full_name || "",
-    status: member.status || "inactive",
+    status: member.cancellation_effective_date && member.cancellation_effective_date <= today
+      ? "inactive" : member.status || "inactive",
     classification,
     membershipExpiry: member.membership_expiry || "",
+    cancellationEffectiveDate: member.cancellation_effective_date || null,
     mobile: member.mobile || member.phone || "",
     phone: member.phone || member.mobile || "",
     email: member.email || "",
@@ -115,7 +119,7 @@ export async function GET(request: NextRequest) {
   const gymNames = new Map(
     (gymsResult.data || []).map((gym) => [gym.id as string, gym.name as string])
   );
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayMaltaDate();
   const canViewOfficialPhoto =
     auth.context.isSuperAdmin ||
     auth.context.permissions.includes("members.photos.view");
@@ -159,6 +163,7 @@ export async function GET(request: NextRequest) {
       }
 
       const members = Array.from(unique.values())
+        .filter((member) => !(member.cancellation_effective_date && member.cancellation_effective_date <= today))
         .sort(sortMembersByName)
         .slice(offset, offset + limit);
 

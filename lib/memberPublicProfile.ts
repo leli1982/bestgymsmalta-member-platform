@@ -1,7 +1,9 @@
 import type { AppMember } from "./memberSession";
+import { todayMaltaDate } from "./maltaDate";
+import { isCancellationEffective } from "./memberCancellationCore";
 
 export const MEMBER_PROFILE_COLUMNS =
-  "id, username, member_number, full_name, email, phone, status, membership_expiry, temp_password_must_change";
+  "id, username, member_number, full_name, email, phone, status, membership_expiry, cancellation_effective_date, temp_password_must_change";
 
 type MemberRow = {
   id: string;
@@ -12,6 +14,7 @@ type MemberRow = {
   phone?: string | null;
   status?: string | null;
   membership_expiry?: string | null;
+  cancellation_effective_date?: string | null;
   temp_password_must_change?: boolean | null;
 };
 
@@ -23,7 +26,7 @@ export function publicMemberProfile(member: MemberRow): AppMember {
     fullName: member.full_name || "",
     email: member.email || "",
     phone: member.phone || "",
-    status: member.status || "inactive",
+    status: isCancellationEffective(member.cancellation_effective_date, todayMaltaDate()) ? "inactive" : member.status || "inactive",
     membershipExpiry: member.membership_expiry || null,
     tempPasswordMustChange: Boolean(member.temp_password_must_change),
   };

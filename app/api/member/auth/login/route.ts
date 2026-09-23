@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { setMemberSessionCookie } from "@/lib/memberAuth";
 import { MEMBERSHIP_NUMBER_PATTERN, normalizeMembershipNumber } from "@/lib/memberNumberCore";
+import { todayMaltaDate } from "@/lib/maltaDate";
+import { isCancellationEffective } from "@/lib/memberCancellationCore";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +16,7 @@ function publicMember(member: any) {
     fullName: member.full_name || "",
     email: member.email || "",
     phone: member.phone || "",
-    status: member.status || "active",
+    status: isCancellationEffective(member.cancellation_effective_date, todayMaltaDate()) ? "inactive" : member.status || "active",
     membershipExpiry: member.membership_expiry || "",
     tempPasswordMustChange: Boolean(member.temp_password_must_change),
   };
@@ -80,14 +82,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (member.status !== "active") {
+    if (member.status !== "active" ||
+        isCancellationEffective(member.cancellation_effective_date, todayMaltaDate())) {
       return NextResponse.json(
         { error: "This membership is inactive. Please renew at reception." },
         { status: 403 }
       );
     }
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayMaltaDate();
 
     if (member.membership_expiry && member.membership_expiry < today) {
       return NextResponse.json(
