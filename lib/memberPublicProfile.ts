@@ -1,6 +1,6 @@
 import type { AppMember } from "./memberSession";
-import { todayMaltaDate } from "./maltaDate";
-import { isCancellationEffective } from "./memberCancellationCore";
+import { todayMaltaDate } from "./maltaDate.ts";
+import { isCancellationEffective } from "./memberCancellationCore.ts";
 
 export const MEMBER_PROFILE_COLUMNS =
   "id, username, member_number, full_name, email, phone, status, membership_expiry, cancellation_effective_date, temp_password_must_change";

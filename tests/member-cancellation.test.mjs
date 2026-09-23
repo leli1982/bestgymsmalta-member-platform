@@ -52,7 +52,7 @@ test("only current unshared individual or legacy memberships can be cancelled", 
 });
 
 test("cancellation payload whitelist rejects tampered identity, payments, expiry and invalid dates", () => {
-  assert.equal(validateCancellationCommand(command).ok, true);
+  assert.equal(validateCancellationCommand(command).ok, true, JSON.stringify(validateCancellationCommand(command)));
   assert.equal(validateCancellationCommand({ ...command, action: "withdraw", effectiveDate: null }).ok, true);
   assert.equal(validateCancellationCommand({ ...command, effectiveDate: "2026-02-30" }).ok, false);
   assert.equal(validateCancellationCommand({ ...command, membershipId: "not-a-uuid" }).ok, false);
