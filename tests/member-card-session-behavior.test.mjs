@@ -9,6 +9,8 @@ import { NextRequest } from "next/server.js";
 import * as memberSessionCore from "../lib/memberServerSession.ts";
 import * as memberNumbers from "../lib/memberNumberCore.ts";
 import * as memberProfiles from "../lib/memberPublicProfile.ts";
+import { todayMaltaDate } from "../lib/maltaDate.ts";
+import { isCancellationEffective } from "../lib/memberCancellationCore.ts";
 import { resolveMemberCardResponse } from "../lib/memberCardState.ts";
 
 const require = createRequire(import.meta.url);
@@ -77,6 +79,8 @@ function harness({ credentials = [credential], databaseError = false } = {}) {
     "@/lib/supabaseAdmin": { getSupabaseAdmin: () => database },
     "@/lib/memberPublicProfile": memberProfiles,
     "@/lib/memberNumberCore": memberNumbers,
+    "@/lib/maltaDate": { todayMaltaDate },
+    "@/lib/memberCancellationCore": { isCancellationEffective },
   };
   return {
     queries,

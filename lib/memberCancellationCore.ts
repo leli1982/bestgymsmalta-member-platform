@@ -56,7 +56,7 @@ export function resolveMemberCancellation(context: MemberCancellationContext): C
     membershipId: current[0].id, expectedMembershipUpdatedAt: current[0].updated_at };
 }
 
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const validTimestamp = (value: unknown) =>
   typeof value === "string" && Boolean(value) && Number.isFinite(Date.parse(value));
 
