@@ -1,0 +1,212 @@
+"use client";
+
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { ArrowLeft, BadgeCheck, RefreshCcw, Save, ShieldCheck, UserRound } from "lucide-react";
+import { EDITABLE_PROFILE_FIELDS, type MemberProfileDraft } from "@/lib/superAdminMemberProfileCore";
+
+type Member = MemberProfileDraft & {
+  id: string; memberNumber: string; fullName: string; status: string;
+  membershipExpiry: string | null; enrollmentDate: string | null;
+  membershipPeriod: string | null; enrollmentGymId: string | null;
+  originalEnrollmentGym: string | null; legacyPkCustomer: string | null;
+  photoUrl: string | null; updatedAt: string;
+};
+type Membership = {
+  id: string; role: string; membershipType: string; duration: string;
+  startDate: string; expiryDate: string; enrollmentGymId: string;
+  status: string; application: {
+    application_reference: string; base_price_cents: number | null;
+    discount_amount_cents: number | null; final_amount_cents: number | null;
+    currency: string; payment_method: string | null;
+    payment_other_text: string | null; payment_received_at: string | null;
+  } | null;
+};
+type Detail = {
+  member: Member; activeCardNumber: string | null;
+  gyms: Array<{ id: string; name: string; status: string }>;
+  memberships: Membership[];
+};
+const FIELDS: Array<{ key: keyof MemberProfileDraft; label: string; type?: string; wide?: boolean }> = [
+  { key: "firstName", label: "First name" },
+  { key: "lastName", label: "Last name" },
+  { key: "email", label: "Email", type: "email" },
+  { key: "mobile", label: "Mobile / contact number", type: "tel" },
+  { key: "dateOfBirth", label: "Date of birth", type: "date" },
+  { key: "idNumber", label: "ID / passport number" },
+  { key: "addressLine1", label: "Address line 1", wide: true },
+  { key: "addressLine2", label: "Address line 2", wide: true },
+  { key: "town", label: "Town" },
+  { key: "postcode", label: "Postcode" },
+  { key: "nextOfKin", label: "Next of kin / emergency contact", wide: true },
+];
+function profileOf(member: Member): MemberProfileDraft {
+  return Object.fromEntries(EDITABLE_PROFILE_FIELDS.map((key) => [key, member[key] || ""])) as MemberProfileDraft;
+}
+function currency(cents: number | null | undefined, code = "EUR") {
+  return cents == null ? "Not recorded" : new Intl.NumberFormat("en-MT", {
+    style: "currency", currency: code || "EUR",
+  }).format(cents / 100);
+}
+function gymName(gyms: Detail["gyms"], id: string | null) {
+  return gyms.find((gym) => gym.id === id)?.name || id || "Not recorded";
+}
+
+export default function SuperAdminMemberEditor({ memberId }: { memberId: string }) {
+  const [detail, setDetail] = useState<Detail | null>(null);
+  const [profile, setProfile] = useState<MemberProfileDraft | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/system/admin/members/${encodeURIComponent(memberId)}`, {
+        cache: "no-store", credentials: "same-origin",
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not load member.");
+      setDetail(result as Detail);
+      setProfile(profileOf(result.member));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not load member.");
+    } finally {
+      setLoading(false);
+    }
+  }, [memberId]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!detail || !profile || saving) return;
+    setSaving(true);
+    setMessage("");
+    setError("");
+    try {
+      const response = await fetch(`/api/system/admin/members/${encodeURIComponent(memberId)}`, {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expectedUpdatedAt: detail.member.updatedAt, profile }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not save member.");
+      await load();
+      setMessage("Personal details saved and audited.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not save member.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const member = detail?.member;
+  const changed = Boolean(member && profile && JSON.stringify(profile) !== JSON.stringify(profileOf(member)));
+
+  return (
+    <main className="bgm-admin-light min-h-screen bg-[#f6f6f6] px-4 py-6 text-zinc-950 sm:px-8">
+      <div className="mx-auto max-w-6xl space-y-5">
+        <header className="rounded-3xl border border-zinc-200 bg-white p-5 sm:p-7">
+          <a href="/staff/admin/membership-tools?tool=members" className="inline-flex items-center gap-2 text-sm font-bold text-orange-700">
+            <ArrowLeft size={17} /> Member browser
+          </a>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div><p className="text-xs font-black uppercase tracking-[.18em] text-orange-700">Super Admin / Member management</p>
+              <h1 className="mt-1 text-3xl font-black">Member editor</h1>
+              <p className="mt-2 text-sm text-zinc-600">Personal details are editable below. Membership, card and payment records are shown separately.</p>
+            </div>
+            <button type="button" onClick={() => void load()} disabled={loading || saving}
+              className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-3 text-sm font-bold disabled:opacity-50">
+              <RefreshCcw size={16} /> Reload
+            </button>
+          </div>
+        </header>
+        {loading && !detail && <section className="rounded-3xl bg-white p-8">Loading member details…</section>}
+        {error && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">{error}</div>}
+        {message && <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">{message}</div>}
+        {member && detail && profile && (
+          <>
+            <section className="grid gap-4 rounded-3xl border border-zinc-200 bg-white p-5 sm:grid-cols-[112px_minmax(0,1fr)] sm:p-7">
+              {member.photoUrl
+                ? <img src={member.photoUrl} alt={member.fullName + " official member photo"} className="h-28 w-28 rounded-2xl bg-zinc-100 object-cover" />
+                : <div className="flex h-28 w-28 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400"><UserRound size={42}/></div>}
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-widest text-orange-700">Permanent BGM membership number</p>
+                <p className="mt-1 break-all font-mono text-3xl font-black">{member.memberNumber}</p>
+                <p className="mt-2 text-lg font-bold">{member.fullName || "Member name not recorded"}</p>
+                <p className="mt-1 text-sm text-zinc-600">Current card: <strong>{detail.activeCardNumber || "Card not assigned"}</strong> · Status: <strong>{member.status}</strong></p>
+                <p className="mt-1 text-sm text-zinc-600">Original pkCustomer: <strong>{member.legacyPkCustomer || "Not recorded"}</strong> (Super Admin only)</p>
+                <p className="mt-2 text-xs text-zinc-500">Member photo is managed through the authorised staff photo-capture flow, not Excel or this editor.</p>
+              </div>
+            </section>
+            <form onSubmit={(event) => void save(event)} className="rounded-3xl border border-zinc-200 bg-white p-5 sm:p-7">
+              <div className="flex items-center gap-2"><ShieldCheck className="text-orange-700" size={22}/><h2 className="text-xl font-black">Personal details</h2></div>
+              <p className="mt-2 text-sm text-zinc-500">Only these fields are changed by Save. BGM number, original Excel values, assigned card, membership dates and payment history are not changed.</p>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                {FIELDS.map(({ key, label, type, wide }) => (
+                  <label key={key} className={wide ? "block sm:col-span-2" : "block"}>
+                    <span className="mb-1.5 block text-sm font-bold">{label}</span>
+                    <input type={type || "text"} value={profile[key]}
+                      onChange={(event) => { setProfile((old) => old ? { ...old, [key]: event.target.value } : old); setMessage(""); }}
+                      required={key === "firstName" || key === "lastName"}
+                      maxLength={key === "firstName" || key === "lastName" ? 100 : key === "email" ? 254 : 500}
+                      className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-100" />
+                  </label>
+                ))}
+              </div>
+              <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-zinc-100 pt-5">
+                <button disabled={!changed || saving || loading} type="submit"
+                  className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-5 py-3 font-black text-white disabled:cursor-not-allowed disabled:bg-zinc-300">
+                  <Save size={17} /> {saving ? "Saving…" : "Save personal details"}
+                </button>
+                {changed && <span className="text-sm font-medium text-amber-700">You have unsaved changes.</span>}
+              </div>
+            </form>
+            <section className="rounded-3xl border border-zinc-200 bg-white p-5 sm:p-7">
+              <div className="flex items-center gap-2"><BadgeCheck size={22} className="text-orange-700"/><h2 className="text-xl font-black">Gym and membership</h2></div>
+              <p className="mt-2 text-sm text-zinc-600">All memberships give access to every BGM gym. Enrollment gym is not changed by visiting another location.</p>
+              <dl className="mt-5 grid gap-3 sm:grid-cols-2">
+                {([
+                  ["Original enrollment gym (Excel)", member.originalEnrollmentGym || "Not recorded"],
+                  ["Current enrollment gym", gymName(detail.gyms, member.enrollmentGymId)],
+                  ["Original enrollment date", member.enrollmentDate || "Unknown — not provided in original Excel"],
+                  ["Current membership expiry (ExpiryDate1)", member.membershipExpiry || "Not recorded"],
+                ] as Array<[string, string]>).map(([label, value]) => <div key={label} className="rounded-xl bg-zinc-50 p-4">
+                  <dt className="text-xs font-bold uppercase text-zinc-500">{label}</dt><dd className="mt-1 break-words font-bold">{value}</dd>
+                </div>)}
+              </dl>
+              <p className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-3 text-sm text-orange-900">Gym reassignment and expiry/status changes will be added with historical check-in snapshots and membership-specific safeguards. They are not saved by the personal-details button.</p>
+            </section>
+            <section className="rounded-3xl border border-zinc-200 bg-white p-5 sm:p-7">
+              <h2 className="text-xl font-black">Membership and payment records</h2>
+              <p className="mt-2 text-sm text-zinc-600">Read-only current records. Couples may share one membership. Historical Excel members may have no linked payment record.</p>
+              {detail.memberships.length === 0
+                ? <p className="mt-4 rounded-xl bg-zinc-50 p-4 text-sm">No linked membership transaction is recorded for this member. Their imported expiry date is shown above; no start date or payment has been invented.</p>
+                : <div className="mt-4 space-y-3">{detail.memberships.map((item) => (
+                  <article key={item.id} className="rounded-2xl border border-zinc-200 p-4">
+                    <div className="flex flex-wrap justify-between gap-2"><strong className="capitalize">{item.membershipType} · {item.duration.replaceAll("_", " ")}</strong>
+                      <span className="text-sm font-bold">{item.status} · {item.role}</span></div>
+                    <p className="mt-2 text-sm">From {item.startDate} until {item.expiryDate} · Enrollment: {gymName(detail.gyms, item.enrollmentGymId)}</p>
+                    {item.application
+                      ? <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                          <div>Recorded price: <strong>{currency(item.application.base_price_cents, item.application.currency)}</strong></div>
+                          <div>Recorded discount: <strong>{currency(item.application.discount_amount_cents, item.application.currency)}</strong></div>
+                          <div>Recorded final amount: <strong>{currency(item.application.final_amount_cents, item.application.currency)}</strong></div>
+                          <div>Payment method: <strong>{item.application.payment_method || "Not recorded"}</strong></div>
+                          <div>Payment received: <strong>{item.application.payment_received_at || "Not recorded"}</strong></div>
+                          <div>Outstanding balance: <strong>Not tracked in this record</strong></div>
+                        </dl>
+                      : <p className="mt-2 text-sm text-zinc-500">No linked payment application.</p>}
+                  </article>
+                ))}</div>}
+              <p className="mt-4 text-xs text-zinc-500">Payment corrections and outstanding balances require a separate audited ledger; this editor does not overwrite existing transactions.</p>
+            </section>
+          </>
+        )}
+      </div>
+    </main>
+  );
+}
