@@ -137,7 +137,48 @@ try {
   await page.screenshot({ path: artifacts + "/bar-granted.png" });
   await page.getByRole("dialog", { name: "ACCESS GRANTED" })
     .getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
-  assert.equal(scans, 3, "Every submitted scan must be verified exactly once");
+  // Ordinary unprogrammed keyboard-wedge: no F9 prefix, scanner sends code + Enter.
+  // The Staff name must remain byte-for-byte unchanged, including React state.
+  await barName.fill("Bar Staff");
+  await barName.focus();
+  await page.keyboard.type("BGM0000777", { delay: 4 });
+  await page.keyboard.press("Enter");
+  const unprogrammed = page.getByRole("dialog", { name: "ACCESS GRANTED" });
+  await unprogrammed.waitFor({ state: "visible" });
+  assert.equal(await barName.inputValue(), "Bar Staff",
+    "Unprogrammed scanner must not append a barcode to Staff name");
+  await unprogrammed.getByRole("button", { name: /Close \\/ Return to Staff Task/ }).click();
+  assert.equal(await barName.inputValue(), "Bar Staff",
+    "Controlled Staff name must still be intact after closing result");
+  assert.equal(await barName.evaluate(input => document.activeElement === input), true,
+    "Scanner must restore focus to the Staff name field");
+
+  // A person typing normally without Enter must never cause a scan. Fast typing
+  // held in the scanner candidate buffer must be replayed into the form.
+  await barName.fill("");
+  await barName.focus();
+  await page.keyboard.type("Leli Apap", { delay: 50 });
+  await page.waitForTimeout(220);
+  assert.equal(await barName.inputValue(), "Leli Apap");
+  assert.equal(await page.getByRole("dialog", { name: "ACCESS GRANTED" }).count(), 0);
+
+  // Reliable one-click fallback for numeric/atypical fields where auto-recognition
+  // is intentionally disabled to protect quantities and price inputs.
+  await barName.fill("Bar Staff");
+  const barCash = page.getByRole("spinbutton", { name: /total cash found/i });
+  if (await barCash.count()) {
+    await barCash.fill("15");
+    await barCash.focus();
+    await page.getByRole("button", { name: "Scan card", exact: true }).click();
+    const manualDialog = page.getByRole("dialog", { name: "Scan card" });
+    await manualDialog.getByPlaceholder("Scan or enter card barcode").fill("BGM0000777");
+    await manualDialog.getByRole("button", { name: "Verify card" }).click();
+    await page.getByRole("dialog", { name: "ACCESS GRANTED" }).waitFor();
+    assert.equal(await barCash.inputValue(), "15", "Manual scan must not alter cash amount");
+    await page.getByRole("dialog", { name: "ACCESS GRANTED" })
+      .getByRole("button", { name: /Close \\/ Return to Staff Task/ }).click();
+  }
+  assert.equal(scans, (await barCash.count()) ? 5 : 4, "Every submitted scan must be verified exactly once");
   assert.deepEqual(pageErrors, [], "Global scanner must not trigger browser errors");
   console.log("PASS global scanner verifies active and expired cards across Sundries and Bar without losing Staff form input");
 } finally {
