@@ -21,8 +21,17 @@ type Membership = {
     payment_other_text: string | null; payment_received_at: string | null;
   } | null;
 };
+type DateEdit = {
+  allowed: boolean;
+  reason: string;
+  membershipId: string | null;
+  expectedMembershipUpdatedAt: string | null;
+  startDate: string;
+  expiryDate: string;
+};
 type Detail = {
   member: Member; activeCardNumber: string | null;
+  dateEdit: DateEdit;
   gyms: Array<{ id: string; name: string; status: string }>;
   memberships: Membership[];
 };
@@ -60,6 +69,11 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
   const [gymSaving, setGymSaving] = useState(false);
   const [gymMessage, setGymMessage] = useState("");
   const [gymError, setGymError] = useState("");
+  const [dateStart, setDateStart] = useState("");
+  const [dateExpiry, setDateExpiry] = useState("");
+  const [dateSaving, setDateSaving] = useState(false);
+  const [dateError, setDateError] = useState("");
+  const [dateMessage, setDateMessage] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -72,9 +86,17 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Could not load member.");
-      setDetail(result as Detail);
+      const dateEdit: DateEdit = result.dateEdit || {
+        allowed: false, reason: "Reload this member to verify the current membership.",
+        membershipId: null, expectedMembershipUpdatedAt: null,
+        startDate: result.member.enrollmentDate || "",
+        expiryDate: result.member.membershipExpiry || "",
+      };
+      setDetail({ ...(result as Detail), dateEdit });
       setProfile(profileOf(result.member));
       setGymSelection(result.member.enrollmentGymId || "");
+      setDateStart(dateEdit.startDate);
+      setDateExpiry(dateEdit.expiryDate);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not load member.");
     } finally {
@@ -136,9 +158,41 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
     }
   }
 
+  async function saveDates() {
+    if (!detail || !detail.dateEdit.allowed || dateSaving || saving || gymSaving || changed || gymChanged || !dateChanged) return;
+    setDateSaving(true);
+    setDateError("");
+    setDateMessage("");
+    try {
+      const response = await fetch(`/api/system/admin/members/${encodeURIComponent(memberId)}/membership-dates`, {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          expectedMemberUpdatedAt: detail.member.updatedAt,
+          membershipId: detail.dateEdit.membershipId,
+          expectedMembershipUpdatedAt: detail.dateEdit.expectedMembershipUpdatedAt,
+          startDate: dateStart || null,
+          expiryDate: dateExpiry,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not correct the membership dates.");
+      await load();
+      setDateMessage(result.changed
+        ? "Membership dates corrected and audited. Current expiry updated; original payment history was not changed."
+        : "The selected membership dates are already saved.");
+    } catch (caught) {
+      setDateError(caught instanceof Error ? caught.message : "Could not correct the membership dates.");
+    } finally {
+      setDateSaving(false);
+    }
+  }
+
   const member = detail?.member;
   const changed = Boolean(member && profile && JSON.stringify(profile) !== JSON.stringify(profileOf(member)));
   const gymChanged = Boolean(member && gymSelection && gymSelection !== (member.enrollmentGymId || ""));
+  const dateChanged = Boolean(detail && (dateStart !== detail.dateEdit.startDate || dateExpiry !== detail.dateEdit.expiryDate));
 
   return (
     <main className="bgm-admin-light min-h-screen bg-[#f6f6f6] px-4 py-6 text-zinc-950 sm:px-8">
@@ -152,7 +206,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
               <h1 className="mt-1 text-3xl font-black">Member editor</h1>
               <p className="mt-2 text-sm text-zinc-600">Personal details are editable below. Membership, card and payment records are shown separately.</p>
             </div>
-            <button type="button" onClick={() => void load()} disabled={loading || saving}
+            <button type="button" onClick={() => void load()} disabled={loading || saving || gymSaving || dateSaving}
               className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-3 text-sm font-bold disabled:opacity-50">
               <RefreshCcw size={16} /> Reload
             </button>
@@ -192,7 +246,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                 ))}
               </div>
               <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-zinc-100 pt-5">
-                <button disabled={!changed || saving || loading} type="submit"
+                <button disabled={!changed || saving || loading || gymSaving || dateSaving} type="submit"
                   className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-5 py-3 font-black text-white disabled:cursor-not-allowed disabled:bg-zinc-300">
                   <Save size={17} /> {saving ? "Saving…" : "Save personal details"}
                 </button>
@@ -218,7 +272,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                 <label className="mt-4 block text-sm font-bold text-zinc-900" htmlFor="member-current-enrollment-gym">New enrollment gym</label>
                 <select id="member-current-enrollment-gym" value={gymSelection}
                   onChange={(event) => { setGymSelection(event.target.value); setGymMessage(""); setGymError(""); }}
-                  disabled={gymSaving || saving || loading}
+                  disabled={gymSaving || saving || dateSaving || loading}
                   className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 disabled:opacity-60">
                   <option value="">Select an active gym</option>
                   {member.enrollmentGymId && !detail.gyms.some((gym) => gym.id === member.enrollmentGymId && gym.status === "active") && (
@@ -228,16 +282,49 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                     <option key={gym.id} value={gym.id}>{gym.name}</option>
                   ))}
                 </select>
-                {changed && <p className="mt-2 text-sm font-bold text-amber-800">Save or discard your unsaved personal details before changing the gym.</p>}
+                {(changed || dateChanged) && <p className="mt-2 text-sm font-bold text-amber-800">Save or discard your unsaved personal details and membership date changes before changing the gym.</p>}
                 {gymError && <p role="alert" className="mt-2 text-sm font-bold text-red-800">{gymError}</p>}
                 {gymMessage && <p role="status" className="mt-2 text-sm font-bold text-emerald-800">{gymMessage}</p>}
                 <button type="button" onClick={() => void saveGym()}
-                  disabled={!gymChanged || changed || saving || gymSaving || loading}
+                  disabled={!gymChanged || changed || dateChanged || saving || gymSaving || dateSaving || loading}
                   className="mt-4 inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-zinc-300">
                   <Save size={17}/>{gymSaving ? "Saving gym…" : "Save enrollment gym"}
                 </button>
               </div>
-              <p className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-3 text-sm text-orange-900">Membership expiry and status changes will be added with membership-specific safeguards. They are not saved by the personal-details or enrollment-gym buttons.</p>
+              <div className="mt-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                <h3 className="text-base font-black text-zinc-950">Correct current membership dates</h3>
+                <p className="mt-2 text-sm text-zinc-600">This is a correction of an existing membership, not a renewal or payment. Changing expiry can change scanner access for an active member. Inactive or cancelled status will not be reactivated. Past visits, application/payment snapshots and the original Excel gym stay unchanged.</p>
+                <p className="mt-2 text-sm font-semibold text-zinc-700">{detail.dateEdit.reason}</p>
+                {detail.dateEdit.membershipId && <p className="mt-2 text-xs text-zinc-500">Editing the current individual membership record. Previously purchased membership periods and transactions remain historical records.</p>}
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <label className="block text-sm font-bold text-zinc-900">
+                    {detail.dateEdit.membershipId ? "Current membership start date" : "Verified start date (optional for legacy imports)"}
+                    <input type="date" value={dateStart}
+                      disabled={!detail.dateEdit.allowed || saving || gymSaving || dateSaving || loading}
+                      onChange={(event) => { setDateStart(event.target.value); setDateMessage(""); setDateError(""); }}
+                      className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 disabled:opacity-60"/>
+                  </label>
+                  <label className="block text-sm font-bold text-zinc-900">
+                    Current membership expiry
+                    <input type="date" value={dateExpiry} required
+                      disabled={!detail.dateEdit.allowed || saving || gymSaving || dateSaving || loading}
+                      onChange={(event) => { setDateExpiry(event.target.value); setDateMessage(""); setDateError(""); }}
+                      className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 disabled:opacity-60"/>
+                  </label>
+                </div>
+                {!detail.dateEdit.membershipId && detail.dateEdit.allowed &&
+                  <p className="mt-2 text-xs text-zinc-600">If the original Excel record did not provide a start date, leave it blank unless the actual date has been verified. No date is calculated from membership duration.</p>}
+                {(changed || gymChanged) && <p className="mt-2 text-sm font-bold text-amber-800">Save or discard unsaved personal details and gym changes before correcting membership dates.</p>}
+                {dateError && <p role="alert" className="mt-2 text-sm font-bold text-red-800">{dateError}</p>}
+                {dateMessage && <p role="status" className="mt-2 text-sm font-bold text-emerald-800">{dateMessage}</p>}
+                <button type="button" onClick={() => void saveDates()}
+                  disabled={!detail.dateEdit.allowed || !dateChanged || !dateExpiry || (Boolean(dateStart) && dateStart > dateExpiry)
+                    || changed || gymChanged || saving || gymSaving || dateSaving || loading}
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-zinc-300">
+                  <Save size={17}/>{dateSaving ? "Saving membership dates…" : "Save membership dates"}
+                </button>
+              </div>
+              <p className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-3 text-sm text-orange-900">Membership cancellation and status changes are separate actions and are not saved by the personal-details, enrollment-gym or date-correction buttons.</p>
             </section>
             <section className="rounded-3xl border border-zinc-200 bg-white p-5 sm:p-7">
               <h2 className="text-xl font-black">Membership and payment records</h2>
