@@ -118,7 +118,7 @@ try {
   await page.getByRole("heading", { name: "Cancel shared couples membership — both partners" }).waitFor();
   await page.getByText("Alex Test (BGM0000123)", { exact: true }).last().waitFor();
   await page.getByText("Taylor Test (BGM0000124)", { exact: true }).waitFor();
-  const jointButton = page.getByRole("button", { name: "Schedule cancellation for BOTH" });
+  const jointButton = page.getByRole("button", { name: /(?:Cancel shared membership for BOTH now|Schedule cancellation for BOTH)/ });
   await page.getByRole("textbox", { name: "First name" }).fill("Edited");
   assert.equal(await jointButton.isDisabled(), true, "joint action must not discard unsaved profile draft");
   await page.getByRole("textbox", { name: "First name" }).fill("Alex");
