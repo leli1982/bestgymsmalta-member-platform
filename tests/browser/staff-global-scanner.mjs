@@ -213,6 +213,7 @@ try {
 
   // Outside a dedicated card field, the same physical code should again
   // trigger global entrance verification as expected.
+  await barName.fill("Bar Staff");
   await barName.focus();
   await page.keyboard.type("X06956", { delay: 4 });
   await page.keyboard.press("Enter");
