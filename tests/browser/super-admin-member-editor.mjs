@@ -95,6 +95,32 @@ try {
     dateEdit = { ...dateEdit, expectedMembershipUpdatedAt: member.updatedAt };
     return route.fulfill({ json: { ok: true, changed: true, effectiveDate: member.cancellationEffectiveDate, updatedAt: member.updatedAt } });
   });
+  const accountStatusCommands = [];
+  await context.route("**/api/system/admin/members/" + memberId + "/account-status", async (route) => {
+    const command = route.request().postDataJSON();
+    assert.equal(route.request().method(), "POST");
+    assert.deepEqual(Object.keys(command).sort(), ["action", "expectedUpdatedAt", "reason"]);
+    assert.equal(command.expectedUpdatedAt, member.updatedAt);
+    accountStatusCommands.push(command);
+    if (command.action === "archive") {
+      assert.equal(command.reason, "Requested by fictional member");
+      member = { ...member, status: "archived", archivedAt: "2026-09-23T12:00:00.000Z",
+        archivedReason: command.reason, updatedAt: "2026-09-23T12:00:00.000Z" };
+    } else {
+      assert.equal(command.action, "restore");
+      member = { ...member, status: "active", archivedAt: null, archivedReason: null,
+        updatedAt: "2026-09-23T12:01:00.000Z" };
+    }
+    return route.fulfill({ json: { status: member.status, updatedAt: member.updatedAt } });
+  });
+  await context.route("**/api/system/admin/members/" + memberId + "/delete", async (route) => {
+    assert.equal(route.request().method(), "GET", "Blocked deletion must never POST");
+    return route.fulfill({ json: { assessment: {
+      eligible: false, blockers: ["Membership contracts and existing audit history."],
+      memberNumber: member.memberNumber, fullName: member.fullName,
+      status: member.status, updatedAt: member.updatedAt,
+    } } });
+  });
   let received = null;
   let gymChange = null;
   await context.route("**/api/system/admin/members/" + memberId + "/enrollment-gym", async (route) => {
@@ -185,8 +211,23 @@ try {
   assert.equal(member.originalEnrollmentGym, "Mosta");
   assert.equal(memberships[0].application.final_amount_cents, 5000);
   await page.screenshot({ path: artifacts + "/member-cancellation-withdrawn-390.png", fullPage: true });
+  await page.getByRole("textbox", { name: "Archive reason (required)" }).fill("Requested by fictional member");
+  await page.getByRole("button", { name: "Archive member", exact: true }).click();
+  await page.getByText("Member archived and audited. App and gym entry are blocked.").waitFor();
+  assert.equal(member.status, "archived");
+  assert.equal(member.cancellationEffectiveDate, null);
+  assert.equal(member.membershipExpiry, "2027-01-31");
+  assert.equal(memberships[0].application.final_amount_cents, 5000);
+  await page.getByRole("button", { name: "Restore member record" }).click();
+  await page.getByText("Member restored and audited. Current status: active. No membership was renewed.").waitFor();
+  assert.equal(member.status, "active");
+  assert.equal(member.archivedAt, null);
+  assert.deepEqual(accountStatusCommands.map(x => x.action), ["archive", "restore"]);
+  await page.getByRole("button", { name: "Check permanent-delete eligibility" }).click();
+  await page.getByText("Membership contracts and existing audit history.").waitFor();
+  assert.equal(await page.getByRole("button", { name: "Delete member permanently", exact: true }).count(), 0);
   assert.deepEqual(clientErrors, []);
-  console.log("PASS separate member profile, gym, date and cancellation flows preserve historic identity and payments with fictional data");
+  console.log("PASS member profile, gym, dates, cancellation, Super Admin-only account archive/restore and blocked deletion with fictional data");
 } finally {
   if (browser) await browser.close();
   server.kill("SIGTERM");
