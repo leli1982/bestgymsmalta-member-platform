@@ -182,3 +182,81 @@ revoke all on function public.bgm_super_admin_member_cancellation(
 grant execute on function public.bgm_super_admin_member_cancellation(
   uuid,uuid,timestamptz,uuid,timestamptz,text,date,text
 ) to service_role;
+
+
+-- Enforce the effective date at the database boundary for every canonical check-in,
+-- including self-service QR, direct writes, and near-midnight scanner races.
+create or replace function public.bgm_guard_cancelled_member_checkin()
+returns trigger language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_effective date;
+begin
+  select cancellation_effective_date into v_effective
+    from public.bgm_members
+    where id::text = new.member_id
+    for share;
+  if v_effective is not null and v_effective <= (now() at time zone 'Europe/Malta')::date then
+    raise exception 'Membership cancellation is effective. Check-in is not permitted.';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists bgm_cancelled_member_checkin_guard on public.bgm_member_checkins;
+create trigger bgm_cancelled_member_checkin_guard
+before insert on public.bgm_member_checkins
+for each row execute function public.bgm_guard_cancelled_member_checkin();
+
+-- A genuinely new membership activation supersedes an earlier cancellation.
+-- The old audit record and the old membership's historical dates remain intact.
+create or replace function public.bgm_clear_cancellation_on_new_membership()
+returns trigger language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_before record;
+begin
+  select id, member_number, enrollment_gym_id, cancellation_effective_date,
+    cancellation_reason, cancellation_recorded_by
+  into v_before
+  from public.bgm_members
+  where id = new.member_id
+    and cancellation_effective_date is not null
+  for update;
+  if not found then return new; end if;
+
+  update public.bgm_members
+  set cancellation_effective_date = null,
+      cancellation_reason = null,
+      cancellation_recorded_at = null,
+      cancellation_recorded_by = null,
+      updated_at = clock_timestamp()
+  where id = new.member_id;
+
+  insert into public.bgm_audit_log (
+    system_user_id, context_gym_id, action_key, entity_type,
+    entity_id, member_id, before_data, after_data
+  ) values (
+    v_before.cancellation_recorded_by, v_before.enrollment_gym_id,
+    'member.membership_cancellation.superseded_by_new_membership',
+    'member', new.member_id::text, new.member_id,
+    jsonb_build_object(
+      'memberNumber', v_before.member_number,
+      'effectiveDate', v_before.cancellation_effective_date,
+      'reason', v_before.cancellation_reason
+    ),
+    jsonb_build_object(
+      'memberNumber', v_before.member_number,
+      'effectiveDate', null,
+      'newMembershipId', new.membership_id
+    )
+  );
+  return new;
+end;
+$$;
+
+drop trigger if exists bgm_new_membership_clears_member_cancellation
+  on public.bgm_membership_members;
+create trigger bgm_new_membership_clears_member_cancellation
+after insert on public.bgm_membership_members
+for each row execute function public.bgm_clear_cancellation_on_new_membership();
