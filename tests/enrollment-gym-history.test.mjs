@@ -42,7 +42,7 @@ test("gym reassignment has a dedicated Super Admin-only route and a separate UI 
   assert.match(route, /bgm_super_admin_change_member_enrollment_gym/);
   assert.match(route, /p_expected_updated_at: body\.expectedUpdatedAt/);
   assert.match(ui, /Save enrollment gym/);
-  assert.match(ui, /changed \|\| gymSelection/);
+  assert.match(ui, /!gymSelection \|\| changed/);
   assert.match(ui, /changed \|\| saving \|\| gymSaving \|\| loading/);
   assert.match(ui, /Original enrollment gym \(Excel\)/);
   assert.match(ui, /Visits recorded before snapshots existed have unverified historical origin/);
