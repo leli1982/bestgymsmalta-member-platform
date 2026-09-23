@@ -199,11 +199,13 @@ export async function POST(request: NextRequest) {
     const updateResult = await supabase
       .from(targetTable)
       .update({ official_photo_path: objectPath, updated_at: new Date().toISOString() })
-      .eq("id", targetId);
+      .eq("id", targetId)
+      .select("id, official_photo_path")
+      .maybeSingle();
 
-    if (updateResult.error) {
+    if (updateResult.error || !updateResult.data || updateResult.data.official_photo_path !== objectPath) {
       await supabase.storage.from(PHOTO_BUCKET).remove([objectPath]);
-      throw updateResult.error;
+      throw updateResult.error || new Error("Photo was uploaded but member record was not updated.");
     }
 
     const provenanceResult = await supabase.from("bgm_member_official_photos").insert({
@@ -229,7 +231,7 @@ export async function POST(request: NextRequest) {
       ok: true,
       captured: true,
       photoUrl: memberId
-        ? `/api/system/members/photo/${memberId}`
+        ? `/api/system/members/photo/${memberId}?inline=1&v=${encodeURIComponent(objectStamp())}`
         : `/api/system/members/photo?applicationMemberId=${encodeURIComponent(applicationMemberId)}`,
     });
   } catch (error) {

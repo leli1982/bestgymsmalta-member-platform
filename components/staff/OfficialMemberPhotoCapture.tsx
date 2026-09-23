@@ -199,9 +199,25 @@ export default function OfficialMemberPhotoCapture({
         setError(data.error || "Could not save official member photo.");
         return;
       }
-      onSaved?.(data.photoUrl || "");
-    } catch {
-      setError("Could not save official member photo.");
+      if (!data.ok || !data.captured || typeof data.photoUrl !== "string" || !data.photoUrl) {
+        throw new Error("The photo save was not confirmed. Please try again.");
+      }
+      // Do not clear PHOTO REQUIRED until the same staff session can retrieve the photo.
+      // This catches missing permissions, missing files and stale photo paths.
+      const photoResponse = await fetch(data.photoUrl, {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+      if (!photoResponse.ok || !(photoResponse.headers.get("content-type") || "").startsWith("image/")) {
+        throw new Error("Photo may have been saved, but the image could not be verified. Keep PHOTO REQUIRED visible and contact Super Admin if this repeats.");
+      }
+      const imageBytes = await photoResponse.blob();
+      if (imageBytes.size === 0) {
+        throw new Error("Photo may have been saved, but the image is empty. Keep PHOTO REQUIRED visible.");
+      }
+      onSaved?.(data.photoUrl);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Could not save official member photo.");
     } finally {
       setBusy(false);
     }

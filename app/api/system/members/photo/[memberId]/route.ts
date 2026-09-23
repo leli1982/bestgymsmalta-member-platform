@@ -29,6 +29,23 @@ export async function GET(
       return NextResponse.json({ error: "No official photo has been captured." }, { status: 404 });
     }
 
+    // Reception and scanner images must not depend on a cached short-lived redirect.
+    // Serve private, authenticated bytes directly when explicitly requested.
+    if (request.nextUrl.searchParams.get("inline") === "1") {
+      const downloaded = await supabase.storage
+        .from(PHOTO_BUCKET).download(memberResult.data.official_photo_path);
+      if (downloaded.error || !downloaded.data) {
+        throw downloaded.error || new Error("Could not download official member photo.");
+      }
+      return new NextResponse(downloaded.data, {
+        headers: {
+          "Content-Type": "image/webp",
+          "Cache-Control": "private, no-store, max-age=0",
+          "X-Content-Type-Options": "nosniff",
+        },
+      });
+    }
+
     const signed = await supabase.storage
       .from(PHOTO_BUCKET)
       .createSignedUrl(memberResult.data.official_photo_path, 60);
