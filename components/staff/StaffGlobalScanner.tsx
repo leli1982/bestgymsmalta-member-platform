@@ -34,7 +34,8 @@ type AccessResult = {
 /**
  * Keep explicit F9 support and recognise fast unprefixed scans from ordinary
  * USB scanners. Text fields are snapshotted and restored for recognised scans.
- * Number/date/password/contenteditable fields use the reliable Scan card dialog.
+ * Quantity/number fields temporarily buffer typed keys so scanner digits never
+ * enter the form. Date/password/contenteditable controls use Scan card fallback.
  */
 const SCANNER_PREFIX = "F9";
 
@@ -45,6 +46,7 @@ type EditableBurst = {
   originalStart: number | null;
   originalEnd: number | null;
   held: string;
+  numeric: boolean;
 };
 
 function activeScannerEditable(target: EventTarget | null): ScannerEditable | null {
@@ -52,7 +54,7 @@ function activeScannerEditable(target: EventTarget | null): ScannerEditable | nu
   const field = target.closest("input,textarea");
   if (field instanceof HTMLTextAreaElement) return field;
   if (!(field instanceof HTMLInputElement)) return null;
-  if (!["text", "search", "email", "tel", "url"].includes(field.type)) return null;
+  if (!["text", "search", "email", "tel", "url", "number"].includes(field.type)) return null;
   if (field.dataset.bgmScanInput === "true" || /scan.*(card|barcode)|barcode scanner/i.test(field.placeholder)) {
     return null; // Dedicated card inputs own their own scanner keystrokes.
   }
@@ -74,11 +76,24 @@ function restoreEditableInput(burst: EditableBurst) {
   if (burst.originalStart !== null && burst.originalEnd !== null) {
     burst.field.setSelectionRange(burst.originalStart, burst.originalEnd);
   }
-  dispatchEditableInput(burst.field);
+  // All keystrokes are held in number inputs, so the value and React state
+  // were never changed during a scan. Do not dispatch a synthetic input event.
+  if (!burst.numeric) dispatchEditableInput(burst.field);
 }
 
 function replayHeldKeys(burst: EditableBurst | null) {
   if (!burst?.held || !burst.field.isConnected) return;
+  if (burst.numeric && burst.field instanceof HTMLInputElement) {
+    // setRangeText/selectionStart are unsupported on type=number inputs.
+    // Use the native setter so React sees a genuine change when normal human
+    // quantity typing is replayed after the short scanner-detection window.
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    const nextValue = burst.field.value + burst.held;
+    if (setter) setter.call(burst.field, nextValue);
+    else burst.field.value = nextValue;
+    dispatchEditableInput(burst.field);
+    return;
+  }
   const position = burst.field.selectionStart ?? burst.field.value.length;
   const end = burst.field.selectionEnd ?? position;
   burst.field.setRangeText(burst.held, position, end, "end");
@@ -313,8 +328,8 @@ export default function StaffGlobalScanner() {
         return;
       }
       if (insideEditable && !field) {
-        // This is a native scanner input, a numeric field or another editor:
-        // never steal keys or interfere with the form. Use Scan card if needed.
+        // This is a dedicated scanner input or an unsupported editor. Leave
+        // its native behaviour alone and offer the Scan card fallback.
         resetBuffer();
         return;
       }
@@ -357,18 +372,20 @@ export default function StaffGlobalScanner() {
           editableBurst.current = {
             field,
             originalValue: field.value,
-            originalStart: field.selectionStart,
-            originalEnd: field.selectionEnd,
+            originalStart: field.type === "number" ? null : field.selectionStart,
+            originalEnd: field.type === "number" ? null : field.selectionEnd,
             held: "",
+            numeric: field.type === "number",
           };
         }
       }
       const nextCode = scannerBuffer.current + event.key;
       const elapsedMs = now - burstStart.current;
-      // Hold characters from the fourth rapid key onward. The first few keys
-      // are reversible; any held human typing is replayed on a pause or Enter.
+      // Protect number inputs from the FIRST digit: scanners would otherwise
+      // mutate quantity/cash React state before the barcode is recognised.
+      // Text inputs keep the earlier four-key threshold to minimise typing lag.
       if (field && editableBurst.current &&
-          (editableBurst.current.held ||
+          (editableBurst.current.numeric || editableBurst.current.held ||
             shouldHoldScannerCandidate(nextCode.length, elapsedMs, lastGapMs))) {
         editableBurst.current.held += event.key;
         stopKey(event);
