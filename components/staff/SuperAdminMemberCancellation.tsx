@@ -156,8 +156,9 @@ export default function SuperAdminMemberCancellation({
         )}
       </div>
       <p className="mt-3 text-xs text-red-900">
-        Shared couples memberships cannot be cancelled using an individual record.
-        Once cancellation takes effect, this form cannot reverse it; a new membership requires the authorised renewal process.
+        {edit.allowed
+          ? "This action applies only to the selected member. Once cancellation takes effect, this form cannot reverse it; a new membership requires the authorised renewal process."
+          : "This individual cancellation action is unavailable for this member. Review the eligibility message above; shared couples memberships must use the separate joint action."}
       </p>
     </section>
   );

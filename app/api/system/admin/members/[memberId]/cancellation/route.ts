@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSuperAdmin } from "@/lib/systemAuth";
-import { validateCancellationCommand } from "@/lib/memberCancellationCore";
+import { isMemberUuid, validateCancellationCommand } from "@/lib/memberCancellationCore";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(
   request: NextRequest,
@@ -16,7 +15,7 @@ export async function POST(
     const auth = await requireSuperAdmin(request);
     if (auth.error || !auth.context) return auth.error;
     const { memberId } = await params;
-    if (!UUID.test(memberId)) return NextResponse.json({ error: "Invalid member ID." }, { status: 400 });
+    if (!isMemberUuid(memberId)) return NextResponse.json({ error: "Invalid member ID." }, { status: 400 });
     const validation = validateCancellationCommand(await request.json());
     if (!validation.ok) return NextResponse.json({ error: validation.error }, { status: 400 });
 

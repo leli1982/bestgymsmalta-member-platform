@@ -5,7 +5,7 @@ import { evaluateBarcodeAccess } from "../lib/barcodeAccessCore.ts";
 import { evaluateNfcAccess } from "../lib/nfcAccessCore.ts";
 import { classifyStaffMember } from "../lib/staffDashboardCore.ts";
 import {
-  resolveMemberCancellation, validateCancellationCommand, isCancellationEffective,
+  resolveMemberCancellation, validateCancellationCommand, isCancellationEffective, isMemberUuid,
 } from "../lib/memberCancellationCore.ts";
 
 const read = (path) => readFileSync(new URL("../" + path, import.meta.url), "utf8");
@@ -25,6 +25,19 @@ const command = {
   membershipId, expectedMemberUpdatedAt: "2026-09-23T08:00:00.000Z",
   expectedMembershipUpdatedAt: "2026-09-23T08:00:00.000Z",
 };
+
+test("individual cancellation route accepts all five UUID groups and rejects malformed IDs", () => {
+  const samId = "00000000-0000-4000-8000-000000000125";
+  assert.equal(isMemberUuid(samId), true);
+  assert.equal(isMemberUuid(memberId), true);
+  assert.equal(isMemberUuid(membershipId), true);
+  for (const invalid of ["00000000-0000-4000-000000000125", "not-a-uuid", "", null, 123]) {
+    assert.equal(isMemberUuid(invalid), false, String(invalid));
+  }
+  const route = read("app/api/system/admin/members/[memberId]/cancellation/route.ts");
+  assert.match(route, /if \(!isMemberUuid\(memberId\)\)/);
+  assert.doesNotMatch(route, /const UUID\s*=/);
+});
 
 test("Malta effective date denies barcode and NFC on that day but not before", () => {
   assert.equal(isCancellationEffective("2026-09-24", "2026-09-23"), false);
@@ -111,5 +124,5 @@ test("all member access paths and staff lookups check the effective cancellation
   assert.match(editor, /SuperAdminMemberCancellation/);
   assert.match(panel, /window\.confirm/);
   assert.match(panel, /Withdraw pending cancellation/);
-  assert.match(panel, /Shared couples memberships cannot be cancelled/);
+  assert.match(panel, /This action applies only to the selected member/);
 });

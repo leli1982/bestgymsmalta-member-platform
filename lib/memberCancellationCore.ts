@@ -57,6 +57,11 @@ export function resolveMemberCancellation(context: MemberCancellationContext): C
 }
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Validates route member IDs with the same five UUID groups used in payloads. */
+export function isMemberUuid(value: unknown): value is string {
+  return typeof value === "string" && uuid.test(value);
+}
 const validTimestamp = (value: unknown) =>
   typeof value === "string" && Boolean(value) && Number.isFinite(Date.parse(value));
 
