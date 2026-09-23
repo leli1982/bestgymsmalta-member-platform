@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ArrowLeft, BadgeCheck, RefreshCcw, Save, ShieldCheck, UserRound } from "lucide-react";
 import { EDITABLE_PROFILE_FIELDS, type MemberProfileDraft } from "@/lib/superAdminMemberProfileCore";
+import SuperAdminMemberCancellation, { type CancellationEdit } from "@/components/staff/SuperAdminMemberCancellation";
 
 type Member = MemberProfileDraft & {
   id: string; memberNumber: string; fullName: string; status: string;
@@ -10,6 +11,7 @@ type Member = MemberProfileDraft & {
   membershipPeriod: string | null; enrollmentGymId: string | null;
   originalEnrollmentGym: string | null; legacyPkCustomer: string | null;
   photoUrl: string | null; updatedAt: string;
+  cancellationEffectiveDate: string | null; cancellationReason: string; cancellationRecordedAt: string | null;
 };
 type Membership = {
   id: string; role: string; membershipType: string; duration: string;
@@ -32,6 +34,7 @@ type DateEdit = {
 type Detail = {
   member: Member; activeCardNumber: string | null;
   dateEdit: DateEdit;
+  cancellationEdit: CancellationEdit;
   gyms: Array<{ id: string; name: string; status: string }>;
   memberships: Membership[];
 };
@@ -74,6 +77,8 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
   const [dateSaving, setDateSaving] = useState(false);
   const [dateError, setDateError] = useState("");
   const [dateMessage, setDateMessage] = useState("");
+  const [cancelDraftDirty, setCancelDraftDirty] = useState(false);
+  const [cancelBusy, setCancelBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -92,7 +97,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
         startDate: result.member.enrollmentDate || "",
         expiryDate: result.member.membershipExpiry || "",
       };
-      setDetail({ ...(result as Detail), dateEdit });
+      setDetail({ ...(result as Detail), dateEdit, cancellationEdit: result.cancellationEdit });
       setProfile(profileOf(result.member));
       setGymSelection(result.member.enrollmentGymId || "");
       setDateStart(dateEdit.startDate);
@@ -108,7 +113,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!detail || !profile || saving || gymSaving || dateSaving || gymChanged || dateChanged) return;
+    if (!detail || !profile || saving || gymSaving || dateSaving || cancelBusy || gymChanged || dateChanged || cancelDraftDirty) return;
     setSaving(true);
     setMessage("");
     setError("");
@@ -131,7 +136,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
   }
 
   async function saveGym() {
-    if (!detail || gymSaving || saving || dateSaving || !gymSelection || changed || dateChanged) return;
+    if (!detail || gymSaving || saving || dateSaving || cancelBusy || !gymSelection || changed || dateChanged || cancelDraftDirty) return;
     setGymSaving(true);
     setGymError("");
     setGymMessage("");
@@ -159,7 +164,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
   }
 
   async function saveDates() {
-    if (!detail || !detail.dateEdit.allowed || dateSaving || saving || gymSaving || changed || gymChanged || !dateChanged) return;
+    if (!detail || !detail.dateEdit.allowed || dateSaving || saving || gymSaving || cancelBusy || changed || gymChanged || cancelDraftDirty || !dateChanged) return;
     setDateSaving(true);
     setDateError("");
     setDateMessage("");
@@ -206,7 +211,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
               <h1 className="mt-1 text-3xl font-black">Member editor</h1>
               <p className="mt-2 text-sm text-zinc-600">Personal details are editable below. Membership, card and payment records are shown separately.</p>
             </div>
-            <button type="button" onClick={() => void load()} disabled={loading || saving || gymSaving || dateSaving}
+            <button type="button" onClick={() => void load()} disabled={loading || saving || gymSaving || dateSaving || cancelBusy}
               className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-3 text-sm font-bold disabled:opacity-50">
               <RefreshCcw size={16} /> Reload
             </button>
@@ -225,7 +230,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                 <p className="text-xs font-black uppercase tracking-widest text-orange-700">Permanent BGM membership number</p>
                 <p className="mt-1 break-all font-mono text-3xl font-black">{member.memberNumber}</p>
                 <p className="mt-2 text-lg font-bold">{member.fullName || "Member name not recorded"}</p>
-                <p className="mt-1 text-sm text-zinc-600">Current card: <strong>{detail.activeCardNumber || "Card not assigned"}</strong> · Status: <strong>{member.status}</strong></p>
+                <p className="mt-1 text-sm text-zinc-600">Current card: <strong>{detail.activeCardNumber || "Card not assigned"}</strong> · Status: <strong>{member.cancellationEffectiveDate && member.cancellationEffectiveDate <= detail.cancellationEdit.today ? "cancelled" : member.status}</strong></p>
                 <p className="mt-1 text-sm text-zinc-600">Original pkCustomer: <strong>{member.legacyPkCustomer || "Not recorded"}</strong> (Super Admin only)</p>
                 <p className="mt-2 text-xs text-zinc-500">Member photo is managed through the authorised staff photo-capture flow, not Excel or this editor.</p>
               </div>
@@ -246,12 +251,12 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                 ))}
               </div>
               <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-zinc-100 pt-5">
-                <button disabled={!changed || gymChanged || dateChanged || saving || loading || gymSaving || dateSaving} type="submit"
+                <button disabled={!changed || gymChanged || dateChanged || cancelDraftDirty || saving || loading || gymSaving || dateSaving || cancelBusy} type="submit"
                   className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-5 py-3 font-black text-white disabled:cursor-not-allowed disabled:bg-zinc-300">
                   <Save size={17} /> {saving ? "Saving…" : "Save personal details"}
                 </button>
                 {changed && <span className="text-sm font-medium text-amber-700">You have unsaved changes.</span>}
-                {(gymChanged || dateChanged) && <span className="text-sm font-medium text-amber-700">Save or discard your gym or membership date changes before saving personal details.</span>}
+                {(gymChanged || dateChanged || cancelDraftDirty) && <span className="text-sm font-medium text-amber-700">Save or discard gym, membership date or cancellation changes before saving personal details.</span>}
               </div>
             </form>
             <section className="rounded-3xl border border-zinc-200 bg-white p-5 sm:p-7">
@@ -273,7 +278,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                 <label className="mt-4 block text-sm font-bold text-zinc-900" htmlFor="member-current-enrollment-gym">New enrollment gym</label>
                 <select id="member-current-enrollment-gym" value={gymSelection}
                   onChange={(event) => { setGymSelection(event.target.value); setGymMessage(""); setGymError(""); }}
-                  disabled={gymSaving || saving || dateSaving || loading}
+                  disabled={gymSaving || saving || dateSaving || cancelBusy || loading}
                   className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 disabled:opacity-60">
                   <option value="">Select an active gym</option>
                   {member.enrollmentGymId && !detail.gyms.some((gym) => gym.id === member.enrollmentGymId && gym.status === "active") && (
@@ -283,11 +288,11 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                     <option key={gym.id} value={gym.id}>{gym.name}</option>
                   ))}
                 </select>
-                {(changed || dateChanged) && <p className="mt-2 text-sm font-bold text-amber-800">Save or discard your unsaved personal details and membership date changes before changing the gym.</p>}
+                {(changed || dateChanged || cancelDraftDirty) && <p className="mt-2 text-sm font-bold text-amber-800">Save or discard personal details, membership date or cancellation changes before changing the gym.</p>}
                 {gymError && <p role="alert" className="mt-2 text-sm font-bold text-red-800">{gymError}</p>}
                 {gymMessage && <p role="status" className="mt-2 text-sm font-bold text-emerald-800">{gymMessage}</p>}
                 <button type="button" onClick={() => void saveGym()}
-                  disabled={!gymChanged || changed || dateChanged || saving || gymSaving || dateSaving || loading}
+                  disabled={!gymChanged || changed || dateChanged || cancelDraftDirty || saving || gymSaving || dateSaving || cancelBusy || loading}
                   className="mt-4 inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-zinc-300">
                   <Save size={17}/>{gymSaving ? "Saving gym…" : "Save enrollment gym"}
                 </button>
@@ -302,31 +307,40 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                   <label className="block text-sm font-bold text-zinc-900">
                     {detail.dateEdit.membershipId ? "Current membership start date" : "Verified start date (optional for legacy imports)"}
                     <input type="date" value={dateStart}
-                      disabled={!detail.dateEdit.allowed || saving || gymSaving || dateSaving || loading}
+                      disabled={!detail.dateEdit.allowed || saving || gymSaving || dateSaving || cancelBusy || loading}
                       onChange={(event) => { setDateStart(event.target.value); setDateMessage(""); setDateError(""); }}
                       className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 disabled:opacity-60"/>
                   </label>
                   <label className="block text-sm font-bold text-zinc-900">
                     Current membership expiry
                     <input type="date" value={dateExpiry} required
-                      disabled={!detail.dateEdit.allowed || saving || gymSaving || dateSaving || loading}
+                      disabled={!detail.dateEdit.allowed || saving || gymSaving || dateSaving || cancelBusy || loading}
                       onChange={(event) => { setDateExpiry(event.target.value); setDateMessage(""); setDateError(""); }}
                       className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 disabled:opacity-60"/>
                   </label>
                 </div>
                 {!detail.dateEdit.membershipId && detail.dateEdit.allowed &&
                   <p className="mt-2 text-xs text-zinc-600">If the original Excel record did not provide a start date, leave it blank unless the actual date has been verified. No date is calculated from membership duration.</p>}
-                {(changed || gymChanged) && <p className="mt-2 text-sm font-bold text-amber-800">Save or discard unsaved personal details and gym changes before correcting membership dates.</p>}
+                {(changed || gymChanged || cancelDraftDirty) && <p className="mt-2 text-sm font-bold text-amber-800">Save or discard personal details, gym or cancellation changes before correcting membership dates.</p>}
                 {dateError && <p role="alert" className="mt-2 text-sm font-bold text-red-800">{dateError}</p>}
                 {dateMessage && <p role="status" className="mt-2 text-sm font-bold text-emerald-800">{dateMessage}</p>}
                 <button type="button" onClick={() => void saveDates()}
                   disabled={!detail.dateEdit.allowed || !dateChanged || !dateExpiry || (Boolean(dateStart) && dateStart > dateExpiry)
-                    || changed || gymChanged || saving || gymSaving || dateSaving || loading}
+                    || changed || gymChanged || cancelDraftDirty || saving || gymSaving || dateSaving || cancelBusy || loading}
                   className="mt-4 inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-zinc-300">
                   <Save size={17}/>{dateSaving ? "Saving membership dates…" : "Save membership dates"}
                 </button>
               </div>
-              <p className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-3 text-sm text-orange-900">Membership cancellation and status changes are separate actions and are not saved by the personal-details, enrollment-gym or date-correction buttons.</p>
+              <SuperAdminMemberCancellation
+                member={member}
+                edit={detail.cancellationEdit}
+                otherEditsPending={changed || gymChanged || dateChanged}
+                disabled={saving || gymSaving || dateSaving || loading}
+                onDraftChange={setCancelDraftDirty}
+                onBusyChange={setCancelBusy}
+                onUpdated={load}
+              />
+              <p className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-3 text-sm text-orange-900">Archive, Restore and other account-status changes remain separate actions. Cancellation does not alter the original Excel record or payment transactions.</p>
             </section>
             <section className="rounded-3xl border border-zinc-200 bg-white p-5 sm:p-7">
               <h2 className="text-xl font-black">Membership and payment records</h2>
