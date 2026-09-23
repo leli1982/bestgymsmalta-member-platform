@@ -106,6 +106,18 @@ test("cancellation SQL is atomic, refuses shared membership, locks identity and 
   assert.match(sql, /bgm_new_membership_clears_member_cancellation/);
 });
 
+test("immediate individual cancellation audit uses a dedicated action without rewriting history", () => {
+  const sql = read("supabase/migrations/20260923_200000_individual_immediate_cancellation_audit.sql");
+  assert.ok(sql.includes("p_effective_date = v_today then 'member.membership_cancellation.immediate'"));
+  assert.ok(sql.includes("when p_action = 'cancel' then 'member.membership_cancellation.schedule'"));
+  assert.ok(sql.includes("else 'member.membership_cancellation.withdraw'"));
+  assert.ok(sql.includes("create or replace function public.bgm_super_admin_member_cancellation"));
+  assert.ok(sql.includes("revoke all on function public.bgm_super_admin_member_cancellation"));
+  assert.ok(sql.includes("to service_role"));
+  assert.doesNotMatch(sql, /update public\\.bgm_audit_log|delete from public\\.bgm_audit_log/i);
+  assert.doesNotMatch(sql, /alter table|create trigger|drop trigger/i);
+});
+
 test("all member access paths and staff lookups check the effective cancellation date", () => {
   const paths = [
     "app/api/system/barcode/scan/route.ts",
