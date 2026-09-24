@@ -124,7 +124,7 @@ test("XLSX writer preserves permanent BGM number as text and expiry as a date", 
   assert.deepEqual(sheet.getRow(1).values.slice(1), exchangeHeaders);
   assert.equal(sheet.getCell("A2").value, "BGM0000123");
   assert.equal(sheet.getCell("A2").numFmt, "@");
-  assert.ok(sheet.getCell("P2").value instanceof Date);
+  assert.ok(sheet.getCell("O2").value instanceof Date);
   assert.equal(sheet.getCell("O2").numFmt, "dd/mm/yyyy");
 });
 

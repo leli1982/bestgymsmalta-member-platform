@@ -28,49 +28,52 @@ const legacyHeaders = [
   "ValidYN",
 ];
 
-const exchangeHeaders = ["CardBarcode", ...legacyHeaders];
+const exchangeHeaders = ["MembershipNumber", ...legacyHeaders];
 const migrationUrl = new URL(
   "../supabase/migrations/20260910_115000_member_import_card_barcode.sql",
   import.meta.url
 );
 
-test("the 16-column exchange contract begins with CardBarcode", () => {
+test("the 16-column exchange contract begins with permanent BGM MembershipNumber", () => {
   assert.deepEqual([...MEMBER_EXCHANGE_HEADERS], exchangeHeaders);
-  assert.doesNotMatch(MEMBER_EXCHANGE_HEADERS.join(","), /MembershipNumber/);
+  assert.equal(MEMBER_EXCHANGE_HEADERS[0], "MembershipNumber");
+  assert.equal(MEMBER_EXCHANGE_HEADERS.includes("CardBarcode"), false);
 });
 
-test("CSV preserves an exact card barcode including leading zeroes", () => {
+test("CSV preserves the permanent BGM number separately from pkCustomer", () => {
   const csv = [
     exchangeHeaders.join(","),
-    "0012345,QROQQ,123,John Borg,,,,,,,,,,,2027-09-03,Valid",
+    "BGM0000123,QROQQ,0012345,John Borg,,,,,,,,,,,2027-09-03,Valid",
   ].join("\n");
 
   const parsed = parseMemberExchangeCsv(csv);
   assert.equal(parsed.mode, "exchange_16");
-  assert.equal(parsed.rows[0].values.CardBarcode, "0012345");
+  assert.equal(parsed.rows[0].values.MembershipNumber, "BGM0000123");
+  assert.equal(parsed.rows[0].values.pkCustomer, "0012345");
 
   const roundTrip = parseMemberExchangeCsv(serializeMemberExchangeCsv(parsed.rows));
-  assert.equal(roundTrip.rows[0].values.CardBarcode, "0012345");
+  assert.equal(roundTrip.rows[0].values.MembershipNumber, "BGM0000123");
+  assert.equal(roundTrip.rows[0].values.pkCustomer, "0012345");
 });
 
-test("CSV accepts a blank optional CardBarcode", () => {
+test("CSV accepts blank permanent BGM number for new legacy members", () => {
   const csv = [
     exchangeHeaders.join(","),
     ",QROQQ,124,Mary Vella,,,,,,,,,,,2027-09-03,Valid",
   ].join("\n");
 
   const parsed = parseMemberExchangeCsv(csv);
-  assert.equal(parsed.rows[0].values.CardBarcode, "");
+  assert.equal(parsed.rows[0].values.MembershipNumber, "");
 });
 
-test("XLSX preserves CardBarcode as text instead of numeric coercion", async () => {
+test("XLSX preserves MembershipNumber and old physical card barcode separately", async () => {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("AllCustomers");
   sheet.addRow(exchangeHeaders);
   sheet.addRow([
-    "0012345",
+    "BGM0000125",
     "QROQQ",
-    "125",
+    "0012345",
     "Leading Zero Member",
     "",
     "",
@@ -89,7 +92,8 @@ test("XLSX preserves CardBarcode as text instead of numeric coercion", async () 
   const parsed = await parseMemberExchangeXlsx(
     Buffer.from(await workbook.xlsx.writeBuffer())
   );
-  assert.equal(parsed.rows[0].values.CardBarcode, "0012345");
+  assert.equal(parsed.rows[0].values.MembershipNumber, "BGM0000125");
+  assert.equal(parsed.rows[0].values.pkCustomer, "0012345");
 });
 
 test("an incoming card already owned by another member is a conflict", () => {
@@ -142,18 +146,11 @@ test("a different incoming card for a legacy member with an active card is a con
   assert.equal(result.action, "conflict");
 });
 
-test("Task 10 migration removes generated BGM allocation from import apply", () => {
-  assert.equal(
-    fs.existsSync(migrationUrl),
-    true,
-    "expected the Task 10 card-barcode migration to exist"
-  );
-
-  const sql = fs.readFileSync(migrationUrl, "utf8");
-  assert.match(sql, /card_barcode/i);
-  assert.match(sql, /bgm_member_card_credentials/i);
-  assert.doesNotMatch(sql, /bgm_next_member_number\s*\(/i);
-  assert.doesNotMatch(sql, /BGM\[0-9\]|BGM[0-9]{7}/i);
+test("TEST import allocates BGM numbers for new members without overwriting existing ones", () => {
+  const sql = fs.readFileSync(new URL("../supabase/migrations/20260924_150000_safe_add_only_legacy_member_import.sql", import.meta.url), "utf8");
+  assert.match(sql, /RETURNING id,member_number INTO/);
+  assert.doesNotMatch(sql, /UPDATE public[.]bgm_members SET/i);
+  assert.match(sql, /legacy_pk_customer/);
 });
 
 test("member export derives CardBarcode from the active credential lifecycle", () => {

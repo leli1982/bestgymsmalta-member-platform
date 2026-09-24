@@ -83,6 +83,7 @@ test("legacy 15-column import keeps pkCustomer as the old barcode without requir
   const importServer = read("lib/memberImportServer.ts");
   assert.equal(core.includes("pkCustomer"), true);
   assert.equal(importServer.includes("legacy_pk_customer"), true);
-  assert.equal(importServer.includes('parsed.mode === "legacy_15" ? legacyPkCustomer : cardBarcode'), true);
+  assert.equal(importServer.includes("legacyPk = normalizeBarcodePayload(v.pkCustomer)"), true);
+  assert.equal(importServer.includes("pk_customer: nullable(v.pkCustomer)"), true);
   assert.doesNotMatch(importServer, /pkCustomer.*globally unique/i);
 });
