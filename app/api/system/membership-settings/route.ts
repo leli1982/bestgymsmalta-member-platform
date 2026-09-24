@@ -241,6 +241,20 @@ export async function POST(request: NextRequest) {
         return badRequest(error instanceof Error ? error.message : "Invalid catalog version.");
       }
 
+      // An older abandoned draft must not replace rates already published later.
+      const [draftResult, currentResult] = await Promise.all([
+        supabase.from("bgm_membership_price_catalog_versions")
+          .select("version_no,status").eq("id", catalogVersionId).maybeSingle(),
+        supabase.from("bgm_membership_price_catalog_versions")
+          .select("version_no").eq("status", "published").maybeSingle(),
+      ]);
+      if (draftResult.error) throw draftResult.error;
+      if (currentResult.error) throw currentResult.error;
+      if (draftResult.data?.status !== "draft") return badRequest("Select a current price draft.");
+      if (currentResult.data &&
+          Number(draftResult.data.version_no) <= Number(currentResult.data.version_no)) {
+        return badRequest("This draft predates the current published rates. Save a new draft based on the current prices.");
+      }
       const result = await supabase.rpc("bgm_publish_membership_price_catalog", {
         p_catalog_version_id: catalogVersionId,
         p_system_user_id: actorSystemUserId,
