@@ -168,18 +168,13 @@ export default function MembershipSettingsAdmin() {
     active: true,
   });
 
-  const activeCatalog = useMemo(
-    () =>
-      settings.priceCatalogs.find((catalog) => catalog.status === "draft") ||
-      settings.priceCatalogs.find((catalog) => catalog.status === "published") ||
-      null,
-    [settings.priceCatalogs]
-  );
-
-  const latestDraftCatalog = useMemo(
-    () => settings.priceCatalogs.find((catalog) => catalog.status === "draft") || null,
-    [settings.priceCatalogs]
-  );
+  // A draft created before the current published catalog must never override it.
+  const latestPublishedCatalog = settings.priceCatalogs.find((catalog) => catalog.status === "published") || null;
+  const latestDraftCatalog = settings.priceCatalogs.find(
+    (catalog) => catalog.status === "draft" &&
+      (!latestPublishedCatalog || catalog.versionNo > latestPublishedCatalog.versionNo)
+  ) || null;
+  const activeCatalog = latestDraftCatalog || latestPublishedCatalog;
 
   const printOverflow = Boolean(printMeasurement && !printMeasurement.fits);
   const handlePrintMeasurement = useCallback((result: MembershipPrintMeasurement) => {
@@ -194,10 +189,11 @@ export default function MembershipSettingsAdmin() {
   }, []);
 
   const seedEditors = useCallback((payload: SettingsPayload) => {
-    const source =
-      payload.priceCatalogs.find((catalog) => catalog.status === "draft") ||
-      payload.priceCatalogs.find((catalog) => catalog.status === "published") ||
-      null;
+    const published = payload.priceCatalogs.find((catalog) => catalog.status === "published") || null;
+    const source = payload.priceCatalogs.find(
+      (catalog) => catalog.status === "draft" &&
+        (!published || catalog.versionNo > published.versionNo)
+    ) || published;
 
     const nextPrices: Record<string, string> = {};
     const nextAvailability: Record<string, boolean> = {};
