@@ -57,6 +57,37 @@ test("price matrix rejects non-EUR, negative, and non-integer prices", () => {
   }
 });
 
+test("an inactive duration retains its price and can be zero without being offered", () => {
+  const entries = completePriceMatrix().map((entry) => {
+    if (entry.membershipType === "student" && entry.durationKey === "2_weeks") {
+      return { ...entry, isActive: false, amountCents: 6600 };
+    }
+    if (entry.membershipType === "couples" && ["1_week", "2_weeks", "1_month"].includes(entry.durationKey)) {
+      return { ...entry, isActive: false, amountCents: 0 };
+    }
+    return { ...entry, isActive: true };
+  });
+  assert.deepEqual(validatePriceMatrix(entries), { ok: true });
+  entries.find((entry) => entry.membershipType === "couples" && entry.durationKey === "1_week").isActive = true;
+  assert.match(validatePriceMatrix(entries).error, /positive price/i);
+});
+
+test("every membership type needs an active duration before publishing", () => {
+  const entries = completePriceMatrix().map((entry) => ({
+    ...entry,
+    isActive: entry.membershipType !== "couples",
+  }));
+  assert.match(validatePriceMatrix(entries).error, /at least one active duration/i);
+});
+
+test("the price and the availability checkbox are independent", () => {
+  const entries = completePriceMatrix();
+  entries[0] = { ...entries[0], isActive: false, amountCents: 3500 };
+  assert.deepEqual(validatePriceMatrix(entries), { ok: true });
+  entries[0] = { ...entries[0], isActive: true, amountCents: 0 };
+  assert.match(validatePriceMatrix(entries).error, /positive price/i);
+});
+
 test("10 percent of 85 EUR is 8.50 EUR", () => {
   assert.equal(discountAmountCents(8500, 10), 850);
 });
