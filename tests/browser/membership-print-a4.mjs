@@ -185,8 +185,14 @@ async function verifyFixture(context, key, expectedSheets) {
   const actualPdfPages = (Buffer.from(pdf).toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length;
   assert.equal(actualPdfPages, expectedSheets, `${key} Chromium PDF page count`);
   const printButton = page.getByRole("button", { name: /Print Membership/ });
-  assert.equal(await printButton.isDisabled(), false, `${key} printable without hidden content`);
   await page.screenshot({ path: `${artifacts}/${key}.png`, fullPage: true });
+  const fit = await sheets.evaluateAll((nodes) => nodes.map((node) => ({
+    contentBottom: Array.from(node.querySelectorAll(".bgm-signatures")).at(-1)?.getBoundingClientRect().bottom,
+    footerTop: node.querySelector(".bgm-print-footer")?.getBoundingClientRect().top,
+    scrollHeight: node.scrollHeight,
+    clientHeight: node.clientHeight,
+  })));
+  assert.equal(await printButton.isDisabled(), false, `${key} printable without hidden content: ${JSON.stringify(fit)}`);
   assert.deepEqual(pageErrors, [], `${key} print view must not raise browser errors`);
   await page.close();
 }
