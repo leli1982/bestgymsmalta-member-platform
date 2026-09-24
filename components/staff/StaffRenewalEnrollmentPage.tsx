@@ -242,6 +242,9 @@ export default function MembershipEnrollmentPage() {
   const availableMembershipTypes = MEMBERSHIP_TYPES.filter((type) => availablePrices.some(
     (entry) => entry.membershipType === type.value,
   ));
+  const selectedPrice = availablePrices.find(
+    (entry) => entry.membershipType === membershipType && entry.durationKey === durationKey,
+  );
   const expectedParticipants = membershipType === "couples" ? 2 : 1;
   const renewalSelections = useMemo(
     () => participants.filter((participant) => participant.existingMemberId),
@@ -857,6 +860,20 @@ export default function MembershipEnrollmentPage() {
                     className={inputClass}
                   />
                 </Field>
+              </div>
+              <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4" role="status" aria-live="polite">
+                <p className="text-xs font-black uppercase tracking-wide text-emerald-800">
+                  {kind === "renewal" ? "Current published renewal price" : "Current published membership price"}
+                </p>
+                <p className="mt-1 text-3xl font-black text-emerald-950">
+                  {selectedPrice
+                    ? new Intl.NumberFormat("en-MT", { style: "currency", currency: "EUR" }).format(selectedPrice.amountCents / 100)
+                    : "Choose an available duration"}
+                </p>
+                <p className="mt-1 text-xs text-emerald-800">
+                  {membershipType === "couples" ? "Total for both members. " : ""}
+                  Before any applicable discount. The recorded amount is confirmed when the application is submitted.
+                </p>
               </div>
               {kind === "renewal" && automaticRenewalStart ? (
                 <p className="mt-3 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
