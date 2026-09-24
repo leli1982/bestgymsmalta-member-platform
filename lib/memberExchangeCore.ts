@@ -18,12 +18,11 @@ export const LEGACY_MEMBER_HEADERS = [
 
 export const MEMBER_EXCHANGE_HEADERS = [
   "MembershipNumber",
-  "CardBarcode",
   ...LEGACY_MEMBER_HEADERS,
 ] as const;
 
-export type MemberExchangeMode = "legacy_15" | "exchange_17";
-export type MemberExchangeHeader = (typeof MEMBER_EXCHANGE_HEADERS)[number];
+export type MemberExchangeMode = "legacy_15" | "exchange_16";
+export type MemberExchangeHeader = (typeof MEMBER_EXCHANGE_HEADERS)[number] | "CardBarcode";
 
 export type MemberExchangeValues = Record<MemberExchangeHeader, string>;
 
@@ -76,7 +75,7 @@ export function memberExchangeModeFromHeaders(
     headers.length === MEMBER_EXCHANGE_HEADERS.length &&
     MEMBER_EXCHANGE_HEADERS.every((header, index) => headers[index] === header)
   ) {
-    return "exchange_17";
+    return "exchange_16";
   }
 
   if (
@@ -91,6 +90,6 @@ export function memberExchangeModeFromHeaders(
 
 export function emptyMemberExchangeValues(): MemberExchangeValues {
   return Object.fromEntries(
-    MEMBER_EXCHANGE_HEADERS.map((header) => [header, ""])
+    [...MEMBER_EXCHANGE_HEADERS, "CardBarcode"].map((header) => [header, ""])
   ) as MemberExchangeValues;
 }

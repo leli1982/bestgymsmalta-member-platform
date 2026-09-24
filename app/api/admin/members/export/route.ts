@@ -57,7 +57,7 @@ function toExchangeRow(
   values.MembershipNumber = member.member_number;
   values.CardBarcode = cardBarcode;
   values.Gym = text(member.legacy_gym);
-  values.pkCustomer = text(member.legacy_pk_customer);
+  values.pkCustomer = cardBarcode || text(member.legacy_pk_customer);
   values.CustomerName = text(member.full_name);
   values.CompanyName = text(member.company_name);
   values.Address1 = text(member.address_line_1);
@@ -141,9 +141,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (
-      MEMBER_EXCHANGE_HEADERS.length !== 17 ||
+      MEMBER_EXCHANGE_HEADERS.length !== 16 ||
       MEMBER_EXCHANGE_HEADERS[0] !== "MembershipNumber" ||
-      MEMBER_EXCHANGE_HEADERS[1] !== "CardBarcode"
+      MEMBER_EXCHANGE_HEADERS[1] !== "Gym"
     ) {
       throw new Error("Unexpected membership exchange contract.");
     }

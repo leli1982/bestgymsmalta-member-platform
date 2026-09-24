@@ -359,7 +359,7 @@ function classifyRows(
         matchedMemberId = classification.matchedMemberId;
         issue = classification.issue;
       }
-    } else if (parsed.mode === "exchange_17") {
+    } else if (parsed.mode === "exchange_16") {
       // A modern exchange row without a permanent BGM number must never
       // silently change an existing member through a card or legacy reference.
       const cardOwners = indexes.byCardBarcode.get(cardBarcode) || [];

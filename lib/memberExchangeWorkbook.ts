@@ -145,7 +145,7 @@ export async function parseMemberExchangeXlsx(
 
   if (!mode) {
     throw new Error(
-      "Membership XLSX header does not match the approved 15-column legacy or 17-column exchange format."
+      "Membership XLSX header does not match the approved 15-column legacy or 16-column exchange format."
     );
   }
 
@@ -191,7 +191,7 @@ export async function buildMemberExchangeXlsx(
     });
     const excelRow = sheet.addRow(output);
     excelRow.getCell(1).numFmt = "@";
-    excelRow.getCell(2).numFmt = "@";
+    excelRow.getCell(3).numFmt = "@";
     const expiryIndex = MEMBER_EXCHANGE_HEADERS.indexOf("ExpiryDate1") + 1;
     if (excelRow.getCell(expiryIndex).value instanceof Date) {
       excelRow.getCell(expiryIndex).numFmt = "dd/mm/yyyy";
@@ -199,7 +199,7 @@ export async function buildMemberExchangeXlsx(
   }
 
   sheet.getColumn(1).numFmt = "@";
-  sheet.getColumn(2).numFmt = "@";
+  sheet.getColumn(3).numFmt = "@";
   sheet.columns.forEach((column, index) => {
     if (index === 0) column.width = 18;
     else if (index === 2 || index === 3) column.width = 24;
