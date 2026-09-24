@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   ArrowLeft, ArrowUpRight, Beer, Bell, Building2, ClipboardList, Dumbbell,
-  FileBarChart2, KeyRound, RefreshCw, Settings2, ShieldCheck, UserPlus, UsersRound, Barcode, ShoppingBasket,
+  FileBarChart2, KeyRound, Megaphone, RefreshCw, Settings2, ShieldCheck, UserPlus, UsersRound, Barcode, ShoppingBasket,
 } from "lucide-react";
 
 type AdminUser = { displayName: string; isSuperAdmin: boolean };
@@ -29,6 +29,11 @@ const sections: Section[] = [
     href: "/staff/bar/reports", label: "Bar reports",
     description: "Review submitted Bar Lists, cash comparisons and totals by gym and date.",
     icon: FileBarChart2, group: "Operations",
+  },
+  {
+    href: "/staff/admin/announcements", label: "Announcements",
+    description: "Publish member news, images and links; schedule, edit or hide announcements.",
+    icon: Megaphone, group: "Management",
   },
   {
     href: "/staff/admin/gyms", label: "Gym locations",

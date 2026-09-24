@@ -15,6 +15,8 @@ type Announcement = {
   ctaLabel?: string;
   cta_label?: string;
   ctaUrl?: string;
+  button_text?: string;
+  button_url?: string;
   cta_url?: string;
 };
 
@@ -31,11 +33,11 @@ function getImage(item: Announcement) {
 }
 
 function getCtaLabel(item: Announcement) {
-  return item.ctaLabel || item.cta_label || "";
+  return item.button_text || item.ctaLabel || item.cta_label || "";
 }
 
 function getCtaUrl(item: Announcement) {
-  return item.ctaUrl || item.cta_url || "";
+  return item.button_url || item.ctaUrl || item.cta_url || "";
 }
 
 export default function LiveUpdates() {
