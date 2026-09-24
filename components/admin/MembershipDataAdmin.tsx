@@ -232,6 +232,7 @@ export default function MembershipDataAdmin({
 
           {preview.issues.length > 0 && (
             <div className="overflow-hidden rounded-2xl border border-red-500/20">
+              <a href={`/api/admin/members/import/batches/${encodeURIComponent(preview.batchId)}/issues`} download className="block border-b border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-black text-red-100 underline">Download all {preview.conflictRows + preview.invalidRows} review rows as CSV</a>
               <div className="border-b border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-black text-red-100">
                 Rows requiring review {preview.conflictRows + preview.invalidRows > 100 ? "(first 100 shown)" : ""}
               </div>
