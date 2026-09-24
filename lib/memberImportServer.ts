@@ -13,6 +13,7 @@ import { parseMemberExchangeXlsx } from "@/lib/memberExchangeWorkbook";
 import { normalizeBarcodePayload } from "@/lib/memberCardCredentialCore";
 import {
   classifyMemberImportRow,
+  classifyExistingBgmMemberImport,
   type ExistingMemberForMatch,
   type IncomingMemberForMatch,
   type MemberImportAction,
@@ -233,6 +234,7 @@ function createMemberIndexes(
   existing: ExistingMemberDbRow[],
   credentials: ExistingCardCredentialDbRow[]
 ) {
+  const byMemberNumber = new Map<string, ExistingMemberForMatch>();
   const byCardBarcode = new Map<string, ExistingMemberForMatch[]>();
   const byLegacy = new Map<string, ExistingMemberForMatch[]>();
   const occupiedBarcodes = new Set<string>();
@@ -249,6 +251,7 @@ function createMemberIndexes(
 
   for (const raw of existing) {
     const member = dbMemberToMatch(raw, activeCardByMemberId);
+    byMemberNumber.set(raw.member_number.trim().toUpperCase(), member);
     const cardBarcode = clean(member.cardBarcode);
     if (cardBarcode) {
       const list = byCardBarcode.get(cardBarcode) || [];
@@ -264,7 +267,7 @@ function createMemberIndexes(
     }
   }
 
-  return { byCardBarcode, byLegacy, occupiedBarcodes };
+  return { byMemberNumber, byCardBarcode, byLegacy, occupiedBarcodes };
 }
 
 function fileFormulaIssue(row: ParsedMemberExchangeRow) {
@@ -280,8 +283,11 @@ function classifyRows(
   indexes: ReturnType<typeof createMemberIndexes>
 ) {
   const explicitCardCounts = new Map<string, number>();
+  const explicitBgmCounts = new Map<string, number>();
   for (const row of parsed.rows) {
     const barcode = normalizeBarcodePayload(row.values.CardBarcode);
+    const number = clean(row.values.MembershipNumber).toUpperCase();
+    if (number) explicitBgmCounts.set(number, (explicitBgmCounts.get(number) || 0) + 1);
     if (barcode) {
       explicitCardCounts.set(barcode, (explicitCardCounts.get(barcode) || 0) + 1);
     }
@@ -296,12 +302,14 @@ function classifyRows(
     conflict: 0,
     invalid: 0,
   };
+  const alreadyMatchedMembers = new Set<string>();
   let cardRows = 0;
   let blankCardRows = 0;
 
   for (const row of parsed.rows) {
     const values = row.values;
     const cardBarcode = normalizeBarcodePayload(values.CardBarcode);
+    const membershipNumber = clean(values.MembershipNumber).toUpperCase();
     const legacyPkCustomer = normalizeBarcodePayload(values.pkCustomer);
     const scannableCardNumber =
       parsed.mode === "legacy_15" ? legacyPkCustomer : cardBarcode;
@@ -315,6 +323,12 @@ function classifyRows(
 
     if (issue) {
       action = "invalid";
+    } else if (membershipNumber && !/^BGM[0-9]{7}$/.test(membershipNumber)) {
+      action = "invalid";
+      issue = "MembershipNumber must use the permanent BGM0000001 format.";
+    } else if (membershipNumber && (explicitBgmCounts.get(membershipNumber) || 0) > 1) {
+      action = "conflict";
+      issue = `MembershipNumber ${membershipNumber} appears more than once in this upload.`;
     } else if (
       cardBarcode &&
       (explicitCardCounts.get(cardBarcode) || 0) > 1
@@ -328,7 +342,37 @@ function classifyRows(
     ) {
       action = "conflict";
       issue = `CardBarcode ${cardBarcode} has already been issued or reserved and cannot be reassigned.`;
+    } else if (membershipNumber) {
+      const existing = indexes.byMemberNumber.get(membershipNumber);
+      const cardOwners = indexes.byCardBarcode.get(cardBarcode) || [];
+      const legacyOwners = indexes.byLegacy.get(legacyKey(values.Gym, values.pkCustomer)) || [];
+      if (!existing) {
+        action = "conflict";
+        issue = "MembershipNumber is not registered in TEST. Leave it blank for a new member; do not invent or reassign BGM numbers.";
+      } else if (cardOwners.some(owner => owner.id !== existing.id) ||
+                 legacyOwners.some(owner => owner.id !== existing.id)) {
+        action = "conflict";
+        issue = "The supplied card or legacy gym/pkCustomer belongs to a different member.";
+      } else {
+        const classification = classifyExistingBgmMemberImport(incoming, existing);
+        action = classification.action;
+        matchedMemberId = classification.matchedMemberId;
+        issue = classification.issue;
+      }
+    } else if (parsed.mode === "exchange_17") {
+      // A modern exchange row without a permanent BGM number must never
+      // silently change an existing member through a card or legacy reference.
+      const cardOwners = indexes.byCardBarcode.get(cardBarcode) || [];
+      const legacyOwners = indexes.byLegacy.get(legacyKey(values.Gym, values.pkCustomer)) || [];
+      if (cardOwners.length > 0 || legacyOwners.length > 0) {
+        action = "conflict";
+        issue = "This row has no MembershipNumber but the card or legacy reference matches an existing member. Restore the existing BGM number before importing.";
+      } else {
+        action = "new";
+      }
     } else {
+      // Original legacy sheet has no BGM numbers. Match only an unambiguous
+      // legacy gym/pkCustomer identity; all ambiguous rows block the batch.
       const classification = classifyMemberImportRow({
         incoming,
         byCardBarcode: indexes.byCardBarcode.get(cardBarcode) || [],
@@ -340,10 +384,19 @@ function classifyRows(
       issue = classification.issue;
     }
 
+    if (matchedMemberId && (action === "update" || action === "unchanged")) {
+      if (alreadyMatchedMembers.has(matchedMemberId)) {
+        action = "conflict";
+        issue = "Multiple upload rows match the same existing member; resolve the duplicate rows before applying.";
+        matchedMemberId = null;
+      } else alreadyMatchedMembers.add(matchedMemberId);
+    }
+
     counts[action] += 1;
 
     const stagedRow: StagedImportRow = {
       batch_id: batchId,
+      membership_number: nullable(membershipNumber),
       row_number: row.rowNumber,
       card_barcode: nullable(cardBarcode),
       gym: nullable(values.Gym),
