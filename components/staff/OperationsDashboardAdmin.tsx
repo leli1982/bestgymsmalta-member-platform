@@ -250,9 +250,6 @@ export default function OperationsDashboardAdmin() {
           The Bar total excludes cancelled lists and historical lists without price snapshots.
         </p>
 
-        <MembershipStatsAdmin />
-        <ScanVisitStatsAdmin />
-
         <section aria-label="Incoming requests and sales" className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-xl font-black">Incoming requests and sales</h2>
@@ -342,6 +339,17 @@ export default function OperationsDashboardAdmin() {
             );
           })}
         </section>
+
+        <section aria-label="Statistics" className="space-y-5 border-t-2 border-zinc-200 pt-8">
+          <header className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-700">BestGymsMalta · Insights</p>
+            <h2 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">Statistics</h2>
+            <p className="mt-2 text-sm text-zinc-600">Membership and gym visit statistics are separate from daily Sundries and Bar results.</p>
+          </header>
+          <MembershipStatsAdmin />
+          <ScanVisitStatsAdmin />
+        </section>
+
         <footer className="rounded-2xl border border-zinc-200 bg-white p-4 text-xs text-zinc-600">
           <Store className="mr-1 inline h-4 w-4"/> New gyms appear in this dashboard automatically when added to the BGM gym directory.
           Each record retains its original gym, Staff name and submitted item details.

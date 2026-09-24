@@ -164,6 +164,22 @@ try {
   assert.deepEqual(filterColors, {
     background: "rgb(255, 255, 255)", color: "rgb(24, 24, 27)", colorScheme: "light",
   }, "Super Admin operations filters must have readable light theme");
+  // Filter results must appear immediately below the five daily summary tiles,
+  // with longer-term membership and check-in charts under their own heading.
+  const operationsSummary = page.getByRole("region", { name: "Operations summary" });
+  const resultsSection = page.getByRole("region", { name: "Incoming requests and sales" });
+  const statisticsSection = page.getByRole("region", { name: "Statistics" });
+  await statisticsSection.getByRole("heading", { name: "Statistics", exact: true }).waitFor();
+  const dailySummaryBox = await operationsSummary.boundingBox();
+  const resultBox = await resultsSection.boundingBox();
+  const statisticsBox = await statisticsSection.boundingBox();
+  assert.ok(dailySummaryBox && resultBox && statisticsBox,
+    "The daily summary, matching results and Statistics section must all be rendered");
+  assert.ok(dailySummaryBox.y + dailySummaryBox.height < resultBox.y &&
+    resultBox.y + resultBox.height < statisticsBox.y,
+    "Matching results must sit below daily tiles and above the separate Statistics section");
+  assert.equal(await statisticsSection.getByRole("region", { name: "Gym check-in statistics" }).count(), 1);
+
   const membership = page.getByRole("region", { name: "New membership statistics" });
   await membership.getByRole("heading", { name: "New membership statistics" }).waitFor();
   await membership.getByText("5", { exact: true }).first().waitFor();
