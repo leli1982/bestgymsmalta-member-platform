@@ -49,6 +49,7 @@ export type MemberImportPreviewResult = {
 
 type ExistingMemberDbRow = {
   id: string;
+  member_number: string;
   full_name: string | null;
   email: string | null;
   legacy_gym: string | null;
@@ -74,6 +75,7 @@ type ExistingCardCredentialDbRow = {
 
 type StagedImportRow = {
   batch_id: string;
+  membership_number: string | null;
   row_number: number;
   card_barcode: string | null;
   gym: string | null;
@@ -126,6 +128,7 @@ function dbMemberToMatch(
 ): ExistingMemberForMatch {
   return {
     id: row.id,
+    memberNumber: row.member_number,
     cardBarcode: activeCardByMemberId.get(row.id) || null,
     legacyGym: row.legacy_gym,
     legacyPkCustomer: row.legacy_pk_customer,
@@ -193,7 +196,7 @@ async function loadExistingMembers(supabase: SupabaseClient) {
     const result = await supabase
       .from("bgm_members")
       .select(
-        "id, full_name, email, legacy_gym, legacy_pk_customer, company_name, address_line_1, address_line_2, town, postcode, gender, telephone_no_1, telephone_no_2, mobile, membership_expiry, status"
+        "id, member_number, full_name, email, legacy_gym, legacy_pk_customer, company_name, address_line_1, address_line_2, town, postcode, gender, telephone_no_1, telephone_no_2, mobile, membership_expiry, status"
       )
       .order("id", { ascending: true })
       .range(from, from + PAGE_SIZE - 1);

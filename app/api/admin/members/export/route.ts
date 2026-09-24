@@ -17,10 +17,11 @@ export const runtime = "nodejs";
 
 const PAGE_SIZE = 1000;
 const MEMBER_EXPORT_SELECT =
-  "id, legacy_gym, legacy_pk_customer, full_name, company_name, address_line_1, address_line_2, town, postcode, gender, telephone_no_1, telephone_no_2, mobile, email, membership_expiry, status";
+  "id, member_number, legacy_gym, legacy_pk_customer, full_name, company_name, address_line_1, address_line_2, town, postcode, gender, telephone_no_1, telephone_no_2, mobile, email, membership_expiry, status";
 
 type ExportMember = {
   id: string;
+  member_number: string;
   legacy_gym: string | null;
   legacy_pk_customer: string | null;
   full_name: string | null;
@@ -53,6 +54,7 @@ function toExchangeRow(
   rowNumber: number
 ) {
   const values = emptyMemberExchangeValues();
+  values.MembershipNumber = member.member_number;
   values.CardBarcode = cardBarcode;
   values.Gym = text(member.legacy_gym);
   values.pkCustomer = text(member.legacy_pk_customer);
@@ -139,8 +141,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (
-      MEMBER_EXCHANGE_HEADERS.length !== 16 ||
-      MEMBER_EXCHANGE_HEADERS[0] !== "CardBarcode"
+      MEMBER_EXCHANGE_HEADERS.length !== 17 ||
+      MEMBER_EXCHANGE_HEADERS[0] !== "MembershipNumber" ||
+      MEMBER_EXCHANGE_HEADERS[1] !== "CardBarcode"
     ) {
       throw new Error("Unexpected membership exchange contract.");
     }

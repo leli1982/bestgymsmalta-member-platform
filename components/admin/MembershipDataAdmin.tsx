@@ -17,7 +17,7 @@ type ImportPreview = {
   batchId: string;
   filename: string;
   fileFormat: "xlsx" | "csv";
-  importMode: "legacy_15" | "exchange_16";
+  importMode: "legacy_15" | "exchange_17";
   totalRows: number;
   newRows: number;
   updateRows: number;
@@ -179,7 +179,7 @@ export default function MembershipDataAdmin({
           </button>
         </div>
         <p className="mt-3 text-xs font-bold text-white/40">
-          Accepted formats: the original 15-column legacy XLSX/CSV or the BGM 16-column exchange format. In the legacy file, pkCustomer is the existing scanned membership/card number and duplicate historical values are preserved. Every imported member receives a separate permanent BGM number.
+          Accepted formats: the original 15-column legacy XLSX/CSV or the BGM 17-column exchange format. In the legacy file, pkCustomer is the existing scanned membership/card number and duplicate historical values are preserved. Every imported member receives a separate permanent BGM number.
         </p>
       </div>
 
@@ -201,7 +201,7 @@ export default function MembershipDataAdmin({
               <p className="text-xs font-black uppercase tracking-[.18em] text-white/35">Preview</p>
               <p className="mt-1 font-black text-white">{preview.filename}</p>
               <p className="mt-1 text-xs font-bold text-white/45">
-                {preview.importMode === "legacy_15" ? "Legacy 15-column file" : "BGM 16-column exchange file"}
+                {preview.importMode === "legacy_15" ? "Legacy 15-column file" : "BGM 17-column exchange file"}
               </p>
             </div>
             <button

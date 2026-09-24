@@ -103,7 +103,7 @@ export function parseMemberExchangeCsv(text: string): ParsedMemberExchangeFile {
   const mode = memberExchangeModeFromHeaders(headers);
   if (!mode) {
     throw new Error(
-      "Membership CSV header does not match the approved 15-column legacy or 16-column exchange format."
+      "Membership CSV header does not match the approved 15-column legacy or 17-column exchange format."
     );
   }
 
