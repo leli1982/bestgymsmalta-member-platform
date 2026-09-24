@@ -23,7 +23,7 @@ const legacyDeclaration = "I declare that the above details are correct and in t
 const declarationSnapshot = {
   gym_rules: { versionNo: 1, body: gymRules },
   legacy_declaration: { versionNo: 1, body: legacyDeclaration },
-  privacy: { versionNo: 1, body: "I consent to the processing of my membership data for administration, access control and operational purposes in line with the accepted privacy notice." },
+  // Five moderately long paragraphs approximate the length and line count of the\n  // current published TEST privacy declaration, rather than testing short placeholder copy.\n  privacy: { versionNo: 1, body: Array(5).fill("I consent to the processing of my membership data for administration, access control and operational purposes in line with the accepted privacy notice.").join("\n") },
   health: { versionNo: 1, body: "I confirm that I am fit to exercise or have obtained appropriate medical advice, and I accept responsibility for training within my own limits." },
   guardian: { versionNo: 1, body: "I confirm that I am the parent or legal guardian, that I consent to this membership, and that I have attended reception to co-sign this application." },
 };
