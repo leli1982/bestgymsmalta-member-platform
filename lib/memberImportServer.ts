@@ -254,7 +254,7 @@ function createMemberIndexes(
   for (const raw of existing) {
     const member = dbMemberToMatch(raw, activeCardByMemberId);
     byMemberNumber.set(raw.member_number.trim().toUpperCase(), member);
-    const identity = [clean(member.fullName).replace(/\\s+/g," ").toLocaleLowerCase("en"),clean(member.email).toLocaleLowerCase("en")].join("|");
+    const identity = [clean(member.fullName).replace(/\s+/g," ").toLocaleLowerCase("en"),clean(member.email).toLocaleLowerCase("en")].join("|");
     if (clean(member.email) && clean(member.fullName)) byNameEmail.set(identity,[...(byNameEmail.get(identity)||[]),member]);
     const cardBarcode = clean(member.cardBarcode);
     if (cardBarcode) {
@@ -284,7 +284,8 @@ function fileFormulaIssue(row: ParsedMemberExchangeRow) {
 }
 
 function identityName(row: IncomingMemberForMatch | ExistingMemberForMatch) {
-  return clean("customerName" in row ? (row.customerName || row.companyName) : row.fullName).replace(/\\s+/g, " ").toLocaleLowerCase("en");
+  const name = "fullName" in row ? row.fullName : (row.customerName || row.companyName);
+  return clean(name).replace(/\s+/g, " ").toLocaleLowerCase("en");
 }
 function conservativeLegacyMatch(
   incoming: IncomingMemberForMatch,
@@ -293,7 +294,7 @@ function conservativeLegacyMatch(
   if (!identityName(incoming)) return { action: "invalid", matchedMemberId: null, issue: "CustomerName and CompanyName are both blank." };
   if (candidates.length === 0) return { action: "new", matchedMemberId: null, issue: "" };
   const name = identityName(incoming);
-  const matching = [...new Map(candidates.map(x => [x.id, x])).values()].filter(x => {
+  const matching = Array.from(new Map(candidates.map(x => [x.id, x])).values()).filter(x => {
     if (!name || identityName(x) !== name) return false;
     const a = clean(incoming.email).toLocaleLowerCase("en");
     const b = clean(x.email).toLocaleLowerCase("en");
@@ -314,7 +315,7 @@ function classifyRows(
     const value = row.values;
     const id = clean(value.MembershipNumber).toUpperCase();
     if (id) bgmCounts.set(id, (bgmCounts.get(id) || 0) + 1);
-    const key = [clean(value.Gym).toLocaleLowerCase("en"), clean(value.pkCustomer), clean(value.CustomerName || value.CompanyName).replace(/\\s+/g, " ").toLocaleLowerCase("en"), clean(value.Email).toLocaleLowerCase("en")].join("\\u0000");
+    const key = [clean(value.Gym).toLocaleLowerCase("en"), clean(value.pkCustomer), clean(value.CustomerName || value.CompanyName).replace(/\s+/g, " ").toLocaleLowerCase("en"), clean(value.Email).toLocaleLowerCase("en")].join("\\u0000");
     sourceIdentityCounts.set(key, (sourceIdentityCounts.get(key) || 0) + 1);
   }
   const staged: StagedImportRow[] = [];
@@ -332,7 +333,7 @@ function classifyRows(
       ...(indexes.byLegacy.get(legacyKey(v.Gym, v.pkCustomer)) || []),
       ...knownCard,
       ...(indexes.byLegacyPk.get(legacyPk) || []),
-      ...(indexes.byNameEmail.get([clean(v.CustomerName || v.CompanyName).replace(/\\s+/g," ").toLocaleLowerCase("en"),clean(v.Email).toLocaleLowerCase("en")].join("|")) || []),
+      ...(indexes.byNameEmail.get([clean(v.CustomerName || v.CompanyName).replace(/\s+/g," ").toLocaleLowerCase("en"),clean(v.Email).toLocaleLowerCase("en")].join("|")) || []),
     ];
     const incoming = incomingFromRow(row);
     // The physical legacy card number is not a globally unique person identifier.
@@ -342,7 +343,7 @@ function classifyRows(
     let action: MemberImportAction;
     let matchedMemberId: string | null = null;
     let issue = fileFormulaIssue(row);
-    const sourceKey = [clean(v.Gym).toLocaleLowerCase("en"), legacyPk, clean(v.CustomerName || v.CompanyName).replace(/\\s+/g, " ").toLocaleLowerCase("en"), clean(v.Email).toLocaleLowerCase("en")].join("\\u0000");
+    const sourceKey = [clean(v.Gym).toLocaleLowerCase("en"), legacyPk, clean(v.CustomerName || v.CompanyName).replace(/\s+/g, " ").toLocaleLowerCase("en"), clean(v.Email).toLocaleLowerCase("en")].join("\\u0000");
     if (legacyPk) cardRows += 1; else blankCardRows += 1;
     if (issue) action = "invalid";
     else if (!identityName(incoming)) { action = "invalid"; issue = "CustomerName and CompanyName are both blank."; }
