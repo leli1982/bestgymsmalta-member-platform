@@ -20,5 +20,6 @@ test("membership export retains permanent BGM number and physical card in separa
   assert.match(source, /values\.pkCustomer = cardBarcode/);
   assert.match(source, /bgm_member_card_credentials/);
   assert.match(source, /status.*active/s);
-  assert.doesNotMatch(source, /values\.MembershipNumber/);
+  assert.match(source, /values\.MembershipNumber = member\.member_number/);
+  assert.doesNotMatch(source, /values\.MembershipNumber = cardBarcode/);
 });
