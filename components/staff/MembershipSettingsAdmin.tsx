@@ -14,6 +14,7 @@ type PriceEntry = {
   durationKey: DurationKey;
   amountCents: number;
   currency: "EUR";
+  isActive: boolean;
 };
 
 type PriceCatalog = {
@@ -148,6 +149,7 @@ export default function MembershipSettingsAdmin() {
     discountCodes: [],
   });
   const [priceInputs, setPriceInputs] = useState<Record<string, string>>({});
+  const [priceAvailability, setPriceAvailability] = useState<Record<string, boolean>>({});
   const [declarationBodies, setDeclarationBodies] = useState<Record<DeclarationKey, string>>({
     gym_rules: "",
     legacy_declaration: "",
@@ -198,15 +200,18 @@ export default function MembershipSettingsAdmin() {
       null;
 
     const nextPrices: Record<string, string> = {};
+    const nextAvailability: Record<string, boolean> = {};
     for (const type of membershipTypes) {
       for (const duration of durations) {
         const entry = source?.entries.find(
           (candidate) => candidate.membershipType === type && candidate.durationKey === duration
         );
         nextPrices[matrixKey(type, duration)] = entry ? centsToInput(entry.amountCents) : "0.00";
+        nextAvailability[matrixKey(type, duration)] = entry?.isActive !== false;
       }
     }
     setPriceInputs(nextPrices);
+    setPriceAvailability(nextAvailability);
 
     const nextBodies = {} as Record<DeclarationKey, string>;
     for (const key of declarationKeys) {
@@ -290,7 +295,12 @@ export default function MembershipSettingsAdmin() {
           setError(`Enter a valid non-negative price for ${typeLabels[membershipType]} / ${durationLabels[durationKey]}.`);
           return;
         }
-        entries.push({ membershipType, durationKey, amountCents, currency: "EUR" });
+        const isActive = priceAvailability[matrixKey(membershipType, durationKey)] !== false;
+        if (isActive && amountCents === 0) {
+          setError(`Set a positive price or untick Active for ${typeLabels[membershipType]} / ${durationLabels[durationKey]}.`);
+          return;
+        }
+        entries.push({ membershipType, durationKey, amountCents, currency: "EUR", isActive });
       }
     }
     const result = await postAction({ action: "save_price_draft", entries });
@@ -413,7 +423,7 @@ export default function MembershipSettingsAdmin() {
           <div className="mt-5 grid gap-5">
             <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
-                <SectionTitle title="Pricing" copy="Edit all 18 membership type × duration prices. Saving creates a draft; only Publish Prices changes the current catalog." />
+                <SectionTitle title="Pricing" copy="Set a price and Active checkbox for every duration. Inactive options stay saved but cannot be selected for new memberships or renewals. Save a draft, review all 18 combinations, then publish." />
                 <div className="rounded-2xl bg-zinc-100 px-4 py-3 text-right text-xs font-bold text-zinc-600">
                   <div>Editor source</div>
                   <div className="mt-1 text-sm font-black text-zinc-950">{activeCatalog ? `v${activeCatalog.versionNo} · ${activeCatalog.status}` : "No catalog yet"}</div>
@@ -440,6 +450,10 @@ export default function MembershipSettingsAdmin() {
                           return (
                             <td key={duration} className="border-b border-zinc-100 p-2">
                               <label className="block" data-price-cell={`${membershipType}-${duration}`}>
+                                <span className="mb-2 flex items-center gap-2 text-xs font-black text-zinc-800">
+                                  <input type="checkbox" aria-label={`${typeLabels[membershipType]} ${durationLabels[duration]} Active`} checked={priceAvailability[key] !== false} onChange={(event) => setPriceAvailability((current) => ({ ...current, [key]: event.target.checked }))} className="h-4 w-4 accent-orange-600" />
+                                  {priceAvailability[key] === false ? "Inactive" : "Active"}
+                                </span>
                                 <span className="sr-only">{membershipType} {duration}</span>
                                 <input
                                   inputMode="decimal"
@@ -458,6 +472,7 @@ export default function MembershipSettingsAdmin() {
                 </table>
               </div>
 
+              <p className="mt-3 text-xs font-semibold text-zinc-600">€0 is not an inactive switch. Untick Active to remove a duration from future choices; its saved price is retained. Published rates do not change earlier application or payment snapshots.</p>
               <div className="mt-5 flex flex-wrap justify-end gap-2">
                 <button type="button" disabled={saving} onClick={() => void savePriceDraft()} className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-black disabled:opacity-50">Save Price Draft</button>
                 <button type="button" disabled={saving || !latestDraftCatalog} onClick={() => void publishPrices()} className="rounded-xl bg-[#ff5a0a] px-4 py-3 text-sm font-black text-white disabled:opacity-40">Publish Prices</button>
