@@ -216,44 +216,44 @@ export default function MembershipA4Sheet({
           box-sizing: border-box;
           background: #fff;
           color: #18181b;
-          padding: 5.5mm 6mm 5mm;
+          padding: 4.2mm 5.5mm 4mm;
           font-family: Arial, Helvetica, sans-serif;
-          font-size: 8.4pt;
+          font-size: 8.1pt;
           line-height: 1.22;
           position: relative;
         }
         .bgm-member-a4-sheet:last-child { break-after: auto; }
-        .bgm-print-header { display:flex; justify-content:space-between; gap:6mm; border-bottom:1.2mm solid #ff5a0a; padding-bottom:2.5mm; }
+        .bgm-print-header { display:flex; justify-content:space-between; gap:4mm; border-bottom:1mm solid #ff5a0a; padding-bottom:1.5mm; }
         .bgm-print-brand { font-size:8pt; font-weight:900; letter-spacing:.13em; text-transform:uppercase; color:#ff5a0a; }
-        .bgm-print-title { margin-top:1mm; font-size:17pt; line-height:1; font-weight:900; letter-spacing:-.02em; }
+        .bgm-print-title { margin-top:1mm; font-size:15pt; line-height:1; font-weight:900; letter-spacing:-.02em; }
         .bgm-print-subtle { color:#71717a; font-size:7.2pt; }
         .bgm-print-ref { text-align:right; font-size:7.5pt; max-width:65mm; }
-        .bgm-print-grid { display:grid; gap:1.4mm; }
+        .bgm-print-grid { display:grid; gap:1mm; }
         .bgm-print-grid-4 { grid-template-columns:repeat(4,minmax(0,1fr)); }
         .bgm-print-grid-3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
-        .bgm-print-info { min-width:0; border:0.2mm solid #e4e4e7; border-radius:1.4mm; padding:1.4mm 1.7mm; }
+        .bgm-print-info { min-width:0; border:0.2mm solid #e4e4e7; border-radius:1.4mm; padding:1mm 1.2mm; }
         .bgm-print-label { color:#71717a; font-size:6.4pt; font-weight:900; text-transform:uppercase; letter-spacing:.04em; }
-        .bgm-print-value { margin-top:.45mm; font-weight:700; overflow-wrap:anywhere; }
-        .bgm-section-title { font-size:7pt; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#52525b; margin-bottom:1.2mm; }
-        .bgm-member-block { display:grid; grid-template-columns:24mm minmax(0,1fr); gap:3mm; }
-        .bgm-photo { width:24mm; height:31mm; border:0.2mm solid #d4d4d8; border-radius:1.8mm; object-fit:cover; }
-        .bgm-photo-placeholder { width:24mm; height:31mm; display:flex; align-items:center; justify-content:center; border:.25mm dashed #a1a1aa; border-radius:1.8mm; color:#a1a1aa; font-size:7pt; font-weight:800; }
-        .bgm-member-name { font-size:15pt; line-height:1.05; font-weight:900; }
-        .bgm-data-grid { display:grid; grid-template-columns:1fr 1fr; gap:.9mm 4mm; margin-top:2mm; }
+        .bgm-print-value { margin-top:.25mm; font-weight:700; overflow-wrap:anywhere; }
+        .bgm-section-title { font-size:7pt; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#52525b; margin-bottom:.7mm; }
+        .bgm-member-block { display:grid; grid-template-columns:23mm minmax(0,1fr); gap:2mm; }
+        .bgm-photo { width:23mm; height:27mm; border:0.2mm solid #d4d4d8; border-radius:1.8mm; object-fit:cover; }
+        .bgm-photo-placeholder { width:23mm; height:27mm; display:flex; align-items:center; justify-content:center; border:.25mm dashed #a1a1aa; border-radius:1.8mm; color:#a1a1aa; font-size:7pt; font-weight:800; }
+        .bgm-member-name { font-size:13.5pt; line-height:1.04; font-weight:900; }
+        .bgm-data-grid { display:grid; grid-template-columns:1fr 1fr; gap:.65mm 3mm; margin-top:1mm; }
         .bgm-data-line { min-width:0; overflow-wrap:anywhere; }
         .bgm-data-line b { color:#71717a; }
-        .bgm-verification { display:flex; flex-wrap:wrap; gap:1.2mm 3mm; border:.2mm solid #e4e4e7; border-radius:1.5mm; padding:1.6mm; }
+        .bgm-verification { display:flex; flex-wrap:wrap; gap:1.2mm 3mm; border:.2mm solid #e4e4e7; border-radius:1.5mm; padding:1.2mm; }
         .bgm-verify-item { white-space:nowrap; font-size:7.3pt; font-weight:700; }
-        .bgm-declaration-grid { display:grid; grid-template-columns:1.15fr .85fr; gap:2.4mm; align-items:start; }
-        .bgm-declaration { break-inside:avoid; border:.2mm solid #e4e4e7; border-radius:1.4mm; padding:1.6mm 1.8mm; margin-bottom:1.4mm; }
+        .bgm-declaration-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.8mm; align-items:start; }
+        .bgm-declaration { break-inside:avoid; border:.2mm solid #e4e4e7; border-radius:1.4mm; padding:1.1mm 1.3mm; margin-bottom:.8mm; }
         .bgm-declaration-title { font-size:6.7pt; font-weight:900; text-transform:uppercase; color:#3f3f46; }
-        .bgm-declaration-body { white-space:pre-line; margin-top:.7mm; font-size:7.15pt; line-height:1.17; color:#27272a; overflow-wrap:anywhere; }
-        .bgm-guardian { border:.25mm solid #c4b5fd; background:#faf5ff; border-radius:1.5mm; padding:1.8mm; }
-        .bgm-signatures { display:grid; grid-template-columns:1fr 1fr; gap:8mm; margin-top:2mm; }
-        .bgm-signature-line { height:9mm; border-bottom:.25mm solid #52525b; }
+        .bgm-declaration-body { white-space:pre-line; margin-top:.4mm; font-size:7.15pt; line-height:1.17; color:#27272a; overflow-wrap:anywhere; }
+        .bgm-guardian { border:.25mm solid #c4b5fd; background:#faf5ff; border-radius:1.5mm; padding:1.2mm; }
+        .bgm-signatures { display:grid; grid-template-columns:1fr 1fr; gap:6mm; margin-top:1mm; }
+        .bgm-signature-line { height:7.5mm; border-bottom:.25mm solid #52525b; }
         .bgm-signature-meta { display:flex; justify-content:space-between; gap:3mm; margin-top:1mm; font-size:6.8pt; font-weight:800; color:#52525b; }
         .bgm-print-footer { position:absolute; left:6mm; right:6mm; bottom:3mm; display:flex; justify-content:space-between; gap:4mm; border-top:.2mm solid #e4e4e7; padding-top:1mm; font-size:6pt; color:#a1a1aa; }
-        .bgm-print-section { margin-top:2.5mm; }
+        .bgm-print-section { margin-top:1.4mm; }
         @media screen {
           .bgm-member-a4-sheet { margin:0 auto 8mm; box-shadow:0 10px 35px rgba(0,0,0,.12); }
           .bgm-print-measure .bgm-member-a4-sheet { margin:0; box-shadow:none; }
