@@ -60,6 +60,11 @@ const sections: Section[] = [
     description: "Find and inspect membership records.", icon: UsersRound, group: "Membership Tools",
   },
   {
+    href: "/staff/admin/member-data", label: "Member import & export",
+    description: "Upload the original 15-column legacy Excel file safely; preview matches, preserve existing members, and export the numbered BGM list.",
+    icon: FileBarChart2, group: "Membership Tools",
+  },
+  {
     href: "/staff/members/enroll?kind=new", label: "New membership",
     description: "Create a new membership.", icon: UserPlus, group: "Membership Tools",
   },
