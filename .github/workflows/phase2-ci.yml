@@ -73,7 +73,7 @@ jobs:
       - name: Verify Super Admin announcements and member news in Chromium
         run: node tests/browser/super-admin-announcements.mjs
 
-      - name: Verify Super Admin gym and account management in Chromium
+      - name: Verify Super Admin member import and export in Chromium\n        run: node tests/browser/member-data.mjs\n\n      - name: Verify Super Admin gym and account management in Chromium
         run: node tests/browser/super-admin-management.mjs
 
       - name: Verify Super Admin Shopping List in Chromium
@@ -109,6 +109,7 @@ jobs:
             test-artifacts/bar-sales
             test-artifacts/operations-dashboard
             test-artifacts/announcements
+            test-artifacts/member-data
           if-no-files-found: ignore
 
       - name: Save membership print screenshots
