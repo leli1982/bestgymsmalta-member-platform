@@ -73,7 +73,7 @@ try {
   await page.getByRole("textbox", { name: "Announcement category" }).fill("News");
   await page.getByRole("textbox", { name: "Announcement button text" }).fill("Read more");
   await page.getByRole("textbox", { name: "Announcement button URL" }).fill("https://example.org/bgm-test");
-  await page.getByRole("textbox", { name: "Announcement display order" }).fill("2");
+  await page.getByRole("spinbutton", { name: "Announcement display order" }).fill("2");
   await page.locator('input[aria-label="Upload announcement image"]').setInputFiles({
     name: "news.png", mimeType: "image/png",
     buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9YfJbgAAAABJRU5ErkJggg==", "base64"),
