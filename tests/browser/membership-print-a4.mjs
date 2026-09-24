@@ -179,8 +179,32 @@ async function verifyFixture(context, key, expectedSheets) {
   }
 
   if (key === "couples") assert.equal(measurements.length, 2);
+  const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+  const actualPdfPages = (Buffer.from(pdf).toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length;
+  assert.equal(actualPdfPages, expectedSheets, `${key} Chromium PDF page count`);
+  const printButton = page.getByRole("button", { name: /Print Membership/ });
+  assert.equal(await printButton.isDisabled(), false, `${key} printable without hidden content`);
   await page.screenshot({ path: `${artifacts}/${key}.png`, fullPage: true });
   assert.deepEqual(pageErrors, [], `${key} print view must not raise browser errors`);
+  await page.close();
+}
+
+async function verifyOverflowIsBlocked(context) {
+  const page = await context.newPage();
+  const oversized = application("oversized", "student", [participant(1, { under18AtSubmission: true })]);
+  oversized.declarationSnapshot = {
+    ...declarationSnapshot,
+    privacy: { versionNo: 99, body: "Required privacy wording that must not be clipped or silently omitted. ".repeat(180) },
+  };
+  await page.route("**/api/system/members/applications/*/print", (route) =>
+    route.fulfill({ json: { application: oversized } })
+  );
+  await page.goto(`${origin}/staff/applications/oversized/print`);
+  await page.locator(".bgm-member-a4-sheet").waitFor({ state: "visible" });
+  await page.getByRole("alert").getByText(/cannot fit on a single A4 page/).waitFor();
+  assert.equal(await page.getByRole("button", { name: /Print Membership/ }).isDisabled(), true);
+  assert.equal(await page.getByRole("button", { name: /CONFIRM PRINTED/ }).count(), 0);
+  await page.screenshot({ path: `${artifacts}/oversized-blocked.png`, fullPage: true });
   await page.close();
 }
 
@@ -193,8 +217,9 @@ try {
   await verifyFixture(context, "single", 1);
   await verifyFixture(context, "student", 1);
   await verifyFixture(context, "couples", 2);
+  await verifyOverflowIsBlocked(context);
 
-  console.log("PASS Single, Student minor and Couples A4 membership forms fit one page per member");
+  console.log("PASS Chromium PDFs contain one A4 page per member; oversize agreements cannot be printed or confirmed");
 } finally {
   if (browser) await browser.close();
   server.kill("SIGTERM");
