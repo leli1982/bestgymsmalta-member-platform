@@ -49,6 +49,9 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: "1"
 
+      - name: Verify membership A4 print in Chromium
+        run: node tests/browser/membership-print-a4.mjs
+
       - name: Verify member card and gym pages in Chromium
         run: node tests/browser/member-card-gyms.mjs
 
@@ -81,9 +84,6 @@ jobs:
 
       - name: Verify Super Admin Shopping List in Chromium
         run: node tests/browser/shopping-list.mjs
-
-      - name: Verify membership A4 print in Chromium
-        run: node tests/browser/membership-print-a4.mjs
 
       - name: Verify nonblocking reception photo warning in Chromium
         run: node tests/browser/reception-photo-warning.mjs
