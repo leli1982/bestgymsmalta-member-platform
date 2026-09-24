@@ -29,7 +29,7 @@ export async function POST(
     const applicationResult = await supabase
       .from("bgm_membership_applications")
       .select(
-        "id, enrollment_gym_id, status, membership_type, duration_key, base_price_cents, currency, price_catalog_version_id"
+        "id, enrollment_gym_id, status, membership_type, duration_key, base_price_cents, currency, price_catalog_version_id, submitted_at"
       )
       .eq("id", applicationId)
       .maybeSingle();
@@ -60,11 +60,15 @@ export async function POST(
     let priceCatalogVersionId = application.price_catalog_version_id as string | null;
 
     if (basePriceCents == null || !priceCatalogVersionId) {
+      if (!application.submitted_at) {
+        return NextResponse.json({ error: "The original application date is unavailable; review the historical price rather than repricing it." }, { status: 409 });
+      }
       const catalogResult = await supabase
         .from("bgm_membership_price_catalog_versions")
-        .select("id, version_no")
-        .eq("status", "published")
-        .order("version_no", { ascending: false })
+        .select("id, version_no, published_at")
+        .in("status", ["published", "retired"])
+        .lte("published_at", application.submitted_at)
+        .order("published_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (catalogResult.error) throw catalogResult.error;
@@ -91,7 +95,7 @@ export async function POST(
         );
       }
 
-      basePriceCents = priceResult.data.amount_cents;
+      basePriceCents = basePriceCents ?? priceResult.data.amount_cents;
       currency = priceResult.data.currency || "EUR";
       priceCatalogVersionId = catalogResult.data.id;
     }
