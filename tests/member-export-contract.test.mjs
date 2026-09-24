@@ -15,8 +15,9 @@ test("membership export supports XLSX and CSV exchange formats", () => {
   assert.doesNotMatch(source, /memberNumber,fullName,email,phone,status/);
 });
 
-test("membership export writes optional CardBarcode from active credentials", () => {
-  assert.match(source, /CardBarcode/);
+test("membership export retains permanent BGM number and physical card in separate legacy pkCustomer field", () => {
+  assert.match(source, /MembershipNumber/);
+  assert.match(source, /values\\.pkCustomer = cardBarcode/);
   assert.match(source, /bgm_member_card_credentials/);
   assert.match(source, /status.*active/s);
   assert.doesNotMatch(source, /values\.MembershipNumber/);

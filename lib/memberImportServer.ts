@@ -350,7 +350,8 @@ function classifyRows(
       if (!existing) { action = "conflict"; issue = "Supplied BGM number does not belong to any current member. Leave the number blank for a new member."; }
       else {
         const result = classifyExistingBgmMemberImport(incoming, existing);
-        action = result.action; matchedMemberId = result.matchedMemberId; issue = result.issue;
+        action = result.action === "update" ? "unchanged" : result.action;
+        matchedMemberId = result.matchedMemberId; issue = result.issue;
       }
     } else {
       const result = conservativeLegacyMatch(incoming, candidates);

@@ -24,7 +24,7 @@ const legacyHeaders = [
   "ValidYN",
 ];
 
-const exchangeHeaders = ["CardBarcode", ...legacyHeaders];
+const exchangeHeaders = ["MembershipNumber", ...legacyHeaders];
 
 test("XLSX recognizes the 15-column legacy contract and real dates", async () => {
   const workbook = new ExcelJS.Workbook();
@@ -89,13 +89,14 @@ test("formula cells are flagged instead of executed or trusted", async () => {
   assert.equal(parsed.rows[0].issues[0].column, "TelephoneNo2");
 });
 
-test("XLSX writer preserves CardBarcode as text and expiry as a date", async () => {
+test("XLSX writer preserves permanent BGM number as text and expiry as a date", async () => {
   const rows = [
     {
       rowNumber: 2,
       issues: [],
       values: {
-        CardBarcode: "0012345",
+        MembershipNumber: "BGM0000123",
+        CardBarcode: "",
         Gym: "QROQQ",
         pkCustomer: "100",
         CustomerName: "John Borg",
@@ -121,9 +122,9 @@ test("XLSX writer preserves CardBarcode as text and expiry as a date", async () 
   const sheet = workbook.worksheets[0];
 
   assert.deepEqual(sheet.getRow(1).values.slice(1), exchangeHeaders);
-  assert.equal(sheet.getCell("A2").value, "0012345");
+  assert.equal(sheet.getCell("A2").value, "BGM0000123");
   assert.equal(sheet.getCell("A2").numFmt, "@");
-  assert.ok(sheet.getCell("O2").value instanceof Date);
+  assert.ok(sheet.getCell("P2").value instanceof Date);
   assert.equal(sheet.getCell("O2").numFmt, "dd/mm/yyyy");
 });
 
