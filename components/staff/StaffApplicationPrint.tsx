@@ -76,7 +76,7 @@ export default function StaffApplicationPrint({
     const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
     for (const sheet of sheets) {
       observer?.observe(sheet);
-      for (const child of sheet.querySelectorAll<HTMLElement>(".bgm-print-section, .bgm-signatures")) {
+      for (const child of Array.from(sheet.querySelectorAll<HTMLElement>(".bgm-print-section, .bgm-signatures"))) {
         observer?.observe(child);
       }
     }
