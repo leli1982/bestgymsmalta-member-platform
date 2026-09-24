@@ -284,7 +284,9 @@ function fileFormulaIssue(row: ParsedMemberExchangeRow) {
 }
 
 function identityName(row: IncomingMemberForMatch | ExistingMemberForMatch) {
-  const name = "fullName" in row ? row.fullName : (row.customerName || row.companyName);
+  const name = "id" in row
+    ? (row.fullName || row.companyName)
+    : (row.customerName || row.companyName);
   return clean(name).replace(/\s+/g, " ").toLocaleLowerCase("en");
 }
 function conservativeLegacyMatch(
