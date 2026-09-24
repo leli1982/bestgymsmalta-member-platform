@@ -9,7 +9,7 @@ function csvCell(value: unknown) {
   let text = String(value ?? "");
   // Spreadsheet import/export safeguards: never allow user-supplied CSV cells
   // to be interpreted as formulas if opened in Excel.
-  if (/^\\s*[=+\\-@]/.test(text)) text = "'" + text;
+  if (/^\s*[=+\-@]/.test(text)) text = "'" + text;
   return '"' + text.replace(/"/g,'""') + '"';
 }
 export async function GET(request: NextRequest,{params}:{params:Promise<{batchId:string}>}) {
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest,{params}:{params:Promise<{batchId
       }
       if (page.length<PAGE) break;
     }
-    return new NextResponse("\\uFEFF"+lines.join("\\r\\n")+"\\r\\n",{
+    return new NextResponse("\uFEFF"+lines.join("\r\n")+"\r\n",{
       headers:{"Content-Type":"text/csv; charset=utf-8",
         "Content-Disposition":'attachment; filename="bgm-import-issues.csv"',"Cache-Control":"no-store"}
     });
