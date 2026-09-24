@@ -237,6 +237,7 @@ function createMemberIndexes(
   const byMemberNumber = new Map<string, ExistingMemberForMatch>();
   const byCardBarcode = new Map<string, ExistingMemberForMatch[]>();
   const byLegacy = new Map<string, ExistingMemberForMatch[]>();
+  const byLegacyPk = new Map<string, ExistingMemberForMatch[]>();
   const occupiedBarcodes = new Set<string>();
   const activeCardByMemberId = new Map<string, string>();
 
@@ -259,6 +260,8 @@ function createMemberIndexes(
       byCardBarcode.set(cardBarcode, list);
     }
 
+    const pk = clean(member.legacyPkCustomer);
+    if (pk) byLegacyPk.set(pk, [...(byLegacyPk.get(pk) || []), member]);
     const key = legacyKey(member.legacyGym, member.legacyPkCustomer);
     if (key) {
       const list = byLegacy.get(key) || [];
@@ -267,7 +270,7 @@ function createMemberIndexes(
     }
   }
 
-  return { byMemberNumber, byCardBarcode, byLegacy, occupiedBarcodes };
+  return { byMemberNumber, byCardBarcode, byLegacy, byLegacyPk, occupiedBarcodes };
 }
 
 function fileFormulaIssue(row: ParsedMemberExchangeRow) {
@@ -277,163 +280,108 @@ function fileFormulaIssue(row: ParsedMemberExchangeRow) {
     .join(" ");
 }
 
+function identityName(row: IncomingMemberForMatch | ExistingMemberForMatch) {
+  return clean("customerName" in row ? (row.customerName || row.companyName) : row.fullName).replace(/\\s+/g, " ").toLocaleLowerCase("en");
+}
+function conservativeLegacyMatch(
+  incoming: IncomingMemberForMatch,
+  candidates: ExistingMemberForMatch[]
+): { action: MemberImportAction; matchedMemberId: string | null; issue: string } {
+  if (!identityName(incoming)) return { action: "invalid", matchedMemberId: null, issue: "CustomerName and CompanyName are both blank." };
+  if (candidates.length === 0) return { action: "new", matchedMemberId: null, issue: "" };
+  const name = identityName(incoming);
+  const matching = [...new Map(candidates.map(x => [x.id, x])).values()].filter(x => {
+    if (!name || identityName(x) !== name) return false;
+    const a = clean(incoming.email).toLocaleLowerCase("en");
+    const b = clean(x.email).toLocaleLowerCase("en");
+    return !(a && b && a !== b);
+  });
+  if (matching.length === 1) return { action: "unchanged", matchedMemberId: matching[0].id, issue: "" };
+  return { action: "conflict", matchedMemberId: null,
+    issue: "Legacy gym/card reference is ambiguous or conflicts with an existing member. Review rather than guessing or creating a duplicate." };
+}
 function classifyRows(
   parsed: ParsedMemberExchangeFile,
   batchId: string,
   indexes: ReturnType<typeof createMemberIndexes>
 ) {
-  const explicitCardCounts = new Map<string, number>();
-  const explicitBgmCounts = new Map<string, number>();
+  const bgmCounts = new Map<string, number>();
+  const sourceIdentityCounts = new Map<string, number>();
   for (const row of parsed.rows) {
-    const barcode = normalizeBarcodePayload(row.values.CardBarcode);
-    const number = clean(row.values.MembershipNumber).toUpperCase();
-    if (number) explicitBgmCounts.set(number, (explicitBgmCounts.get(number) || 0) + 1);
-    if (barcode) {
-      explicitCardCounts.set(barcode, (explicitCardCounts.get(barcode) || 0) + 1);
-    }
+    const value = row.values;
+    const id = clean(value.MembershipNumber).toUpperCase();
+    if (id) bgmCounts.set(id, (bgmCounts.get(id) || 0) + 1);
+    const key = [clean(value.Gym).toLocaleLowerCase("en"), clean(value.pkCustomer), clean(value.CustomerName || value.CompanyName).replace(/\\s+/g, " ").toLocaleLowerCase("en"), clean(value.Email).toLocaleLowerCase("en")].join("\\u0000");
+    sourceIdentityCounts.set(key, (sourceIdentityCounts.get(key) || 0) + 1);
   }
-
   const staged: StagedImportRow[] = [];
   const issues: MemberImportIssuePreview[] = [];
-  const counts: Record<MemberImportAction, number> = {
-    new: 0,
-    update: 0,
-    unchanged: 0,
-    conflict: 0,
-    invalid: 0,
-  };
+  const counts: Record<MemberImportAction, number> = { new: 0, update: 0, unchanged: 0, conflict: 0, invalid: 0 };
   const alreadyMatchedMembers = new Set<string>();
   let cardRows = 0;
   let blankCardRows = 0;
-
   for (const row of parsed.rows) {
-    const values = row.values;
-    const cardBarcode = normalizeBarcodePayload(values.CardBarcode);
-    const membershipNumber = clean(values.MembershipNumber).toUpperCase();
-    const legacyPkCustomer = normalizeBarcodePayload(values.pkCustomer);
-    const scannableCardNumber =
-      parsed.mode === "legacy_15" ? legacyPkCustomer : cardBarcode;
+    const v = row.values;
+    const memberNumber = clean(v.MembershipNumber).toUpperCase();
+    const legacyPk = normalizeBarcodePayload(v.pkCustomer);
+    const knownCard = indexes.byCardBarcode.get(legacyPk) || [];
+    const candidates = [
+      ...(indexes.byLegacy.get(legacyKey(v.Gym, v.pkCustomer)) || []),
+      ...knownCard,
+      ...(indexes.byLegacyPk.get(legacyPk) || []),
+    ];
     const incoming = incomingFromRow(row);
+    // The physical legacy card number is not a globally unique person identifier.
+    // Preserve it in pk_customer, but do not automatically mint active card credentials
+    // from the legacy workbook; reception's conservative legacy fallback handles it.
+    incoming.cardBarcode = "";
     let action: MemberImportAction;
     let matchedMemberId: string | null = null;
     let issue = fileFormulaIssue(row);
-
-    if (scannableCardNumber) cardRows += 1;
-    else blankCardRows += 1;
-
-    if (issue) {
-      action = "invalid";
-    } else if (membershipNumber && !/^BGM[0-9]{7}$/.test(membershipNumber)) {
-      action = "invalid";
-      issue = "MembershipNumber must use the permanent BGM0000001 format.";
-    } else if (membershipNumber && (explicitBgmCounts.get(membershipNumber) || 0) > 1) {
-      action = "conflict";
-      issue = `MembershipNumber ${membershipNumber} appears more than once in this upload.`;
-    } else if (
-      cardBarcode &&
-      (explicitCardCounts.get(cardBarcode) || 0) > 1
-    ) {
-      action = "conflict";
-      issue = `CardBarcode ${cardBarcode} appears more than once in this upload.`;
-    } else if (
-      cardBarcode &&
-      indexes.occupiedBarcodes.has(cardBarcode) &&
-      (indexes.byCardBarcode.get(cardBarcode) || []).length === 0
-    ) {
-      action = "conflict";
-      issue = `CardBarcode ${cardBarcode} has already been issued or reserved and cannot be reassigned.`;
-    } else if (membershipNumber) {
-      const existing = indexes.byMemberNumber.get(membershipNumber);
-      const cardOwners = indexes.byCardBarcode.get(cardBarcode) || [];
-      const legacyOwners = indexes.byLegacy.get(legacyKey(values.Gym, values.pkCustomer)) || [];
-      if (!existing) {
-        action = "conflict";
-        issue = "MembershipNumber is not registered in TEST. Leave it blank for a new member; do not invent or reassign BGM numbers.";
-      } else if (cardOwners.some(owner => owner.id !== existing.id) ||
-                 legacyOwners.some(owner => owner.id !== existing.id)) {
-        action = "conflict";
-        issue = "The supplied card or legacy gym/pkCustomer belongs to a different member.";
-      } else {
-        const classification = classifyExistingBgmMemberImport(incoming, existing);
-        action = classification.action;
-        matchedMemberId = classification.matchedMemberId;
-        issue = classification.issue;
-      }
-    } else if (parsed.mode === "exchange_16") {
-      // A modern exchange row without a permanent BGM number must never
-      // silently change an existing member through a card or legacy reference.
-      const cardOwners = indexes.byCardBarcode.get(cardBarcode) || [];
-      const legacyOwners = indexes.byLegacy.get(legacyKey(values.Gym, values.pkCustomer)) || [];
-      if (cardOwners.length > 0 || legacyOwners.length > 0) {
-        action = "conflict";
-        issue = "This row has no MembershipNumber but the card or legacy reference matches an existing member. Restore the existing BGM number before importing.";
-      } else {
-        action = "new";
+    const sourceKey = [clean(v.Gym).toLocaleLowerCase("en"), legacyPk, clean(v.CustomerName || v.CompanyName).replace(/\\s+/g, " ").toLocaleLowerCase("en"), clean(v.Email).toLocaleLowerCase("en")].join("\\u0000");
+    if (legacyPk) cardRows += 1; else blankCardRows += 1;
+    if (issue) action = "invalid";
+    else if (!identityName(incoming)) { action = "invalid"; issue = "CustomerName and CompanyName are both blank."; }
+    else if (memberNumber && !/^BGM[0-9]{7}$/.test(memberNumber)) { action = "invalid"; issue = "Invalid permanent BGM membership number."; }
+    else if (memberNumber && (bgmCounts.get(memberNumber) || 0) > 1) { action = "conflict"; issue = "Duplicate permanent BGM number in uploaded sheet."; }
+    else if (!memberNumber && (sourceIdentityCounts.get(sourceKey) || 0) > 1) { action = "conflict"; issue = "Repeated gym/card/name/email identity in the workbook; review the records individually."; }
+    else if (memberNumber) {
+      const existing = indexes.byMemberNumber.get(memberNumber);
+      if (!existing) { action = "conflict"; issue = "Supplied BGM number does not belong to any current member. Leave the number blank for a new member."; }
+      else {
+        const result = classifyExistingBgmMemberImport(incoming, existing);
+        action = result.action; matchedMemberId = result.matchedMemberId; issue = result.issue;
       }
     } else {
-      // Original legacy sheet has no BGM numbers. Match only an unambiguous
-      // legacy gym/pkCustomer identity; all ambiguous rows block the batch.
-      const classification = classifyMemberImportRow({
-        incoming,
-        byCardBarcode: indexes.byCardBarcode.get(cardBarcode) || [],
-        legacyCandidates:
-          indexes.byLegacy.get(legacyKey(values.Gym, values.pkCustomer)) || [],
-      });
-      action = classification.action;
-      matchedMemberId = classification.matchedMemberId;
-      issue = classification.issue;
+      const result = conservativeLegacyMatch(incoming, candidates);
+      action = result.action; matchedMemberId = result.matchedMemberId; issue = result.issue;
+      // Original legacy imports only add missing people; a safely matched member
+      // must retain their current profile, expiry, BGM ID, memberships and payments.
+      if (parsed.mode === "legacy_15" && matchedMemberId) action = "unchanged";
     }
-
     if (matchedMemberId && (action === "update" || action === "unchanged")) {
       if (alreadyMatchedMembers.has(matchedMemberId)) {
-        action = "conflict";
-        issue = "Multiple upload rows match the same existing member; resolve the duplicate rows before applying.";
-        matchedMemberId = null;
+        action = "conflict"; issue = "More than one incoming row matches this existing member."; matchedMemberId = null;
       } else alreadyMatchedMembers.add(matchedMemberId);
     }
-
     counts[action] += 1;
-
     const stagedRow: StagedImportRow = {
-      batch_id: batchId,
-      membership_number: nullable(membershipNumber),
-      row_number: row.rowNumber,
-      card_barcode: nullable(cardBarcode),
-      gym: nullable(values.Gym),
-      pk_customer: nullable(values.pkCustomer),
-      customer_name: nullable(values.CustomerName),
-      company_name: nullable(values.CompanyName),
-      address1: nullable(values.Address1),
-      address2: nullable(values.Address2),
-      town: nullable(values.Town),
-      postcode: nullable(values.PostCode),
-      gender: nullable(values.Gender),
-      telephone_no_1: nullable(values.TelephoneNo1),
-      telephone_no_2: nullable(values.TelephoneNo2),
-      mobile: nullable(values.Mobile),
-      email: nullable(values.Email),
-      expiry_date: nullable(values.ExpiryDate1),
-      valid_yn: nullable(normalizeLegacyValidity(values.ValidYN) || values.ValidYN),
-      source_fingerprint: fingerprint(row),
-      action,
-      matched_member_id: matchedMemberId,
-      issue: nullable(issue),
+      batch_id: batchId, row_number: row.rowNumber, membership_number: nullable(memberNumber),
+      card_barcode: null, gym: nullable(v.Gym), pk_customer: nullable(v.pkCustomer),
+      customer_name: nullable(v.CustomerName), company_name: nullable(v.CompanyName),
+      address1: nullable(v.Address1), address2: nullable(v.Address2), town: nullable(v.Town),
+      postcode: nullable(v.PostCode), gender: nullable(v.Gender), telephone_no_1: nullable(v.TelephoneNo1),
+      telephone_no_2: nullable(v.TelephoneNo2), mobile: nullable(v.Mobile), email: nullable(v.Email),
+      expiry_date: nullable(v.ExpiryDate1), valid_yn: nullable(normalizeLegacyValidity(v.ValidYN) || v.ValidYN),
+      source_fingerprint: fingerprint(row), action, matched_member_id: matchedMemberId, issue: nullable(issue),
     };
     staged.push(stagedRow);
-
     if ((action === "conflict" || action === "invalid") && issues.length < 100) {
-      issues.push({
-        rowNumber: row.rowNumber,
-        action,
-        cardBarcode: cardBarcode || (parsed.mode === "legacy_15" ? legacyPkCustomer : ""),
-        customerName: clean(values.CustomerName) || clean(values.CompanyName),
-        gym: clean(values.Gym),
-        pkCustomer: clean(values.pkCustomer),
-        issue: issue || "Review this row before import.",
-      });
+      issues.push({ rowNumber: row.rowNumber, action, cardBarcode: legacyPk,
+        customerName: clean(v.CustomerName || v.CompanyName), gym: clean(v.Gym),
+        pkCustomer: clean(v.pkCustomer), issue: issue || "Review this row before import." });
     }
   }
-
   return { staged, issues, counts, cardRows, blankCardRows };
 }
 
