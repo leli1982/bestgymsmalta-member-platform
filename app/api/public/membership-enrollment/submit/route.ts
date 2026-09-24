@@ -310,7 +310,7 @@ export async function POST(request: NextRequest) {
   ] = await Promise.all([
     supabase
       .from("bgm_membership_price_entries")
-      .select("amount_cents,currency")
+      .select("amount_cents,currency,is_active")
       .eq("catalog_version_id", catalog.id)
       .eq("membership_type", membershipType)
       .eq("duration_key", durationKey)
@@ -329,6 +329,7 @@ export async function POST(request: NextRequest) {
   if (
     !priceEntry ||
     priceEntry.currency !== "EUR" ||
+    priceEntry.is_active === false ||
     !Number.isInteger(Number(priceEntry.amount_cents)) ||
     Number(priceEntry.amount_cents) < 0
   ) {

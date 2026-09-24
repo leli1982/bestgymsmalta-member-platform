@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
     await Promise.all([
       supabase
         .from("bgm_membership_price_entries")
-        .select("membership_type,duration_key,amount_cents,currency")
+        .select("membership_type,duration_key,amount_cents,currency,is_active")
         .eq("catalog_version_id", catalog.id),
       supabase
         .from("bgm_membership_declaration_versions")
@@ -100,10 +100,11 @@ export async function GET(request: NextRequest) {
     durationKey: row.duration_key as MembershipDurationKey,
     amountCents: Number(row.amount_cents),
     currency: "EUR" as const,
+    isActive: row.is_active !== false,
   }));
 
   try {
-    validatePriceMatrix(entries);
+    if (!validatePriceMatrix(entries).ok) return notReady();
   } catch {
     return notReady();
   }
@@ -128,7 +129,7 @@ export async function GET(request: NextRequest) {
     },
     pricing: {
       versionId: catalog.id,
-      entries,
+      entries: entries.filter((entry) => entry.isActive !== false),
     },
     declarations: {
       gymRules: declarationSnapshot(gymRules),

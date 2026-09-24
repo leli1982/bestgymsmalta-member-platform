@@ -20,6 +20,7 @@ export type PriceEntry = {
   durationKey: MembershipDurationKey;
   amountCents: number;
   currency: "EUR";
+  isActive?: boolean;
 };
 
 const MEMBERSHIP_TYPES: readonly MembershipType[] = ["single", "student", "couples"];
@@ -60,6 +61,12 @@ export function validatePriceMatrix(
     if (!Number.isInteger(entry.amountCents) || entry.amountCents < 0) {
       return { ok: false, error: "Price amounts must be non-negative integer cents." };
     }
+    if (entry.isActive !== undefined && typeof entry.isActive !== "boolean") {
+      return { ok: false, error: "Price availability must be active or inactive." };
+    }
+    if (entry.isActive !== false && entry.amountCents === 0) {
+      return { ok: false, error: "An active membership duration must have a positive price." };
+    }
     if (entry.currency !== "EUR") {
       return { ok: false, error: "Price currency must be EUR." };
     }
@@ -74,6 +81,12 @@ export function validatePriceMatrix(
 
   if (expected.size > 0) {
     return { ok: false, error: "Price matrix is missing a required combination." };
+  }
+
+  for (const membershipType of MEMBERSHIP_TYPES) {
+    if (!entries.some((entry) => entry.membershipType === membershipType && entry.isActive !== false)) {
+      return { ok: false, error: "Each membership type must offer at least one active duration." };
+    }
   }
 
   return { ok: true };

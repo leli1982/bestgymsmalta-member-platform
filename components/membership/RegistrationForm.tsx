@@ -127,13 +127,14 @@ export default function RegistrationForm({
   const selectedPrice = useMemo(() => {
     if (!membershipType || !durationKey) return null;
     return config.pricing.entries.find(
-      (entry) => entry.membershipType === membershipType && entry.durationKey === durationKey,
+      (entry) => entry.membershipType === membershipType && entry.durationKey === durationKey && entry.isActive !== false,
     ) || null;
   }, [config.pricing.entries, durationKey, membershipType]);
 
   function chooseMembershipType(next: MembershipType) {
     const count = participantCountForType(next);
     setMembershipType(next);
+    setDurationKey("");
     setDocumentReady(false);
     setFormError("");
     setParticipants((current) => Array.from({ length: count }, (_, index) =>
@@ -279,7 +280,7 @@ export default function RegistrationForm({
           Membership duration
           <select value={durationKey} onChange={(event) => setDurationKey(event.target.value as MembershipDurationKey | "")} disabled={!membershipType} className={inputClass()}>
             <option value="">Choose duration</option>
-            {DURATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            {DURATION_OPTIONS.filter((option) => config.pricing.entries.some((entry) => entry.membershipType === membershipType && entry.durationKey === option.value && entry.isActive !== false)).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </label>
         {selectedPrice ? <div className="mt-4 flex items-center justify-between rounded-2xl bg-emerald-50 px-4 py-3"><span className="text-sm font-bold text-emerald-800">Current membership price</span><span className="text-xl font-black text-emerald-950">{formatEur(selectedPrice.amountCents)}</span></div> : null}

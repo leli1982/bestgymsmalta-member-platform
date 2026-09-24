@@ -48,11 +48,15 @@ function parsePriceEntries(value: unknown): PriceEntry[] {
 
   return value.map((raw) => {
     if (!isRecord(raw)) throw new Error("Each price entry must be an object.");
+    if (raw.isActive !== undefined && typeof raw.isActive !== "boolean") {
+      throw new Error("Availability must be active or inactive.");
+    }
     return {
       membershipType: String(raw.membershipType || "") as MembershipType,
       durationKey: String(raw.durationKey || "") as MembershipDurationKey,
       amountCents: Number(raw.amountCents),
       currency: String(raw.currency || "") as "EUR",
+      isActive: raw.isActive === undefined ? true : raw.isActive as boolean,
     };
   });
 }
@@ -93,7 +97,7 @@ export async function GET(request: NextRequest) {
           .order("version_no", { ascending: false }),
         supabase
           .from("bgm_membership_price_entries")
-          .select("catalog_version_id, membership_type, duration_key, amount_cents, currency"),
+          .select("catalog_version_id, membership_type, duration_key, amount_cents, currency, is_active"),
         supabase
           .from("bgm_membership_declaration_versions")
           .select(
@@ -129,6 +133,7 @@ export async function GET(request: NextRequest) {
             durationKey: entry.duration_key,
             amountCents: entry.amount_cents,
             currency: entry.currency,
+            isActive: entry.is_active,
           })),
       })),
       declarations: (declarationsResult.data || []).map((declaration) => ({
@@ -200,6 +205,7 @@ export async function POST(request: NextRequest) {
           duration_key: entry.durationKey,
           amount_cents: entry.amountCents,
           currency: "EUR",
+          is_active: entry.isActive !== false,
         }))
       );
 

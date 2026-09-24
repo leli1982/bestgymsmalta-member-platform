@@ -11,6 +11,7 @@ export type PriceEntry = {
   durationKey: MembershipDurationKey;
   amountCents: number;
   currency: "EUR";
+  isActive?: boolean;
 };
 
 export type PublishedDeclarationSnapshot = {

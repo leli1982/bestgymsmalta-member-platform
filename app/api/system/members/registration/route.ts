@@ -224,7 +224,7 @@ async function loadCurrentSettings(supabase: SupabaseAdmin, gym: GymRow) {
   const [priceResult, declarationResult] = await Promise.all([
     supabase
       .from("bgm_membership_price_entries")
-      .select("membership_type,duration_key,amount_cents,currency")
+      .select("membership_type,duration_key,amount_cents,currency,is_active")
       .eq("catalog_version_id", catalogResult.data.id),
     supabase
       .from("bgm_membership_declaration_versions")
@@ -241,6 +241,7 @@ async function loadCurrentSettings(supabase: SupabaseAdmin, gym: GymRow) {
     durationKey: row.duration_key as MembershipDurationKey,
     amountCents: Number(row.amount_cents),
     currency: row.currency as "EUR",
+    isActive: row.is_active !== false,
   }));
   const priceValidation = validatePriceMatrix(entries);
   if (!priceValidation.ok) {
@@ -269,7 +270,7 @@ async function loadCurrentSettings(supabase: SupabaseAdmin, gym: GymRow) {
     },
     pricing: {
       versionId: catalogResult.data.id,
-      entries,
+      entries: entries.filter((entry) => entry.isActive !== false),
     },
     declarations: {
       gymRules: declarationSnapshot(gymRules),
