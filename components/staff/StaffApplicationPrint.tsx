@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Loader2, Printer } from "lucide-react";
 import MembershipA4Sheet, {
   type PrintableApplication,
@@ -16,6 +16,8 @@ export default function StaffApplicationPrint({
   const [printDialogOpened, setPrintDialogOpened] = useState(false);
   const [confirmingPrint, setConfirmingPrint] = useState(false);
   const [printConfirmed, setPrintConfirmed] = useState(false);
+  const [printFit, setPrintFit] = useState<"checking" | "fits" | "overflow">("checking");
+  const printRootRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,7 +47,60 @@ export default function StaffApplicationPrint({
     };
   }, [applicationId]);
 
+  useLayoutEffect(() => {
+    if (!application) return;
+    let cancelled = false;
+    const root = printRootRef.current;
+    if (!root) return;
+
+    const sheets = Array.from(root.querySelectorAll<HTMLElement>(".bgm-member-a4-sheet"));
+    const measure = () => {
+      if (cancelled) return;
+      const overflows = sheets.some((sheet) => {
+        const footer = sheet.querySelector<HTMLElement>(".bgm-print-footer");
+        const signatures = sheet.querySelectorAll<HTMLElement>(".bgm-signatures");
+        const lastSignature = signatures[signatures.length - 1];
+        return (
+          sheet.scrollHeight > sheet.clientHeight + 1 ||
+          !footer ||
+          !lastSignature ||
+          lastSignature.getBoundingClientRect().bottom + 4 > footer.getBoundingClientRect().top
+        );
+      });
+      setPrintFit((previous) => {
+        const next = sheets.length && !overflows ? "fits" : "overflow";
+        return previous === next ? previous : next;
+      });
+    };
+
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    for (const sheet of sheets) {
+      observer?.observe(sheet);
+      for (const child of sheet.querySelectorAll<HTMLElement>(".bgm-print-section, .bgm-signatures")) {
+        observer?.observe(child);
+      }
+    }
+    const images = Array.from(root.querySelectorAll<HTMLImageElement>(".bgm-member-a4-sheet img"));
+    for (const image of images) image.addEventListener("load", measure);
+    window.addEventListener("resize", measure);
+    document.fonts.ready.then(measure).catch(() => {});
+    const frame = window.requestAnimationFrame(measure);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", measure);
+      for (const image of images) image.removeEventListener("load", measure);
+      observer?.disconnect();
+    };
+  }, [application]);
+
+  useEffect(() => {
+    document.body.classList.toggle("bgm-print-blocked", printFit !== "fits");
+    return () => document.body.classList.remove("bgm-print-blocked");
+  }, [printFit]);
+
   async function confirmPrinted() {
+    if (printFit !== "fits" || !printDialogOpened) return;
     setConfirmingPrint(true);
     setError("");
     try {
@@ -100,14 +155,25 @@ export default function StaffApplicationPrint({
   }
 
   return (
-    <main className="print-root bg-zinc-100 py-6 text-zinc-950 print:bg-white print:py-0">
+    <main ref={printRootRef} className="print-root bg-zinc-100 py-6 text-zinc-950 print:bg-white print:py-0">
       <style jsx global>{`
         @media print {
           .no-print { display: none !important; }
           .print-root { background: white !important; padding: 0 !important; }
+          .bgm-print-blocker { display: none !important; }
+          .bgm-print-blocked .bgm-member-a4-sheet { display: none !important; }
+          .bgm-print-blocked .bgm-print-blocker { display: block !important; padding: 12mm; font: 14pt Arial, sans-serif; color: #991b1b; }
         }
       `}</style>
 
+      {printFit !== "fits" && (
+        <div role="alert" className="no-print mx-auto mb-4 max-w-[194mm] rounded-2xl border border-red-300 bg-red-50 p-4 text-sm font-bold text-red-800">
+          {printFit === "checking"
+            ? "Checking that every membership agreement fits on one A4 page…"
+            : "One or more agreements cannot fit on a single A4 page without hiding required information. Printing and print confirmation are blocked. Please review the full declaration wording in Membership Settings before printing."}
+        </div>
+      )}
+      <div className="bgm-print-blocker hidden" aria-hidden="true">Printing blocked: the membership agreement has not been confirmed to fit on one A4 page. No agreement has been printed.</div>
       <div className="no-print mx-auto mb-4 flex max-w-[194mm] items-center justify-between gap-4 px-4 sm:px-0">
         <p className="text-sm font-bold text-zinc-600">
           {application.participants.length} member sheet
@@ -117,10 +183,11 @@ export default function StaffApplicationPrint({
           <button
             type="button"
             onClick={() => {
+              if (printFit !== "fits") return;
               setPrintDialogOpened(true);
               window.print();
             }}
-            disabled={printConfirmed}
+            disabled={printConfirmed || printFit !== "fits"}
             className="inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-black text-white disabled:opacity-40"
           >
             <Printer className="h-4 w-4" /> {printConfirmed ? "Printed" : "Print Membership"}
