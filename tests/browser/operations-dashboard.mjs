@@ -168,7 +168,7 @@ try {
   // with longer-term membership and check-in charts under their own heading.
   const operationsSummary = page.getByRole("region", { name: "Operations summary" });
   const resultsSection = page.getByRole("region", { name: "Incoming requests and sales" });
-  const statisticsSection = page.getByRole("region", { name: "Statistics" });
+  const statisticsSection = page.getByRole("region", { name: "Statistics", exact: true });
   await statisticsSection.getByRole("heading", { name: "Statistics", exact: true }).waitFor();
   const dailySummaryBox = await operationsSummary.boundingBox();
   const resultBox = await resultsSection.boundingBox();
