@@ -62,6 +62,8 @@ type ParticipantForm = {
   officialPhotoPath: string;
 };
 
+type AvailablePriceEntry = { membershipType: string; durationKey: string; amountCents: number };
+
 type ApplicationSummary = {
   id: string;
   reference: string;
@@ -173,6 +175,7 @@ export default function MembershipEnrollmentPage() {
   const [user, setUser] = useState<SystemUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [gyms, setGyms] = useState<Gym[]>([]);
+  const [availablePrices, setAvailablePrices] = useState<AvailablePriceEntry[]>([]);
   const [kind, setKind] = useState<"new" | "renewal" | null>(null);
   const [membershipType, setMembershipType] = useState("single");
   const [durationKey, setDurationKey] = useState("1_month");
@@ -195,12 +198,18 @@ export default function MembershipEnrollmentPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [authResponse, gymsResponse] = await Promise.all([
+        const [authResponse, gymsResponse, pricingResponse] = await Promise.all([
           fetch("/api/system/auth", { cache: "no-store" }),
           fetch("/api/gyms", { cache: "no-store" }),
+          fetch("/api/system/members/available-prices", { cache: "no-store" }),
         ]);
         const authData = await authResponse.json();
         const gymsData = await gymsResponse.json();
+        const pricingData = await pricingResponse.json().catch(() => ({}));
+        if (!pricingResponse.ok || !Array.isArray(pricingData.entries)) {
+          throw new Error(pricingData.error || "Could not load the current published membership rates.");
+        }
+        setAvailablePrices(pricingData.entries);
         setUser(authData.authenticated ? authData.user : null);
         setGyms(
           Array.isArray(gymsData.gyms)
@@ -227,6 +236,12 @@ export default function MembershipEnrollmentPage() {
   const canSearch = Boolean(
     user?.isSuperAdmin || user?.permissions.includes("members.view")
   );
+  const availableDurations = DURATIONS.filter((duration) => availablePrices.some(
+    (entry) => entry.membershipType === membershipType && entry.durationKey === duration.value,
+  ));
+  const availableMembershipTypes = MEMBERSHIP_TYPES.filter((type) => availablePrices.some(
+    (entry) => entry.membershipType === type.value,
+  ));
   const expectedParticipants = membershipType === "couples" ? 2 : 1;
   const renewalSelections = useMemo(
     () => participants.filter((participant) => participant.existingMemberId),
@@ -236,6 +251,15 @@ export default function MembershipEnrollmentPage() {
     () => renewalStartForCandidates(selectedRenewalCandidates),
     [selectedRenewalCandidates]
   );
+
+  useEffect(() => {
+    if (availableDurations.some((duration) => duration.value === durationKey)) return;
+    const first = availableDurations[0]?.value || "";
+    setDurationKey(first);
+    if (startDate) {
+      setExpiryDate(first ? calculateMembershipExpiry(startDate, first as MembershipDurationKey) : "");
+    }
+  }, [availablePrices, membershipType, durationKey, startDate]);
 
   function resetWorkflow() {
     setKind(null);
@@ -268,6 +292,15 @@ export default function MembershipEnrollmentPage() {
 
   function changeMembershipType(nextType: string) {
     setMembershipType(nextType);
+    const matching = DURATIONS.filter((duration) => availablePrices.some(
+      (entry) => entry.membershipType === nextType && entry.durationKey === duration.value,
+    ));
+    const nextDuration = matching.some((duration) => duration.value === durationKey)
+      ? durationKey : matching[0]?.value || "";
+    setDurationKey(nextDuration);
+    if (startDate) {
+      setExpiryDate(nextDuration ? calculateMembershipExpiry(startDate, nextDuration as MembershipDurationKey) : "");
+    }
     const nextCount = nextType === "couples" ? 2 : 1;
 
     if (kind === "new") {
@@ -447,6 +480,11 @@ export default function MembershipEnrollmentPage() {
   async function submitApplication(event: React.FormEvent) {
     event.preventDefault();
     if (!kind) return;
+
+    if (!availablePrices.some((entry) => entry.membershipType === membershipType && entry.durationKey === durationKey)) {
+      setError("This membership duration is not currently available. Refresh the page to load published rates.");
+      return;
+    }
 
     if (!staffName.trim()) {
       setError("Staff Name is required so this membership can be traced to the responsible staff member.");
@@ -736,7 +774,7 @@ export default function MembershipEnrollmentPage() {
                     onChange={(event) => changeMembershipType(event.target.value)}
                     className={inputClass}
                   >
-                    {MEMBERSHIP_TYPES.map((type) => (
+                    {availableMembershipTypes.map((type) => (
                       <option key={type.value} value={type.value}>
                         {type.label}
                       </option>
@@ -760,7 +798,7 @@ export default function MembershipEnrollmentPage() {
                     }}
                     className={inputClass}
                   >
-                    {DURATIONS.map((duration) => (
+                    {availableDurations.map((duration) => (
                       <option key={duration.value} value={duration.value}>
                         {duration.label}
                       </option>
