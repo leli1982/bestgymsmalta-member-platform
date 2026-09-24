@@ -26,6 +26,7 @@ export type IncomingMemberForMatch = {
 
 export type ExistingMemberForMatch = {
   id: string;
+  memberNumber?: string | null;
   cardBarcode?: string | null;
   legacyGym?: string | null;
   legacyPkCustomer?: string | null;
@@ -312,4 +313,13 @@ export function classifyMemberImportRow({
   }
 
   return classifyMatched(incoming, candidate);
+}
+
+export function classifyExistingBgmMemberImport(
+  incoming: IncomingMemberForMatch,
+  existing: ExistingMemberForMatch
+): MemberImportClassification {
+  // An existing BGM number is the primary identity. Card and legacy ownership
+  // are separately checked by the server before calling this helper.
+  return classifyMatched(incoming, existing);
 }
