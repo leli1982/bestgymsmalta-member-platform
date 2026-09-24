@@ -238,6 +238,7 @@ function createMemberIndexes(
   const byCardBarcode = new Map<string, ExistingMemberForMatch[]>();
   const byLegacy = new Map<string, ExistingMemberForMatch[]>();
   const byLegacyPk = new Map<string, ExistingMemberForMatch[]>();
+  const byNameEmail = new Map<string, ExistingMemberForMatch[]>();
   const occupiedBarcodes = new Set<string>();
   const activeCardByMemberId = new Map<string, string>();
 
@@ -253,6 +254,8 @@ function createMemberIndexes(
   for (const raw of existing) {
     const member = dbMemberToMatch(raw, activeCardByMemberId);
     byMemberNumber.set(raw.member_number.trim().toUpperCase(), member);
+    const identity = [clean(member.fullName).replace(/\\s+/g," ").toLocaleLowerCase("en"),clean(member.email).toLocaleLowerCase("en")].join("|");
+    if (clean(member.email) && clean(member.fullName)) byNameEmail.set(identity,[...(byNameEmail.get(identity)||[]),member]);
     const cardBarcode = clean(member.cardBarcode);
     if (cardBarcode) {
       const list = byCardBarcode.get(cardBarcode) || [];
@@ -270,7 +273,7 @@ function createMemberIndexes(
     }
   }
 
-  return { byMemberNumber, byCardBarcode, byLegacy, byLegacyPk, occupiedBarcodes };
+  return { byMemberNumber, byCardBarcode, byLegacy, byLegacyPk, byNameEmail, occupiedBarcodes };
 }
 
 function fileFormulaIssue(row: ParsedMemberExchangeRow) {
@@ -329,6 +332,7 @@ function classifyRows(
       ...(indexes.byLegacy.get(legacyKey(v.Gym, v.pkCustomer)) || []),
       ...knownCard,
       ...(indexes.byLegacyPk.get(legacyPk) || []),
+      ...(indexes.byNameEmail.get([clean(v.CustomerName || v.CompanyName).replace(/\\s+/g," ").toLocaleLowerCase("en"),clean(v.Email).toLocaleLowerCase("en")].join("|")) || []),
     ];
     const incoming = incomingFromRow(row);
     // The physical legacy card number is not a globally unique person identifier.
@@ -390,11 +394,16 @@ async function insertStagingRows(
   supabase: SupabaseClient,
   rows: StagedImportRow[]
 ) {
-  for (let start = 0; start < rows.length; start += STAGING_CHUNK_SIZE) {
-    const result = await supabase
-      .from("bgm_member_import_rows")
-      .insert(rows.slice(start, start + STAGING_CHUNK_SIZE));
-    if (result.error) throw result.error;
+  // Four bounded parallel writes keep the 25k-row legacy workbook practical
+  // without opening hundreds of concurrent PostgREST connections.
+  for (let start = 0; start < rows.length; start += STAGING_CHUNK_SIZE * 4) {
+    const chunks = Array.from({ length: 4 }, (_, index) =>
+      rows.slice(start + index * STAGING_CHUNK_SIZE, start + (index + 1) * STAGING_CHUNK_SIZE)
+    ).filter(chunk => chunk.length > 0);
+    const results = await Promise.all(chunks.map(chunk =>
+      supabase.from("bgm_member_import_rows").insert(chunk)
+    ));
+    for (const result of results) if (result.error) throw result.error;
   }
 }
 

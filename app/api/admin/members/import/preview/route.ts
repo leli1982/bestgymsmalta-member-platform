@@ -5,6 +5,7 @@ import { requireSystemPermission } from "@/lib/systemAuth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 function isInputError(message: string) {
   return (
