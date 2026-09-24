@@ -3,7 +3,7 @@
   "git": {
     "deploymentEnabled": {
       "feature/staff-dashboard-reception": false,
-      "feature/tablet-enrollment-membership-settings": false
+      "feature/tablet-enrollment-membership-settings": true
     }
   }
 }
