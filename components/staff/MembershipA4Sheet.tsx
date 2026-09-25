@@ -237,7 +237,7 @@ export default function MembershipA4Sheet({
         .bgm-print-grid { display:grid; gap:1mm; }
         .bgm-print-grid-4 { grid-template-columns:repeat(4,minmax(0,1fr)); }
         .bgm-print-grid-3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
-        .bgm-print-info { min-width:0; border:0.2mm solid #e4e4e7; border-radius:1.4mm; padding:1mm 1.2mm; }
+        .bgm-print-info { min-width:0; border:0.2mm solid #e4e4e7; border-radius:1.4mm; padding:.65mm 1mm; }
         .bgm-print-label { color:#71717a; font-size:6.4pt; font-weight:900; text-transform:uppercase; letter-spacing:.04em; }
         .bgm-print-value { margin-top:.25mm; font-weight:700; overflow-wrap:anywhere; }
         .bgm-section-title { font-size:7pt; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#52525b; margin-bottom:.7mm; }
@@ -251,7 +251,7 @@ export default function MembershipA4Sheet({
         .bgm-verification { display:flex; flex-wrap:wrap; gap:1.2mm 3mm; border:.2mm solid #e4e4e7; border-radius:1.5mm; padding:1.2mm; }
         .bgm-verify-item { white-space:nowrap; font-size:7.3pt; font-weight:700; }
         .bgm-declaration-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.8mm; align-items:start; }
-        .bgm-declaration { break-inside:avoid; border:.2mm solid #e4e4e7; border-radius:1.4mm; padding:1.1mm 1.3mm; margin-bottom:.8mm; }
+        .bgm-declaration { break-inside:avoid; border:.2mm solid #e4e4e7; border-radius:1.4mm; padding:.85mm 1.1mm; margin-bottom:.65mm; }
         .bgm-declaration-title { font-size:6.7pt; font-weight:900; text-transform:uppercase; color:#3f3f46; }
         .bgm-declaration-body { white-space:pre-line; margin-top:.4mm; font-size:7.15pt; line-height:1.17; color:#27272a; overflow-wrap:anywhere; }
         .bgm-guardian { border:.25mm solid #c4b5fd; background:#faf5ff; border-radius:1.5mm; padding:1.2mm; }
