@@ -211,10 +211,14 @@ export default function MembershipSettingsAdmin() {
 
     const nextBodies = {} as Record<DeclarationKey, string>;
     for (const key of declarationKeys) {
-      const version =
-        payload.declarations.find((item) => item.contentKey === key && item.status === "draft") ||
-        payload.declarations.find((item) => item.contentKey === key && item.status === "published");
-      nextBodies[key] = version?.body || "";
+      const published = payload.declarations.find(
+        (item) => item.contentKey === key && item.status === "published"
+      );
+      const draft = payload.declarations.find(
+        (item) => item.contentKey === key && item.status === "draft" &&
+          (!published || item.versionNo > published.versionNo)
+      );
+      nextBodies[key] = (draft || published)?.body || "";
     }
     setDeclarationBodies(nextBodies);
   }, []);
@@ -362,8 +366,12 @@ export default function MembershipSettingsAdmin() {
   }
 
   async function publishDeclaration(contentKey: DeclarationKey) {
+    const published = settings.declarations.find(
+      (item) => item.contentKey === contentKey && item.status === "published"
+    );
     const draft = settings.declarations.find(
-      (item) => item.contentKey === contentKey && item.status === "draft"
+      (item) => item.contentKey === contentKey && item.status === "draft" &&
+        (!published || item.versionNo > published.versionNo)
     );
     if (!draft) {
       setError(`Save a ${declarationLabels[contentKey]} draft before publishing.`);
@@ -545,7 +553,12 @@ export default function MembershipSettingsAdmin() {
                 {declarationKeys.map((contentKey) => {
                   const versions = settings.declarations.filter((item) => item.contentKey === contentKey);
                   const published = versions.find((item) => item.status === "published");
-                  const draft = versions.find((item) => item.status === "draft");
+                  const draft = versions.find(
+                    (item) => item.status === "draft" &&
+                      (!published || item.versionNo > published.versionNo)
+                  );
+                  const savedBody = (draft || published)?.body || "";
+                  const hasUnsavedChanges = declarationBodies[contentKey] !== savedBody;
                   return (
                     <div key={contentKey} className="rounded-2xl border border-zinc-200 p-4 sm:p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -559,8 +572,8 @@ export default function MembershipSettingsAdmin() {
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                         <div className="text-xs font-semibold text-zinc-400">{published ? `Published at ${published.publishedAt || "—"} · contentSha256 ${published.contentSha256}` : "No published version yet."}</div>
                         <div className="flex gap-2">
-                          <button type="button" disabled={saving} onClick={() => void saveDeclarationDraft(contentKey)} className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-black disabled:opacity-50">Save Draft</button>
-                          <button type="button" disabled={saving || !draft || printOverflow} onClick={() => void publishDeclaration(contentKey)} className="rounded-xl bg-[#ff5a0a] px-3 py-2 text-xs font-black text-white disabled:opacity-40">Publish Declaration</button>
+                          <button type="button" disabled={saving || !hasUnsavedChanges || !declarationBodies[contentKey].trim()} onClick={() => void saveDeclarationDraft(contentKey)} className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-black disabled:opacity-50">Save Draft</button>
+                          <button type="button" disabled={saving || !draft || hasUnsavedChanges || printOverflow} onClick={() => void publishDeclaration(contentKey)} className="rounded-xl bg-[#ff5a0a] px-3 py-2 text-xs font-black text-white disabled:opacity-40">{published && !draft && !hasUnsavedChanges ? "Published ✓" : "Publish Declaration"}</button>
                         </div>
                       </div>
                       {versions.length > 0 && (
