@@ -13,7 +13,8 @@ const overflow = readFileSync("components/staff/MembershipPrintOverflowPreview.t
 test("all under-18 applicants see guardian consent; only under-16 applicants see supervision clause", () => {
   assert.match(form, /showGuardian=\{under18\}/);
   assert.match(form, /showUnder16Supervision=\{under16\}/);
-  assert.match(form, /\{under18 \? \(/);
+  assert.match(form, /\{under18 && membershipType !== "couples" \? \(/);
+  assert.match(form, /membershipType === "couples" && under18/);
   assert.match(declaration, /showUnder16Supervision &&/);
   assert.match(declaration, /UNDER16_SUPERVISION_CLAUSE/);
   assert.match(UNDER16_SUPERVISION_CLAUSE, /under 16.*accompanied by a responsible adult/i);
