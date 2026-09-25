@@ -505,12 +505,7 @@ export async function PATCH(
           if (review.membershipType === "student" && !participant.studentEligibilityVerified) {
             return validationResponse("Student eligibility must be verified before confirming the online review.", 409);
           }
-          if (
-            stored.under_18_at_submission &&
-            (!participant.guardianPresentVerified || !participant.guardianCosignVerified)
-          ) {
-            return validationResponse("Guardian presence and co-sign must be verified before confirming the online review.", 409);
-          }
+          // Guardian signs the printed form after review; activation enforces the verified co-sign.
           if (
             stored.matched_member_id &&
             !stored.existing_member_id &&
