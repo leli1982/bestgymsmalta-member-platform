@@ -38,7 +38,7 @@ let currentUser = admin;
 let lastSelectedGym = "";
 let submittedGym = "";
 const pageErrors = [];
-const returnLink = () => page.getByRole("link", { name: "Return to Staff Portal", exact: true });
+const returnLink = () => page.getByRole("navigation", { name: "Staff Portal navigation" }).getByRole("link", { name: "Return to Staff Portal", exact: true });
 
 try {
   await mkdir(artifacts, { recursive: true });
