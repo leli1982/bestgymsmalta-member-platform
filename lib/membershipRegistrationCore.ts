@@ -90,6 +90,32 @@ export function couplesAgeEligibilityError(
     : null;
 }
 
+// The Couples form collects a single shared home address, but each member's
+// separate identity record retains its own address fields and history.
+export const SHARED_HOUSEHOLD_FIELDS = [
+  "addressLine1",
+  "addressLine2",
+  "town",
+  "postcode",
+] as const;
+
+export function withCouplesSharedAddress(
+  type: MembershipType,
+  participants: RegistrationParticipant[],
+): RegistrationParticipant[] {
+  if (type !== "couples" || participants.length !== 2) return participants;
+  const shared = participants[0];
+  return participants.map((participant, index) => index === 0
+    ? { ...participant }
+    : {
+        ...participant,
+        addressLine1: shared.addressLine1,
+        addressLine2: shared.addressLine2,
+        town: shared.town,
+        postcode: shared.postcode,
+      });
+}
+
 export function participantCountForType(type: MembershipType): 1 | 2 {
   if (type === "couples") return 2;
   if (type === "single" || type === "student") return 1;
@@ -109,7 +135,7 @@ export function requiredDocumentMessage(type: MembershipType): string[] {
   if (type === "couples") {
     return [
       "Valid ID cards or passports for both applicants.",
-      "Documents or ID evidence showing both applicants reside at the same address.",
+      "ID or supporting documents (such as a utility bill) confirming both applicants live at the same address. Reception verifies these visually.",
     ];
   }
   throw new Error("Unsupported membership type.");
