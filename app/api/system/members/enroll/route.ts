@@ -502,7 +502,8 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    for (const [index, participant] of participants.entries()) {
+    for (let index = 0; index < participants.length; index += 1) {
+      const participant = participants[index];
       Object.assign(participant, { under_18_at_submission: under18Orders.includes(index + 1) });
       if (!under18Orders.includes(index + 1)) continue;
       const guardian = rawParticipants[index]?.guardian || {};
