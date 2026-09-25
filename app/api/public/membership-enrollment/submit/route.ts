@@ -1,3 +1,4 @@
+import { UNDER16_SUPERVISION_CLAUSE } from "@/lib/guardianConsentPolicy";
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { calculateMembershipExpiry } from "@/lib/membershipEnrollmentCore";
@@ -346,7 +347,7 @@ export async function POST(request: NextRequest) {
   const privacy = declarationByKey.get("privacy");
   const health = declarationByKey.get("health");
   const guardianDeclaration = declarationByKey.get("guardian");
-  if (!gymRules || !privacy || !health || (under16Flags.some(Boolean) && !guardianDeclaration)) {
+  if (!gymRules || !privacy || !health || (under18Flags.some(Boolean) && !guardianDeclaration)) {
     return NextResponse.json({ error: "Enrollment is not ready." }, { status: 503 });
   }
 
@@ -442,13 +443,15 @@ export async function POST(request: NextRequest) {
         body: health.body,
         contentSha256: health.content_sha256,
       },
-      ...(guardianDeclaration && under16Flags.some(Boolean)
+      ...(guardianDeclaration && under18Flags.some(Boolean)
         ? {
             guardian: {
               id: guardianDeclaration.id,
               versionNo: Number(guardianDeclaration.version_no),
               body: guardianDeclaration.body,
               contentSha256: guardianDeclaration.content_sha256,
+              supervisionUnder16Orders: under16Flags.flatMap((under16, index) => under16 ? [index + 1] : []),
+              supervisionUnder16Text: UNDER16_SUPERVISION_CLAUSE,
             },
           }
         : {}),
