@@ -7,6 +7,7 @@ import {
   normalizeIdentityDocument,
   participantCountForType,
   requiredDocumentMessage,
+  withCouplesSharedAddress,
   validateRegistrationParticipant,
 } from "../lib/membershipRegistrationCore.ts";
 import { calculateMembershipExpiry } from "../lib/membershipEnrollmentCore.ts";
@@ -78,8 +79,41 @@ test("document readiness messages match the approved membership requirements", (
   ]);
   assert.deepEqual(requiredDocumentMessage("couples"), [
     "Valid ID cards or passports for both applicants.",
-    "Documents or ID evidence showing both applicants reside at the same address.",
+    "ID or supporting documents (such as a utility bill) confirming both applicants live at the same address. Reception verifies these visually.",
   ]);
+});
+
+test("Couples enter one address, copied to both distinct participants without changing identity", () => {
+  const first = adultParticipant({
+    idNumber: "111111M",
+    addressLine1: "Shared Street 12",
+    addressLine2: "Flat 3",
+    town: "Mosta",
+    postcode: "MST 0001",
+  });
+  const second = adultParticipant({
+    firstName: "Robin",
+    idNumber: "222222M",
+    addressLine1: "",
+    addressLine2: "",
+    town: "",
+    postcode: "",
+  });
+  const originals = [first, second];
+  const shared = withCouplesSharedAddress("couples", originals);
+  assert.equal(shared.length, 2);
+  assert.deepEqual(shared[1], {
+    ...second,
+    addressLine1: first.addressLine1,
+    addressLine2: first.addressLine2,
+    town: first.town,
+    postcode: first.postcode,
+  });
+  assert.equal(shared[0].idNumber, "111111M");
+  assert.equal(shared[1].idNumber, "222222M");
+  assert.equal(originals[1].addressLine1, "");
+  assert.deepEqual(withCouplesSharedAddress("single", originals), originals);
+  assert.deepEqual(withCouplesSharedAddress("student", originals), originals);
 });
 
 test("under-18 participants require complete guardian details", () => {
