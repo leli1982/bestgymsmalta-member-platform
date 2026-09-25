@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { calculateMembershipExpiry } from "@/lib/membershipEnrollmentCore";
 import {
   couplesAgeEligibilityError,
+  withCouplesSharedAddress,
   isUnder18On,
   isUnder16On,
   normalizeIdentityDocument,
@@ -221,9 +222,11 @@ export async function POST(request: NextRequest) {
   const under18Flags: boolean[] = [];
   const under16Flags: boolean[] = [];
   const acceptances = declarationValues.map(acceptance);
+  // Normalize both Couples applicants to the single household address before validation.
+  const enrollmentParticipants = withCouplesSharedAddress(membershipType, participantValues.map(sanitizeParticipant));
 
   for (let index = 0; index < expectedParticipantCount; index += 1) {
-    const participant = sanitizeParticipant(participantValues[index]);
+    const participant = enrollmentParticipants[index];
     const errors = validateRegistrationParticipant(participant, submittedOnMalta);
     const declarations = acceptances[index];
     if (
