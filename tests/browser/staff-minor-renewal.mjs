@@ -50,7 +50,7 @@ try {
       status: "expired", membershipExpiry: "2026-09-01", mobile: "79000001",
       phone: "79000001", email: "minor@example.test", addressLine1: "Test Street",
       town: "Mosta", idNumber: "TESTMINOR01", dateOfBirth: "2013-02-07",
-      nextOfKin: "Fictional Guardian", officialPhotoPath: null }] },
+      nextOfKin: "Fictional Guardian", officialPhotoPath: null }],
   } }));
   await context.route("**/api/system/members/enroll", route => {
     if (route.request().method() !== "POST") return route.fulfill({ status: 405 });
