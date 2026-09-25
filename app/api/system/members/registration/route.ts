@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { addMembershipDurationDate, todayMaltaDate } from "@/lib/maltaDate";
 import {
+  couplesAgeEligibilityError,
   isUnder18On,
   isUnder16On,
   normalizeIdentityDocument,
@@ -413,6 +414,8 @@ export async function POST(request: NextRequest) {
       if (validationErrors.length > 0) {
         throw new RouteError(400, `Applicant ${index + 1}: ${validationErrors[0]}`);
       }
+      const couplesAgeError = couplesAgeEligibilityError(membershipType, participant.dateOfBirth, submittedOnMalta);
+      if (couplesAgeError) throw new RouteError(400, `Applicant ${index + 1}: ${couplesAgeError}`);
       if (!acceptance.gymRules || !acceptance.privacy || !acceptance.health) {
         throw new RouteError(400, `Applicant ${index + 1} must accept all required declarations.`);
       }
