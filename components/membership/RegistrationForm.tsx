@@ -7,6 +7,8 @@ import {
   isUnder16On,
   normalizeIdentityDocument,
   participantCountForType,
+  SHARED_HOUSEHOLD_FIELDS,
+  withCouplesSharedAddress,
   validateRegistrationParticipant,
 } from "@/lib/membershipRegistrationCore";
 import type {
@@ -139,13 +141,13 @@ export default function RegistrationForm({
     setDurationKey("");
     setDocumentReady(false);
     setFormError("");
-    setParticipants((current) => Array.from({ length: count }, (_, index) =>
+    setParticipants((current) => withCouplesSharedAddress(next, Array.from({ length: count }, (_, index) =>
       current[index]
         ? cloneParticipant(current[index])
         : initialParticipants?.[index]
           ? cloneParticipant(initialParticipants[index])
           : blankParticipant(),
-    ));
+    )));
     setDeclarations(Array.from({ length: count }, () => ({ ...BLANK_ACCEPTANCE })));
     setPhotos(Array.from({ length: count }, () => null));
     setIdentityStates(Array.from({ length: count }, () => "idle"));
@@ -153,9 +155,15 @@ export default function RegistrationForm({
   }
 
   function updateParticipant(index: number, field: ParticipantField, value: string) {
-    setParticipants((current) => current.map((participant, participantIndex) =>
-      participantIndex === index ? { ...participant, [field]: value } : participant,
-    ));
+    setParticipants((current) => {
+      const updated = current.map((participant, participantIndex) =>
+        participantIndex === index ? { ...participant, [field]: value } : participant,
+      );
+      return membershipType === "couples" && index === 0 &&
+        (SHARED_HOUSEHOLD_FIELDS as readonly string[]).includes(field)
+        ? withCouplesSharedAddress("couples", updated)
+        : updated;
+    });
     if (field === "idNumber") {
       setIdentityStates((current) => current.map((state, participantIndex) => participantIndex === index ? "idle" : state));
       setIdentityMessages((current) => current.map((message, participantIndex) => participantIndex === index ? "" : message));
@@ -223,13 +231,14 @@ export default function RegistrationForm({
       return;
     }
 
-    for (let index = 0; index < participants.length; index += 1) {
-      const validationErrors = validateRegistrationParticipant(participants[index], submissionDate);
+    const enrollmentParticipants = withCouplesSharedAddress(membershipType, participants);
+    for (let index = 0; index < enrollmentParticipants.length; index += 1) {
+      const validationErrors = validateRegistrationParticipant(enrollmentParticipants[index], submissionDate);
       if (validationErrors.length > 0) {
         setFormError(`Applicant ${index + 1}: ${validationErrors[0]}`);
         return;
       }
-      const couplesAgeError = couplesAgeEligibilityError(membershipType, participants[index].dateOfBirth, submissionDate);
+      const couplesAgeError = couplesAgeEligibilityError(membershipType, enrollmentParticipants[index].dateOfBirth, submissionDate);
       if (couplesAgeError) {
         setFormError(`Applicant ${index + 1}: ${couplesAgeError}`);
         return;
@@ -258,7 +267,7 @@ export default function RegistrationForm({
         gymSlug,
         membershipType,
         durationKey,
-        participants: participants.map(cloneParticipant),
+        participants: enrollmentParticipants.map(cloneParticipant),
         declarations: declarations.map((item) => ({ ...item })),
         photos: [...photos],
         documentReadinessAcknowledged: true,
@@ -325,11 +334,25 @@ export default function RegistrationForm({
 
             {identityMessage ? <div className={`rounded-2xl border p-4 text-sm font-semibold ${identityState === "active" ? "border-red-200 bg-red-50 text-red-800" : identityState === "expired_inactive" ? "border-amber-200 bg-amber-50 text-amber-900" : "border-zinc-200 bg-zinc-50 text-zinc-700"}`}>{identityMessage}</div> : null}
 
+            {membershipType !== "couples" || index === 0 ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {membershipType === "couples" ? (
+                  <p className="sm:col-span-2 text-sm font-bold text-zinc-800">
+                    Shared home address — enter once for both applicants. Reception must visually verify their address evidence before activation.
+                  </p>
+                ) : null}
+                <label className="text-sm font-bold text-zinc-800 sm:col-span-2">Address<input value={participant.addressLine1} onChange={(event) => updateParticipant(index, "addressLine1", event.target.value)} className={inputClass()} autoComplete="address-line1" /></label>
+                <label className="text-sm font-bold text-zinc-800 sm:col-span-2">Address line 2 <span className="font-medium text-zinc-400">(optional)</span><input value={participant.addressLine2} onChange={(event) => updateParticipant(index, "addressLine2", event.target.value)} className={inputClass()} autoComplete="address-line2" /></label>
+                <label className="text-sm font-bold text-zinc-800">Town / locality<input value={participant.town} onChange={(event) => updateParticipant(index, "town", event.target.value)} className={inputClass()} autoComplete="address-level2" /></label>
+                <label className="text-sm font-bold text-zinc-800">Postcode <span className="font-medium text-zinc-400">(optional)</span><input value={participant.postcode} onChange={(event) => updateParticipant(index, "postcode", event.target.value)} className={inputClass()} autoComplete="postal-code" /></label>
+              </div>
+            ) : (
+              <p className="rounded-2xl bg-zinc-50 p-4 text-sm font-semibold text-zinc-700">
+                Shared home address entered for Applicant 1 applies to both applicants. Reception will visually verify their documents before activation.
+              </p>
+            )}
+
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="text-sm font-bold text-zinc-800 sm:col-span-2">Address<input value={participant.addressLine1} onChange={(event) => updateParticipant(index, "addressLine1", event.target.value)} className={inputClass()} autoComplete="address-line1" /></label>
-              <label className="text-sm font-bold text-zinc-800 sm:col-span-2">Address line 2 <span className="font-medium text-zinc-400">(optional)</span><input value={participant.addressLine2} onChange={(event) => updateParticipant(index, "addressLine2", event.target.value)} className={inputClass()} autoComplete="address-line2" /></label>
-              <label className="text-sm font-bold text-zinc-800">Town / locality<input value={participant.town} onChange={(event) => updateParticipant(index, "town", event.target.value)} className={inputClass()} autoComplete="address-level2" /></label>
-              <label className="text-sm font-bold text-zinc-800">Postcode <span className="font-medium text-zinc-400">(optional)</span><input value={participant.postcode} onChange={(event) => updateParticipant(index, "postcode", event.target.value)} className={inputClass()} autoComplete="postal-code" /></label>
               <label className="text-sm font-bold text-zinc-800">Mobile / phone<input type="tel" value={participant.phone} onChange={(event) => updateParticipant(index, "phone", event.target.value)} className={inputClass()} autoComplete="tel" /></label>
               <label className="text-sm font-bold text-zinc-800">Email<input type="email" value={participant.email} onChange={(event) => updateParticipant(index, "email", event.target.value)} className={inputClass()} autoComplete="email" /></label>
               <label className="text-sm font-bold text-zinc-800 sm:col-span-2">Next of kin / emergency contact<input value={participant.nextOfKin} onChange={(event) => updateParticipant(index, "nextOfKin", event.target.value)} className={inputClass()} /></label>
