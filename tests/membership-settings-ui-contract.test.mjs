@@ -57,6 +57,16 @@ test("declaration editor supports every versioned declaration key without overwr
   assert.match(component, /publish_declaration/);
 });
 
+test("publishing a declaration disables stale drafts and requires saving new edits", () => {
+  // Historical drafts must never be eligible after a later version is published.
+  assert.match(component, /item\.status === "draft"\s*&&\s*\(!published \|\| item\.versionNo > published\.versionNo\)/);
+  assert.match(component, /const savedBody = \(draft \|\| published\)\?\.body \|\| "";/);
+  assert.match(component, /const hasUnsavedChanges = declarationBodies\[contentKey\] !== savedBody;/);
+  assert.match(component, /disabled=\{saving \|\| !hasUnsavedChanges \|\| !declarationBodies\[contentKey\]\.trim\(\)\}/);
+  assert.match(component, /disabled=\{saving \|\| !draft \|\| hasUnsavedChanges \|\| printOverflow\}/);
+  assert.match(component, /"Published ✓"/);
+});
+
 test("only Super Admin sees the dashboard entry point", () => {
   assert.match(dashboard, /user\.isSuperAdmin/);
   assert.match(dashboard, /\/staff\/membership-settings/);
