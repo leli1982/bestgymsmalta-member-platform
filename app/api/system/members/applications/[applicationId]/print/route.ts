@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
+import { pendingGuardianConsentGap } from "@/lib/guardianConsentSafety";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +79,10 @@ export async function GET(
     if (membershipResult.error) throw membershipResult.error;
 
     const participants = participantsResult.data || [];
+    if (["submitted", "awaiting_payment"].includes(application.status)) {
+      const gap = pendingGuardianConsentGap(application.submitted_at, application.declaration_snapshot, participants);
+      if (gap) return NextResponse.json({ error: gap }, { status: 409 });
+    }
     const participantIds = participants.map((participant) => participant.id);
 
     const membershipMembersResult = membershipResult.data?.id
@@ -281,7 +286,7 @@ export async function POST(
     const supabase = getSupabaseAdmin();
     const applicationResult = await supabase
       .from("bgm_membership_applications")
-      .select("id, application_reference, enrollment_gym_id, status, application_source, reviewed_by_system_user_id")
+      .select("id, application_reference, enrollment_gym_id, status, application_source, reviewed_by_system_user_id, submitted_at, declaration_snapshot")
       .eq("id", applicationId)
       .maybeSingle();
 
@@ -317,6 +322,14 @@ export async function POST(
         { status: 409 }
       );
     }
+
+    const participantsResult = await supabase
+      .from("bgm_membership_application_members")
+      .select("participant_order, date_of_birth, under_18_at_submission, guardian_name, guardian_id_number, guardian_relationship, guardian_phone, guardian_email, guardian_address")
+      .eq("application_id", applicationId);
+    if (participantsResult.error) throw participantsResult.error;
+    const gap = pendingGuardianConsentGap(application.submitted_at, application.declaration_snapshot, participantsResult.data || []);
+    if (gap) return NextResponse.json({ error: gap }, { status: 409 });
 
     const confirmedAt = new Date().toISOString();
     const auditResult = await supabase.from("bgm_audit_log").insert({
