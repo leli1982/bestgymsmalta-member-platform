@@ -95,7 +95,7 @@ try {
 
   await page.getByRole("button", { name: "Regular", exact: true }).click();
   await page.locator("label").filter({ hasText: "Membership duration" }).locator("select").selectOption("1_month");
-  await page.getByLabel("I understand these requirements and I am ready to continue.", { exact: true }).check();
+  await page.getByLabel("I have checked and verified these reception requirements.", { exact: true }).check();
   await page.getByLabel("First name", { exact: true }).fill("Browser");
   await page.getByLabel("Last name", { exact: true }).fill("Applicant");
   await page.getByLabel("ID card / passport number", { exact: true }).fill("TEST123M");
