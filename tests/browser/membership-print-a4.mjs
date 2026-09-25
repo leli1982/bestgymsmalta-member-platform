@@ -129,6 +129,32 @@ const fixtures = {
     }),
   ]),
   couples: application("couples", "couples", [participant(1), participant(2)]),
+  mixed: application("mixed", "couples", [
+    participant(1, {
+      dateOfBirth: "2011-01-15",
+      under18AtSubmission: true,
+      guardianName: "Test Guardian One",
+      guardianIdNumber: "123456M",
+      guardianRelationship: "Parent",
+      guardianPhone: "+356 7999 9999",
+      guardianEmail: "guardian1@example.com",
+      guardianAddress: "Test Address One",
+      guardianPresentVerified: true,
+      guardianCosignVerified: true,
+    }),
+    participant(2, {
+      dateOfBirth: "2010-01-15",
+      under18AtSubmission: true,
+      guardianName: "Test Guardian Two",
+      guardianIdNumber: "234567M",
+      guardianRelationship: "Parent",
+      guardianPhone: "+356 7999 9998",
+      guardianEmail: "guardian2@example.com",
+      guardianAddress: "Test Address Two",
+      guardianPresentVerified: true,
+      guardianCosignVerified: true,
+    }),
+  ]),
   sixteen: application("sixteen", "single", [
     participant(1, {
       dateOfBirth: "2010-01-15",
@@ -209,12 +235,17 @@ async function verifyFixture(context, key, expectedSheets) {
     assert.equal(measurement.overflow, "hidden");
   }
 
-  if (key === "couples") assert.equal(measurements.length, 2);
+  if (key === "couples" || key === "mixed") assert.equal(measurements.length, 2);
   const guardianDeclarationCount = await sheets.locator(".bgm-declaration-title").filter({ hasText: "Guardian Declaration" }).count();
   if (key === "student" || key === "sixteen") assert.equal(guardianDeclarationCount, 1, "all under-18 applicants include guardian consent");
+  if (key === "mixed") assert.equal(guardianDeclarationCount, 2, "both 15 and 16-year-old couples participants require guardian consent");
   if (key === "single" || key === "couples") assert.equal(guardianDeclarationCount, 0, "adult applicants have no guardian declaration");
   const supervisionCount = await sheets.locator(".bgm-declaration-body").filter({ hasText: "must be accompanied by a responsible adult" }).count();
-  assert.equal(supervisionCount, key === "student" ? 1 : 0, `${key} supervision clause must appear only when under 16`);
+  assert.equal(supervisionCount, key === "student" || key === "mixed" ? 1 : 0, `${key} supervision clause must appear only when under 16`);
+  if (key === "mixed") {
+    const perSheet = await sheets.evaluateAll((nodes) => nodes.map((node) => node.textContent.includes("must be accompanied by a responsible adult")));
+    assert.deepEqual(perSheet, [true, false], "under-16 supervision appears only on the younger partner's own A4 sheet");
+  }
   const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
   const actualPdfPages = (Buffer.from(pdf).toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length;
   assert.equal(actualPdfPages, expectedSheets, `${key} Chromium PDF page count`);
@@ -259,6 +290,7 @@ try {
   await verifyFixture(context, "single", 1);
   await verifyFixture(context, "student", 1);
   await verifyFixture(context, "sixteen", 1);
+  await verifyFixture(context, "mixed", 2);
   await verifyFixture(context, "couples", 2);
   await verifyOverflowIsBlocked(context);
 
