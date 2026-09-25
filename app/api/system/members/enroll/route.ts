@@ -503,8 +503,8 @@ export async function POST(request: NextRequest) {
     }
 
     for (const [index, participant] of participants.entries()) {
-      participant.under_18_at_submission = under18Orders.includes(index + 1);
-      if (!participant.under_18_at_submission) continue;
+      Object.assign(participant, { under_18_at_submission: under18Orders.includes(index + 1) });
+      if (!under18Orders.includes(index + 1)) continue;
       const guardian = rawParticipants[index]?.guardian || {};
       if (rawParticipants[index]?.guardianDeclarationPresented !== true) {
         return NextResponse.json({ error: `Applicant ${index + 1}: The guardian must review the published declaration before submission.` }, { status: 409 });
