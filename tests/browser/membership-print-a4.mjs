@@ -66,6 +66,13 @@ function participant(order, overrides = {}) {
 }
 
 function application(id, membershipType, participants) {
+  const submittedOn = "2026-09-18";
+  const under16Orders = participants.filter((item) => {
+    const [year, month, day] = item.dateOfBirth.split("-").map(Number);
+    const [currentYear, currentMonth, currentDay] = submittedOn.split("-").map(Number);
+    const age = currentYear - year - (currentMonth < month || (currentMonth === month && currentDay < day) ? 1 : 0);
+    return age < 16;
+  }).map((item) => item.participantOrder);
   return {
     id,
     applicationReference: `BGMAPP-${id.toUpperCase()}`,
@@ -91,7 +98,14 @@ function application(id, membershipType, participants) {
     paymentMethod: "card",
     paymentOtherText: null,
     paymentStaffName: "Browser Reception Staff",
-    declarationSnapshot,
+    declarationSnapshot: {
+      ...declarationSnapshot,
+      guardian: {
+        ...declarationSnapshot.guardian,
+        supervisionUnder16Orders: under16Orders,
+        supervisionUnder16Text: "I understand that members under 16 must be accompanied by a responsible adult while using the gym.",
+      },
+    },
     sameAddressVerified: membershipType === "couples",
     participants,
   };
@@ -197,8 +211,10 @@ async function verifyFixture(context, key, expectedSheets) {
 
   if (key === "couples") assert.equal(measurements.length, 2);
   const guardianDeclarationCount = await sheets.locator(".bgm-declaration-title").filter({ hasText: "Guardian Declaration" }).count();
-  if (key === "student") assert.equal(guardianDeclarationCount, 1, "under-16 applicant includes guardian declaration");
-  if (key === "sixteen" || key === "single" || key === "couples") assert.equal(guardianDeclarationCount, 0, "16+ applicant has no guardian declaration");
+  if (key === "student" || key === "sixteen") assert.equal(guardianDeclarationCount, 1, "all under-18 applicants include guardian consent");
+  if (key === "single" || key === "couples") assert.equal(guardianDeclarationCount, 0, "adult applicants have no guardian declaration");
+  const supervisionCount = await sheets.locator(".bgm-declaration-body").filter({ hasText: "must be accompanied by a responsible adult" }).count();
+  assert.equal(supervisionCount, key === "student" ? 1 : 0, `${key} supervision clause must appear only when under 16`);
   const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
   const actualPdfPages = (Buffer.from(pdf).toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length;
   assert.equal(actualPdfPages, expectedSheets, `${key} Chromium PDF page count`);
