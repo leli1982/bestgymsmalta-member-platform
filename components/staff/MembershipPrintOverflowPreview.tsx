@@ -1,5 +1,6 @@
-import { UNDER16_SUPERVISION_CLAUSE } from "@/lib/guardianConsentPolicy";
 "use client";
+
+import { UNDER16_SUPERVISION_CLAUSE } from "@/lib/guardianConsentPolicy";
 
 import { useLayoutEffect, useMemo, useRef } from "react";
 import MembershipA4Sheet, {
