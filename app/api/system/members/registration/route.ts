@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { addMembershipDurationDate, todayMaltaDate } from "@/lib/maltaDate";
 import {
   couplesAgeEligibilityError,
+  withCouplesSharedAddress,
   isUnder18On,
   isUnder16On,
   normalizeIdentityDocument,
@@ -405,10 +406,12 @@ export async function POST(request: NextRequest) {
     const submittedOnMalta = todayMaltaDate();
     const expiryDate = addMembershipDurationDate(submittedOnMalta, durationKey);
     const acceptances = declarationValues.map(declarationAcceptance);
+    // One address is entered for the household; preserve two distinct member records.
+    const enrollmentParticipants = withCouplesSharedAddress(membershipType, participantValues.map(sanitizeParticipant));
     const serverParticipants: ServerParticipant[] = [];
 
     for (let index = 0; index < expectedParticipantCount; index += 1) {
-      const participant = sanitizeParticipant(participantValues[index]);
+      const participant = enrollmentParticipants[index];
       const validationErrors = validateRegistrationParticipant(participant, submittedOnMalta);
       const acceptance = acceptances[index];
       if (validationErrors.length > 0) {
