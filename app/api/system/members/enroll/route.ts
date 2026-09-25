@@ -4,6 +4,7 @@ import {
   buildEnrollmentIdentityAction,
   requireStaffName,
 } from "@/lib/membershipEnrollmentCore";
+import { isUnder18On } from "@/lib/membershipRegistrationCore";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
 import { broadcastStaffMembershipRefresh } from "@/lib/staffRealtime";
@@ -342,6 +343,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // This legacy enrollment screen has no guardian declaration, details or co-sign
+    // capture. Fail closed for minors until its complete renewal path is implemented.
+    // The modern registration workflow is separate and retains its guardian rules.
+    const submittedOnMalta = maltaTodayIso();
+    try {
+      for (const participant of participants) {
+        if (!participant.date_of_birth) {
+          return NextResponse.json({ error: "Date of birth is required to verify membership eligibility." }, { status: 400 });
+        }
+        if (isUnder18On(participant.date_of_birth, submittedOnMalta)) {
+          return NextResponse.json({ error: "Under-18 enrollment and renewal require guardian consent and co-signing. This renewal screen cannot capture them; do not submit this application." }, { status: 409 });
+        }
+      }
+    } catch {
+      return NextResponse.json({ error: "A valid date of birth is required." }, { status: 400 });
+    }
+
     const renewalMemberIds = participants
       .map((participant) => participant.existing_member_id)
       .filter((value): value is string => Boolean(value));
@@ -363,7 +381,7 @@ export async function POST(request: NextRequest) {
     if (kind === "renewal") {
       const memberResult = await supabase
         .from("bgm_members")
-        .select("id, status, membership_expiry")
+        .select("id, status, membership_expiry, date_of_birth")
         .in("id", renewalMemberIds);
 
       if (memberResult.error) throw memberResult.error;
@@ -372,6 +390,21 @@ export async function POST(request: NextRequest) {
           { error: "One or more renewal members could not be confirmed." },
           { status: 404 }
         );
+      }
+
+      // Never trust an editable participant DOB over the permanent member record.
+      // An existing minor must not be renewed through this guardian-free legacy path.
+      for (const member of memberResult.data || []) {
+        if (!member.date_of_birth) {
+          return NextResponse.json({ error: "Existing member date of birth must be verified before renewal." }, { status: 409 });
+        }
+        try {
+          if (isUnder18On(member.date_of_birth, submittedOnMalta)) {
+            return NextResponse.json({ error: "This member is under 18. Guardian consent and co-signing are required for renewal; this renewal screen cannot capture them." }, { status: 409 });
+          }
+        } catch {
+          return NextResponse.json({ error: "Existing member date of birth must be corrected before renewal." }, { status: 409 });
+        }
       }
 
       const today = maltaTodayIso();
