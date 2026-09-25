@@ -91,6 +91,9 @@ jobs:
       - name: Verify Super Admin gym selection and staff return navigation in Chromium
         run: node tests/browser/staff-enrollment-gym.mjs
 
+      - name: Verify minor renewal guardian form in Chromium
+        run: node tests/browser/staff-minor-renewal.mjs
+
       - name: Verify tablet enrollment workflow in Chromium
         run: node tests/browser/tablet-enrollment.mjs
 
