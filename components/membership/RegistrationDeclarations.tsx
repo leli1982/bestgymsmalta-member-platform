@@ -1,5 +1,7 @@
 "use client";
 
+import { UNDER16_SUPERVISION_CLAUSE } from "@/lib/guardianConsentPolicy";
+
 export type PublishedDeclaration = {
   id: string;
   versionNo: number;
@@ -20,6 +22,7 @@ type Props = {
   health: PublishedDeclaration;
   guardian?: PublishedDeclaration;
   showGuardian?: boolean;
+  showUnder16Supervision?: boolean;
   value: RegistrationDeclarationAcceptance;
   onChange: (value: RegistrationDeclarationAcceptance) => void;
 };
@@ -61,6 +64,7 @@ export default function RegistrationDeclarations({
   health,
   guardian,
   showGuardian = false,
+  showUnder16Supervision = false,
   value,
   onChange,
 }: Props) {
@@ -97,6 +101,9 @@ export default function RegistrationDeclarations({
             <p className="font-black text-violet-950">Parent / guardian requirement</p>
             <div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-violet-900">
               {guardian.body}
+              {showUnder16Supervision && (
+                <p className="mt-3 font-bold">{UNDER16_SUPERVISION_CLAUSE}</p>
+              )}
             </div>
             <p className="mt-3 text-sm font-semibold text-violet-950">
               A parent or legal guardian must be present at reception and co-sign the printed application before activation.
