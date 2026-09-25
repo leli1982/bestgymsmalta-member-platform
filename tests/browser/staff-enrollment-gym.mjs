@@ -36,6 +36,7 @@ let browser;
 let page;
 let currentUser = admin;
 let lastSelectedGym = "";
+let submittedGym = "";
 const pageErrors = [];
 const returnLink = () => page.getByRole("link", { name: "Return to Staff Portal", exact: true });
 
@@ -52,6 +53,13 @@ try {
     authenticated: true, user: currentUser,
   } }));
   await context.route("**/api/system/members/registration**", (route) => {
+    if (route.request().method() === "POST") {
+      const body = route.request().postDataJSON();
+      submittedGym = body.enrollmentGymId;
+      assert.equal(body.draft.membershipType, "single");
+      // Never create a real membership in this browser-only regression.
+      return route.fulfill({ status: 409, json: { error: "Browser test intentionally stops before saving." } });
+    }
     assert.equal(route.request().method(), "GET");
     const requested = new URL(route.request().url()).searchParams.get("gymId") || "";
     if (currentUser.isSuperAdmin) {
@@ -84,6 +92,25 @@ try {
   await page.getByLabel("Enrollment gym").selectOption("gym-one");
   await page.getByRole("heading", { name: "Join Birkirkara" }).waitFor();
   assert.equal(lastSelectedGym, "gym-one", "Changing the selection reloads the intended gym");
+
+  await page.getByRole("button", { name: "Regular", exact: true }).click();
+  await page.locator("label").filter({ hasText: "Membership duration" }).locator("select").selectOption("1_month");
+  await page.getByLabel("I understand these requirements and I am ready to continue.", { exact: true }).check();
+  await page.getByLabel("First name", { exact: true }).fill("Browser");
+  await page.getByLabel("Last name", { exact: true }).fill("Applicant");
+  await page.getByLabel("ID card / passport number", { exact: true }).fill("TEST123M");
+  await page.getByLabel("Date of birth", { exact: true }).fill("1994-02-04");
+  await page.getByLabel("Address", { exact: true }).fill("1 Browser Street");
+  await page.getByLabel("Town / locality", { exact: true }).fill("Birkirkara");
+  await page.getByLabel("Mobile / phone", { exact: true }).fill("79000000");
+  await page.getByLabel("Email", { exact: true }).fill("browser@example.test");
+  await page.getByLabel("Next of kin / emergency contact", { exact: true }).fill("Browser Kin 79000001");
+  await page.getByLabel("I have read and agree to the BGM Gym Rules.", { exact: true }).check();
+  await page.getByLabel("I have read and agree to the Privacy and data processing notice.", { exact: true }).check();
+  await page.getByLabel("I have read and agree to the Health declaration.", { exact: true }).check();
+  await page.getByRole("button", { name: "Submit application", exact: true }).click();
+  await page.getByText("Browser test intentionally stops before saving.", { exact: true }).first().waitFor();
+  assert.equal(submittedGym, "gym-one", "Submitted application must use the explicitly chosen gym");
 
   currentUser = staff;
   await page.reload();
