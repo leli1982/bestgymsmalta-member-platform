@@ -206,7 +206,7 @@ export default function MembershipA4Sheet({
       hasProspectiveGuardianPolicy &&
       guardianSnapshot?.supervisionUnder16Orders?.includes(participant.participantOrder) &&
       guardianSnapshot.supervisionUnder16Text
-        ? { ...entry, body: [entry.body, guardianSnapshot.supervisionUnder16Text ].join("\n") }
+        ? { ...entry, body: [entry.body, guardianSnapshot.supervisionUnder16Text].join("\n") }
         : entry);
   const paymentMethod =
     application.paymentMethod === "other"
@@ -273,7 +273,7 @@ export default function MembershipA4Sheet({
         .bgm-signature-line { height:7.5mm; border-bottom:.25mm solid #52525b; }
         .bgm-signature-meta { display:flex; justify-content:space-between; gap:3mm; margin-top:1mm; font-size:6.8pt; font-weight:800; color:#52525b; }
         .bgm-print-footer { position:absolute; left:6mm; right:6mm; bottom:3mm; display:flex; justify-content:space-between; gap:4mm; border-top:.2mm solid #e4e4e7; padding-top:1mm; font-size:6pt; color:#a1a1aa; }
-        .bgm-print-section { margin-top:1.4mm; }
+        .bgm-print-section { margin-top:.9mm; }
         @media screen {
           .bgm-member-a4-sheet { margin:0 auto 8mm; box-shadow:0 10px 35px rgba(0,0,0,.12); }
           .bgm-print-measure .bgm-member-a4-sheet { margin:0; box-shadow:none; }
