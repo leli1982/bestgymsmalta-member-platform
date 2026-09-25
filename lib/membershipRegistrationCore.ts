@@ -77,6 +77,19 @@ export function isUnder16On(dateOfBirth: string, submissionDate: string): boolea
   return isUnderAgeOn(dateOfBirth, submissionDate, 16);
 }
 
+// Couples eligibility is distinct from guardian consent: both applicants must be
+// adults, even when a parent or guardian would consent to another membership type.
+export function couplesAgeEligibilityError(
+  membershipType: MembershipType,
+  dateOfBirth: string,
+  submissionDate: string,
+): string | null {
+  if (membershipType !== "couples" || !dateOfBirth.trim()) return null;
+  return isUnder18On(dateOfBirth, submissionDate)
+    ? "Couples membership is available only when both applicants are at least 18 years old."
+    : null;
+}
+
 export function participantCountForType(type: MembershipType): 1 | 2 {
   if (type === "couples") return 2;
   if (type === "single" || type === "student") return 1;
