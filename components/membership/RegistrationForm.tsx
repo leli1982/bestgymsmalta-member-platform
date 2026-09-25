@@ -374,8 +374,8 @@ export default function RegistrationForm({
               privacy={config.declarations.privacy}
               health={config.declarations.health}
               guardian={config.declarations.guardian}
-              showGuardian={under18}
-              showUnder16Supervision={under16}
+              showGuardian={under18 && membershipType !== "couples"}
+              showUnder16Supervision={under16 && membershipType !== "couples"}
               value={declarations[index] || { ...BLANK_ACCEPTANCE }}
               onChange={(value) => updateAcceptance(index, value)}
             />
