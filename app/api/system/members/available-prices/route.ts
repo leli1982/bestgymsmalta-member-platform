@@ -31,8 +31,24 @@ export async function GET(request: NextRequest) {
       .gt("amount_cents", 0);
     if (prices.error) throw prices.error;
 
+    // The guardian declaration is supplied alongside published rates so the
+    // staff renewal form can present the exact current version to minors.
+    const guardianResult = await supabase
+      .from("bgm_membership_declaration_versions")
+      .select("id,version_no,body,content_sha256")
+      .eq("content_key", "guardian")
+      .eq("status", "published")
+      .maybeSingle();
+    if (guardianResult.error) throw guardianResult.error;
+
     return NextResponse.json({
       catalogVersionId: catalog.data.id,
+      guardianDeclaration: guardianResult.data ? {
+        id: guardianResult.data.id,
+        versionNo: Number(guardianResult.data.version_no),
+        body: guardianResult.data.body,
+        contentSha256: guardianResult.data.content_sha256,
+      } : null,
       entries: (prices.data || []).map((entry) => ({
         membershipType: entry.membership_type,
         durationKey: entry.duration_key,
