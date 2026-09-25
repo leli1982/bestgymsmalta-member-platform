@@ -285,10 +285,6 @@ export default function StaffMembershipReviewModal({
         if (!fields?.firstName.trim() || !fields.lastName.trim() || !fields.idVerified) return false;
         if (form.membershipType === "student" && !fields.studentEligibilityVerified) return false;
         if (
-          participant.under18AtSubmission &&
-          (!fields.guardianPresentVerified || !fields.guardianCosignVerified)
-        ) return false;
-        if (
           (participant.identityMatchState === "expired_inactive" || participant.identityMatchState === "active") &&
           participant.matchedMemberId &&
           !participant.existingMemberId
@@ -299,6 +295,12 @@ export default function StaffMembershipReviewModal({
     );
   }, [application, form]);
 
+  // Print first, then check the actual guardian signature on the paper form.
+  const guardianSignoffReady = Boolean(application && form && application.participants.every((participant, index) =>
+    !participant.under18AtSubmission ||
+    (form.participants[index]?.guardianPresentVerified && form.participants[index]?.guardianCosignVerified)
+  ));
+
   const allReady = useMemo(() => {
     if (!application || !form) return false;
     const participantReady = application.participants.every((participant, index) => {
@@ -306,12 +308,6 @@ export default function StaffMembershipReviewModal({
       if (!fields?.firstName.trim() || !fields.lastName.trim()) return false;
       if (!fields.idVerified) return false;
       if (form.membershipType === "student" && !fields.studentEligibilityVerified) {
-        return false;
-      }
-      if (
-        participant.under18AtSubmission &&
-        (!fields.guardianPresentVerified || !fields.guardianCosignVerified)
-      ) {
         return false;
       }
       const cardReady = participant.existingMemberId
@@ -612,6 +608,10 @@ export default function StaffMembershipReviewModal({
       return;
     }
     if (!allReady || !staffName.trim() || !paymentMethod) return;
+    if (!guardianSignoffReady) {
+      setError("Confirm guardian attendance and signature on the printed form before taking payment.");
+      return;
+    }
     if (paymentMethod === "other" && !paymentOtherText.trim()) return;
     if (discountCode.trim() && !discountPreview) {
       setError("Apply the discount code before confirming payment.");
@@ -939,7 +939,7 @@ export default function StaffMembershipReviewModal({
                           }
                         />
                       )}
-                      {participant.under18AtSubmission && (
+                      {participant.under18AtSubmission && application.printConfirmedAt && (
                         <>
                           <Check
                             label="Guardian present verified"
@@ -959,6 +959,12 @@ export default function StaffMembershipReviewModal({
                       )}
                     </div>
                   </div>
+
+                  {participant.under18AtSubmission && !application.printConfirmedAt && (
+                    <p className="mt-3 text-sm font-semibold text-violet-800">
+                      Print the application first. Once the guardian has attended and signed it, confirm attendance and co-signing here before payment.
+                    </p>
+                  )}
 
                   {!needsReview && <button
                     type="button"
@@ -1239,7 +1245,12 @@ export default function StaffMembershipReviewModal({
                   Next step: print the membership form and confirm it was printed. Payment stays locked until this is done.
                 </p>
               )}
-              {!needsReview && application.printConfirmedAt && (
+              {!needsReview && application.printConfirmedAt && !guardianSignoffReady && (
+                <p className="mb-3 text-xs font-bold text-violet-800">
+                  The form has been printed. Verify guardian attendance and co-signing before payment.
+                </p>
+              )}
+              {!needsReview && application.printConfirmedAt && guardianSignoffReady && (
                 <p className="mb-3 text-xs font-bold text-emerald-700">
                   Membership form printed ✓ · Payment is now available.
                 </p>
@@ -1248,7 +1259,7 @@ export default function StaffMembershipReviewModal({
                 <>
                   <p className="mb-3 text-sm font-bold text-orange-800">
                     {reviewReady
-                      ? "Verification complete. Confirm the review to continue to card, print and payment."
+                      ? "Confirm review to continue to card verification and printing. Guardian signature verification follows printing."
                       : "Verify ID, eligibility and guardian details, and resolve any existing-member match before confirming."}
                   </p>
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -1291,7 +1302,7 @@ export default function StaffMembershipReviewModal({
                 <button
                   type="button"
                   onClick={() => setPaymentPrompt(true)}
-                  disabled={!allReady || !application.printConfirmedAt || acting || saving}
+                  disabled={!allReady || !guardianSignoffReady || !application.printConfirmedAt || acting || saving}
                   className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-35"
                 >
                   <CreditCard className="h-5 w-5" /> PAYMENT RECEIVED
