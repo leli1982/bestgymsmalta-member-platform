@@ -540,7 +540,8 @@ export default function MembershipEnrollmentPage() {
       return;
     }
 
-    for (const [index, participant] of participants.entries()) {
+    for (let index = 0; index < participants.length; index += 1) {
+      const participant = participants[index];
       if (!participant.dateOfBirth) {
         setError(`Applicant ${index + 1}: A valid date of birth is required.`);
         return;
@@ -552,7 +553,7 @@ export default function MembershipEnrollmentPage() {
           return;
         }
         if (under18 && (!guardianDeclaration || !participant.guardianDeclarationPresented ||
-          Object.values(participant.guardian).some((value) => !value.trim()))) {
+          Object.values(participant.guardian).some((value) => !String(value).trim()))) {
           setError(`Applicant ${index + 1}: Published guardian consent, complete guardian details and confirmation that the guardian has read the declaration are required.`);
           return;
         }
