@@ -5,6 +5,7 @@ import {
   requireStaffName,
 } from "@/lib/membershipEnrollmentCore";
 import { isUnder18On } from "@/lib/membershipRegistrationCore";
+import { pendingGuardianConsentGap } from "@/lib/guardianConsentSafety";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
 import { broadcastStaffMembershipRefresh } from "@/lib/staffRealtime";
@@ -170,7 +171,7 @@ export async function POST(request: NextRequest) {
       const supabase = getSupabaseAdmin();
       const applicationResult = await supabase
         .from("bgm_membership_applications")
-        .select("id, enrollment_gym_id, status, application_source, reviewed_by_system_user_id")
+        .select("id, enrollment_gym_id, status, application_source, reviewed_by_system_user_id, submitted_at, declaration_snapshot")
         .eq("id", applicationId)
         .maybeSingle();
       if (applicationResult.error) throw applicationResult.error;
@@ -199,6 +200,40 @@ export async function POST(request: NextRequest) {
           { status: 409 }
         );
       }
+
+      // Check DOB and the immutable consent snapshot again at activation. The
+      // printed flag and the legacy under_18_at_submission flag alone are unsafe.
+      const guardianParticipantsResult = await supabase
+        .from("bgm_membership_application_members")
+        .select("participant_order, date_of_birth, under_18_at_submission, existing_member_id, guardian_name, guardian_id_number, guardian_relationship, guardian_phone, guardian_email, guardian_address, guardian_present_verified_at, guardian_cosign_verified_at")
+        .eq("application_id", applicationId);
+      if (guardianParticipantsResult.error) throw guardianParticipantsResult.error;
+      const guardianParticipants = guardianParticipantsResult.data || [];
+      const existingIds = guardianParticipants.map(p => p.existing_member_id).filter((id): id is string => Boolean(id));
+      if (existingIds.length) {
+        const membersResult = await supabase.from("bgm_members").select("id,date_of_birth").in("id", existingIds);
+        if (membersResult.error) throw membersResult.error;
+        if ((membersResult.data || []).length !== new Set(existingIds).size) {
+          return NextResponse.json({ error: "Existing member date of birth could not be verified." }, { status: 409 });
+        }
+        const dates = new Map((membersResult.data || []).map(m => [m.id, m.date_of_birth]));
+        for (const participant of guardianParticipants) {
+          if (participant.existing_member_id) {
+            const actualBirth = dates.get(participant.existing_member_id);
+            if (!actualBirth) {
+              return NextResponse.json({ error: "Existing member date of birth must be verified before activation." }, { status: 409 });
+            }
+            participant.date_of_birth = actualBirth;
+          }
+        }
+      }
+      const guardianGap = pendingGuardianConsentGap(
+        applicationResult.data.submitted_at,
+        applicationResult.data.declaration_snapshot,
+        guardianParticipants,
+        true,
+      );
+      if (guardianGap) return NextResponse.json({ error: guardianGap }, { status: 409 });
 
       const printConfirmationResult = await supabase
         .from("bgm_audit_log")
