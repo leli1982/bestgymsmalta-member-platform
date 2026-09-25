@@ -4,7 +4,8 @@ import {
   buildEnrollmentIdentityAction,
   requireStaffName,
 } from "@/lib/membershipEnrollmentCore";
-import { isUnder18On } from "@/lib/membershipRegistrationCore";
+import { isUnder18On, isUnder16On } from "@/lib/membershipRegistrationCore";
+import { UNDER16_SUPERVISION_CLAUSE } from "@/lib/guardianConsentPolicy";
 import { pendingGuardianConsentGap } from "@/lib/guardianConsentSafety";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
@@ -378,17 +379,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // This legacy enrollment screen has no guardian declaration, details or co-sign
-    // capture. Fail closed for minors until its complete renewal path is implemented.
-    // The modern registration workflow is separate and retains its guardian rules.
     const submittedOnMalta = maltaTodayIso();
     try {
       for (const participant of participants) {
         if (!participant.date_of_birth) {
           return NextResponse.json({ error: "Date of birth is required to verify membership eligibility." }, { status: 400 });
         }
-        if (isUnder18On(participant.date_of_birth, submittedOnMalta)) {
-          return NextResponse.json({ error: "Under-18 enrollment and renewal require guardian consent and co-signing. This renewal screen cannot capture them; do not submit this application." }, { status: 409 });
+        if (membershipType === "couples" && isUnder18On(participant.date_of_birth, submittedOnMalta)) {
+          return NextResponse.json({ error: "Couples memberships require two adults aged at least 18." }, { status: 409 });
         }
       }
     } catch {
@@ -427,15 +425,18 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Never trust an editable participant DOB over the permanent member record.
-      // An existing minor must not be renewed through this guardian-free legacy path.
+      // Reject edited DOBs; the permanent member record controls guardian eligibility.
       for (const member of memberResult.data || []) {
         if (!member.date_of_birth) {
           return NextResponse.json({ error: "Existing member date of birth must be verified before renewal." }, { status: 409 });
         }
+        const corresponding = participants.find(p => p.existing_member_id === member.id);
+        if (!corresponding || corresponding.date_of_birth !== member.date_of_birth) {
+          return NextResponse.json({ error: "Renewal date of birth differs from the existing permanent member record. Reopen the member search." }, { status: 409 });
+        }
         try {
-          if (isUnder18On(member.date_of_birth, submittedOnMalta)) {
-            return NextResponse.json({ error: "This member is under 18. Guardian consent and co-signing are required for renewal; this renewal screen cannot capture them." }, { status: 409 });
+          if (membershipType === "couples" && isUnder18On(member.date_of_birth, submittedOnMalta)) {
+            return NextResponse.json({ error: "Couples membership requires both existing members to be at least 18." }, { status: 409 });
           }
         } catch {
           return NextResponse.json({ error: "Existing member date of birth must be corrected before renewal." }, { status: 409 });
@@ -467,6 +468,61 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const under18Orders: number[] = [];
+    const under16Orders: number[] = [];
+    try {
+      for (const participant of participants) {
+        if (isUnder18On(participant.date_of_birth!, submittedOnMalta)) under18Orders.push(participant.participant_order);
+        if (isUnder16On(participant.date_of_birth!, submittedOnMalta)) under16Orders.push(participant.participant_order);
+      }
+    } catch {
+      return NextResponse.json({ error: "A valid date of birth is required for guardian eligibility." }, { status: 400 });
+    }
+
+    let guardianSnapshot: Record<string, unknown> | null = null;
+    if (under18Orders.length) {
+      const guardianResult = await supabase
+        .from("bgm_membership_declaration_versions")
+        .select("id,version_no,body,content_sha256")
+        .eq("content_key","guardian")
+        .eq("status","published")
+        .maybeSingle();
+      if (guardianResult.error) throw guardianResult.error;
+      const published = guardianResult.data;
+      if (!published?.body || clean(body.guardianDeclarationVersionId) !== published.id) {
+        return NextResponse.json({ error: "The published guardian declaration changed or is unavailable. Refresh the enrollment screen and ask the guardian to review the latest wording." }, { status: 409 });
+      }
+      guardianSnapshot = {
+        guardian: {
+          id: published.id, versionNo: Number(published.version_no),
+          body: published.body, contentSha256: published.content_sha256,
+          supervisionUnder16Orders: under16Orders,
+          supervisionUnder16Text: UNDER16_SUPERVISION_CLAUSE,
+        },
+      };
+    }
+
+    for (const [index, participant] of participants.entries()) {
+      participant.under_18_at_submission = under18Orders.includes(index + 1);
+      if (!participant.under_18_at_submission) continue;
+      const guardian = rawParticipants[index]?.guardian || {};
+      if (rawParticipants[index]?.guardianDeclarationPresented !== true) {
+        return NextResponse.json({ error: `Applicant ${index + 1}: The guardian must review the published declaration before submission.` }, { status: 409 });
+      }
+      const details = {
+        guardian_name: optional(guardian.fullName),
+        guardian_id_number: optional(guardian.idNumber),
+        guardian_relationship: optional(guardian.relationship),
+        guardian_phone: optional(guardian.mobile),
+        guardian_email: optional(guardian.email),
+        guardian_address: optional(guardian.address),
+      };
+      if (Object.values(details).some(value => !value)) {
+        return NextResponse.json({ error: `Applicant ${index + 1}: Complete parent or legal guardian details are required.` }, { status: 400 });
+      }
+      Object.assign(participant, details);
+    }
+
     const applicationReference = makeApplicationReference();
     const now = new Date().toISOString();
     const applicationResult = await supabase
@@ -483,6 +539,10 @@ export async function POST(request: NextRequest) {
         status: "awaiting_payment",
         submitted_by_system_user_id: auth.context.systemUserId,
         submitted_at: now,
+        submitted_on_malta: submittedOnMalta,
+        application_source: "staff",
+        declaration_snapshot: guardianSnapshot,
+        document_readiness_ack_at: now,
         updated_at: now,
       })
       .select("id, application_reference, status")
