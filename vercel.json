@@ -5,5 +5,8 @@
       "feature/staff-dashboard-reception": false,
       "feature/tablet-enrollment-membership-settings": false
     }
-  }
+  },
+  "regions": [
+    "dub1"
+  ]
 }

@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
         console.error(activationResult.error);
         const message = String(activationResult.error.message || "");
         const expectedValidation =
-          /required|not found|not awaiting activation|invalid participant|cannot reuse|existing member identity|existing renewal member|discount code|price snapshot|payment method|other payment/i.test(
+          /required|not found|not awaiting activation|invalid participant|cannot reuse|existing member identity|existing renewal member|existing matched member is active|discount code|price snapshot|payment method|other payment/i.test(
             message
           );
         return NextResponse.json(
