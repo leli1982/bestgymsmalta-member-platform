@@ -193,7 +193,8 @@ async function resolveGym(
     throw new RouteError(403, "You can only create memberships for your assigned gym.");
   }
 
-  const gymId = auth.gymId || requested;
+  // Super Admin must explicitly select a gym; staff always use their assigned gym.
+  const gymId = auth.isSuperAdmin ? requested : auth.gymId;
   if (!gymId) {
     throw new RouteError(400, "Choose an enrollment gym.");
   }
@@ -315,22 +316,33 @@ export async function GET(request: NextRequest) {
     if (authResult.error || !authResult.context) return authResult.error;
 
     const supabase = getSupabaseAdmin();
-    const gym = await resolveGym(
-      supabase,
-      authResult.context,
-      request.nextUrl.searchParams.get("gymId") || undefined,
-    );
-    const settings = await loadCurrentSettings(supabase, gym);
+    const isSuperAdmin = authResult.context.isSuperAdmin;
+    const requestedGymId = request.nextUrl.searchParams.get("gymId") || undefined;
+    // Load the selectable gyms without requiring a selection first. Never use a
+    // public fallback list for the operational membership enrollment workflow.
+    const gymChoices = isSuperAdmin
+      ? await supabase
+          .from("bgm_gyms")
+          .select("id,name")
+          .eq("status", "active")
+          .order("name", { ascending: true })
+      : null;
+    if (gymChoices?.error) throw gymChoices.error;
+    const gym = !isSuperAdmin || requestedGymId
+      ? await resolveGym(supabase, authResult.context, requestedGymId)
+      : null;
+    const settings = gym ? await loadCurrentSettings(supabase, gym) : null;
 
     return NextResponse.json(
       {
-        config: settings.config,
+        config: settings?.config || null,
+        gyms: isSuperAdmin ? gymChoices?.data || [] : [],
         systemUser: {
           id: authResult.context.systemUserId,
           gymId: authResult.context.gymId,
           username: authResult.context.username,
           displayName: authResult.context.displayName,
-          isSuperAdmin: authResult.context.isSuperAdmin,
+          isSuperAdmin,
         },
       },
       { headers: { "Cache-Control": "no-store" } },
