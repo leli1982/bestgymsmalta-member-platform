@@ -1,3 +1,4 @@
+import { UNDER16_SUPERVISION_CLAUSE } from "@/lib/guardianConsentPolicy";
 "use client";
 
 import { useLayoutEffect, useMemo, useRef } from "react";
@@ -96,6 +97,8 @@ function previewApplication(
       guardian: {
         versionNo: "preview",
         body: declarationBodies.guardian || "",
+        supervisionUnder16Orders: [1],
+        supervisionUnder16Text: UNDER16_SUPERVISION_CLAUSE,
       },
     },
     sameAddressVerified: true,
