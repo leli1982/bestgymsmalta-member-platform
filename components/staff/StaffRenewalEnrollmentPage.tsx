@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import StaffMembershipReviewModal from "@/components/staff/StaffMembershipReviewModal";
 import { calculateMembershipExpiry } from "@/lib/membershipEnrollmentCore";
+import { isUnder16On, isUnder18On } from "@/lib/membershipRegistrationCore";
+import { UNDER16_SUPERVISION_CLAUSE } from "@/lib/guardianConsentPolicy";
 import type { MembershipDurationKey } from "@/lib/membershipSettingsCore";
 
 type SystemUser = {
@@ -60,7 +62,14 @@ type ParticipantForm = {
   email: string;
   nextOfKin: string;
   officialPhotoPath: string;
+  guardian: {
+    fullName: string; idNumber: string; relationship: string;
+    mobile: string; email: string; address: string;
+  };
+  guardianDeclarationPresented: boolean;
 };
+
+type GuardianDeclaration = { id: string; versionNo: number; body: string; contentSha256: string };
 
 type AvailablePriceEntry = { membershipType: string; durationKey: string; amountCents: number };
 
@@ -108,6 +117,8 @@ function blankParticipant(): ParticipantForm {
     email: "",
     nextOfKin: "",
     officialPhotoPath: "",
+    guardian: { fullName: "", idNumber: "", relationship: "", mobile: "", email: "", address: "" },
+    guardianDeclarationPresented: false,
   };
 }
 
@@ -166,6 +177,8 @@ function participantFromCandidate(candidate: Candidate): ParticipantForm {
     email: candidate.email || "",
     nextOfKin: candidate.nextOfKin || "",
     officialPhotoPath: candidate.officialPhotoPath || "",
+    guardian: { fullName: "", idNumber: "", relationship: "", mobile: "", email: "", address: "" },
+    guardianDeclarationPresented: false,
   };
 }
 
@@ -176,6 +189,7 @@ export default function MembershipEnrollmentPage() {
   const [loading, setLoading] = useState(true);
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [availablePrices, setAvailablePrices] = useState<AvailablePriceEntry[]>([]);
+  const [guardianDeclaration, setGuardianDeclaration] = useState<GuardianDeclaration | null>(null);
   const [kind, setKind] = useState<"new" | "renewal" | null>(null);
   const [membershipType, setMembershipType] = useState("single");
   const [durationKey, setDurationKey] = useState("1_month");
@@ -210,6 +224,7 @@ export default function MembershipEnrollmentPage() {
           throw new Error(pricingData.error || "Could not load the current published membership rates.");
         }
         setAvailablePrices(pricingData.entries);
+        setGuardianDeclaration(pricingData.guardianDeclaration || null);
         setUser(authData.authenticated ? authData.user : null);
         setGyms(
           Array.isArray(gymsData.gyms)
@@ -246,6 +261,7 @@ export default function MembershipEnrollmentPage() {
     (entry) => entry.membershipType === membershipType && entry.durationKey === durationKey,
   );
   const expectedParticipants = membershipType === "couples" ? 2 : 1;
+  const submissionDay = useMemo(() => maltaTodayIso(), []);
   const renewalSelections = useMemo(
     () => participants.filter((participant) => participant.existingMemberId),
     [participants]
@@ -321,10 +337,16 @@ export default function MembershipEnrollmentPage() {
     }
   }
 
+  function updateGuardian(index: number, field: keyof ParticipantForm["guardian"], value: string) {
+    setParticipants((current) => current.map((participant, i) => i === index
+      ? { ...participant, guardian: { ...participant.guardian, [field]: value } }
+      : participant));
+  }
+
   function updateParticipant(
     index: number,
     field: keyof ParticipantForm,
-    value: string
+    value: string | boolean
   ) {
     setParticipants((current) =>
       current.map((participant, participantIndex) =>
@@ -518,6 +540,28 @@ export default function MembershipEnrollmentPage() {
       return;
     }
 
+    for (const [index, participant] of participants.entries()) {
+      if (!participant.dateOfBirth) {
+        setError(`Applicant ${index + 1}: A valid date of birth is required.`);
+        return;
+      }
+      try {
+        const under18 = isUnder18On(participant.dateOfBirth, submissionDay);
+        if (under18 && membershipType === "couples") {
+          setError("Couples membership requires two adults aged at least 18.");
+          return;
+        }
+        if (under18 && (!guardianDeclaration || !participant.guardianDeclarationPresented ||
+          Object.values(participant.guardian).some((value) => !value.trim()))) {
+          setError(`Applicant ${index + 1}: Published guardian consent, complete guardian details and confirmation that the guardian has read the declaration are required.`);
+          return;
+        }
+      } catch {
+        setError(`Applicant ${index + 1}: Date of birth is invalid.`);
+        return;
+      }
+    }
+
     setSubmitting(true);
     setError("");
     setMessage("");
@@ -534,6 +578,7 @@ export default function MembershipEnrollmentPage() {
           expiryDate,
           enrollmentGymId: user?.isSuperAdmin ? enrollmentGymId : undefined,
           staffName: staffName.trim(),
+          guardianDeclarationVersionId: guardianDeclaration?.id || null,
           participants,
         }),
       });
@@ -903,6 +948,10 @@ export default function MembershipEnrollmentPage() {
                   index={index}
                   kind={kind}
                   onChange={updateParticipant}
+                  onGuardianChange={updateGuardian}
+                  guardianDeclaration={guardianDeclaration}
+                  membershipType={membershipType}
+                  submissionDay={submissionDay}
                 />
               ))}
             </section>
@@ -968,11 +1017,19 @@ function ParticipantEditor({
   index,
   kind,
   onChange,
+  onGuardianChange,
+  guardianDeclaration,
+  membershipType,
+  submissionDay,
 }: {
   participant: ParticipantForm;
   index: number;
   kind: "new" | "renewal";
-  onChange: (index: number, field: keyof ParticipantForm, value: string) => void;
+  onChange: (index: number, field: keyof ParticipantForm, value: string | boolean) => void;
+  onGuardianChange: (index: number, field: keyof ParticipantForm["guardian"], value: string) => void;
+  guardianDeclaration: GuardianDeclaration | null;
+  membershipType: string;
+  submissionDay: string;
 }) {
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -1048,6 +1105,7 @@ function ParticipantEditor({
             type="date"
             value={participant.dateOfBirth}
             onChange={(event) => onChange(index, "dateOfBirth", event.target.value)}
+            readOnly={kind === "renewal"}
             className={inputClass}
           />
         </Field>
@@ -1074,6 +1132,53 @@ function ParticipantEditor({
           />
         </Field>
       </div>
+      {participant.dateOfBirth && (() => {
+        let under18 = false;
+        let under16 = false;
+        try {
+          under18 = isUnder18On(participant.dateOfBirth, submissionDay);
+          under16 = isUnder16On(participant.dateOfBirth, submissionDay);
+        } catch { return null; }
+        if (!under18) return null;
+        if (membershipType === "couples") return (
+          <div role="alert" className="mt-4 rounded-xl bg-red-50 p-4 text-sm font-bold text-red-800">
+            Couples membership requires both applicants to be at least 18.
+          </div>
+        );
+        return (
+          <div className="mt-4 space-y-3 rounded-2xl border border-violet-200 bg-violet-50 p-4">
+            <p className="font-black text-violet-950">Parent / legal guardian — required for every member under 18</p>
+            <p className="text-sm text-violet-900">The guardian must attend reception and sign the printed renewal declaration before activation.</p>
+            {!guardianDeclaration ? (
+              <p role="alert" className="text-sm font-bold text-red-700">A published guardian declaration is unavailable. This application cannot be submitted.</p>
+            ) : (
+              <div className="whitespace-pre-line rounded-xl bg-white p-3 text-sm leading-6 text-violet-950">
+                <p className="mb-2 font-black">Parent / Guardian Declaration · v{guardianDeclaration.versionNo}</p>
+                {guardianDeclaration.body}
+                {under16 ? <p className="mt-2 font-bold">{UNDER16_SUPERVISION_CLAUSE}</p> : null}
+              </div>
+            )}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {([
+                ["fullName", "Guardian full name"], ["idNumber", "Guardian ID / passport number"],
+                ["relationship", "Relationship"], ["mobile", "Guardian mobile"],
+                ["email", "Guardian email"], ["address", "Guardian address"],
+              ] as const).map(([field, label]) => (
+                <label key={field} className="text-sm font-bold text-violet-950">{label}
+                  <input required value={participant.guardian[field]}
+                    onChange={(event) => onGuardianChange(index, field, event.target.value)}
+                    className={inputClass} />
+                </label>
+              ))}
+            </div>
+            <label className="flex items-start gap-3 text-sm font-semibold text-violet-950">
+              <input type="checkbox" className="mt-1 h-5 w-5" checked={participant.guardianDeclarationPresented}
+                onChange={(event) => onChange(index, "guardianDeclarationPresented", event.target.checked)} />
+              I confirm that the parent / legal guardian has reviewed the declaration above. They must attend and co-sign the printed form before activation.
+            </label>
+          </div>
+        );
+      })()}
       <p className="mt-4 rounded-xl bg-zinc-50 p-3 text-xs text-zinc-500">
         Official member-photo capture remains separate from personal progress photos and will use the dedicated private-photo workflow.
       </p>
