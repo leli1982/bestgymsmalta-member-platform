@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { calculateMembershipExpiry } from "@/lib/membershipEnrollmentCore";
 import {
+  couplesAgeEligibilityError,
   isUnder18On,
   isUnder16On,
   normalizeIdentityDocument,
@@ -232,6 +233,11 @@ export async function POST(request: NextRequest) {
       declarations.health !== true
     ) {
       return NextResponse.json({ error: "Please check the application details." }, { status: 400 });
+    }
+
+    const couplesAgeError = couplesAgeEligibilityError(membershipType, participant.dateOfBirth, submittedOnMalta);
+    if (couplesAgeError) {
+      return NextResponse.json({ error: `Applicant ${index + 1}: ${couplesAgeError}` }, { status: 400 });
     }
 
     sanitizedParticipants.push(participant);
