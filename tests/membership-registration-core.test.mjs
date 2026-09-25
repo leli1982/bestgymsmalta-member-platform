@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  couplesAgeEligibilityError,
   isUnder18On,
   isUnder16On,
   normalizeIdentityDocument,
@@ -50,6 +51,17 @@ test("guardian declaration is only for applicants under 16, including on their b
 test("invalid calendar dates are rejected instead of silently normalized", () => {
   assert.throws(() => isUnder18On("2008-02-30", "2026-09-16"), /valid.*date/i);
   assert.throws(() => isUnder18On("2008-02-20", "2026-13-01"), /valid.*date/i);
+});
+
+test("Couples requires two adults, including on the eighteenth birthday", () => {
+  assert.match(
+    couplesAgeEligibilityError("couples", "2008-09-26", "2026-09-25"),
+    /both applicants.*at least 18/i
+  );
+  assert.equal(couplesAgeEligibilityError("couples", "2008-09-25", "2026-09-25"), null);
+  assert.equal(couplesAgeEligibilityError("couples", "1990-03-03", "2026-09-25"), null);
+  assert.equal(couplesAgeEligibilityError("single", "2010-02-02", "2026-09-25"), null);
+  assert.equal(couplesAgeEligibilityError("student", "2010-02-02", "2026-09-25"), null);
 });
 
 test("membership type controls participant count", () => {
