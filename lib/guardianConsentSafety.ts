@@ -1,4 +1,4 @@
-import { isUnder18On } from "@/lib/membershipRegistrationCore";
+import { isUnder18On } from "./membershipRegistrationCore.ts";
 
 type Participant = {
   participant_order: number;
