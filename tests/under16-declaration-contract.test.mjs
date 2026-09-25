@@ -10,9 +10,9 @@ const publicSubmit = readFileSync("app/api/public/membership-enrollment/submit/r
 const printSheet = readFileSync("components/staff/MembershipA4Sheet.tsx", "utf8");
 const overflow = readFileSync("components/staff/MembershipPrintOverflowPreview.tsx", "utf8");
 
-test("all under-18 applicants see guardian consent; only under-16 applicants see supervision clause", () => {
-  assert.match(form, /showGuardian=\{under18\}/);
-  assert.match(form, /showUnder16Supervision=\{under16\}/);
+test("under-18 Regular/Student applicants see guardian consent; Couples applicants must be adults", () => {
+  assert.match(form, /showGuardian=\{under18 && membershipType !== "couples"\}/);
+  assert.match(form, /showUnder16Supervision=\{under16 && membershipType !== "couples"\}/);
   assert.match(form, /\{under18 && membershipType !== "couples" \? \(/);
   assert.match(form, /membershipType === "couples" && under18/);
   assert.match(declaration, /showUnder16Supervision &&/);
