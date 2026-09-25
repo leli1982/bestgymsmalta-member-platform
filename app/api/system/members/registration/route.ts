@@ -1,3 +1,4 @@
+import { UNDER16_SUPERVISION_CLAUSE } from "@/lib/guardianConsentPolicy";
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { addMembershipDurationDate, todayMaltaDate } from "@/lib/maltaDate";
@@ -151,7 +152,7 @@ function applicationDeclarationSnapshot(rows: {
   privacy: DeclarationRow;
   health: DeclarationRow;
   guardian?: DeclarationRow;
-}, includeGuardian: boolean) {
+}, includeGuardian: boolean, supervisionUnder16Orders: number[]) {
   return {
     gymRules: {
       id: rows.gymRules.id,
@@ -178,6 +179,8 @@ function applicationDeclarationSnapshot(rows: {
             versionNo: Number(rows.guardian.version_no),
             body: rows.guardian.body,
             contentSha256: rows.guardian.content_sha256,
+            supervisionUnder16Orders,
+            supervisionUnder16Text: UNDER16_SUPERVISION_CLAUSE,
           },
         }
       : {}),
@@ -415,7 +418,7 @@ export async function POST(request: NextRequest) {
       }
 
       const under18AtSubmission = isUnder18On(participant.dateOfBirth, submittedOnMalta);
-      if (isUnder16On(participant.dateOfBirth, submittedOnMalta) && !settings.declarations.guardian) {
+      if (under18AtSubmission && !settings.declarations.guardian) {
         throw new RouteError(503, "The guardian declaration is not published.");
       }
 
@@ -492,7 +495,10 @@ export async function POST(request: NextRequest) {
         health_version_id: settings.declarations.health.id,
         declaration_snapshot: applicationDeclarationSnapshot(
           settings.declarations,
-          serverParticipants.some(({ participant }) => isUnder16On(participant.dateOfBirth, submittedOnMalta))
+          serverParticipants.some(({ participant }) => isUnder18On(participant.dateOfBirth, submittedOnMalta)),
+          serverParticipants.flatMap(({ participant }, index) =>
+            isUnder16On(participant.dateOfBirth, submittedOnMalta) ? [index + 1] : []
+          )
         ),
         document_readiness_ack_at: now,
         updated_at: now,
