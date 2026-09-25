@@ -32,7 +32,11 @@ export default function MembershipEnrollmentPage() {
 function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }) {
   const [config, setConfig] = useState<PublicEnrollmentConfig | null>(null);
   const [staffName, setStaffName] = useState("");
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [gyms, setGyms] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedGymId, setSelectedGymId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingGym, setLoadingGym] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState<{
     applicationId: string;
@@ -60,6 +64,8 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
         if (!active) return;
         setConfig(payload.config || null);
         setStaffName(String(payload.systemUser?.displayName || ""));
+        setIsSuperAdmin(payload.systemUser?.isSuperAdmin === true);
+        setGyms(Array.isArray(payload.gyms) ? payload.gyms : []);
       } catch (loadError) {
         if (!active) return;
         setError(
@@ -77,6 +83,35 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!isSuperAdmin || !selectedGymId) return;
+    let active = true;
+    async function loadSelectedGym() {
+      setLoadingGym(true);
+      setError("");
+      setConfig(null);
+      try {
+        const response = await fetch(
+          `/api/system/members/registration?gymId=${encodeURIComponent(selectedGymId)}`,
+          { cache: "no-store" },
+        );
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.config) {
+          throw new Error(payload.error || "Could not load this gym's enrollment settings.");
+        }
+        if (active) setConfig(payload.config);
+      } catch (loadError) {
+        if (active) {
+          setError(loadError instanceof Error ? loadError.message : "Could not load enrollment settings.");
+        }
+      } finally {
+        if (active) setLoadingGym(false);
+      }
+    }
+    void loadSelectedGym();
+    return () => { active = false; };
+  }, [isSuperAdmin, selectedGymId]);
 
   async function uploadParticipantPhoto(
     applicationMemberId: string,
@@ -152,7 +187,9 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
   }
 
   async function submitRegistration(draft: RegistrationDraft) {
-    if (!config) return;
+    if (!config || (isSuperAdmin && (!selectedGymId || selectedGymId !== config.gym.id))) {
+      throw new Error("Choose an enrollment gym before submitting the membership.");
+    }
 
     setError("");
     setSuccess(null);
@@ -161,7 +198,7 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        enrollmentGymId: config.gym.id,
+        enrollmentGymId: isSuperAdmin ? selectedGymId : config.gym.id,
         draft: { ...draft, photos: undefined },
       }),
     });
@@ -227,11 +264,37 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
     );
   }
 
+  if (isSuperAdmin && (!selectedGymId || !config)) {
+    return (
+      <main className="min-h-screen bg-zinc-100 px-4 py-7 text-zinc-950 sm:px-6">
+        <div className="mx-auto max-w-5xl rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-orange-700">New membership · Step 1</p>
+          <h1 className="mt-2 text-2xl font-black">Choose an enrollment gym</h1>
+          <p className="mt-2 text-sm text-zinc-600">Select the gym where this membership is being enrolled. The selected gym will be recorded on the application.</p>
+          <label htmlFor="super-admin-enrollment-gym" className="mt-6 block text-sm font-bold">Enrollment gym</label>
+          <select
+            id="super-admin-enrollment-gym"
+            value={selectedGymId}
+            onChange={(event) => setSelectedGymId(event.target.value)}
+            disabled={loadingGym}
+            className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 focus:border-orange-500 focus:outline-2 focus:outline-orange-200 disabled:opacity-60"
+          >
+            <option value="">Select gym</option>
+            {gyms.map((gym) => <option key={gym.id} value={gym.id}>{gym.name}</option>)}
+          </select>
+          {loadingGym ? <p role="status" className="mt-4 text-sm text-zinc-600">Loading selected gym…</p> : null}
+          {!gyms.length && !loadingGym ? <p className="mt-4 text-sm text-amber-800">No active gyms are available. Check the gym locations in Super Admin.</p> : null}
+          {error ? <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p> : null}
+        </div>
+      </main>
+    );
+  }
+
   if (!config) {
     return (
       <div className="mx-auto max-w-5xl p-6 text-white">
         <h1 className="text-2xl font-semibold">New Membership</h1>
-        <p className="mt-3 rounded-2xl border border-red-400/25 bg-red-500/10 p-4 text-sm text-red-100">
+        <p role="alert" className="mt-3 rounded-2xl border border-red-400/25 bg-red-500/10 p-4 text-sm text-red-100">
           {error || "Membership registration settings are not available."}
         </p>
       </div>
@@ -242,13 +305,24 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
     <div className="mx-auto max-w-5xl space-y-5 p-4 pb-28 text-white sm:p-6">
       <div className="rounded-3xl border border-white/10 bg-white/[0.055] p-5 shadow-2xl backdrop-blur-xl">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-300">
-          Staff Registration
+          {isSuperAdmin ? "New membership · Step 2" : "Staff Registration"}
         </p>
         <h1 className="mt-2 text-3xl font-semibold">New Membership</h1>
         <p className="mt-2 text-sm text-white/60">
           {config.gym.name} · Complete the same registration details used on the
           member tablet. Photos can be taken, uploaded, or added later.
         </p>
+        {isSuperAdmin ? (
+          <button type="button" onClick={() => {
+            if (window.confirm("Change the enrollment gym? Any unsaved applicant details will be cleared.")) {
+              setSelectedGymId("");
+              setConfig(null);
+              setError("");
+            }
+          }} className="mt-4 rounded-xl border border-orange-300/40 px-4 py-2 text-sm font-bold text-orange-100 hover:bg-orange-400/10">
+            Change enrollment gym
+          </button>
+        ) : null}
         {memberNumber ? (
           <p className="mt-3 text-xs text-amber-200">
             Member lookup reference: {memberNumber}
@@ -280,6 +354,7 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
 
       {!success ? (
         <RegistrationForm
+          key={config.gym.id}
           mode="staff"
           gym={config.gym}
           config={config}
