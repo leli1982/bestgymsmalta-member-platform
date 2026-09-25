@@ -7,6 +7,9 @@ export type DeclarationPrintSnapshot = {
   versionNo?: number | string;
   body?: string;
   contentSha256?: string;
+  // Present only on applications submitted under the new prospective guardian policy.
+  supervisionUnder16Orders?: number[];
+  supervisionUnder16Text?: string;
 };
 
 export type PrintableParticipant = {
@@ -189,11 +192,22 @@ export default function MembershipA4Sheet({
   participant: PrintableParticipant;
   measurement?: boolean;
 }) {
-  // Shared couples snapshots can contain the guardian wording for one applicant;
-  // show it only on that applicant's A4 sheet if they were under 16 on enrollment.
-  const declarations = snapshotEntries(application.declarationSnapshot).filter(
-    (entry) => entry.key !== "guardian" || isUnder16On(participant.dateOfBirth, application.startDate)
-  );
+  // Preserve historical snapshots. New applications record consent for all under-18
+  // applicants and store the under-16 supervision sentence per participant.
+  const guardianSnapshot = application.declarationSnapshot?.guardian;
+  const hasProspectiveGuardianPolicy = Array.isArray(guardianSnapshot?.supervisionUnder16Orders);
+  const declarations = snapshotEntries(application.declarationSnapshot)
+    .filter((entry) => entry.key !== "guardian" || (
+      hasProspectiveGuardianPolicy
+        ? participant.under18AtSubmission
+        : isUnder16On(participant.dateOfBirth, application.startDate)
+    ))
+    .map((entry) => entry.key === "guardian" &&
+      hasProspectiveGuardianPolicy &&
+      guardianSnapshot?.supervisionUnder16Orders?.includes(participant.participantOrder) &&
+      guardianSnapshot.supervisionUnder16Text
+        ? { ...entry, body: [entry.body, guardianSnapshot.supervisionUnder16Text ].join("\n") }
+        : entry);
   const paymentMethod =
     application.paymentMethod === "other"
       ? `Other — ${application.paymentOtherText || "—"}`
