@@ -252,6 +252,11 @@ try {
   await continuePastDocumentWarning();
   await waitVisible(page.getByText("Couples applicant 1", { exact: true }));
   await waitVisible(page.getByText("Couples applicant 2", { exact: true }));
+  assert.equal(await page.getByLabel("Address", { exact: true }).count(), 1, "Couples enters a shared home address only once");
+  assert.equal(await page.getByLabel("Town / locality", { exact: true }).count(), 1, "Couples enters locality only once");
+  assert.equal(await page.getByLabel("Postcode", { exact: false }).count(), 1, "Couples enters postcode only once");
+  await page.getByLabel("Address", { exact: true }).fill("12 Shared Test Street");
+  await waitVisible(page.getByText(/Shared home address entered for Applicant 1 applies to both applicants/));
   assert.equal(
     await page.getByText(/Applicant 1 live membership photo/i).count() >= 1,
     true,
