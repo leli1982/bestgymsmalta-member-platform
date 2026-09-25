@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import {
+  couplesAgeEligibilityError,
   isUnder18On,
   isUnder16On,
   normalizeIdentityDocument,
@@ -228,6 +229,11 @@ export default function RegistrationForm({
         setFormError(`Applicant ${index + 1}: ${validationErrors[0]}`);
         return;
       }
+      const couplesAgeError = couplesAgeEligibilityError(membershipType, participants[index].dateOfBirth, submissionDate);
+      if (couplesAgeError) {
+        setFormError(`Applicant ${index + 1}: ${couplesAgeError}`);
+        return;
+      }
       if (identityStates[index] === "active") {
         setFormError("An applicant already has an active membership. Please speak to reception.");
         return;
@@ -329,7 +335,13 @@ export default function RegistrationForm({
               <label className="text-sm font-bold text-zinc-800 sm:col-span-2">Next of kin / emergency contact<input value={participant.nextOfKin} onChange={(event) => updateParticipant(index, "nextOfKin", event.target.value)} className={inputClass()} /></label>
             </div>
 
-            {under18 ? (
+            {membershipType === "couples" && under18 ? (
+              <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">
+                Couples membership is available only when both applicants are at least 18 years old.
+              </div>
+            ) : null}
+
+            {under18 && membershipType !== "couples" ? (
               <div className="rounded-3xl border border-violet-200 bg-violet-50 p-5">
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-700">Under 18</p>
                 <h3 className="mt-1 text-lg font-black text-violet-950">Parent / legal guardian details</h3>
