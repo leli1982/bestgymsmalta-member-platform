@@ -85,3 +85,13 @@ test("tablet requires a photo while staff mode can use the configured photo poli
   assert.match(source, /photos/i);
   assert.match(source, /onSubmit/);
 });
+
+test("Couples enter one shared household address, but still have two personal records", () => {
+  const source = readRequired(registrationPath, "RegistrationForm");
+  assert.match(source, /membershipType !== "couples" \|\| index === 0/);
+  assert.match(source, /Shared home address — enter once for both applicants/);
+  assert.match(source, /Shared home address entered for Applicant 1 applies to both applicants/);
+  assert.match(source, /withCouplesSharedAddress\(membershipType, participants\)/);
+  assert.match(source, /withCouplesSharedAddress\("couples", updated\)/);
+  assert.match(source, /Reception must visually verify/);
+});
