@@ -100,7 +100,7 @@ const fixtures = {
   single: application("single", "single", [participant(1)]),
   student: application("student", "student", [
     participant(1, {
-      dateOfBirth: "2009-01-15",
+      dateOfBirth: "2011-01-15",
       under18AtSubmission: true,
       studentEligibilityVerified: true,
       guardianName: "Christopher Long Guardian Name",
@@ -114,6 +114,20 @@ const fixtures = {
     }),
   ]),
   couples: application("couples", "couples", [participant(1), participant(2)]),
+  sixteen: application("sixteen", "single", [
+    participant(1, {
+      dateOfBirth: "2010-01-15",
+      under18AtSubmission: true,
+      guardianName: "Test Guardian",
+      guardianIdNumber: "123456M",
+      guardianRelationship: "Parent",
+      guardianPhone: "+356 7999 9999",
+      guardianEmail: "guardian@example.com",
+      guardianAddress: "Test Address",
+      guardianPresentVerified: true,
+      guardianCosignVerified: true,
+    }),
+  ]),
 };
 
 const server = spawn(
@@ -181,6 +195,9 @@ async function verifyFixture(context, key, expectedSheets) {
   }
 
   if (key === "couples") assert.equal(measurements.length, 2);
+  const guardianDeclarationCount = await sheets.locator(".bgm-declaration-title").filter({ hasText: "Guardian Declaration" }).count();
+  if (key === "student") assert.equal(guardianDeclarationCount, 1, "under-16 applicant includes guardian declaration");
+  if (key === "sixteen" || key === "single" || key === "couples") assert.equal(guardianDeclarationCount, 0, "16+ applicant has no guardian declaration");
   const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
   const actualPdfPages = (Buffer.from(pdf).toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length;
   assert.equal(actualPdfPages, expectedSheets, `${key} Chromium PDF page count`);
@@ -224,6 +241,7 @@ try {
 
   await verifyFixture(context, "single", 1);
   await verifyFixture(context, "student", 1);
+  await verifyFixture(context, "sixteen", 1);
   await verifyFixture(context, "couples", 2);
   await verifyOverflowIsBlocked(context);
 

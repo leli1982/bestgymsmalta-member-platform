@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { addMembershipDurationDate, todayMaltaDate } from "@/lib/maltaDate";
 import {
   isUnder18On,
+  isUnder16On,
   normalizeIdentityDocument,
   participantCountForType,
   validateRegistrationParticipant,
@@ -150,7 +151,7 @@ function applicationDeclarationSnapshot(rows: {
   privacy: DeclarationRow;
   health: DeclarationRow;
   guardian?: DeclarationRow;
-}) {
+}, includeGuardian: boolean) {
   return {
     gymRules: {
       id: rows.gymRules.id,
@@ -170,7 +171,7 @@ function applicationDeclarationSnapshot(rows: {
       body: rows.health.body,
       contentSha256: rows.health.content_sha256,
     },
-    ...(rows.guardian
+    ...(rows.guardian && includeGuardian
       ? {
           guardian: {
             id: rows.guardian.id,
@@ -414,7 +415,7 @@ export async function POST(request: NextRequest) {
       }
 
       const under18AtSubmission = isUnder18On(participant.dateOfBirth, submittedOnMalta);
-      if (under18AtSubmission && !settings.declarations.guardian) {
+      if (isUnder16On(participant.dateOfBirth, submittedOnMalta) && !settings.declarations.guardian) {
         throw new RouteError(503, "The guardian declaration is not published.");
       }
 
@@ -489,7 +490,10 @@ export async function POST(request: NextRequest) {
         gym_rules_version_id: settings.declarations.gymRules.id,
         privacy_version_id: settings.declarations.privacy.id,
         health_version_id: settings.declarations.health.id,
-        declaration_snapshot: applicationDeclarationSnapshot(settings.declarations),
+        declaration_snapshot: applicationDeclarationSnapshot(
+          settings.declarations,
+          serverParticipants.some(({ participant }) => isUnder16On(participant.dateOfBirth, submittedOnMalta))
+        ),
         document_readiness_ack_at: now,
         updated_at: now,
       })

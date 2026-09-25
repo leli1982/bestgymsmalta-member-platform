@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   isUnder18On,
+  isUnder16On,
   normalizeIdentityDocument,
   participantCountForType,
   requiredDocumentMessage,
@@ -36,6 +37,14 @@ test("minor status is locked to the application submission calendar date", () =>
   assert.equal(isUnder18On("2008-09-17", "2026-09-16"), true);
   assert.equal(isUnder18On("2008-09-16", "2026-09-16"), false);
   assert.equal(isUnder18On("2000-01-01", "2026-09-16"), false);
+});
+
+test("guardian declaration is only for applicants under 16, including on their birthday", () => {
+  assert.equal(isUnder16On("2010-09-17", "2026-09-16"), true);
+  assert.equal(isUnder16On("2010-09-16", "2026-09-16"), false);
+  assert.equal(isUnder16On("2009-09-16", "2026-09-16"), false);
+  // A 16-year-old still has the independent under-18 guardian detail checks.
+  assert.equal(isUnder18On("2010-09-16", "2026-09-16"), true);
 });
 
 test("invalid calendar dates are rejected instead of silently normalized", () => {

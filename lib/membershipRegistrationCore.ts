@@ -48,7 +48,7 @@ export function normalizeIdentityDocument(value: string): string {
     .replace(/[^A-Z0-9]/g, "");
 }
 
-export function isUnder18On(dateOfBirth: string, submissionDate: string): boolean {
+function isUnderAgeOn(dateOfBirth: string, submissionDate: string, ageLimit: number): boolean {
   const birth = parseCalendarDate(dateOfBirth);
   const submitted = parseCalendarDate(submissionDate);
 
@@ -66,7 +66,15 @@ export function isUnder18On(dateOfBirth: string, submissionDate: string): boolea
     age -= 1;
   }
 
-  return age < 18;
+  return age < ageLimit;
+}
+
+export function isUnder18On(dateOfBirth: string, submissionDate: string): boolean {
+  return isUnderAgeOn(dateOfBirth, submissionDate, 18);
+}
+
+export function isUnder16On(dateOfBirth: string, submissionDate: string): boolean {
+  return isUnderAgeOn(dateOfBirth, submissionDate, 16);
 }
 
 export function participantCountForType(type: MembershipType): 1 | 2 {

@@ -27,7 +27,7 @@ const participant: PrintableParticipant = {
   town: "San Ġwann",
   postcode: "SGN 1234",
   idNumber: "0123456M",
-  dateOfBirth: "2009-01-15",
+  dateOfBirth: "2011-01-15",
   phone: "+356 7900 0000",
   email: "long.email.address@example.com",
   nextOfKin: "Example Parent +356 7999 9999",

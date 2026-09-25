@@ -1,5 +1,7 @@
 "use client";
 
+import { isUnder16On } from "@/lib/membershipRegistrationCore";
+
 export type DeclarationPrintSnapshot = {
   id?: string;
   versionNo?: number | string;
@@ -187,7 +189,11 @@ export default function MembershipA4Sheet({
   participant: PrintableParticipant;
   measurement?: boolean;
 }) {
-  const declarations = snapshotEntries(application.declarationSnapshot);
+  // Shared couples snapshots can contain the guardian wording for one applicant;
+  // show it only on that applicant's A4 sheet if they were under 16 on enrollment.
+  const declarations = snapshotEntries(application.declarationSnapshot).filter(
+    (entry) => entry.key !== "guardian" || isUnder16On(participant.dateOfBirth, application.startDate)
+  );
   const paymentMethod =
     application.paymentMethod === "other"
       ? `Other — ${application.paymentOtherText || "—"}`

@@ -3,6 +3,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import {
   isUnder18On,
+  isUnder16On,
   normalizeIdentityDocument,
   participantCountForType,
   validateRegistrationParticipant,
@@ -290,8 +291,15 @@ export default function RegistrationForm({
 
       {membershipType && documentReady && participants.map((participant, index) => {
         let under18 = false;
+        let under16 = false;
         if (participant.dateOfBirth) {
-          try { under18 = isUnder18On(participant.dateOfBirth, submissionDate); } catch { under18 = false; }
+          try {
+            under18 = isUnder18On(participant.dateOfBirth, submissionDate);
+            under16 = isUnder16On(participant.dateOfBirth, submissionDate);
+          } catch {
+            under18 = false;
+            under16 = false;
+          }
         }
         const identityState = identityStates[index] || "idle";
         const identityMessage = identityMessages[index] || "";
@@ -354,7 +362,7 @@ export default function RegistrationForm({
               privacy={config.declarations.privacy}
               health={config.declarations.health}
               guardian={config.declarations.guardian}
-              showGuardian={under18}
+              showGuardian={under16}
               value={declarations[index] || { ...BLANK_ACCEPTANCE }}
               onChange={(value) => updateAcceptance(index, value)}
             />
