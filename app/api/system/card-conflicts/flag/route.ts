@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
-import { todayMaltaDate } from "@/lib/maltaDate";
 
 export const dynamic = "force-dynamic";
 
