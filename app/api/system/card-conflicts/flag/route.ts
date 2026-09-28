@@ -41,11 +41,10 @@ export async function POST(request: NextRequest) {
       .select("id,status,membership_expiry,cancellation_effective_date")
       .in("id", Array.from(new Set(memberIds))) : { data: [], error: null };
     if (people.error) throw people.error;
-    const today = todayMaltaDate();
-    const active = (people.data || []).filter((m) => m.status === "active" &&
-      m.membership_expiry && m.membership_expiry >= today &&
-      (!m.cancellation_effective_date || m.cancellation_effective_date > today));
-    if (active.length < 2) return NextResponse.json({ error: "The card is no longer conflicted." }, { status: 409 });
+    const conflictMembers = (people.data || []).filter((m) => m.status !== "archived");
+    if (conflictMembers.length < 2) {
+      return NextResponse.json({ error: "The card is no longer conflicted." }, { status: 409 });
+    }
     let review = await db.from("bgm_card_conflict_reviews").select("id")
       .eq("scan3", scan.data.credential_value.toUpperCase()).eq("status", "unresolved").maybeSingle();
     if (review.error) throw review.error;
@@ -64,7 +63,7 @@ export async function POST(request: NextRequest) {
     const flag = await db.from("bgm_card_conflict_flags").insert({
       review_id: review.data!.id, scan3: scan.data.credential_value.toUpperCase(),
       gym_id: scan.data.gym_id, system_user_id: auth.context.systemUserId,
-      scan_id: scan.data.id, member_ids: active.map((m) => m.id),
+      scan_id: scan.data.id, member_ids: conflictMembers.map((m) => m.id),
     });
     if (flag.error) throw flag.error;
     return NextResponse.json({ reviewId: review.data!.id, status: "unresolved" });
