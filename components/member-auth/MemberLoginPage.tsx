@@ -79,6 +79,12 @@ const quickLinks = [
     href: "/progress",
     icon: Camera,
   },
+  {
+    label: "Change Password",
+    description: "Update your login password",
+    href: "/change-password",
+    icon: KeyRound,
+  },
 ];
 
 export default function MemberLoginPage() {
