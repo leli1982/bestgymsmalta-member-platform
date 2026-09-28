@@ -99,9 +99,12 @@ function getMapsUrl(gym: Gym) {
   )}`;
 }
 
+function isMemberVisibleGym(gym: Gym) {
+  return gym.status === "active" || gym.status === "coming_soon";
+}
+
 function statusLabel(status?: string) {
   if (status === "coming_soon") return "Coming Soon";
-  if (status === "inactive") return "Inactive";
   return "Open";
 }
 
@@ -129,19 +132,24 @@ export default function LiveGymsPage() {
     loadGyms();
   }, []);
 
+  const memberVisibleGyms = useMemo(
+    () => gyms.filter(isMemberVisibleGym),
+    [gyms]
+  );
+
   const filteredGyms = useMemo(() => {
     const search = query.trim().toLowerCase();
 
-    if (!search) return gyms;
+    if (!search) return memberVisibleGyms;
 
-    return gyms.filter((gym) => {
+    return memberVisibleGyms.filter((gym) => {
       return `${gym.name} ${gym.city || ""} ${gym.address || ""}`
         .toLowerCase()
         .includes(search);
     });
-  }, [gyms, query]);
+  }, [memberVisibleGyms, query]);
 
-  const activeCount = gyms.filter((gym) => gym.status === "active").length;
+  const activeCount = memberVisibleGyms.filter((gym) => gym.status === "active").length;
 
 
   return (
@@ -188,7 +196,7 @@ export default function LiveGymsPage() {
                 </p>
               </div>
               <div className="rounded-2xl border border-white/15 bg-black/35 px-3 py-3 backdrop-blur-md">
-                <p className="text-xl font-black text-orange-300">{loading ? "—" : gyms.length}</p>
+                <p className="text-xl font-black text-orange-300">{loading ? "—" : memberVisibleGyms.length}</p>
                 <p className="mt-0.5 text-[9px] font-black uppercase tracking-[.13em] text-white/55">
                   Locations
                 </p>
