@@ -25,10 +25,21 @@ export async function POST(request: NextRequest) {
       .select("member_id").eq("scan3", scan.data.credential_value.toUpperCase())
       .eq("assignment_status", "active");
     if (claims.error) throw claims.error;
-    const memberIds = (claims.data || []).map((claim) => claim.member_id);
+
+    let memberIds = (claims.data || []).map((claim) => claim.member_id);
+    if (!memberIds.length) {
+      const legacyMatches = await db.from("bgm_members")
+        .select("id")
+        .eq("legacy_pk_customer", scan.data.credential_value)
+        .neq("status", "archived")
+        .limit(50);
+      if (legacyMatches.error) throw legacyMatches.error;
+      memberIds = (legacyMatches.data || []).map((member) => member.id);
+    }
+
     const people = memberIds.length ? await db.from("bgm_members")
       .select("id,status,membership_expiry,cancellation_effective_date")
-      .in("id", memberIds) : { data: [], error: null };
+      .in("id", Array.from(new Set(memberIds))) : { data: [], error: null };
     if (people.error) throw people.error;
     const today = todayMaltaDate();
     const active = (people.data || []).filter((m) => m.status === "active" &&
