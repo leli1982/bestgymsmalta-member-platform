@@ -28,6 +28,9 @@ type StaffMember = {
 type SearchResponse = {
   candidates?: StaffMember[];
   hasMore?: boolean;
+  total?: number;
+  page?: number;
+  limit?: number;
   error?: string;
 };
 
@@ -62,6 +65,9 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, c
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<StaffMember | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -87,7 +93,7 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, c
         const params = new URLSearchParams({
           q: query.trim(),
           status: filter,
-          page: "1",
+          page: String(page),
           limit: "50",
         });
         const response = await fetch(`/api/system/members/search?${params.toString()}`, {
@@ -98,9 +104,13 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, c
         const data = (await response.json()) as SearchResponse;
         if (!response.ok) throw new Error(data.error || "Could not load members.");
         setMembers(data.candidates || []);
+        setTotal(Number.isFinite(data.total) ? Number(data.total) : (data.candidates || []).length);
+        setHasMore(Boolean(data.hasMore));
       } catch (requestError) {
         if (requestError instanceof DOMException && requestError.name === "AbortError") return;
         setMembers([]);
+        setTotal(0);
+        setHasMore(false);
         setError(requestError instanceof Error ? requestError.message : "Could not load members.");
       } finally {
         if (!controller.signal.aborted) setLoading(false);
@@ -111,7 +121,7 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, c
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [query, filter, refreshToken]);
+  }, [query, filter, page, refreshToken]);
 
   useEffect(() => {
     if (!selected) return;
@@ -121,9 +131,10 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, c
 
   const summary = useMemo(() => {
     if (loading) return "Loading members…";
-    if (members.length === 1) return "1 member";
-    return `${members.length} members`;
-  }, [loading, members.length]);
+    const totalPages = Math.max(1, Math.ceil(total / 50));
+    const label = total === 1 ? "1 member" : `${total.toLocaleString()} members`;
+    return `${label} · Page ${page} of ${totalPages}`;
+  }, [loading, page, total]);
 
   return (
     <section id="staff-members" className="rounded-3xl border border-zinc-200 bg-white shadow-sm">
@@ -144,7 +155,10 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, c
             <input
               ref={searchRef}
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(1);
+              }}
               placeholder="Search name, BGM number, card / pkCustomer, ID, phone or email"
               className="w-full rounded-2xl border border-zinc-300 bg-zinc-50 py-3.5 pl-12 pr-4 text-base font-medium outline-none transition focus:border-[#ff5a0a] focus:bg-white focus:ring-4 focus:ring-orange-100"
             />
@@ -154,7 +168,10 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, c
               <button
                 key={item.key}
                 type="button"
-                onClick={() => setFilter(item.key)}
+                onClick={() => {
+                  setFilter(item.key);
+                  setPage(1);
+                }}
                 className={`rounded-xl px-4 py-2.5 text-xs font-black tracking-wide transition ${
                   filter === item.key ? "bg-zinc-950 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-900"
                 }`}
@@ -196,6 +213,28 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, c
             </span>
           </button>
         ))}
+      </div>
+
+      <div className="flex items-center justify-between gap-3 border-t border-zinc-200 px-5 py-4 sm:px-6">
+        <button
+          type="button"
+          onClick={() => setPage((value) => Math.max(1, value - 1))}
+          disabled={loading || page <= 1}
+          className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-black text-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Previous
+        </button>
+        <p className="text-center text-xs font-bold text-zinc-500">
+          Showing {members.length ? (page - 1) * 50 + 1 : 0}–{(page - 1) * 50 + members.length} of {total.toLocaleString()}
+        </p>
+        <button
+          type="button"
+          onClick={() => setPage((value) => value + 1)}
+          disabled={loading || !hasMore}
+          className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-black text-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Next
+        </button>
       </div>
 
       {selected && (
