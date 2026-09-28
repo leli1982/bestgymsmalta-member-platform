@@ -14,6 +14,13 @@ export type CardConflictMember = {
   photoUrl: string | null;
 };
 
+function effectiveMembershipStatus(member: CardConflictMember) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (String(member.status || "").toLowerCase() !== "active") return "INACTIVE";
+  if (member.membershipExpiry && member.membershipExpiry < today) return "EXPIRED";
+  return "ACTIVE";
+}
+
 export default function CardConflictCards({ members, scanId }: {
   members: CardConflictMember[]; scanId?: string;
 }) {
@@ -39,7 +46,7 @@ export default function CardConflictCards({ members, scanId }: {
     <section className="mt-6 rounded-2xl border-4 border-amber-300 bg-amber-50 p-5 text-left text-zinc-950">
       <h2 className="text-center text-2xl font-black text-amber-900">Shared physical card / Scan3</h2>
       <p className="mt-2 text-center text-sm font-bold text-amber-900">
-        This scan matches {members.length} active members. Identify the person manually; no check-in was recorded.
+        This scan matches {members.length} members. Identify the person manually; no check-in was recorded.
       </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {members.map((m) => (
@@ -56,7 +63,7 @@ export default function CardConflictCards({ members, scanId }: {
               </div>
             </div>
             <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
-              <div><dt className="font-bold">Membership</dt><dd>{m.status} · expires {m.membershipExpiry || "unknown"}</dd></div>
+              <div><dt className="font-bold">Membership</dt><dd className={effectiveMembershipStatus(m) === "EXPIRED" ? "font-black text-red-700" : effectiveMembershipStatus(m) === "ACTIVE" ? "font-black text-emerald-700" : "font-black text-amber-700"}>{effectiveMembershipStatus(m)} · expires {m.membershipExpiry || "unknown"}</dd></div>
               <div><dt className="font-bold">Enrollment gym</dt><dd>{m.enrollmentGymName}</dd></div>
               <div className="col-span-2"><dt className="font-bold">Shared Scan3 / card number</dt><dd className="font-mono">{m.scan3}</dd></div>
             </dl>
