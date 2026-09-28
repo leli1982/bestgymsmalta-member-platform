@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { getOrCreateOfflineDeviceId } from "@/lib/offlineRosterClient";
 import OfficialMemberPhotoCapture from "@/components/staff/OfficialMemberPhotoCapture";
+import CardConflictCards, { type CardConflictMember } from "@/components/staff/CardConflictCards";
 import { looksLikeKeyboardBarcode, shouldHoldScannerCandidate, MAX_CONTIGUOUS_GAP_MS } from "@/lib/staffKeyboardScanCore";
 
 type StaffUser = {
@@ -16,6 +17,8 @@ type StaffUser = {
 type AccessResult = {
   result: string;
   granted: boolean;
+  scanId?: string;
+  cardMatches?: CardConflictMember[];
   duplicate?: boolean;
   scannedBarcode?: string;
   credentialKind?: string | null;
@@ -103,6 +106,7 @@ function replayHeldKeys(burst: EditableBurst | null) {
 
 function heading(result: AccessResult) {
   if (result.granted) return "ACCESS GRANTED";
+  if (result.cardMatches?.length) return "SHARED CARD CONFLICT";
   if (result.result === "expired") return "MEMBERSHIP EXPIRED";
   if (result.result === "inactive") return "MEMBERSHIP INACTIVE";
   if (result.result === "disabled_card") return "CARD NOT ACTIVE";
@@ -487,6 +491,7 @@ export default function StaffGlobalScanner() {
             <h2 className={`mt-3 text-4xl font-black sm:text-6xl ${granted ? "text-emerald-700" : "text-red-700"}`}>
               {heading(result)}
             </h2>
+            {Boolean(result.cardMatches?.length) && <CardConflictCards members={result.cardMatches || []} scanId={result.scanId} />}
             {result.member ? (
               <div className="mx-auto mt-6 flex max-w-xl flex-wrap items-center justify-center gap-5 text-left">
                 <div className="relative flex h-36 w-36 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-zinc-100 text-5xl font-black text-zinc-300">

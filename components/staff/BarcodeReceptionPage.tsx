@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import OfficialMemberPhotoCapture from "@/components/staff/OfficialMemberPhotoCapture";
+import CardConflictCards, { type CardConflictMember } from "@/components/staff/CardConflictCards";
 import { getOrCreateOfflineDeviceId } from "@/lib/offlineRosterClient";
 
 type SystemUser = {
@@ -24,6 +25,7 @@ type BarcodeResult =
   | "ambiguous_card";
 
 type ScanResponse = {
+  cardMatches?: CardConflictMember[];
   result: BarcodeResult;
   granted: boolean;
   duplicate?: boolean;
@@ -89,7 +91,7 @@ function presentation(result: BarcodeResult) {
   }
   if (result === "ambiguous_card") {
     return {
-      title: "DUPLICATE LEGACY NUMBER",
+      title: "CARD NUMBER AMBIGUOUS",
       severity: "warning" as const,
       tone: "warning" as const,
       autoResetMs: 0,
@@ -317,7 +319,8 @@ export default function BarcodeReceptionPage() {
             )}
           </div>
 
-          {result.result === "ambiguous_card" && (result.legacyMatches || []).length > 0 && (
+          {Boolean(result.cardMatches?.length) && <CardConflictCards members={result.cardMatches || []} scanId={result.scanId} />}
+          {result.result === "ambiguous_card" && !result.cardMatches?.length && (result.legacyMatches || []).length > 0 && (
             <div className="mt-8 rounded-2xl border-4 border-red-200 bg-red-50 p-5">
               <p className="text-center text-2xl font-black text-red-700">
                 DUPLICATE LEGACY NUMBER

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Barcode, CheckCircle2, XCircle } from "lucide-react";
 import OfficialMemberPhotoCapture from "@/components/staff/OfficialMemberPhotoCapture";
+import CardConflictCards, { type CardConflictMember } from "@/components/staff/CardConflictCards";
 import { getOrCreateOfflineDeviceId } from "@/lib/offlineRosterClient";
 
 type SystemUser = {
@@ -14,6 +15,8 @@ type SystemUser = {
 };
 
 type ScanResponse = {
+  scanId?: string;
+  cardMatches?: CardConflictMember[];
   result:
     | "granted"
     | "expired"
@@ -50,6 +53,7 @@ type ScanResponse = {
 
 function resultTitle(result: ScanResponse) {
   if (result.granted) return "ACCESS GRANTED";
+  if (result.cardMatches?.length) return "SHARED CARD CONFLICT";
   if (result.result === "expired") return "MEMBERSHIP EXPIRED";
   if (result.result === "inactive") return "MEMBERSHIP INACTIVE";
   if (result.result === "disabled_card") return "CARD NOT ACTIVE";
@@ -239,7 +243,8 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
               {resultTitle(result)}
             </h2>
 
-            {result.result === "ambiguous_card" && (result.legacyMatches || []).length > 0 && (
+            {Boolean(result.cardMatches?.length) && <CardConflictCards members={result.cardMatches || []} scanId={result.scanId} />}
+            {result.result === "ambiguous_card" && !result.cardMatches?.length && (result.legacyMatches || []).length > 0 && (
               <div className="mx-auto mt-6 max-w-xl rounded-2xl border-2 border-red-200 bg-red-50 p-4 text-left">
                 <p className="text-sm font-black uppercase tracking-wide text-red-700">
                   More than one active legacy member uses this old number

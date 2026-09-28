@@ -65,6 +65,11 @@ const sections: Section[] = [
     icon: FileBarChart2, group: "Membership Tools",
   },
   {
+    href: "/staff/admin/card-conflicts", label: "Card Conflict Review",
+    description: "Inspect shared Scan3 cards, staff flags and both member records; correct card assignments.",
+    icon: Barcode, group: "Membership Tools",
+  },
+  {
     href: "/staff/members/enroll?kind=new", label: "New membership",
     description: "Create a new membership.", icon: UserPlus, group: "Membership Tools",
   },

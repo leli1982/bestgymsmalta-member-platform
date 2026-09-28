@@ -18,21 +18,21 @@ test("legacy members receive permanent BGM numbers without losing duplicate pkCu
   assert.equal(sql.includes("before insert or update of member_number"), true);
 });
 
-test("barcode reception resolves physical cards, BGM numbers and legacy pkCustomer values", () => {
+test("barcode reception resolves Scan3 card claims and permanent BGM numbers without treating pkCustomer as a card", () => {
   const route = read("app/api/system/barcode/scan/route.ts");
+  const claimLookup = route.indexOf('from("bgm_legacy_card_claims")');
   const cardLookup = route.indexOf('from("bgm_member_card_credentials")');
   const memberLookup = route.indexOf('.eq("member_number", membershipNumber)');
-  const legacyLookup = route.indexOf('.eq("legacy_pk_customer", membershipNumber)');
+  assert.ok(claimLookup >= 0, "source Scan3 claims must be checked");
   assert.ok(cardLookup >= 0, "physical credential lookup must exist");
   assert.ok(memberLookup > cardLookup, "permanent member-number fallback must exist after physical-card lookup");
-  assert.ok(legacyLookup > memberLookup, "legacy pkCustomer fallback must exist after BGM-number lookup");
+  assert.equal(route.includes('.eq("legacy_pk_customer", membershipNumber)'), false);
   for (const token of [
     "credentialKind",
     "physical_card",
     "member_number",
-    "legacy_pk_customer",
     "ambiguous_card",
-    "legacyMatches",
+    "cardMatches",
   ]) {
     assert.equal(route.includes(token), true, `expected scan route to include ${token}`);
   }
@@ -64,15 +64,14 @@ test("staff home is always ready for a barcode scan without opening Reception", 
   assert.equal(scanner.includes("MEMBERSHIP EXPIRED"), true);
 });
 
-test("new/replaced physical cards synchronize pkCustomer while BGM number remains permanent", () => {
-  const sql = read("supabase/migrations/20260918_131000_pkcustomer_current_card_semantics.sql");
+test("new/replaced physical cards retain original pkCustomer independent of Scan3", () => {
+  const sql = read("supabase/migrations/20260928_120000_real_member_import_card_conflicts.sql");
   for (const token of [
     "bgm_member_card_credentials",
     "legacy_pk_customer",
-    "barcode_value",
-    "after insert or update",
-    "status = 'active'",
-    "ambiguous_card",
+    "drop trigger if exists bgm_sync_pkcustomer_from_active_card_trigger",
+    "bgm_legacy_card_claims",
+    "bgm_active_card_conflicts",
   ]) {
     assert.equal(sql.toLowerCase().includes(token.toLowerCase()), true, `expected card semantics migration to include ${token}`);
   }
