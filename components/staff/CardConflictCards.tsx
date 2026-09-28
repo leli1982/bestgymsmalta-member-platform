@@ -63,7 +63,25 @@ export default function CardConflictCards({ members, scanId }: {
               </div>
             </div>
             <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
-              <div><dt className="font-bold">Membership</dt><dd className={effectiveMembershipStatus(m) === "EXPIRED" ? "font-black text-red-700" : effectiveMembershipStatus(m) === "ACTIVE" ? "font-black text-emerald-700" : "font-black text-amber-700"}>{effectiveMembershipStatus(m)} · expires {m.membershipExpiry || "unknown"}</dd></div>
+              <div>
+                <dt className="font-bold">Membership</dt>
+                <dd className="mt-1">
+                  <span
+                    className={
+                      effectiveMembershipStatus(m) === "EXPIRED"
+                        ? "inline-flex rounded-full bg-red-600 px-3 py-1 text-sm font-black uppercase tracking-wide text-white"
+                        : effectiveMembershipStatus(m) === "ACTIVE"
+                          ? "inline-flex rounded-full bg-emerald-600 px-3 py-1 text-sm font-black uppercase tracking-wide text-white"
+                          : "inline-flex rounded-full bg-amber-500 px-3 py-1 text-sm font-black uppercase tracking-wide text-white"
+                    }
+                  >
+                    {effectiveMembershipStatus(m)}
+                  </span>
+                  <span className="mt-2 block font-bold text-zinc-700">
+                    Expires {m.membershipExpiry || "unknown"}
+                  </span>
+                </dd>
+              </div>
               <div><dt className="font-bold">Enrollment gym</dt><dd>{m.enrollmentGymName}</dd></div>
               <div className="col-span-2"><dt className="font-bold">Shared Scan3 / card number</dt><dd className="font-mono">{m.scan3}</dd></div>
             </dl>
