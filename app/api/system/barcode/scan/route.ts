@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
     let credentialKind:
       | "physical_card"
       | "member_number"
+      | "legacy_pk_customer"
       | null = null;
     let cardMatches: any[] = [];
     let ambiguousPhysicalCard = false;
@@ -119,6 +120,36 @@ export async function POST(request: NextRequest) {
         if ((memberNumberResult.data || []).length === 1) {
           member = memberNumberResult.data?.[0] || null;
           credentialKind = member ? "member_number" : null;
+        } else {
+          const legacyResult = await supabase
+            .from("bgm_members")
+            .select(MEMBER_SELECT)
+            .eq("legacy_pk_customer", membershipNumber)
+            .neq("status", "archived")
+            .order("full_name", { ascending: true })
+            .limit(50);
+          if (legacyResult.error) throw legacyResult.error;
+
+          const legacyMembers = legacyResult.data || [];
+          const activeLegacyMembers = legacyMembers.filter(
+            (candidate) => accessFor(candidate).granted
+          );
+
+          if (activeLegacyMembers.length > 1) {
+            cardMatches = activeLegacyMembers;
+            ambiguousPhysicalCard = true;
+            credentialKind = "legacy_pk_customer";
+          } else if (activeLegacyMembers.length === 1) {
+            member = activeLegacyMembers[0];
+            credentialKind = "legacy_pk_customer";
+          } else if (legacyMembers.length === 1) {
+            member = legacyMembers[0];
+            credentialKind = "legacy_pk_customer";
+          } else if (legacyMembers.length > 1) {
+            cardMatches = legacyMembers;
+            ambiguousPhysicalCard = true;
+            credentialKind = "legacy_pk_customer";
+          }
         }
       }
     }
