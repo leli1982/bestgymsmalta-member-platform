@@ -127,68 +127,28 @@ export async function GET(request: NextRequest) {
   if (!query) {
     const offset = (page - 1) * limit;
 
-    if (requestedStatus === "active") {
-      const poolSize = page * limit;
-      const [noExpiryResult, currentExpiryResult] = await Promise.all([
-        supabase
-          .from("bgm_members")
-          .select(MEMBER_SEARCH_FIELDS)
-          .eq("status", "active")
-          .is("membership_expiry", null)
-          .order("full_name", { ascending: true })
-          .limit(poolSize),
-        supabase
-          .from("bgm_members")
-          .select(MEMBER_SEARCH_FIELDS)
-          .eq("status", "active")
-          .gte("membership_expiry", today)
-          .order("full_name", { ascending: true })
-          .limit(poolSize),
-      ]);
-
-      if (noExpiryResult.error || currentExpiryResult.error) {
-        console.error(noExpiryResult.error || currentExpiryResult.error);
-        return NextResponse.json(
-          { error: "Could not browse members." },
-          { status: 500 }
-        );
-      }
-
-      const unique = new Map<string, any>();
-      for (const member of [
-        ...(noExpiryResult.data || []),
-        ...(currentExpiryResult.data || []),
-      ]) {
-        if (!unique.has(member.id)) unique.set(member.id, member);
-      }
-
-      const members = Array.from(unique.values())
-        .filter((member) => !(member.cancellation_effective_date && member.cancellation_effective_date <= today))
-        .sort(sortMembersByName)
-        .slice(offset, offset + limit);
-
-      return NextResponse.json({
-        candidates: members.map((member) =>
-          toCandidate(member, canViewOfficialPhoto, today, gymNames)
-        ),
-        exactMembershipNumber: false,
-        page,
-        limit,
-        filter: requestedStatus,
-        hasMore: members.length === limit,
-      });
-    }
-
     let browseQuery = supabase
       .from("bgm_members")
-      .select(MEMBER_SEARCH_FIELDS)
+      .select(MEMBER_SEARCH_FIELDS, { count: "exact" })
       .neq("status", "archived")
       .order("full_name", { ascending: true });
+
+    if (requestedStatus === "active") {
+      browseQuery = browseQuery
+        .eq("status", "active")
+        .or(`membership_expiry.is.null,membership_expiry.gte.${today}`)
+        .or(
+          `cancellation_effective_date.is.null,cancellation_effective_date.gt.${today}`
+        );
+    }
 
     if (requestedStatus === "expired") {
       browseQuery = browseQuery
         .eq("status", "active")
-        .lt("membership_expiry", today);
+        .lt("membership_expiry", today)
+        .or(
+          `cancellation_effective_date.is.null,cancellation_effective_date.gt.${today}`
+        );
     }
 
     const browseResult = await browseQuery.range(offset, offset + limit - 1);
@@ -200,19 +160,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const candidates = (browseResult.data || [])
-      .map((member) => toCandidate(member, canViewOfficialPhoto, today, gymNames))
-      .filter((candidate) =>
-        matchesStaffMemberFilter(candidate.classification, requestedStatus)
-      );
+    const candidates = (browseResult.data || []).map((member) =>
+      toCandidate(member, canViewOfficialPhoto, today, gymNames)
+    );
+    const total = browseResult.count || 0;
 
     return NextResponse.json({
       candidates,
       exactMembershipNumber: false,
       page,
       limit,
+      total,
       filter: requestedStatus,
-      hasMore: (browseResult.data || []).length === limit,
+      hasMore: offset + candidates.length < total,
     });
   }
 
@@ -248,6 +208,44 @@ export async function GET(request: NextRequest) {
       exactMembershipNumber: true,
       page: 1,
       limit,
+      total: candidates.length,
+      filter: requestedStatus,
+      hasMore: false,
+    });
+  }
+
+  // Legacy pkCustomer values were historically reused. A reception lookup
+  // must therefore return every matching member instead of forcing a single result.
+  const exactLegacyResult = await supabase
+    .from("bgm_members")
+    .select(MEMBER_SEARCH_FIELDS)
+    .eq("legacy_pk_customer", query)
+    .neq("status", "archived")
+    .order("full_name", { ascending: true })
+    .limit(50);
+
+  if (exactLegacyResult.error) {
+    console.error(exactLegacyResult.error);
+    return NextResponse.json(
+      { error: "Could not search legacy member numbers." },
+      { status: 500 }
+    );
+  }
+
+  if ((exactLegacyResult.data || []).length > 0) {
+    const candidates = (exactLegacyResult.data || [])
+      .map((member) => toCandidate(member, canViewOfficialPhoto, today, gymNames))
+      .filter((candidate) =>
+        matchesStaffMemberFilter(candidate.classification, requestedStatus)
+      );
+
+    return NextResponse.json({
+      candidates,
+      exactMembershipNumber: false,
+      exactLegacyPkCustomer: true,
+      page: 1,
+      limit,
+      total: candidates.length,
       filter: requestedStatus,
       hasMore: false,
     });
@@ -287,6 +285,7 @@ export async function GET(request: NextRequest) {
       exactCardNumber: true,
       page: 1,
       limit,
+      total: candidates.length,
       filter: requestedStatus,
       hasMore: false,
     });
@@ -388,6 +387,7 @@ export async function GET(request: NextRequest) {
     exactMembershipNumber: false,
     page,
     limit,
+    total: filteredCandidates.length,
     filter: requestedStatus,
     hasMore: filteredCandidates.length > offset + limit,
   });
