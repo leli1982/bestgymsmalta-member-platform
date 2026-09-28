@@ -8,6 +8,7 @@ import {
 import { formatBarEuro } from "@/lib/barSalesCore";
 import { barSalesComparisonColor } from "@/lib/barCashComparison";
 import MembershipStatsAdmin from "@/components/staff/MembershipStatsAdmin";
+import ActiveMembersByGymAdmin from "@/components/staff/ActiveMembersByGymAdmin";
 import ScanVisitStatsAdmin from "@/components/staff/ScanVisitStatsAdmin";
 import { todayMaltaDate } from "@/lib/maltaDate";
 import { nextOperationalOrderActions } from "@/lib/operationalOrdersPresentation";
@@ -347,6 +348,7 @@ export default function OperationsDashboardAdmin() {
             <p className="mt-2 text-sm text-zinc-600">Membership and gym visit statistics are separate from daily Sundries and Bar results.</p>
           </header>
           <MembershipStatsAdmin />
+          <ActiveMembersByGymAdmin />
           <ScanVisitStatsAdmin />
         </section>
 
