@@ -90,12 +90,18 @@ export async function POST(request: NextRequest) {
           .in("id", Array.from(new Set(claimIds)));
         if (claimedResult.error) throw claimedResult.error;
         const allClaims = claimedResult.data || [];
-        cardMatches = allClaims.filter((candidate) => accessFor(candidate).granted);
+        const activeClaims = allClaims.filter((candidate) => accessFor(candidate).granted);
         credentialKind = "physical_card";
-        if (cardMatches.length > 1) {
+
+        // A shared historical/physical card must never collapse to "not found".
+        // If more than one member owns the scanned value, show every match so
+        // reception can identify the person and flag the conflict to admin,
+        // regardless of whether the memberships are active or expired.
+        if (allClaims.length > 1) {
+          cardMatches = allClaims;
           ambiguousPhysicalCard = true;
-        } else if (cardMatches.length === 1) {
-          member = cardMatches[0];
+        } else if (activeClaims.length === 1) {
+          member = activeClaims[0];
         } else if (allClaims.length === 1) {
           member = allClaims[0];
         }
