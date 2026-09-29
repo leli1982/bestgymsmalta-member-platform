@@ -11,13 +11,15 @@ import {
 } from "@/lib/memberExchangeWorkbook";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
+import { evaluateBarcodeAccess } from "@/lib/barcodeAccessCore";
+import { todayMaltaDate } from "@/lib/maltaDate";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const PAGE_SIZE = 1000;
 const MEMBER_EXPORT_SELECT =
-  "id, member_number, legacy_gym, legacy_pk_customer, full_name, company_name, address_line_1, address_line_2, town, postcode, gender, telephone_no_1, telephone_no_2, mobile, email, membership_expiry, status";
+  "id, member_number, legacy_gym, legacy_pk_customer, full_name, company_name, address_line_1, address_line_2, town, postcode, gender, telephone_no_1, telephone_no_2, mobile, email, membership_expiry, status, cancellation_effective_date";
 
 type ExportMember = {
   id: string;
@@ -37,6 +39,7 @@ type ExportMember = {
   email: string | null;
   membership_expiry: string | null;
   status: string | null;
+  cancellation_effective_date: string | null;
 };
 
 type ActiveCardRow = {
@@ -70,7 +73,15 @@ function toExchangeRow(
   values.Mobile = text(member.mobile);
   values.Email = text(member.email);
   values.ExpiryDate1 = text(member.membership_expiry);
-  values.ValidYN = member.status === "active" ? "Valid" : "Not Valid";
+  const effectiveStatus = evaluateBarcodeAccess({
+    member: {
+      status: member.status,
+      membershipExpiry: member.membership_expiry,
+      cancellationEffectiveDate: member.cancellation_effective_date,
+    },
+    today: todayMaltaDate(),
+  });
+  values.ValidYN = effectiveStatus.granted ? "Valid" : "Not Valid";
   return exchangeValuesRow(values, rowNumber);
 }
 
