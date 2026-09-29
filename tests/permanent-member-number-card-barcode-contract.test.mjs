@@ -47,7 +47,9 @@ test("member app barcode uses active physical card and displays BGM number separ
   const card = read("components/member/MemberCard.tsx");
   const state = read("lib/memberCardState.ts");
 
-  assert.equal(api.includes("cardBarcode: activeCredential?.barcode_value || null"), true);
+  assert.equal(api.includes('from("bgm_legacy_card_claims")'), true);
+  assert.equal(api.includes("currentCardBarcode"), true);
+  assert.equal(api.includes("cardBarcode: currentCardBarcode"), true);
   assert.equal(api.includes("member_number"), true);
   assert.equal(card.includes("<MemberBarcode memberNumber={assignedCardNumber} />"), true);
   assert.match(card, /member\.memberNumber/);
