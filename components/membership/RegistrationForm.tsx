@@ -48,6 +48,7 @@ const MEMBERSHIP_OPTIONS: Array<{ value: MembershipType; label: string }> = [
 ];
 
 const DURATION_OPTIONS: Array<{ value: MembershipDurationKey; label: string }> = [
+  { value: "1_session", label: "1 Gym Session" },
   { value: "1_week", label: "1 week" },
   { value: "2_weeks", label: "2 weeks" },
   { value: "1_month", label: "1 month" },
