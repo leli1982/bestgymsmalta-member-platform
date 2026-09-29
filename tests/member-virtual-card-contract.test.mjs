@@ -17,10 +17,13 @@ test("member card API returns the active physical card for scanning and retains 
   assert.match(route, /active/);
   assert.match(route, /barcode_value/);
   assert.match(route, /member_number/);
-  assert.match(route, /cardBarcode:\s*activeCredential\?\.barcode_value \|\| null/);
-  assert.match(route, /physicalCardBarcode/);
-  assert.match(route, /cardLinked/);
-  assert.match(route, /source: activeCredential \? "physical_card" : null/);
+  assert.match(route, /bgm_legacy_card_claims/);
+  assert.match(route, /assignment_status/);
+  assert.match(route, /currentCardBarcode/);
+  assert.match(route, /cardBarcode:\s*currentCardBarcode/);
+  assert.match(route, /physicalCardBarcode:\s*currentCardBarcode/);
+  assert.match(route, /cardLinked:\s*Boolean\(currentCardBarcode\)/);
+  assert.match(route, /legacy_card_claim/);
   assert.doesNotMatch(route, /searchParams|get\(["']memberId["']\)/);
 });
 
