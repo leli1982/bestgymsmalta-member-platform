@@ -438,7 +438,17 @@ try {
   await waitVisible(popup.getByRole("button", { name: "CONFIRM PRINTED", exact: true }));
   await popup.getByRole("button", { name: "CONFIRM PRINTED", exact: true }).click();
   await waitVisible(popup.getByRole("button", { name: "Return to Staff Flow", exact: true }));
-  await popup.getByRole("button", { name: "Return to Staff Flow", exact: true }).click();
+  try {
+    await popup.getByRole("button", { name: "Return to Staff Flow", exact: true }).click();
+  } catch (error) {
+    // Returning to Staff Flow intentionally closes the print popup. On slower
+    // CI runners Playwright can observe the window closing during the click
+    // and report Target page/context/browser has been closed. Treat that
+    // specific close race as success; any other click error must still fail.
+    if (!popup.isClosed() && !String(error).includes("Target page, context or browser has been closed")) {
+      throw error;
+    }
+  }
   await page.bringToFront();
   await page.waitForFunction(() => [...document.querySelectorAll("button")].some(
     (button) => button.textContent?.includes("PAYMENT RECEIVED") && !button.disabled
