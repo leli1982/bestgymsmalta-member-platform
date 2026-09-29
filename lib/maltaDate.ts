@@ -64,6 +64,8 @@ export function addMembershipDurationDate(
   const date = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day));
 
   switch (durationKey) {
+    case "1_session":
+      break;
     case "1_week":
       date.setUTCDate(date.getUTCDate() + 7);
       break;
