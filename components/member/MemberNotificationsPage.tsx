@@ -31,6 +31,7 @@ export default function MemberNotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
+  const [selected, setSelected] = useState<MemberNotification | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,25 +73,31 @@ export default function MemberNotificationsPage() {
     };
   }, [load]);
 
-  async function markRead(item: MemberNotification) {
-    if (item.read_at) {
-      if (item.href) window.location.assign(item.href);
-      return;
+  async function openNotification(item: MemberNotification) {
+    let opened = item;
+
+    if (!item.read_at) {
+      setBusy(item.id);
+      try {
+        const response = await fetch("/api/member/notifications", {
+          method: "PATCH",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: item.id }),
+        });
+        if (!response.ok) throw new Error("Could not mark notification as read.");
+
+        opened = { ...item, read_at: new Date().toISOString() };
+        setItems((current) => current.map((row) => row.id === item.id ? opened : row));
+        window.dispatchEvent(new CustomEvent("bgmNotificationsChanged"));
+      } catch (readError) {
+        setError(readError instanceof Error ? readError.message : "Could not update notification.");
+      } finally {
+        setBusy("");
+      }
     }
-    setBusy(item.id);
-    try {
-      await fetch("/api/member/notifications", {
-        method: "PATCH",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: item.id }),
-      });
-      setItems((current) => current.map((row) => row.id === item.id ? { ...row, read_at: new Date().toISOString() } : row));
-      window.dispatchEvent(new CustomEvent("bgmNotificationsChanged"));
-      if (item.href) window.location.assign(item.href);
-    } finally {
-      setBusy("");
-    }
+
+    setSelected(opened);
   }
 
   async function markAllRead() {
@@ -161,7 +168,7 @@ export default function MemberNotificationsPage() {
               key={item.id}
               type="button"
               disabled={busy === item.id}
-              onClick={() => void markRead(item)}
+              onClick={() => void openNotification(item)}
               className={`w-full rounded-[1.6rem] border p-4 text-left shadow-sm transition active:scale-[0.99] ${item.read_at ? "border-zinc-200 bg-white" : "border-orange-200 bg-orange-50"}`}
             >
               <div className="flex items-start gap-3">
@@ -179,6 +186,48 @@ export default function MemberNotificationsPage() {
           ))}
         </div>
       )}
+
+      {selected ? (
+        <div className="fixed inset-0 z-[90] flex items-end bg-black/45 p-4 backdrop-blur-sm sm:items-center">
+          <section className="relative mx-auto w-full max-w-md rounded-[2rem] border border-zinc-200 bg-white p-5 text-zinc-950 shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setSelected(null)}
+              className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-lg font-black text-zinc-500"
+              aria-label="Close notification"
+            >
+              ×
+            </button>
+
+            <div className="pr-12">
+              <p className="text-[10px] font-black uppercase tracking-[.22em] text-[#ff5a0a]">BGM Notification</p>
+              <h2 className="mt-2 text-2xl font-black">{selected.title}</h2>
+              <p className="mt-2 text-xs font-bold text-zinc-400">{formatDate(selected.created_at)}</p>
+            </div>
+
+            <p className="mt-5 text-sm font-semibold leading-6 text-zinc-700">{selected.body}</p>
+
+            <div className="mt-6 grid gap-2">
+              {selected.href ? (
+                <button
+                  type="button"
+                  onClick={() => window.location.assign(selected.href!)}
+                  className="w-full rounded-full bg-[#ff5a0a] px-5 py-3 text-sm font-black text-white"
+                >
+                  Open related page
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setSelected(null)}
+                className="w-full rounded-full border border-zinc-200 bg-white px-5 py-3 text-sm font-black text-zinc-700"
+              >
+                Close
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }
