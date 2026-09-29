@@ -31,6 +31,7 @@ export const runtime = "nodejs";
 
 const MEMBERSHIP_TYPES: readonly MembershipType[] = ["single", "student", "couples"];
 const DURATION_KEYS: readonly MembershipDurationKey[] = [
+  "1_session",
   "1_week",
   "2_weeks",
   "1_month",
