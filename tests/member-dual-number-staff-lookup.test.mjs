@@ -6,9 +6,12 @@ const memberCard = fs.readFileSync(new URL("../app/api/member/card/route.ts", im
 const staffScan = fs.readFileSync(new URL("../app/api/system/barcode/scan/route.ts", import.meta.url), "utf8");
 const staffSearch = fs.readFileSync(new URL("../app/api/system/members/search/route.ts", import.meta.url), "utf8");
 
-test("member app encodes only current active physical card and keeps the friendly BGM number separate", () => {
+test("member app prefers a modern active card and falls back to imported legacy Scan3", () => {
   assert.match(memberCard, /credential\.status === "active"/);
-  assert.match(memberCard, /cardBarcode: activeCredential\?\.barcode_value \|\| null/);
+  assert.match(memberCard, /from\("bgm_legacy_card_claims"\)/);
+  assert.match(memberCard, /eq\("assignment_status", "active"\)/);
+  assert.match(memberCard, /currentCardBarcode/);
+  assert.match(memberCard, /legacy_card_claim/);
   assert.match(memberCard, /member: publicMemberProfile/);
   assert.doesNotMatch(memberCard, /cardBarcode: memberNumber/);
 });
@@ -22,9 +25,12 @@ test("staff scanner resolves both the current card and the friendly number into 
   assert.match(staffScan, /const gymId = auth\.context\.gymId \|\| requestedGymId/);
 });
 
-test("staff member browser searches active card numbers as well as friendly BGM numbers", () => {
+test("staff member browser searches modern cards, imported Scan3 cards and friendly BGM numbers", () => {
   assert.match(staffSearch, /eq\("member_number", exactMemberNumber\)/);
   assert.match(staffSearch, /from\("bgm_member_card_credentials"\)[\s\S]*?eq\("barcode_value", query\)[\s\S]*?eq\("status", "active"\)/);
+  assert.match(staffSearch, /from\("bgm_legacy_card_claims"\)[\s\S]*?eq\("scan3", query\.toUpperCase\(\)\)[\s\S]*?eq\("assignment_status", "active"\)/);
   assert.match(staffSearch, /in\("id", cardMemberIds\)/);
   assert.match(staffSearch, /exactCardNumber: true/);
+  assert.match(staffSearch, /legacyCardClaim:/);
+  assert.match(staffSearch, /ambiguousCard:/);
 });
