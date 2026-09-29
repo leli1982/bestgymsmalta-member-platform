@@ -6,6 +6,8 @@ import {
 } from "@/lib/membershipReminderCore";
 import { sendMembershipReminderEmail } from "@/lib/membershipReminderMailer";
 import { sendMemberMembershipReminderPush } from "@/lib/memberPushNotifications";
+import { createMemberNotification } from "@/lib/memberNotifications";
+import { buildMembershipReminderPush } from "@/lib/membershipReminderCore";
 import { todayMaltaDate } from "@/lib/maltaDate";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -152,6 +154,16 @@ async function processMember(
 ) {
   const expiryDate = member.membership_expiry;
   if (!expiryDate) return;
+
+  const inAppPayload = buildMembershipReminderPush({ expiryDate, daysBefore });
+  await createMemberNotification({
+    memberId: member.id,
+    type: "membership_expiry",
+    title: inAppPayload.title,
+    body: inAppPayload.body,
+    href: "/member-login",
+    dedupeKey: `membership-expiry:${expiryDate}:${daysBefore}`,
+  });
 
   if (settings.emailEnabled) {
     const logId = await claimReminder({
