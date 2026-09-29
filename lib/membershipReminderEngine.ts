@@ -73,7 +73,7 @@ function targetExpiryDate(today: string, daysBefore: MembershipReminderDays): st
   return result.toISOString().slice(0, 10);
 }
 
-async function loadCandidates(expiryDate: string, today: string): Promise<ReminderMember[]> {
+async function loadCandidates(expiryDate: string): Promise<ReminderMember[]> {
   const supabase = getSupabaseAdmin();
   const rows: ReminderMember[] = [];
 
@@ -255,7 +255,7 @@ export async function runMembershipExpiryReminders(
 
   for (const daysBefore of intervals) {
     const expiryDate = targetExpiryDate(businessDate, daysBefore);
-    const candidates = await loadCandidates(expiryDate, businessDate);
+    const candidates = await loadCandidates(expiryDate);
     summary.candidates += candidates.length;
     await runInChunks(candidates, 10, (member) =>
       processMember(member, daysBefore, settings, summary),
