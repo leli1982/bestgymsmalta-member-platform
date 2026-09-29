@@ -18,19 +18,23 @@ test("legacy members receive permanent BGM numbers without losing duplicate pkCu
   assert.equal(sql.includes("before insert or update of member_number"), true);
 });
 
-test("barcode reception resolves Scan3 card claims and permanent BGM numbers without treating pkCustomer as a card", () => {
+test("barcode reception resolves Scan3, permanent BGM numbers and non-unique legacy pkCustomer safely", () => {
   const route = read("app/api/system/barcode/scan/route.ts");
   const claimLookup = route.indexOf('from("bgm_legacy_card_claims")');
   const cardLookup = route.indexOf('from("bgm_member_card_credentials")');
   const memberLookup = route.indexOf('.eq("member_number", membershipNumber)');
+  const legacyLookup = route.indexOf('.eq("legacy_pk_customer", membershipNumber)');
   assert.ok(claimLookup >= 0, "source Scan3 claims must be checked");
   assert.ok(cardLookup >= 0, "physical credential lookup must exist");
   assert.ok(memberLookup > cardLookup, "permanent member-number fallback must exist after physical-card lookup");
-  assert.equal(route.includes('.eq("legacy_pk_customer", membershipNumber)'), false);
+  assert.ok(legacyLookup > memberLookup, "legacy pkCustomer fallback must happen only after card and BGM-number lookup");
+  assert.match(route, /legacyMembers\.length > 1/);
+  assert.match(route, /cardMatches = legacyMembers/);
   for (const token of [
     "credentialKind",
     "physical_card",
     "member_number",
+    "legacy_pk_customer",
     "ambiguous_card",
     "cardMatches",
   ]) {
