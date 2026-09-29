@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 
 const MEMBERSHIP_TYPES = new Set(["single", "couples", "student"]);
 const DURATION_KEYS = new Set([
+  "1_session",
   "1_week",
   "2_weeks",
   "1_month",
