@@ -12,7 +12,7 @@ export async function ensurePushVapidConfig(): Promise<StoredPushConfig> {
   const supabase = getSupabaseAdmin();
   const result = await supabase
     .from("bgm_notification_settings")
-    .select("orders_email, vapid_public_key, vapid_private_key, vapid_subject")
+    .select("orders_email, email_enabled, push_enabled, vapid_public_key, vapid_private_key, vapid_subject")
     .eq("id", "orders")
     .maybeSingle();
 
@@ -41,8 +41,8 @@ export async function ensurePushVapidConfig(): Promise<StoredPushConfig> {
       {
         id: "orders",
         orders_email: current?.orders_email || "info@bestgymsmalta.com",
-        email_enabled: true,
-        push_enabled: true,
+        email_enabled: current?.email_enabled ?? true,
+        push_enabled: current?.push_enabled ?? true,
         vapid_public_key: keys.publicKey,
         vapid_private_key: keys.privateKey,
         vapid_subject: subject,
