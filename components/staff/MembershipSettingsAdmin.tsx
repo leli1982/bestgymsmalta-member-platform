@@ -205,7 +205,9 @@ export default function MembershipSettingsAdmin() {
           (candidate) => candidate.membershipType === type && candidate.durationKey === duration
         );
         nextPrices[matrixKey(type, duration)] = entry ? centsToInput(entry.amountCents) : "0.00";
-        nextAvailability[matrixKey(type, duration)] = entry?.isActive !== false;
+        nextAvailability[matrixKey(type, duration)] = entry
+          ? entry.isActive !== false
+          : duration !== "1_session";
       }
     }
     setPriceInputs(nextPrices);
