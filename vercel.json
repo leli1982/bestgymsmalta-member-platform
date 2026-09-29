@@ -8,5 +8,11 @@
   },
   "regions": [
     "dub1"
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/membership-expiry-reminders",
+      "schedule": "15 7 * * *"
+    }
   ]
 }
