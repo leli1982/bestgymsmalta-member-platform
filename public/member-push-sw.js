@@ -2,7 +2,7 @@ self.addEventListener("push", (event) => {
   let payload = {
     title: "BestGymsMalta",
     body: "You have a new notification.",
-    url: "/more",
+    url: "/notifications",
     tag: "bgm-member-notification",
   };
 
@@ -18,7 +18,7 @@ self.addEventListener("push", (event) => {
       icon: "/bgm-logo.png",
       badge: "/bgm-logo.png",
       tag: payload.tag,
-      data: { url: payload.url || "/more" },
+      data: { url: payload.url || "/notifications" },
       renotify: true,
     })
   );
@@ -26,7 +26,7 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = new URL(event.notification.data?.url || "/more", self.location.origin).href;
+  const targetUrl = new URL(event.notification.data?.url || "/notifications", self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
