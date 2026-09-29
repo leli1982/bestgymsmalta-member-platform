@@ -10,6 +10,25 @@ function urlBase64ToUint8Array(base64String: string) {
   return Uint8Array.from(rawData.split("").map((character) => character.charCodeAt(0)));
 }
 
+async function waitForActiveWorker(registration: ServiceWorkerRegistration) {
+  if (registration.active) return;
+  const worker = registration.installing || registration.waiting;
+  if (!worker) return;
+  await new Promise<void>((resolve) => {
+    if (worker.state === "activated") {
+      resolve();
+      return;
+    }
+    const onStateChange = () => {
+      if (worker.state === "activated") {
+        worker.removeEventListener("statechange", onStateChange);
+        resolve();
+      }
+    };
+    worker.addEventListener("statechange", onStateChange);
+  });
+}
+
 export default function MemberReminderNotifications() {
   const [supported, setSupported] = useState(true);
   const [subscribed, setSubscribed] = useState(false);
@@ -70,7 +89,7 @@ export default function MemberReminderNotifications() {
       const registration = await navigator.serviceWorker.register("/member-push-sw.js", {
         scope: "/member-push/",
       });
-      await navigator.serviceWorker.ready;
+      await waitForActiveWorker(registration);
 
       let subscription = await registration.pushManager.getSubscription();
       if (!subscription) {
