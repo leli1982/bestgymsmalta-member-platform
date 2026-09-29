@@ -84,7 +84,7 @@ async function loadCandidates(expiryDate: string, today: string): Promise<Remind
       .eq("status", "active")
       .is("archived_at", null)
       .eq("membership_expiry", expiryDate)
-      .or(`cancellation_effective_date.is.null,cancellation_effective_date.gt.${today}`)
+      .is("cancellation_effective_date", null)
       .order("id", { ascending: true })
       .range(from, from + PAGE_SIZE - 1);
 
