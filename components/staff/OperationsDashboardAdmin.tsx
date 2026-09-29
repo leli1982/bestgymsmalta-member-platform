@@ -7,9 +7,6 @@ import {
 } from "lucide-react";
 import { formatBarEuro } from "@/lib/barSalesCore";
 import { barSalesComparisonColor } from "@/lib/barCashComparison";
-import MembershipStatsAdmin from "@/components/staff/MembershipStatsAdmin";
-import ActiveMembersByGymAdmin from "@/components/staff/ActiveMembersByGymAdmin";
-import ScanVisitStatsAdmin from "@/components/staff/ScanVisitStatsAdmin";
 import { todayMaltaDate } from "@/lib/maltaDate";
 import { nextOperationalOrderActions } from "@/lib/operationalOrdersPresentation";
 import type { OperationalOrderStatus, OperationalOrderType } from "@/lib/operationalOrdersCore";
@@ -339,17 +336,6 @@ export default function OperationsDashboardAdmin() {
               </article>
             );
           })}
-        </section>
-
-        <section aria-label="Statistics" className="space-y-5 border-t-2 border-zinc-200 pt-8">
-          <header className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-700">BestGymsMalta · Insights</p>
-            <h2 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">Statistics</h2>
-            <p className="mt-2 text-sm text-zinc-600">Membership and gym visit statistics are separate from daily Sundries and Bar results.</p>
-          </header>
-          <MembershipStatsAdmin />
-          <ActiveMembersByGymAdmin />
-          <ScanVisitStatsAdmin />
         </section>
 
         <footer className="rounded-2xl border border-zinc-200 bg-white p-4 text-xs text-zinc-600">
