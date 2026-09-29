@@ -46,6 +46,24 @@ export async function GET(request: NextRequest) {
     const activeCredential = credentialRows.find(
       (credential) => credential.status === "active"
     );
+
+    // Imported legacy members keep their current physical card in the Scan3
+    // claim table until reception replaces it with a modern credential.
+    let legacyCardBarcode: string | null = null;
+    if (!activeCredential) {
+      const legacyClaimResult = await supabase
+        .from("bgm_legacy_card_claims")
+        .select("scan3")
+        .eq("member_id", session.memberId)
+        .eq("assignment_status", "active")
+        .maybeSingle();
+      if (legacyClaimResult.error) throw legacyClaimResult.error;
+      legacyCardBarcode =
+        String(legacyClaimResult.data?.scan3 || "").trim() || null;
+    }
+
+    const currentCardBarcode =
+      activeCredential?.barcode_value || legacyCardBarcode || null;
     const memberNumber = String(memberResult.data.member_number || "").trim();
     if (!/^BGM[0-9]{7}$/.test(memberNumber)) {
       throw new Error("Member is missing a permanent BGM membership number.");
@@ -56,10 +74,14 @@ export async function GET(request: NextRequest) {
         member: publicMemberProfile(memberResult.data),
         // The app barcode encodes the CURRENT active physical card, not the lifetime BGM number.
         // Staff reception can still look up the permanent member number separately.
-        cardBarcode: activeCredential?.barcode_value || null,
-        cardLinked: Boolean(activeCredential),
-        physicalCardBarcode: activeCredential?.barcode_value || null,
-        source: activeCredential ? "physical_card" : null,
+        cardBarcode: currentCardBarcode,
+        cardLinked: Boolean(currentCardBarcode),
+        physicalCardBarcode: currentCardBarcode,
+        source: activeCredential
+          ? "physical_card"
+          : legacyCardBarcode
+            ? "legacy_card_claim"
+            : null,
         memberStatus: isCancellationEffective(memberResult.data.cancellation_effective_date, todayMaltaDate()) ? "inactive" : memberResult.data.status,
         membershipExpiry: memberResult.data.membership_expiry || null,
       },
