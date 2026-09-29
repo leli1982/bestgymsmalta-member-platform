@@ -85,61 +85,6 @@ try {
       .filter((item) => !gym || item.gym_id === gym);
     return route.fulfill({ json: { orders: items } });
   });
-  const statsQueries = [];
-  await context.route("**/api/system/membership-stats?**", (route) => {
-    const query = new URL(route.request().url()).searchParams;
-    statsQueries.push(Object.fromEntries(query.entries()));
-    const selected = query.get("gymId");
-    const all = [
-      { gymId: "bgm-birkirkara", gymName: "Birkirkara Fitness", count: 3 },
-      { gymId: "bgm-marsa", gymName: "Marsa Fitness", count: 2 },
-    ];
-    const byGym = selected ? all.filter((entry) => entry.gymId === selected) : all;
-    return route.fulfill({ json: {
-      range: { from: query.get("from"), to: query.get("to"), gymId: selected || "",
-        gymName: selected ? byGym[0]?.gymName || "" : "All gyms" },
-      total: byGym.reduce((sum, item) => sum + item.count, 0),
-      gymsWithEnrollments: byGym.length,
-      byGym,
-      byDay: [{ date: query.get("from"), count: byGym.reduce((sum, item) => sum + item.count, 0) }],
-      byType: { single: selected ? 1 : 2, couples: selected ? 1 : 2, student: selected ? 0 : 1 },
-    } });
-  });
-  const scanStatQueries = [];
-  await context.route("**/api/system/scan-visit-stats?**", (route) => {
-    const query = new URL(route.request().url()).searchParams;
-    scanStatQueries.push(Object.fromEntries(query.entries()));
-    const selected = query.get("gymId");
-    const birk = {
-      gymId: "bgm-birkirkara", gymName: "Birkirkara Fitness", visits: 10, uniqueMembers: 9,
-      origins: [
-        { gymId: "bgm-naxxar", gymName: "Naxxar Fitness", visits: 6, uniqueMembers: 6 },
-        { gymId: "bgm-birkirkara", gymName: "Birkirkara Fitness", visits: 2, uniqueMembers: 2 },
-        { gymId: "bgm-tal-qroqq", gymName: "Tal-Qroqq Fitness", visits: 2, uniqueMembers: 1 },
-      ],
-      byDay: [{ date: query.get("from"), visits: 10 }],
-      byHour: Array.from({ length: 24 }, (_, hour) => ({ hour, visits: hour === 10 ? 10 : 0 })),
-    };
-    const naxxar = {
-      gymId: "bgm-naxxar", gymName: "Naxxar Fitness", visits: 2, uniqueMembers: 2,
-      origins: [{ gymId: "bgm-naxxar", gymName: "Naxxar Fitness", visits: 2, uniqueMembers: 2 }],
-      byDay: [{ date: query.get("from"), visits: 2 }],
-      byHour: Array.from({ length: 24 }, (_, hour) => ({ hour, visits: hour === 16 ? 2 : 0 })),
-    };
-    const byGym = selected ? [birk, naxxar].filter((gym) => gym.gymId === selected) : [birk, naxxar];
-    return route.fulfill({ json: {
-      range: { from: query.get("from"), to: query.get("to"), gymId: selected || "",
-        gymName: selected ? byGym[0]?.gymName || "" : "All gyms" },
-      visits: byGym.reduce((total, gym) => total + gym.visits, 0),
-      uniqueMembers: selected ? byGym[0]?.uniqueMembers || 0 : 10,
-      gymsWithVisits: byGym.length, byGym,
-      byDay: [{ date: query.get("from"), visits: byGym.reduce((total, gym) => total + gym.visits, 0) }],
-      byHour: Array.from({ length: 24 }, (_, hour) => ({
-        hour, visits: byGym.reduce((total, gym) => total + gym.byHour[hour].visits, 0),
-      })),
-      definition: "Successful barcode/NFC check-ins; repeats within two hours count once.",
-    } });
-  });
   let update = null;
   await context.route("**/api/system/orders", (route) => {
     assert.equal(route.request().method(), "PATCH");
@@ -164,72 +109,21 @@ try {
   assert.deepEqual(filterColors, {
     background: "rgb(255, 255, 255)", color: "rgb(24, 24, 27)", colorScheme: "light",
   }, "Super Admin operations filters must have readable light theme");
-  // Filter results must appear immediately below the five daily summary tiles,
-  // with longer-term membership and check-in charts under their own heading.
+  // Operations now contains only daily operational reporting.
+  // Long-term Statistics & Analytics lives on its own Super Admin page.
   const operationsSummary = page.getByRole("region", { name: "Operations summary" });
   const resultsSection = page.getByRole("region", { name: "Incoming requests and sales" });
-  const statisticsSection = page.getByRole("region", { name: "Statistics", exact: true });
-  await statisticsSection.getByRole("heading", { name: "Statistics", exact: true }).waitFor();
   const dailySummaryBox = await operationsSummary.boundingBox();
   const resultBox = await resultsSection.boundingBox();
-  const statisticsBox = await statisticsSection.boundingBox();
-  assert.ok(dailySummaryBox && resultBox && statisticsBox,
-    "The daily summary, matching results and Statistics section must all be rendered");
-  assert.ok(dailySummaryBox.y + dailySummaryBox.height < resultBox.y &&
-    resultBox.y + resultBox.height < statisticsBox.y,
-    "Matching results must sit below daily tiles and above the separate Statistics section");
-  assert.equal(await statisticsSection.getByRole("region", { name: "Gym check-in statistics" }).count(), 1);
+  assert.ok(dailySummaryBox && resultBox,
+    "The daily summary and matching operations results must both be rendered");
+  assert.ok(dailySummaryBox.y + dailySummaryBox.height < resultBox.y,
+    "Matching results must sit below the daily summary tiles");
+  assert.equal(await page.getByRole("region", { name: "Statistics", exact: true }).count(), 0,
+    "Statistics must no longer be embedded in the Operations dashboard");
+  assert.equal(await page.getByRole("article").count(), 4,
+    "Operations cards must remain independent from the separate Statistics & Analytics area");
 
-  const membership = page.getByRole("region", { name: "New membership statistics" });
-  await membership.getByRole("heading", { name: "New membership statistics" }).waitFor();
-  await membership.getByText("5", { exact: true }).first().waitFor();
-  await membership.getByRole("region", { name: "New membership graphs" }).waitFor();
-  await membership.getByRole("region", { name: "New memberships by gym" }).waitFor();
-  await membership.getByRole("region", { name: "Gym membership totals" }).waitFor();
-  const gymFilter = membership.getByRole("combobox", { name: "Membership statistics gym" });
-  await gymFilter.selectOption("bgm-marsa");
-  await membership.getByRole("region", { name: "Membership statistics summary" }).getByText("2", { exact: true }).first().waitFor();
-  await membership.getByRole("region", { name: "Membership types at Marsa Fitness" }).waitFor();
-  assert.ok(statsQueries.some((query) => query.gymId === "bgm-marsa"));
-  await membership.locator('input[aria-label="Membership statistics from date"]').fill("2026-09-01");
-  await membership.locator('input[aria-label="Membership statistics to date"]').fill("2026-09-15");
-  await membership.getByText("2026-09-01 → 2026-09-15").waitFor();
-  assert.ok(statsQueries.some((query) => query.from === "2026-09-01" &&
-    query.to === "2026-09-15" && query.gymId === "bgm-marsa"),
-    "Gym and Malta date range must be applied together");
-  await gymFilter.selectOption("");
-  await membership.getByRole("region", { name: "New memberships by gym" }).waitFor();
-  const visits = page.getByRole("region", { name: "Gym check-in statistics" });
-  await visits.getByRole("heading", { name: "Gym check-in statistics" }).waitFor();
-  const summary = visits.locator('div[aria-label="Check-in statistics summary"]');
-  await summary.getByText("12", { exact: true }).waitFor();
-  await visits.getByRole("region", { name: "Check-ins by visited gym" })
-    .getByRole("button", { name: /Birkirkara Fitness/ }).click();
-  const breakdown = visits.getByRole("region", { name: "Selected gym enrollment breakdown" });
-  await breakdown.getByRole("heading", { name: "Visitors at Birkirkara Fitness", exact: true }).waitFor();
-  for (const origin of ["Birkirkara Fitness", "Tal-Qroqq Fitness", "Naxxar Fitness"]) {
-    await breakdown.getByText(origin, { exact: true }).waitFor();
-  }
-  const origins = breakdown.getByRole("region", { name: "Enrollment gyms of visitors at Birkirkara Fitness" });
-  assert.equal(await origins.locator("span.tabular-nums").allTextContents().then((values) =>
-    values.filter((value) => /\bvisits$/.test(value)).join("; ")), "6 visits; 2 visits; 2 visits");
-  await visits.getByRole("region", { name: /Check-ins by date · Birkirkara Fitness/ }).waitFor();
-  await visits.getByRole("region", { name: /Check-ins by hour \(Malta\) · Birkirkara Fitness/ }).waitFor();
-  const statsGym = visits.getByRole("combobox", { name: "Check-in statistics gym" });
-  await statsGym.selectOption("bgm-naxxar");
-  await summary.getByText("2", { exact: true }).first().waitFor();
-  await breakdown.getByRole("heading", { name: "Visitors at Naxxar Fitness", exact: true }).waitFor();
-  await visits.locator('input[aria-label="Check-in statistics from date"]').fill("2026-09-01");
-  await visits.locator('input[aria-label="Check-in statistics to date"]').fill("2026-09-15");
-  await visits.getByText("2026-09-01 → 2026-09-15").waitFor({ state: "visible" });
-  assert.ok(scanStatQueries.some((query) => query.gymId === "bgm-naxxar" &&
-    query.from === "2026-09-01" && query.to === "2026-09-15"));
-  await statsGym.selectOption("");
-  await summary.getByText("12", { exact: true }).waitFor();
-  assert.equal(await page.getByRole("article").count(), 4,
-    "Check-in charts must not modify Sundries and Bar operations cards");
-  assert.equal(await page.getByRole("article").count(), 4,
-    "Membership stats must not modify Sundries and Bar operations cards");
   for (const [id, expectedColor] of [
     ["bar-birkirkara", "rgb(4, 120, 87)"],
     ["bar-marsa", "rgb(4, 120, 87)"],
@@ -270,12 +164,14 @@ try {
     .waitFor({ state: "visible", timeout: 15000 });
   for (const name of [
     "Operations dashboard", "Bar reports", "Bar catalogue & prices", "Membership settings",
+    "Statistics & analytics",
   ]) {
     await page.getByRole("link", { name: new RegExp(name) }).first()
       .waitFor({ state: "visible" });
   }
   assert.equal(await page.locator('a[href="/staff/bar/catalog"]').count(), 1);
   assert.equal(await page.locator('a[href="/staff/bar/reports"]').count(), 1);
+  assert.equal(await page.locator('a[href="/staff/admin/statistics"]').count(), 1);
   await page.screenshot({ path: artifactDir + "/super-admin-home.png", fullPage: true });
 
   const staffContext = await browser.newContext();
