@@ -6,7 +6,7 @@ import MembershipPrintOverflowPreview, {
 } from "@/components/staff/MembershipPrintOverflowPreview";
 
 type MembershipType = "single" | "student" | "couples";
-type DurationKey = "1_week" | "2_weeks" | "1_month" | "3_months" | "6_months" | "1_year";
+type DurationKey = "1_session" | "1_week" | "2_weeks" | "1_month" | "3_months" | "6_months" | "1_year";
 type DeclarationKey = "gym_rules" | "legacy_declaration" | "privacy" | "health" | "guardian";
 
 type PriceEntry = {
@@ -58,6 +58,7 @@ type SettingsPayload = {
 
 const membershipTypes: readonly MembershipType[] = ["single", "student", "couples"];
 const durations: readonly DurationKey[] = [
+  "1_session",
   "1_week",
   "2_weeks",
   "1_month",
@@ -80,6 +81,7 @@ const typeLabels: Record<MembershipType, string> = {
 };
 
 const durationLabels: Record<DurationKey, string> = {
+  "1_session": "1 Gym Session",
   "1_week": "1 week",
   "2_weeks": "2 weeks",
   "1_month": "1 month",
@@ -427,7 +429,7 @@ export default function MembershipSettingsAdmin() {
           <div className="mt-5 grid gap-5">
             <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
-                <SectionTitle title="Pricing" copy="Set a price and Active checkbox for every duration. Inactive options stay saved but cannot be selected for new memberships or renewals. Save a draft, review all 18 combinations, then publish." />
+                <SectionTitle title="Pricing" copy="Set a price and Active checkbox for every duration. Inactive options stay saved but cannot be selected for new memberships or renewals. Save a draft, review all 21 combinations, then publish." />
                 <div className="rounded-2xl bg-zinc-100 px-4 py-3 text-right text-xs font-bold text-zinc-600">
                   <div>Editor source</div>
                   <div className="mt-1 text-sm font-black text-zinc-950">{activeCatalog ? `v${activeCatalog.versionNo} · ${activeCatalog.status}` : "No catalog yet"}</div>
