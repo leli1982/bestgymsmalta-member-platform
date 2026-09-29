@@ -1,10 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Activity, Banknote, BarChart3, CalendarRange, Dumbbell, RefreshCw,
-  Repeat2, TrendingUp, UsersRound
-} from "lucide-react";
+import { Banknote, RefreshCw, Repeat2 } from "lucide-react";
 import { todayMaltaDate } from "@/lib/maltaDate";
 
 type Section = "overview" | "memberships" | "retention" | "revenue" | "usage" | "engagement" | "trends";
@@ -284,7 +281,18 @@ export default function BusinessAnalyticsAdmin({ section }: { section: Section }
             <Card label="Discounted memberships" value={data.revenue.discountedApplications} hint={data.revenue.averageDiscountPctOnDiscounted + "% average discount"} />
           </div>
           <div className="grid gap-4 xl:grid-cols-2">
-            <Bars title="Revenue by gym" rows={data.revenue.byGym} labelKey="gymName" valueKey="revenueCents" formatter={money} />
+            <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+              <div className="border-b border-zinc-100 p-4"><h3 className="font-black">Revenue & average value by gym</h3></div>
+              <div className="max-h-[420px] overflow-auto">
+                {data.revenue.byGym.map((row: any) => (
+                  <div key={row.gymId} className="grid grid-cols-[1fr_auto_auto] gap-3 border-t border-zinc-100 px-4 py-3 text-sm">
+                    <span className="font-black">{row.gymName}</span>
+                    <span className="tabular-nums">{money(row.revenueCents)}</span>
+                    <span className="font-bold tabular-nums text-zinc-500">{money(row.averageValueCents)} avg</span>
+                  </div>
+                ))}
+              </div>
+            </section>
             <Bars title="Revenue by payment method" rows={data.revenue.byPaymentMethod} labelKey="method" valueKey="revenueCents" formatter={money} />
             <Bars title="Revenue by month" rows={data.revenue.byMonth.map((r: any) => ({ ...r, label: monthLabel(r.period) }))} labelKey="label" valueKey="revenueCents" formatter={money} />
             <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
@@ -304,7 +312,19 @@ export default function BusinessAnalyticsAdmin({ section }: { section: Section }
             <Card label="Cross-gym visits" value={data.usage.crossGymPct + "%"} hint={data.usage.verifiedOriginVisits + " visits with verified enrollment origin"} />
           </div>
           <div className="grid gap-4 xl:grid-cols-2">
-            <Bars title="Check-ins by gym" rows={data.usage.byGym} labelKey="gymName" valueKey="visits" />
+            <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+              <div className="border-b border-zinc-100 p-4"><h3 className="font-black">Check-ins & visits per active member by gym</h3></div>
+              <div className="max-h-[440px] overflow-auto">
+                {data.usage.byGym.map((row: any) => (
+                  <div key={row.gymId} className="grid gap-1 border-t border-zinc-100 px-4 py-3 text-sm sm:grid-cols-[1fr_auto_auto_auto]">
+                    <span className="font-black">{row.gymName}</span>
+                    <span>{row.visits} visits</span>
+                    <span>{row.uniqueMembers} visitors</span>
+                    <span className="font-black text-orange-700">{row.visitsPerActiveMember} / active member</span>
+                  </div>
+                ))}
+              </div>
+            </section>
             <Bars title="Peak hours" rows={data.usage.byHour.map((r: any) => ({ ...r, label: String(r.hour).padStart(2,"0") + ":00" }))} labelKey="label" valueKey="visits" />
             <Bars title="Peak days" rows={data.usage.byWeekday} labelKey="day" valueKey="visits" />
             <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
@@ -315,6 +335,23 @@ export default function BusinessAnalyticsAdmin({ section }: { section: Section }
               </div>
             </section>
           </div>
+          <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+            <div className="border-b border-zinc-100 p-4">
+              <h3 className="font-black">Enrollment gym → gym actually visited</h3>
+              <p className="mt-1 text-xs font-semibold text-zinc-500">Only visits with a verified enrollment-gym snapshot are included.</p>
+            </div>
+            <div className="max-h-[460px] overflow-auto">
+              {data.usage.enrollmentToVisited.length === 0 ? <p className="p-5 text-sm font-semibold text-zinc-500">No verified movement data in this selection.</p> :
+                data.usage.enrollmentToVisited.map((row: any, index: number) => (
+                  <div key={row.enrollmentGymId + row.visitedGymId + index} className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-3 border-t border-zinc-100 px-4 py-3 text-sm">
+                    <span className="font-black">{row.enrollmentGymName}</span>
+                    <span className="font-black text-orange-600">→</span>
+                    <span className="font-black">{row.visitedGymName}</span>
+                    <span className="tabular-nums">{row.visits}</span>
+                  </div>
+                ))}
+            </div>
+          </section>
         </>
       )}
 
@@ -350,7 +387,9 @@ export default function BusinessAnalyticsAdmin({ section }: { section: Section }
         <>
           <div className="grid gap-4 xl:grid-cols-2">
             <Bars title="Busiest months · memberships + renewals" rows={data.trends.busiestMonths.map((r: any) => ({ ...r, label: monthLabel(r.period) }))} labelKey="label" valueKey="total" />
+            <Bars title="Quietest recorded months" rows={data.trends.quietestMonths.map((r: any) => ({ ...r, label: monthLabel(r.period) }))} labelKey="label" valueKey="total" />
             <Bars title="Busiest weeks · memberships + renewals" rows={data.trends.busiestWeeks.map((r: any) => ({ ...r, label: "Week of " + r.period }))} labelKey="label" valueKey="total" />
+            <Bars title="Quietest recorded weeks" rows={data.trends.quietestWeeks.map((r: any) => ({ ...r, label: "Week of " + r.period }))} labelKey="label" valueKey="total" />
           </div>
           <TrendTable rows={data.memberships.byMonth} mode="month" />
           <TrendTable rows={data.memberships.byWeek} mode="week" />
