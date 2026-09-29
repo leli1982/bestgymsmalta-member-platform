@@ -47,7 +47,7 @@ export default function StatisticsDashboardAdmin() {
   const SelectedIcon = selected.icon;
 
   return (
-    <main className="bgm-admin-light min-h-screen bg-[#f6f6f6] px-4 py-6 text-zinc-950 sm:px-8">
+    <main data-super-admin-statistics="button-driven" className="bgm-admin-light min-h-screen bg-[#f6f6f6] px-4 py-6 text-zinc-950 sm:px-8">
       <div className="mx-auto max-w-7xl space-y-5">
         <header className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-7">
           <a href="/staff/admin" className="inline-flex items-center gap-2 text-sm font-black text-orange-700">
