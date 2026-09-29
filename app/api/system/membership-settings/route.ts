@@ -188,6 +188,9 @@ export async function POST(request: NextRequest) {
         return badRequest(error instanceof Error ? error.message : "Invalid price matrix.");
       }
 
+      if (entries.length !== 21) {
+        return badRequest("A complete price matrix with all 21 current combinations is required.");
+      }
       const validation = validatePriceMatrix(entries);
       if (!validation.ok) return badRequest(validation.error);
 
