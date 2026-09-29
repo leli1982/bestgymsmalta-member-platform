@@ -121,6 +121,39 @@ export default function MemberReminderNotifications() {
     }
   }
 
+  async function testLocalNotification() {
+    setBusy(true);
+    setError("");
+    setMessage("");
+
+    try {
+      if (!supported) throw new Error("This browser does not support notifications.");
+      if (Notification.permission !== "granted") {
+        throw new Error("Chrome notification permission is not granted.");
+      }
+
+      const registration = await navigator.serviceWorker.getRegistration("/member-push/");
+      if (!registration) {
+        throw new Error("Member notification service worker is not registered.");
+      }
+      await waitForActiveWorker(registration);
+
+      await registration.showNotification("BestGymsMalta TEST", {
+        body: "If you can see this, Chrome and your computer can display BGM notifications.",
+        icon: "/bgm-logo.png",
+        badge: "/bgm-logo.png",
+        tag: "bgm-member-local-test-" + Date.now(),
+        data: { url: "/member-login" },
+      });
+
+      setMessage("Local test notification requested on this device.");
+    } catch (testError) {
+      setError(testError instanceof Error ? testError.message : "Could not show local test notification.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function disableNotifications() {
     setBusy(true);
     setError("");
@@ -175,14 +208,26 @@ export default function MemberReminderNotifications() {
           Push notifications are not supported by this browser.
         </p>
       ) : (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void (subscribed ? disableNotifications() : enableNotifications())}
-          className={`mt-4 w-full rounded-full px-5 py-3 text-sm font-black disabled:opacity-50 ${subscribed ? "border border-zinc-300 bg-white text-zinc-800" : "bg-[#ff5a0a] text-white"}`}
-        >
-          {busy ? "Updating…" : subscribed ? "Disable reminders on this device" : "Enable app reminders"}
-        </button>
+        <div className="mt-4 grid gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void (subscribed ? disableNotifications() : enableNotifications())}
+            className={`w-full rounded-full px-5 py-3 text-sm font-black disabled:opacity-50 ${subscribed ? "border border-zinc-300 bg-white text-zinc-800" : "bg-[#ff5a0a] text-white"}`}
+          >
+            {busy ? "Updating…" : subscribed ? "Disable reminders on this device" : "Enable app reminders"}
+          </button>
+          {subscribed ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void testLocalNotification()}
+              className="w-full rounded-full border border-orange-200 bg-orange-50 px-5 py-3 text-sm font-black text-[#ff5a0a] disabled:opacity-50"
+            >
+              Test notification on this device
+            </button>
+          ) : null}
+        </div>
       )}
 
       {message ? <p className="mt-3 text-xs font-bold text-emerald-700">{message}</p> : null}
