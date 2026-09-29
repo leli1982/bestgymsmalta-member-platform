@@ -61,6 +61,8 @@ export function calculateMembershipExpiry(
   const date = parseIsoDate(startDate);
 
   switch (durationKey) {
+    case "1_session":
+      break;
     case "1_week":
       date.setUTCDate(date.getUTCDate() + 7);
       break;
