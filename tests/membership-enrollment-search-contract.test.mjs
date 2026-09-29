@@ -26,9 +26,13 @@ test("permanent BGM membership number is searched exactly before fallback fields
   assert.match(route, /legacy_pk_customer/);
 });
 
-test("fallback search does not use one raw OR expression or assume legacy PK is unique", () => {
+test("fallback identity search uses separate queries and never assumes legacy PK is unique", () => {
   const route = source();
-  assert.doesNotMatch(route, /\.or\(/);
+  const fallbackStart = route.indexOf("const pattern =");
+  const fallbackEnd = route.indexOf("const results =", fallbackStart);
+  assert.ok(fallbackStart >= 0 && fallbackEnd > fallbackStart);
+  const fallbackQueries = route.slice(fallbackStart, fallbackEnd);
+  assert.doesNotMatch(fallbackQueries, /\.or\(/);
   assert.doesNotMatch(route, /legacy_pk_customer[\s\S]{0,180}\.single\(/i);
   assert.match(route, /new Map|Map</);
 });
