@@ -35,7 +35,9 @@ export async function GET(request: NextRequest) {
       if (result.error) throw result.error;
     }
 
-    const memberIds = [...new Set((recentResult.data || []).map((row) => row.member_id).filter(Boolean))];
+    const memberIds = Array.from(
+      new Set((recentResult.data || []).map((row) => row.member_id).filter(Boolean))
+    );
     const membersResult = memberIds.length
       ? await supabase.from("bgm_members").select("id,member_number,full_name").in("id", memberIds)
       : { data: [], error: null };
