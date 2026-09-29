@@ -30,6 +30,7 @@ type AppRow = {
   enrollment_gym_id: string | null;
   status: string | null;
   activated_at: string | null;
+  start_date: string | null;
   expiry_date: string | null;
   final_amount_cents: number | null;
   base_price_cents: number | null;
@@ -116,12 +117,6 @@ function weekKey(date: string) {
   return d.toISOString().slice(0, 10);
 }
 
-function addDays(date: string, days: number) {
-  const d = new Date(date + "T12:00:00Z");
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
 function diffDays(later: string, earlier: string) {
   return Math.floor((Date.parse(later + "T12:00:00Z") - Date.parse(earlier + "T12:00:00Z")) / 86400000);
 }
@@ -199,7 +194,7 @@ export async function GET(request: NextRequest) {
 
     const applications = await allRows<AppRow>((a, b) => {
       let query = db.from("bgm_membership_applications")
-        .select("id,application_kind,membership_type,duration_key,enrollment_gym_id,status,activated_at,expiry_date,final_amount_cents,base_price_cents,discount_amount_cents,discount_percentage_snapshot,payment_method")
+        .select("id,application_kind,membership_type,duration_key,enrollment_gym_id,status,activated_at,start_date,expiry_date,final_amount_cents,base_price_cents,discount_amount_cents,discount_percentage_snapshot,payment_method")
         .eq("status", "activated")
         .gte("activated_at", start)
         .lt("activated_at", end)
@@ -268,6 +263,11 @@ export async function GET(request: NextRequest) {
     });
     const activeMembers = members.filter((m) => isCurrentlyActive(m, today) && (!gymId || gymForMember(m) === gymId));
     const activeIds = new Set(activeMembers.map((m) => m.id));
+    const activeByGym = new Map<string, number>();
+    for (const member of activeMembers) {
+      const gid = gymForMember(member) || "unassigned";
+      activeByGym.set(gid, (activeByGym.get(gid) || 0) + 1);
+    }
 
     const checkins = await allRows<CheckinRow>((a, b) => {
       let query = db.from("bgm_member_checkins")
@@ -285,6 +285,7 @@ export async function GET(request: NextRequest) {
     const weekdayMap = new Map(weekdayOrder.map((d) => [d, 0]));
     let crossGymVisits = 0;
     let homeGymVisits = 0;
+    const originMovement = new Map<string, { enrollmentGymId: string; enrollmentGymName: string; visitedGymId: string; visitedGymName: string; visits: number }>();
 
     for (const visit of checkins) {
       visitMembers.add(visit.member_id);
@@ -304,6 +305,16 @@ export async function GET(request: NextRequest) {
       if (visit.enrollment_snapshot_recorded && visit.enrollment_gym_id_at_checkin) {
         if (visit.enrollment_gym_id_at_checkin === visit.gym_id) homeGymVisits += 1;
         else crossGymVisits += 1;
+        const moveKey = visit.enrollment_gym_id_at_checkin + "→" + visit.gym_id;
+        const movement = originMovement.get(moveKey) || {
+          enrollmentGymId: visit.enrollment_gym_id_at_checkin,
+          enrollmentGymName: gymNames[visit.enrollment_gym_id_at_checkin] || visit.enrollment_gym_id_at_checkin,
+          visitedGymId: visit.gym_id,
+          visitedGymName: gymNames[visit.gym_id] || visit.gym_id,
+          visits: 0,
+        };
+        movement.visits += 1;
+        originMovement.set(moveKey, movement);
       }
     }
 
@@ -370,7 +381,7 @@ export async function GET(request: NextRequest) {
 
     const allRenewals = await allRows<AppRow>((a, b) =>
       db.from("bgm_membership_applications")
-        .select("id,application_kind,membership_type,duration_key,enrollment_gym_id,status,activated_at,expiry_date,final_amount_cents,base_price_cents,discount_amount_cents,discount_percentage_snapshot,payment_method")
+        .select("id,application_kind,membership_type,duration_key,enrollment_gym_id,status,activated_at,start_date,expiry_date,final_amount_cents,base_price_cents,discount_amount_cents,discount_percentage_snapshot,payment_method")
         .eq("application_kind", "renewal").eq("status", "activated")
         .not("activated_at", "is", null)
         .order("activated_at").range(a, b)
@@ -406,8 +417,17 @@ export async function GET(request: NextRequest) {
       if (!memberIds.size) continue;
       const matches = renewalEvents
         .filter((renewal) => Array.from(memberIds).some((id) => renewal.members.has(id)))
-        .map((renewal) => ({ renewal, days: diffDays(renewal.localDate, contract.expiry_date) }))
-        .filter((x) => x.days >= 0)
+        .map((renewal) => {
+          const effectiveStart = renewal.start_date || renewal.localDate;
+          const startGap = diffDays(effectiveStart, contract.expiry_date);
+          const activationGap = diffDays(renewal.localDate, contract.expiry_date);
+          // An early renewal bought before expiry counts as retained when its
+          // new membership starts at/just after the old expiry. Late renewals
+          // use the actual start gap to measure reactivation delay.
+          const days = startGap <= 1 && activationGap <= 0 ? 0 : Math.max(0, startGap);
+          return { renewal, days, effectiveStart };
+        })
+        .filter((x) => x.effectiveStart >= contract.expiry_date)
         .sort((a, b) => a.days - b.days);
       const first = matches[0];
 
@@ -492,7 +512,13 @@ export async function GET(request: NextRequest) {
         discountedApplications,
         averageDiscountPctOnDiscounted: discountedApplications ? Math.round((discountPctSum / discountedApplications) * 10) / 10 : 0,
         byMonth: monthTrend.map((row) => ({ period: row.period, revenueCents: row.revenueCents })),
-        byGym: Array.from(byGymMap.values()).map((row) => ({ gymId: row.gymId, gymName: row.gymName, revenueCents: row.revenueCents, memberships: row.total })).sort((a, b) => b.revenueCents - a.revenueCents),
+        byGym: Array.from(byGymMap.values()).map((row) => ({
+          gymId: row.gymId,
+          gymName: row.gymName,
+          revenueCents: row.revenueCents,
+          memberships: row.total,
+          averageValueCents: row.total ? Math.round(row.revenueCents / row.total) : 0,
+        })).sort((a, b) => b.revenueCents - a.revenueCents),
         byPaymentMethod: Array.from(paymentMap.values()).sort((a, b) => b.revenueCents - a.revenueCents),
         outstandingBalancesSupported: false,
       },
@@ -500,7 +526,15 @@ export async function GET(request: NextRequest) {
         visits: checkins.length,
         uniqueVisitors: visitMembers.size,
         visitsPerActiveMember: activeMembers.length ? Math.round((checkins.length / activeMembers.length) * 100) / 100 : 0,
-        byGym: Array.from(visitGymMap.values()).map((g) => ({ gymId: g.gymId, gymName: g.gymName, visits: g.visits, uniqueMembers: g.unique.size })).sort((a, b) => b.visits - a.visits),
+        byGym: Array.from(visitGymMap.values()).map((g) => ({
+          gymId: g.gymId,
+          gymName: g.gymName,
+          visits: g.visits,
+          uniqueMembers: g.unique.size,
+          activeMembers: activeByGym.get(g.gymId) || 0,
+          visitsPerActiveMember: activeByGym.get(g.gymId) ? Math.round((g.visits / (activeByGym.get(g.gymId) || 1)) * 100) / 100 : 0,
+        })).sort((a, b) => b.visits - a.visits),
+        enrollmentToVisited: Array.from(originMovement.values()).sort((a, b) => b.visits - a.visits).slice(0, 100),
         crossGymVisits,
         homeGymVisits,
         crossGymPct: pct(crossGymVisits, verifiedCrossGymTotal),
@@ -518,7 +552,9 @@ export async function GET(request: NextRequest) {
       },
       trends: {
         busiestMonths: [...monthTrend].sort((a, b) => b.total - a.total || a.period.localeCompare(b.period)).slice(0, 12),
+        quietestMonths: [...monthTrend].sort((a, b) => a.total - b.total || a.period.localeCompare(b.period)).slice(0, 12),
         busiestWeeks: [...weekTrend].sort((a, b) => b.total - a.total || a.period.localeCompare(b.period)).slice(0, 12),
+        quietestWeeks: [...weekTrend].sort((a, b) => a.total - b.total || a.period.localeCompare(b.period)).slice(0, 12),
       },
     }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
