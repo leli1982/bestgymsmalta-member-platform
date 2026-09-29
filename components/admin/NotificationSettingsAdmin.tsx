@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import MembershipReminderSettingsAdmin from "@/components/admin/MembershipReminderSettingsAdmin";
 
 type Settings = {
   ordersEmail: string;
@@ -253,6 +254,8 @@ export default function NotificationSettingsAdmin() {
             {saving ? "Saving…" : "Save Notification Settings"}
           </button>
         </form>
+
+        <MembershipReminderSettingsAdmin />
 
         <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
