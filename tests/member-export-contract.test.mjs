@@ -23,3 +23,12 @@ test("membership export retains permanent BGM number and physical card in separa
   assert.match(source, /values\.MembershipNumber = member\.member_number/);
   assert.doesNotMatch(source, /values\.MembershipNumber = cardBarcode/);
 });
+
+
+test("membership export derives ValidYN from effective membership state, not raw status alone", () => {
+  assert.match(source, /evaluateBarcodeAccess/);
+  assert.match(source, /membershipExpiry: member\.membership_expiry/);
+  assert.match(source, /cancellationEffectiveDate: member\.cancellation_effective_date/);
+  assert.match(source, /effectiveStatus\.granted \? "Valid" : "Not Valid"/);
+  assert.doesNotMatch(source, /member\.status === "active" \? "Valid" : "Not Valid"/);
+});
