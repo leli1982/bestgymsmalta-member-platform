@@ -8,19 +8,19 @@ export async function createMemberNotification(input: {
   href?: string | null;
   dedupeKey?: string | null;
 }) {
-  const payload = {
-    member_id: input.memberId,
-    notification_type: input.type || "general",
-    title: input.title,
-    body: input.body,
-    href: input.href || null,
-    dedupe_key: input.dedupeKey || null,
-  };
+  const result = await getSupabaseAdmin()
+    .from("bgm_member_notifications")
+    .insert({
+      member_id: input.memberId,
+      notification_type: input.type || "general",
+      title: input.title,
+      body: input.body,
+      href: input.href || null,
+      dedupe_key: input.dedupeKey || null,
+    });
 
-  const query = getSupabaseAdmin().from("bgm_member_notifications");
-  const result = input.dedupeKey
-    ? await query.upsert(payload, { onConflict: "member_id,dedupe_key", ignoreDuplicates: true })
-    : await query.insert(payload);
-
-  if (result.error) throw result.error;
+  if (result.error) {
+    if (input.dedupeKey && result.error.code === "23505") return;
+    throw result.error;
+  }
 }
