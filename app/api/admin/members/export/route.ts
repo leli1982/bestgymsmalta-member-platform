@@ -11,16 +11,19 @@ import {
 } from "@/lib/memberExchangeWorkbook";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
+import { evaluateBarcodeAccess } from "@/lib/barcodeAccessCore";
+import { todayMaltaDate } from "@/lib/maltaDate";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const PAGE_SIZE = 1000;
 const MEMBER_EXPORT_SELECT =
-  "id, legacy_gym, legacy_pk_customer, full_name, company_name, address_line_1, address_line_2, town, postcode, gender, telephone_no_1, telephone_no_2, mobile, email, membership_expiry, status";
+  "id, member_number, legacy_gym, legacy_pk_customer, full_name, company_name, address_line_1, address_line_2, town, postcode, gender, telephone_no_1, telephone_no_2, mobile, email, membership_expiry, status, cancellation_effective_date";
 
 type ExportMember = {
   id: string;
+  member_number: string;
   legacy_gym: string | null;
   legacy_pk_customer: string | null;
   full_name: string | null;
@@ -36,6 +39,7 @@ type ExportMember = {
   email: string | null;
   membership_expiry: string | null;
   status: string | null;
+  cancellation_effective_date: string | null;
 };
 
 type ActiveCardRow = {
@@ -53,9 +57,10 @@ function toExchangeRow(
   rowNumber: number
 ) {
   const values = emptyMemberExchangeValues();
+  values.MembershipNumber = member.member_number;
   values.CardBarcode = cardBarcode;
   values.Gym = text(member.legacy_gym);
-  values.pkCustomer = text(member.legacy_pk_customer);
+  values.pkCustomer = cardBarcode || text(member.legacy_pk_customer);
   values.CustomerName = text(member.full_name);
   values.CompanyName = text(member.company_name);
   values.Address1 = text(member.address_line_1);
@@ -68,7 +73,15 @@ function toExchangeRow(
   values.Mobile = text(member.mobile);
   values.Email = text(member.email);
   values.ExpiryDate1 = text(member.membership_expiry);
-  values.ValidYN = member.status === "active" ? "Valid" : "Not Valid";
+  const effectiveStatus = evaluateBarcodeAccess({
+    member: {
+      status: member.status,
+      membershipExpiry: member.membership_expiry,
+      cancellationEffectiveDate: member.cancellation_effective_date,
+    },
+    today: todayMaltaDate(),
+  });
+  values.ValidYN = effectiveStatus.granted ? "Valid" : "Not Valid";
   return exchangeValuesRow(values, rowNumber);
 }
 
@@ -140,7 +153,8 @@ export async function GET(request: NextRequest) {
 
     if (
       MEMBER_EXCHANGE_HEADERS.length !== 16 ||
-      MEMBER_EXCHANGE_HEADERS[0] !== "CardBarcode"
+      MEMBER_EXCHANGE_HEADERS[0] !== "MembershipNumber" ||
+      MEMBER_EXCHANGE_HEADERS[1] !== "Gym"
     ) {
       throw new Error("Unexpected membership exchange contract.");
     }

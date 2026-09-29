@@ -17,10 +17,15 @@ test('secure member photo delivery requires photo-view permission and signed URL
  assert.match(s,/createSignedUrl/);
  assert.doesNotMatch(s,/getPublicUrl/);
 });
-test('camera component captures webp and offers Use Photo and Retake',()=>{
+test('photo component captures or uploads an image, converts to webp, and offers Use Photo and Retake',()=>{
  const s=read('components/staff/OfficialMemberPhotoCapture.tsx');
  assert.match(s,/getUserMedia/);
+ assert.match(s,/Take Photo with Webcam/);
+ assert.match(s,/Upload Photo/);
+ assert.match(s,/image\/jpeg/);
+ assert.match(s,/image\/png/);
  assert.match(s,/image\/webp/);
+ assert.match(s,/canvas\.toBlob/);
  assert.match(s,/Use Photo/);
  assert.match(s,/Retake/);
 });

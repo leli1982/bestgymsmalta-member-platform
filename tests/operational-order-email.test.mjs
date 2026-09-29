@@ -24,3 +24,16 @@ test("builds a clear sundries order email and escapes user-entered HTML", () => 
   assert.match(email.html, /&lt;script&gt;/i);
   assert.match(email.html, /&lt;strong&gt;5L&lt;\/strong&gt;/i);
 });
+
+test("Bar report includes calculated sales and separately counted cash", () => {
+  const result = buildOperationalOrderEmail({
+    orderType: "bar", orderId: "bar-test", gymName: "Birkirkara Fitness",
+    staffName: "Maria", barBusinessDate: "2026-09-22",
+    barTotalCents: 875, barCashFoundCents: 1265,
+    items: [{ itemName: "Water", quantity: 1, unit: null, notes: null, unitPriceCents: 875, lineTotalCents: 875 }],
+  });
+  assert.match(result.text, /TOTAL SALES:.*8\.75/);
+  assert.match(result.text, /TOTAL CASH FOUND:.*12\.65/);
+  assert.match(result.html, /TOTAL SALES:.*8\.75/);
+  assert.match(result.html, /TOTAL CASH FOUND:.*12\.65/);
+});

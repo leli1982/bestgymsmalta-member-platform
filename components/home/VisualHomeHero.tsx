@@ -6,17 +6,48 @@ import { getSavedMember, type AppMember } from "@/lib/memberSession";
 
 export default function VisualHomeHero() {
   const [member, setMember] = useState<AppMember | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     function loadMember() {
       setMember(getSavedMember());
     }
 
+    async function loadNotifications() {
+      try {
+        const response = await fetch("/api/member/notifications", {
+          cache: "no-store",
+          credentials: "same-origin",
+        });
+        if (!response.ok) {
+          setUnreadCount(0);
+          return;
+        }
+        const data = await response.json().catch(() => ({}));
+        setUnreadCount(Number(data.unreadCount || 0));
+      } catch {
+        setUnreadCount(0);
+      }
+    }
+
+    function refreshNotifications() {
+      void loadNotifications();
+    }
+
     loadMember();
+    void loadNotifications();
     window.addEventListener("bgmMemberChanged", loadMember);
+    window.addEventListener("bgmNotificationsChanged", refreshNotifications);
+    window.addEventListener("focus", refreshNotifications);
+    window.addEventListener("pageshow", refreshNotifications);
+    document.addEventListener("visibilitychange", refreshNotifications);
 
     return () => {
       window.removeEventListener("bgmMemberChanged", loadMember);
+      window.removeEventListener("bgmNotificationsChanged", refreshNotifications);
+      window.removeEventListener("focus", refreshNotifications);
+      window.removeEventListener("pageshow", refreshNotifications);
+      document.removeEventListener("visibilitychange", refreshNotifications);
     };
   }, []);
 
@@ -44,10 +75,18 @@ export default function VisualHomeHero() {
               WWW.BESTGYMSMALTA.COM
             </span>
           </div>
-          <span className="relative mt-1 flex h-10 w-10 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm">
+          <a
+            href="/notifications"
+            aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
+            className="relative mt-1 flex h-10 w-10 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm transition active:scale-95"
+          >
             <Bell size={22} strokeWidth={2.3} />
-            <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-[#ff5a0a]" />
-          </span>
+            {unreadCount > 0 ? (
+              <span className="absolute right-1 top-1 flex h-3 min-w-3 items-center justify-center rounded-full bg-[#ff5a0a] px-0.5 text-[8px] font-black leading-none text-white">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            ) : null}
+          </a>
         </div>
 
         <div

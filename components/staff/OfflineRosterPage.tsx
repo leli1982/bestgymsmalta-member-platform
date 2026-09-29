@@ -108,7 +108,7 @@ export default function OfflineRosterPage() {
 
             <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
               <label className="block text-sm font-bold">Search member
-                <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} className="mt-2 w-full rounded-xl border border-zinc-300 px-4 py-3 text-lg outline-none focus:border-orange-500" placeholder="Membership number or name" />
+                <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-lg text-zinc-950 placeholder:text-zinc-400 caret-zinc-950 outline-none focus:border-orange-500" placeholder="Membership number or name" />
               </label>
 
               <div className="mt-4 overflow-hidden rounded-xl border border-zinc-200">

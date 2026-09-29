@@ -6,44 +6,71 @@ const componentUrl = new URL(
   "../components/staff/MembershipEnrollmentPage.tsx",
   import.meta.url
 );
+const renewalUrl = new URL(
+  "../components/staff/StaffRenewalEnrollmentPage.tsx",
+  import.meta.url
+);
+const registrationRouteUrl = new URL(
+  "../app/api/system/members/registration/route.ts",
+  import.meta.url
+);
 const pageUrl = new URL("../app/staff/members/enroll/page.tsx", import.meta.url);
-const staffHomeUrl = new URL("../components/staff/StaffLoginPage.tsx", import.meta.url);
+const staffDashboardUrl = new URL("../components/staff/StaffDashboard.tsx", import.meta.url);
+const staffQueueUrl = new URL("../components/staff/StaffMembershipQueue.tsx", import.meta.url);
+const staffBrowserUrl = new URL("../components/staff/StaffMemberBrowser.tsx", import.meta.url);
+const cardAssignUrl = new URL("../app/api/system/members/card/assign/route.ts", import.meta.url);
 
 function read(url) {
   return fs.readFileSync(url, "utf8");
 }
 
-test("membership tools start with explicit NEW MEMBERSHIP and RENEWAL choices", () => {
-  const source = read(componentUrl);
-  assert.match(source, /NEW MEMBERSHIP/);
-  assert.match(source, /RENEWAL/);
-  assert.match(source, /\/api\/system\/members\/enroll/);
+test("membership tools keep explicit direct New Member and Renew choices", () => {
+  const dashboard = read(staffDashboardUrl);
+  const wrapper = read(componentUrl);
+  assert.match(dashboard, /label=["']New Member["']/);
+  assert.match(dashboard, /label=["']Renew["']/);
+  assert.match(dashboard, /kind=new/);
+  assert.match(dashboard, /kind=renewal/);
+  assert.match(wrapper, /StaffRenewalEnrollmentPage/);
+  assert.match(wrapper, /RegistrationForm/);
 });
 
-test("both application flows visibly require Staff Name for human accountability", () => {
-  const source = read(componentUrl);
-  assert.match(source, /Staff Name/);
-  assert.match(source, /staffName/);
-  assert.match(source, /required/);
-  assert.match(source, /NEW MEMBERSHIP[\s\S]*Staff Name/i);
-  assert.match(source, /RENEWAL[\s\S]*Staff Name/i);
+test("new registration attributes staff accountability to the authenticated system user", () => {
+  const route = read(registrationRouteUrl);
+  const renewal = read(renewalUrl);
+  assert.match(route, /requireSystemPermission[\s\S]*members\.create/);
+  assert.match(route, /displayName/);
+  assert.match(route, /staff_name/);
+  assert.match(route, /membership\.application\.submit/);
+  assert.match(renewal, /Staff Name/);
+  assert.match(renewal, /staffName/);
 });
 
-test("renewal searches and confirms a permanent member before continuing", () => {
-  const source = read(componentUrl);
-  assert.match(source, /\/api\/system\/members\/search/);
-  assert.match(source, /This number and barcode stay with this member\./);
-  assert.match(source, /memberNumber/);
+test("renewal preserves the permanent member number and supports card verification or replacement", () => {
+  const renewal = read(renewalUrl);
+  const cardAssign = read(cardAssignUrl);
+  const reviewModal = read(new URL("../components/staff/StaffMembershipReviewModal.tsx", import.meta.url));
+  assert.match(renewal, /\/api\/system\/members\/search/);
+  assert.match(renewal, /permanent/i);
+  assert.match(renewal, /memberNumber/);
+  assert.match(renewal, /StaffMembershipReviewModal/);
+  assert.match(reviewModal, /cardVerified/);
+  assert.match(cardAssign, /renewalCardAction\s*=\s*["']keep["']/);
+  assert.match(cardAssign, /renewalCardAction\s*=\s*["']replace["']/);
 });
 
-test("printing is separate from payment activation and Activation Staff Name is required", () => {
-  const source = read(componentUrl);
-  assert.match(source, /Print Application/);
-  assert.match(source, /window\.print\(\)/);
-  assert.match(source, /Printing does not activate/i);
-  assert.match(source, /Activation Staff Name/);
-  assert.match(source, /activationStaffName/);
-  assert.match(source, /PAYMENT RECEIVED — ACTIVATE/);
+test("unified renewal completion keeps printing separate from payment and activation", () => {
+  const renewal = read(renewalUrl);
+  const reviewModal = read(new URL("../components/staff/StaffMembershipReviewModal.tsx", import.meta.url));
+  const printView = read(new URL("../components/staff/StaffApplicationPrint.tsx", import.meta.url));
+  assert.match(renewal, /StaffMembershipReviewModal/);
+  assert.match(reviewModal, /PRINT MEMBERSHIP/);
+  assert.match(reviewModal, /printConfirmedAt/);
+  assert.match(printView, /window\.print\(\)/);
+  assert.match(printView, /CONFIRM PRINTED/);
+  assert.match(reviewModal, /Payment Staff Name/);
+  assert.match(reviewModal, /PAYMENT RECEIVED — ACTIVATE/);
+  assert.match(reviewModal, /!application\.printConfirmedAt/);
 });
 
 test("staff enrollment route renders the membership enrollment component", () => {
@@ -51,10 +78,20 @@ test("staff enrollment route renders the membership enrollment component", () =>
   assert.match(source, /MembershipEnrollmentPage/);
 });
 
-test("staff Members tile navigates to membership enrollment tools", () => {
-  const source = read(staffHomeUrl);
-  assert.match(source, /title=["']Members["']/);
-  assert.match(source, /href=["']\/staff\/members\/enroll["']/);
-  assert.match(source, /members\.create/);
-  assert.match(source, /members\.renew/);
+test("staff enrollment route wraps the search-param client component in Suspense", () => {
+  const source = read(pageUrl);
+  assert.match(source, /import\s+\{\s*Suspense\s*\}\s+from\s+["']react["']/);
+  assert.match(source, /<Suspense[\s\S]*<MembershipEnrollmentPage\s*\/>[\s\S]*<\/Suspense>/);
+});
+
+test("staff dashboard separates established-member browsing from the new-member waiting workflow", () => {
+  const dashboard = read(staffDashboardUrl);
+  const queue = read(staffQueueUrl);
+  const browser = read(staffBrowserUrl);
+  assert.match(dashboard, /label=["']Members["']/);
+  assert.match(dashboard, /label=["']New Member["']/);
+  assert.match(dashboard, /StaffMemberBrowser/);
+  assert.match(dashboard, /StaffMembershipQueue/);
+  assert.match(browser, /\/api\/system\/members\/search/);
+  assert.match(queue, /\/api\/system\/members\/applications/);
 });

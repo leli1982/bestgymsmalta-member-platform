@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import OfficialMemberPhotoCapture from "@/components/staff/OfficialMemberPhotoCapture";
+import CardConflictCards, { type CardConflictMember } from "@/components/staff/CardConflictCards";
 import { getOrCreateOfflineDeviceId } from "@/lib/offlineRosterClient";
 
 type SystemUser = {
@@ -21,9 +22,10 @@ type BarcodeResult =
   | "unknown_member"
   | "disabled_card"
   | "invalid_barcode"
-  | "photo_required";
+  | "ambiguous_card";
 
 type ScanResponse = {
+  cardMatches?: CardConflictMember[];
   result: BarcodeResult;
   granted: boolean;
   duplicate?: boolean;
@@ -31,6 +33,14 @@ type ScanResponse = {
   scannedAt?: string;
   scannedBarcode?: string;
   cardStatus?: string | null;
+  credentialKind?: "physical_card" | "member_number" | "legacy_pk_customer" | null;
+  legacyMatches?: Array<{
+    id: string;
+    memberNumber: string;
+    fullName: string;
+    status: string;
+    membershipExpiry: string | null;
+  }>;
   gym?: { id: string; name: string };
   member: null | {
     id: string;
@@ -55,14 +65,6 @@ function presentation(result: BarcodeResult) {
       autoResetMs: 3_500,
     };
   }
-  if (result === "photo_required") {
-    return {
-      title: "PHOTO REQUIRED",
-      severity: "photo" as const,
-      tone: "warning" as const,
-      autoResetMs: 0,
-    };
-  }
   if (result === "disabled_card") {
     return {
       title: "CARD REPLACED",
@@ -82,6 +84,14 @@ function presentation(result: BarcodeResult) {
   if (result === "inactive") {
     return {
       title: "MEMBERSHIP INACTIVE",
+      severity: "warning" as const,
+      tone: "warning" as const,
+      autoResetMs: 0,
+    };
+  }
+  if (result === "ambiguous_card") {
+    return {
+      title: "CARD NUMBER AMBIGUOUS",
       severity: "warning" as const,
       tone: "warning" as const,
       autoResetMs: 0,
@@ -138,8 +148,8 @@ export default function BarcodeReceptionPage() {
   const [result, setResult] = useState<ScanResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
-  const [finalizingPhoto, setFinalizingPhoto] = useState(false);
   const [error, setError] = useState("");
+  const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
 
   const canScan = useMemo(
     () =>
@@ -185,9 +195,9 @@ export default function BarcodeReceptionPage() {
     if (resetTimer.current) clearTimeout(resetTimer.current);
     resetTimer.current = null;
     setResult(null);
+    setPhotoLoadFailed(false);
     setMembershipNumber("");
     setError("");
-    setFinalizingPhoto(false);
     setTimeout(() => inputRef.current?.focus(), 0);
   }
 
@@ -218,12 +228,16 @@ export default function BarcodeReceptionPage() {
       }
 
       const scan = data as ScanResponse;
+      setPhotoLoadFailed(false);
       setResult(scan);
       setMembershipNumber("");
       const view = presentation(scan.result);
       playTone(view.tone);
+      if (scan.granted && scan.member?.photoRequired) {
+        window.setTimeout(() => playTone("warning"), 220);
+      }
 
-      if (view.autoResetMs) {
+      if (view.autoResetMs && !scan.member?.photoRequired) {
         resetTimer.current = setTimeout(resetScanner, view.autoResetMs);
       }
     } catch {
@@ -231,56 +245,6 @@ export default function BarcodeReceptionPage() {
       setTimeout(() => inputRef.current?.focus(), 0);
     } finally {
       setScanning(false);
-    }
-  }
-
-  async function finalizePhotoAccess() {
-    if (!result?.scanId || !result.member || finalizingPhoto) return;
-
-    setFinalizingPhoto(true);
-    setError("");
-    try {
-      const response = await fetch("/api/system/barcode/finalize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scanId: result.scanId }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        setError(data.error || "Photo saved, but access could not be finalized.");
-        return;
-      }
-
-      const nextResult = data.result as BarcodeResult;
-      const memberId = result.member.id;
-      setResult((current) =>
-        current
-          ? {
-              ...current,
-              result: nextResult,
-              granted: data.granted === true,
-              duplicate: data.duplicate === true,
-              member: current.member
-                ? {
-                    ...current.member,
-                    hasPhoto: true,
-                    photoRequired: false,
-                    photoUrl: `/api/system/members/photo/${encodeURIComponent(memberId)}?v=${Date.now()}`,
-                  }
-                : null,
-            }
-          : current
-      );
-
-      const view = presentation(nextResult);
-      playTone(view.tone);
-      if (view.autoResetMs) {
-        resetTimer.current = setTimeout(resetScanner, view.autoResetMs);
-      }
-    } catch {
-      setError("Photo saved, but access could not be finalized.");
-    } finally {
-      setFinalizingPhoto(false);
     }
   }
 
@@ -337,17 +301,9 @@ export default function BarcodeReceptionPage() {
         ? { ...baseView, title: "CARD NOT ACTIVE" }
         : baseView;
     const success = view.severity === "success";
-    const needsPhoto = view.severity === "photo";
-    const backgroundClass = success
-      ? "bg-green-600"
-      : needsPhoto
-        ? "bg-amber-500"
-        : "bg-red-600";
-    const titleClass = success
-      ? "text-green-600"
-      : needsPhoto
-        ? "text-amber-600"
-        : "text-red-600";
+    const needsPhoto = Boolean(result.granted && result.member && (result.member.photoRequired || photoLoadFailed));
+    const backgroundClass = success ? "bg-green-600" : "bg-red-600";
+    const titleClass = success ? "text-green-600" : "text-red-600";
 
     return (
       <main className={`flex min-h-screen items-center justify-center px-4 py-8 ${backgroundClass}`}>
@@ -363,25 +319,50 @@ export default function BarcodeReceptionPage() {
             )}
           </div>
 
+          {Boolean(result.cardMatches?.length) && <CardConflictCards members={result.cardMatches || []} scanId={result.scanId} />}
+          {result.result === "ambiguous_card" && !result.cardMatches?.length && (result.legacyMatches || []).length > 0 && (
+            <div className="mt-8 rounded-2xl border-4 border-red-200 bg-red-50 p-5">
+              <p className="text-center text-2xl font-black text-red-700">
+                DUPLICATE LEGACY NUMBER
+              </p>
+              <p className="mt-2 text-center text-sm font-bold text-red-900">
+                More than one active legacy member uses this old pkCustomer/card number. No access has been granted.
+              </p>
+              <div className="mx-auto mt-4 grid max-w-xl gap-2">
+                {(result.legacyMatches || []).map((candidate) => (
+                  <div key={candidate.id} className="rounded-xl bg-white p-3 text-left">
+                    <p className="font-black text-zinc-950">{candidate.fullName}</p>
+                    <p className="mt-1 font-mono text-xs font-bold text-zinc-500">
+                      {candidate.memberNumber} · {candidate.membershipExpiry || "No expiry date"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-center text-sm font-bold text-red-800">
+                Search and verify the correct member manually before allowing entry.
+              </p>
+            </div>
+          )}
+
           {result.member ? (
             <div className="mt-8 grid gap-6 md:grid-cols-[220px_1fr] md:items-start">
               <div>
                 <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-3xl bg-zinc-100 text-6xl font-black text-zinc-300">
                   <span>{result.member.fullName.slice(0, 1).toUpperCase() || "?"}</span>
-                  {result.member.photoUrl && (
+                  {result.member.photoUrl && !photoLoadFailed && (
                     <img
                       src={result.member.photoUrl}
                       alt={`${result.member.fullName} official photo`}
                       className="absolute inset-0 h-full w-full object-cover"
                       onError={(event) => {
-                        event.currentTarget.style.display = "none";
+                        setPhotoLoadFailed(true);
                       }}
                     />
                   )}
                 </div>
-                {result.member.photoRequired && result.result !== "photo_required" && (
-                  <p className="mt-3 rounded-xl bg-amber-50 p-3 text-center text-sm font-bold text-amber-800">
-                    PHOTO REQUIRED BEFORE RENEWAL
+                {(result.member.photoRequired || photoLoadFailed) && (
+                  <p className="mt-3 rounded-xl bg-amber-50 p-3 text-center text-sm font-black text-amber-800">
+                    PHOTO REQUIRED
                   </p>
                 )}
               </div>
@@ -390,7 +371,14 @@ export default function BarcodeReceptionPage() {
                   {result.member.fullName}
                 </h1>
                 <p className="mt-2 text-xl font-bold text-zinc-500">
-                  Card {result.member.memberNumber || result.scannedBarcode || "Not linked"}
+                  BGM Member No. {result.member.memberNumber}
+                </p>
+                <p className="mt-1 font-mono text-sm font-bold text-zinc-400">
+                  Scanned {result.credentialKind === "physical_card"
+                    ? "physical card"
+                    : result.credentialKind === "legacy_pk_customer"
+                      ? "legacy pkCustomer"
+                      : "BGM number"}: {result.scannedBarcode || "—"}
                 </p>
                 <dl className="mt-6 grid gap-3 sm:grid-cols-2">
                   <Detail
@@ -419,22 +407,43 @@ export default function BarcodeReceptionPage() {
           )}
 
           {needsPhoto && result.member && (
-            <div className="mt-8 rounded-2xl border-2 border-amber-200 bg-amber-50 p-5">
-              <p className="text-center text-lg font-black text-amber-800">
-                No check-in has been created yet. Capture the member&apos;s official photo to continue.
-              </p>
+            <div className="mt-8 rounded-2xl border-4 border-amber-300 bg-amber-50 p-5">
+              <div className="text-center">
+                <p className="text-3xl font-black text-amber-700">PHOTO REQUIRED</p>
+                <p className="mt-2 text-base font-bold text-amber-950">
+                  Access is granted and the check-in has already been recorded. Add the official member photo now if practical.
+                </p>
+                <p className="mt-1 text-sm font-semibold text-amber-800">
+                  If reception is busy, allow entry and close this warning. It will appear again on every valid scan until a photo is saved.
+                </p>
+              </div>
               <div className="mx-auto mt-5 max-w-md">
                 <OfficialMemberPhotoCapture
                   memberId={result.member.id}
                   source="reception_capture"
-                  onSaved={() => void finalizePhotoAccess()}
+                  onSaved={(photoUrl) => {
+                    const memberId = result.member?.id;
+                    setPhotoLoadFailed(false);
+                    setResult((current) =>
+                      current?.member && current.member.id === memberId
+                        ? {
+                            ...current,
+                            member: {
+                              ...current.member,
+                              hasPhoto: true,
+                              photoRequired: false,
+                              photoUrl:
+                                photoUrl ||
+                                (memberId
+                                  ? `/api/system/members/photo/${encodeURIComponent(memberId)}?v=${Date.now()}`
+                                  : current.member.photoUrl),
+                            },
+                          }
+                        : current
+                    );
+                  }}
                 />
               </div>
-              {finalizingPhoto && (
-                <p className="mt-4 text-center text-sm font-bold text-amber-800">
-                  Revalidating membership and finalizing access…
-                </p>
-              )}
             </div>
           )}
 
@@ -446,13 +455,12 @@ export default function BarcodeReceptionPage() {
 
           <button
             onClick={resetScanner}
-            disabled={finalizingPhoto}
-            className="mt-8 w-full rounded-2xl bg-zinc-900 px-5 py-4 text-lg font-black text-white disabled:opacity-40"
+            className="mt-8 w-full rounded-2xl bg-zinc-900 px-5 py-4 text-lg font-black text-white"
           >
-            {success
-              ? "Scan Next Member"
-              : needsPhoto
-                ? "Cancel / Scan Next Member"
+            {needsPhoto
+              ? "Allow Entry / Close"
+              : success
+                ? "Scan Next Member"
                 : "Clear Warning / Scan Next"}
           </button>
         </div>

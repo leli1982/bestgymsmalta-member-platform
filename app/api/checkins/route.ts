@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireMemberSession } from "@/lib/memberAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { recordCanonicalCheckin } from "@/lib/checkinService";
+import { todayMaltaDate } from "@/lib/maltaDate";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ type GymRow = {
 };
 
 function todayString() {
-  return new Date().toISOString().slice(0, 10);
+  return todayMaltaDate();
 }
 
 async function getGymMap() {
@@ -39,7 +40,7 @@ async function getActiveMember(memberId: string) {
 
   const memberResult = await supabase
     .from("bgm_members")
-    .select("id, full_name, member_number, email, status, membership_expiry")
+    .select("id, full_name, member_number, email, status, membership_expiry, cancellation_effective_date")
     .eq("id", memberId)
     .maybeSingle();
 
@@ -55,7 +56,8 @@ async function getActiveMember(memberId: string) {
     };
   }
 
-  if (member.status !== "active") {
+  if (member.status !== "active" ||
+      (member.cancellation_effective_date && member.cancellation_effective_date <= todayString())) {
     return {
       ok: false,
       error: "This membership is inactive. Please renew at reception.",

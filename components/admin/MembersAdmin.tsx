@@ -41,6 +41,7 @@ const emptyMember: AdminMember = {
 
 const membershipPeriods = [
   { label: "Choose duration", value: "" },
+  { label: "1 Gym Session", value: "1_session" },
   { label: "1 week", value: "1_week" },
   { label: "2 weeks", value: "2_weeks" },
   { label: "1 month", value: "1_month" },
@@ -58,6 +59,7 @@ function calculateExpiryDate(startDate: string, period: string) {
 
   const date = new Date(`${startDate}T00:00:00`);
 
+  if (period === "1_session") return startDate;
   if (period === "1_week") date.setDate(date.getDate() + 7);
   if (period === "2_weeks") date.setDate(date.getDate() + 14);
   if (period === "1_month") date.setMonth(date.getMonth() + 1);

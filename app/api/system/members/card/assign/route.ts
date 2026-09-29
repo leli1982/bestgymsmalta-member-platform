@@ -5,6 +5,7 @@ import {
 } from "@/lib/memberCardCredentialCore";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
+import { broadcastStaffMembershipRefresh } from "@/lib/staffRealtime";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +83,7 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabaseAdmin();
     let applicationsQuery = supabase
       .from("bgm_membership_applications")
-      .select("id, application_reference, application_kind, membership_type, duration_key, start_date, expiry_date, enrollment_gym_id, staff_name, status, created_at")
+      .select("id, application_reference, application_kind, membership_type, duration_key, start_date, expiry_date, enrollment_gym_id, staff_name, status, created_at, base_price_cents, currency")
       .in("application_kind", ["new", "renewal"])
       .in("status", ["submitted", "awaiting_payment"])
       .order("created_at", { ascending: true });
@@ -194,6 +195,8 @@ export async function GET(request: NextRequest) {
         enrollmentGymId: application.enrollment_gym_id,
         staffName: application.staff_name,
         status: application.status,
+        basePriceCents: application.base_price_cents,
+        currency: application.currency || "EUR",
         participants: participantsByApplication.get(application.id) || [],
       })),
     });
@@ -232,7 +235,7 @@ export async function POST(request: NextRequest) {
 
     const applicationResult = await supabase
       .from("bgm_membership_applications")
-      .select("id, application_kind, enrollment_gym_id, status")
+      .select("id, application_kind, enrollment_gym_id, status, application_source, reviewed_by_system_user_id")
       .eq("id", participant.application_id)
       .maybeSingle();
     if (applicationResult.error) throw applicationResult.error;
@@ -247,7 +250,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "This application belongs to another gym." }, { status: 403 });
     }
 
-    if (application.application_kind === "new") {
+    // An online submission is not ready for a physical card until reception
+    // has explicitly reviewed the application. Staff-created flows are unchanged.
+    if (
+      application.application_source === "tablet" &&
+      !application.reviewed_by_system_user_id
+    ) {
+      return NextResponse.json(
+        { error: "Confirm the online membership application review before assigning or verifying a card." },
+        { status: 409 }
+      );
+    }
+
+    const reusesExistingMember = Boolean(participant.existing_member_id);
+
+    if (!reusesExistingMember) {
       try {
         const reservation = await reserveExactCard(
           supabase,
@@ -266,6 +283,8 @@ export async function POST(request: NextRequest) {
           after_data: { applicationId: application.id, barcodeValue: barcode, status: "reserved" },
         });
         if (auditResult.error) console.error(auditResult.error);
+
+        await broadcastStaffMembershipRefresh(application.enrollment_gym_id);
 
         return NextResponse.json({
           ok: true,
@@ -287,8 +306,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (application.application_kind !== "renewal" || !participant.existing_member_id) {
-      return NextResponse.json({ error: "Renewal member identity is required." }, { status: 409 });
+    if (!participant.existing_member_id) {
+      return NextResponse.json({ error: "Existing member identity is required." }, { status: 409 });
     }
 
     const [memberResult, activeCardResult, existingBarcodeResult] = await Promise.all([
@@ -396,6 +415,8 @@ export async function POST(request: NextRequest) {
       },
     });
     if (auditResult.error) console.error(auditResult.error);
+
+    await broadcastStaffMembershipRefresh(application.enrollment_gym_id);
 
     return NextResponse.json({
       ok: true,

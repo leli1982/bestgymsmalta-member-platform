@@ -7,6 +7,7 @@ type Participant = {
   id: string;
   participantOrder: number;
   fullName: string;
+  existingMemberId: string | null;
   hasPhoto: boolean;
   photoUrl: string | null;
   reservedBarcode: string | null;
@@ -23,6 +24,8 @@ type Application = {
   membershipType: string;
   status: string;
   staffName: string;
+  basePriceCents: number | null;
+  currency: string;
   participants: Participant[];
 };
 
@@ -31,6 +34,17 @@ export default function PendingMembershipActions() {
   const [openId, setOpenId] = useState("");
   const [barcodes, setBarcodes] = useState<Record<string, string>>({});
   const [activationStaffNames, setActivationStaffNames] = useState<Record<string, string>>({});
+  const [discountCodes, setDiscountCodes] = useState<Record<string, string>>({});
+  const [discountPreviews, setDiscountPreviews] = useState<Record<string, {
+    code: string;
+    percentage: number;
+    basePriceCents: number;
+    discountAmountCents: number;
+    finalAmountCents: number;
+    currency: string;
+  }>>({});
+  const [paymentMethods, setPaymentMethods] = useState<Record<string, "cash" | "card" | "other" | "">>({});
+  const [paymentOtherTexts, setPaymentOtherTexts] = useState<Record<string, string>>({});
   const [activatingId, setActivatingId] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -54,7 +68,7 @@ export default function PendingMembershipActions() {
   async function processCard(application: Application, participant: Participant) {
     const barcode = (barcodes[participant.id] || "").trim();
     if (!barcode) {
-      setError(application.kind === "renewal" ? "Scan the membership card first." : "Scan the preprinted membership card first.");
+      setError(participant.existingMemberId ? "Scan the membership card first." : "Scan the preprinted membership card first.");
       return;
     }
     setError("");
@@ -89,26 +103,72 @@ export default function PendingMembershipActions() {
 
   function isReady(application: Application) {
     return application.participants.every((participant) =>
-      participant.hasPhoto &&
-      (application.kind === "renewal" ? participant.cardVerified : Boolean(participant.reservedBarcode))
+      (participant.existingMemberId ? participant.cardVerified : Boolean(participant.reservedBarcode))
     );
+  }
+
+  async function applyDiscountCode(application: Application) {
+    const code = (discountCodes[application.id] || "").trim();
+    if (!code) {
+      setDiscountPreviews((current) => {
+        const next = { ...current };
+        delete next[application.id];
+        return next;
+      });
+      return;
+    }
+
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/system/members/applications/${encodeURIComponent(application.id)}/discount`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error || "Discount code is unavailable.");
+        return;
+      }
+      setDiscountCodes((current) => ({ ...current, [application.id]: data.code }));
+      setDiscountPreviews((current) => ({ ...current, [application.id]: data }));
+    } catch {
+      setError("Could not validate the discount code.");
+    }
   }
 
   async function activateApplication(application: Application) {
     const activationStaffName = (activationStaffNames[application.id] || "").trim();
+    const paymentMethod = paymentMethods[application.id] || "";
+    const paymentOtherText = (paymentOtherTexts[application.id] || "").trim();
+    const discountCode = (discountCodes[application.id] || "").trim();
+    const discountPreview = discountPreviews[application.id];
     const readyToActivate = isReady(application);
 
     if (!readyToActivate) {
       setError(
-        application.kind === "renewal"
-          ? "Every participant needs an official photo and verified membership card before activation."
-          : "Every participant needs an official photo and reserved membership card before activation."
+        "Every participant needs the required membership card action before activation."
       );
       return;
     }
 
     if (!activationStaffName) {
-      setError("Activation Staff Name is required before payment can be confirmed.");
+      setError("Payment Staff Name is required before payment can be confirmed.");
+      return;
+    }
+    if (!paymentMethod) {
+      setError("Select Cash, Card or Other as the payment method.");
+      return;
+    }
+    if (paymentMethod === "other" && !paymentOtherText) {
+      setError("Describe the Other payment method.");
+      return;
+    }
+    if (discountCode && !discountPreview) {
+      setError("Apply the discount code before confirming payment.");
       return;
     }
 
@@ -123,7 +183,10 @@ export default function PendingMembershipActions() {
         body: JSON.stringify({
           action: "activate",
           applicationId: application.id,
-          activationStaffName,
+          paymentMethod,
+          paymentOtherText: paymentMethod === "other" ? paymentOtherText : "",
+          staffName: activationStaffName,
+          discountCode,
         }),
       });
       const data = await response.json();
@@ -150,7 +213,7 @@ export default function PendingMembershipActions() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-700">Membership action required</p>
-          <h2 className="mt-1 text-xl font-black">MEMBERSHIP READY — CARD ACTION REQUIRED</h2>
+          <h2 className="mt-1 text-xl font-black">MEMBERSHIP READY — COMPLETE CARD & PAYMENT</h2>
         </div>
         <span className="rounded-full bg-orange-600 px-3 py-1 text-xs font-black text-white">{applications.length}</span>
       </div>
@@ -187,14 +250,14 @@ export default function PendingMembershipActions() {
                         <div className="mt-3">
                           <OfficialMemberPhotoCapture
                             applicationMemberId={participant.id}
-                            source={renewal ? "renewal" : undefined}
+                            source={participant.existingMemberId ? "renewal" : undefined}
                             staffName={application.staffName}
                             onSaved={() => void load()}
                           />
                         </div>
                       )}
 
-                      {renewal ? (
+                      {participant.existingMemberId ? (
                         <div className="mt-4 space-y-3">
                           <div className="rounded-xl bg-zinc-50 p-3 text-sm">
                             <p className="font-bold">Current card</p>
@@ -210,11 +273,12 @@ export default function PendingMembershipActions() {
                           <div className="flex gap-2">
                             <input
                               inputMode="text"
+                              data-bgm-scan-input="true"
                               value={barcodes[participant.id] || ""}
                               onChange={(event) => setBarcodes((current) => ({ ...current, [participant.id]: event.target.value }))}
                               onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void processCard(application, participant); } }}
                               placeholder="SCAN MEMBERSHIP CARD"
-                              className="min-w-0 flex-1 rounded-xl border border-zinc-300 px-3 py-2 font-mono"
+                              className="min-w-0 flex-1 rounded-xl border border-zinc-300 bg-white px-3 py-2 font-mono text-zinc-950 placeholder:text-zinc-400 caret-zinc-950"
                             />
                             <button type="button" onClick={() => void processCard(application, participant)} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-bold text-white">Verify Card</button>
                           </div>
@@ -228,11 +292,12 @@ export default function PendingMembershipActions() {
                               <input
                                 autoFocus
                                 inputMode="text"
+                                data-bgm-scan-input="true"
                                 value={barcodes[participant.id] || ""}
                                 onChange={(event) => setBarcodes((current) => ({ ...current, [participant.id]: event.target.value }))}
                                 onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void processCard(application, participant); } }}
                                 placeholder="Scan card barcode"
-                                className="min-w-0 flex-1 rounded-xl border border-zinc-300 px-3 py-2 font-mono"
+                                className="min-w-0 flex-1 rounded-xl border border-zinc-300 bg-white px-3 py-2 font-mono text-zinc-950 placeholder:text-zinc-400 caret-zinc-950"
                               />
                               <button type="button" onClick={() => void processCard(application, participant)} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-bold text-white">Reserve Card</button>
                             </div>
@@ -246,25 +311,72 @@ export default function PendingMembershipActions() {
 
               {openId === application.id && (
                 <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-                  <label className="block text-sm font-bold">
-                    Activation Staff Name
+                  <p className="text-sm font-black">Payment</p>
+                  <p className="mt-1 text-xs text-zinc-500">Rates and discount values are controlled by Super Admin. Staff can only enter an issued Discount code.</p>
+
+                  <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                    <div className="rounded-xl bg-white p-3"><p className="text-[11px] font-black uppercase text-zinc-400">Base Price</p><p className="mt-1 font-black">€{(((discountPreviews[application.id]?.basePriceCents ?? application.basePriceCents ?? 0) / 100)).toFixed(2)}</p></div>
+                    <div className="rounded-xl bg-white p-3"><p className="text-[11px] font-black uppercase text-zinc-400">Discount</p><p className="mt-1 font-black">{discountPreviews[application.id] ? `${discountPreviews[application.id].percentage}%` : "No discount"}</p></div>
+                    <div className="rounded-xl bg-white p-3"><p className="text-[11px] font-black uppercase text-zinc-400">Final Total</p><p className="mt-1 font-black">€{(((discountPreviews[application.id]?.finalAmountCents ?? application.basePriceCents ?? 0) / 100)).toFixed(2)}</p></div>
+                  </div>
+
+                  <label className="mt-4 block text-sm font-bold">
+                    Discount code
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        value={discountCodes[application.id] || ""}
+                        onChange={(event) => {
+                          setDiscountCodes((current) => ({ ...current, [application.id]: event.target.value.toUpperCase() }));
+                          setDiscountPreviews((current) => {
+                            const next = { ...current };
+                            delete next[application.id];
+                            return next;
+                          });
+                        }}
+                        placeholder="Enter Super Admin code"
+                        className="min-w-0 flex-1 rounded-xl border border-zinc-300 bg-white px-3 py-2 font-mono uppercase"
+                      />
+                      <button type="button" onClick={() => void applyDiscountCode(application)} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-black text-white">Apply code</button>
+                    </div>
+                  </label>
+
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    {(["cash", "card", "other"] as const).map((method) => (
+                      <label key={method} className="rounded-xl border border-zinc-300 bg-white p-3 text-center text-sm font-black">
+                        <input type="radio" name={`payment-${application.id}`} checked={paymentMethods[application.id] === method} onChange={() => setPaymentMethods((current) => ({ ...current, [application.id]: method }))} className="mr-2" />
+                        {method === "cash" ? "Cash" : method === "card" ? "Card" : "Other"}
+                      </label>
+                    ))}
+                  </div>
+
+                  {paymentMethods[application.id] === "other" && (
+                    <input value={paymentOtherTexts[application.id] || ""} onChange={(event) => setPaymentOtherTexts((current) => ({ ...current, [application.id]: event.target.value }))} placeholder="Describe Other payment method" className="mt-3 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950" />
+                  )}
+
+                  <label className="mt-4 block text-sm font-bold">
+                    Payment Staff Name
                     <input
                       value={activationStaffNames[application.id] || ""}
                       onChange={(event) => setActivationStaffNames((current) => ({ ...current, [application.id]: event.target.value }))}
                       placeholder="Staff member receiving payment"
-                      className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2"
+                      className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950"
                     />
                   </label>
                   {!readyToActivate && (
                     <p className="mt-3 text-sm font-semibold text-amber-700">
-                      {renewal
-                        ? "Complete every official photo and verify every membership card before activation."
-                        : "Complete every official photo and card reservation before activation."}
+                      Complete every participant verification and card action before activation. A missing photo does not block activation.
                     </p>
                   )}
                   <button
                     type="button"
-                    disabled={activatingId === application.id || !readyToActivate || !(activationStaffNames[application.id] || "").trim()}
+                    disabled={
+                      activatingId === application.id ||
+                      !readyToActivate ||
+                      !(activationStaffNames[application.id] || "").trim() ||
+                      !paymentMethods[application.id] ||
+                      (paymentMethods[application.id] === "other" && !(paymentOtherTexts[application.id] || "").trim()) ||
+                      Boolean((discountCodes[application.id] || "").trim() && !discountPreviews[application.id])
+                    }
                     onClick={() => void activateApplication(application)}
                     className="mt-4 w-full rounded-xl bg-green-600 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
                   >

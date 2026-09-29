@@ -70,7 +70,8 @@ test("home membership card is the compact strip with the round BGM mark", () => 
 
   assert.match(card, /data-home-membership=["']compact-strip["']/);
   assert.match(card, /fetch\(["']\/api\/member\/card["']/);
-  assert.match(card, /<MemberBarcode\s+memberNumber=\{cardBarcode\}/);
+  assert.match(card, /<MemberBarcode\s+memberNumber=\{assignedCardNumber\}/);
+  assert.match(card, /member\.memberNumber/);
   assert.match(card, /setFlipped/);
   assert.match(card, /src=["']\/bgm-logo\.png["']/);
   assert.doesNotMatch(card, /src=["']\/brand\/bgm-logo-white-horizontal\.png["']/);

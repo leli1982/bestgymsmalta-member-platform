@@ -5,30 +5,30 @@ import {
   serializeMemberExchangeCsv,
 } from "../lib/memberExchangeCsv.ts";
 
-test("CSV round trip preserves exact 16-column values and card barcode text", () => {
+test("CSV round trip preserves exact 16-column values and permanent membership number", () => {
   const csv = [
-    "CardBarcode,Gym,pkCustomer,CustomerName,CompanyName,Address1,Address2,Town,PostCode,Gender,TelephoneNo1,TelephoneNo2,Mobile,Email,ExpiryDate1,ValidYN",
-    '0012345,QROQQ,123,"Borg, John",,"1 Main St",,Naxxar,NXR1234,M,,99112233,,john@example.com,03/09/2027,Valid',
+    "MembershipNumber,Gym,pkCustomer,CustomerName,CompanyName,Address1,Address2,Town,PostCode,Gender,TelephoneNo1,TelephoneNo2,Mobile,Email,ExpiryDate1,ValidYN",
+    'BGM0000123,QROQQ,123,"Borg, John",,"1 Main St",,Naxxar,NXR1234,M,,99112233,,john@example.com,03/09/2027,Valid',
   ].join("\n");
 
   const parsed = parseMemberExchangeCsv(csv);
   assert.equal(parsed.mode, "exchange_16");
   assert.equal(parsed.rows[0].values.CustomerName, "Borg, John");
-  assert.equal(parsed.rows[0].values.CardBarcode, "0012345");
+  assert.equal(parsed.rows[0].values.MembershipNumber, "BGM0000123");
 
   const roundTrip = parseMemberExchangeCsv(serializeMemberExchangeCsv(parsed.rows));
   assert.equal(roundTrip.rows[0].values.CustomerName, "Borg, John");
-  assert.equal(roundTrip.rows[0].values.CardBarcode, "0012345");
+  assert.equal(roundTrip.rows[0].values.MembershipNumber, "BGM0000123");
 });
 
 test("CSV parser preserves quoted embedded newlines and escaped quotes", () => {
   const csv =
-    'CardBarcode,Gym,pkCustomer,CustomerName,CompanyName,Address1,Address2,Town,PostCode,Gender,TelephoneNo1,TelephoneNo2,Mobile,Email,ExpiryDate1,ValidYN\r\n' +
-    'AbC-007,QROQQ,42,"Borg, ""Johnny""",,"Flat 1\nMain Street",,Naxxar,,,,99112233,,john@example.com,2027-09-03,Valid\r\n';
+    'MembershipNumber,Gym,pkCustomer,CustomerName,CompanyName,Address1,Address2,Town,PostCode,Gender,TelephoneNo1,TelephoneNo2,Mobile,Email,ExpiryDate1,ValidYN\r\n' +
+    'BGM0000042,QROQQ,42,"Borg, ""Johnny""",,"Flat 1\nMain Street",,Naxxar,,,,99112233,,john@example.com,2027-09-03,Valid\r\n';
 
   const parsed = parseMemberExchangeCsv(csv);
   assert.equal(parsed.rows.length, 1);
-  assert.equal(parsed.rows[0].values.CardBarcode, "AbC-007");
+  assert.equal(parsed.rows[0].values.MembershipNumber, "BGM0000042");
   assert.equal(parsed.rows[0].values.CustomerName, 'Borg, "Johnny"');
   assert.equal(parsed.rows[0].values.Address1, "Flat 1\nMain Street");
 });

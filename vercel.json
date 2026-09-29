@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "feature/staff-dashboard-reception": false,
+      "feature/tablet-enrollment-membership-settings": false
+    }
+  },
+  "regions": [
+    "dub1"
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/membership-expiry-reminders",
+      "schedule": "15 7 * * *"
+    }
+  ]
+}

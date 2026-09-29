@@ -261,6 +261,39 @@ textarea:focus-visible {
   outline-offset: 3px;
 }
 
+/* The member app deliberately uses a dark native form-control palette.
+   Super Admin and System Users are light pages: explicitly reset their
+   controls so a dark browser/OS theme cannot make black input text unreadable.
+   This is scoped to these pages; do not restyle the dark member admin or
+   intentionally dark member surfaces. */
+.bgm-admin-light {
+  color-scheme: light;
+}
+
+.bgm-admin-light :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  color-scheme: light;
+  background-color: #ffffff;
+  color: #18181b;
+  caret-color: #18181b;
+  border-color: #d4d4d8;
+}
+
+.bgm-admin-light :is(input, textarea)::placeholder {
+  color: #71717a;
+  opacity: 1;
+}
+
+.bgm-admin-light :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):disabled {
+  background-color: #f4f4f5;
+  color: #52525b;
+  opacity: 1;
+}
+
+.bgm-admin-light select option {
+  color: #18181b;
+  background: #ffffff;
+}
+
 /* Avoid accidental dragging/selection of app graphics */
 img,
 svg {

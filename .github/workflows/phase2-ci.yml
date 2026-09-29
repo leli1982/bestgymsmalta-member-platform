@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - phase-2-operations-nfc-redesign
+      - feature/tablet-enrollment-membership-settings
       - main
   workflow_dispatch:
 
@@ -28,6 +29,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install browser verification tools
+        run: |
+          # Keep the locked application dependency tree intact: installing an
+          # extra test-only package here can re-resolve unrelated Supabase deps.
+          npm install --prefix /tmp/bgm-ci-playwright --no-save --package-lock=false playwright@1.63.0
+          ln -s /tmp/bgm-ci-playwright/node_modules/playwright node_modules/playwright
+          ln -s /tmp/bgm-ci-playwright/node_modules/playwright-core node_modules/playwright-core
+          node /tmp/bgm-ci-playwright/node_modules/playwright/cli.js install --with-deps chromium
+
       - name: Run tests
         run: node --experimental-strip-types --test tests/*.test.mjs
 
@@ -39,13 +49,53 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: "1"
 
-      - name: Install browser verification tools
-        run: |
-          npm install --no-save --package-lock=false playwright@1.63.0
-          npx playwright install --with-deps chromium
+      - name: Verify membership A4 print in Chromium
+        run: node tests/browser/membership-print-a4.mjs
 
       - name: Verify member card and gym pages in Chromium
         run: node tests/browser/member-card-gyms.mjs
+
+      - name: Verify Super Admin member editor with fictional records in Chromium
+        run: node tests/browser/super-admin-member-editor.mjs
+
+      - name: Verify shared couples cancellation with fictional records in Chromium
+        run: node tests/browser/super-admin-couples-member-editor.mjs
+
+      - name: Verify staff dashboard workflow in Chromium
+        run: node tests/browser/staff-dashboard.mjs
+
+      - name: Verify global card scanner while Staff edit forms in Chromium
+        run: node tests/browser/staff-global-scanner.mjs
+
+      - name: Verify Bar List and Super Admin catalogue in Chromium
+        run: node tests/browser/bar-sales.mjs
+
+      - name: Verify Super Admin operations dashboard in Chromium
+        run: node tests/browser/operations-dashboard.mjs
+
+      - name: Verify Super Admin announcements and member news in Chromium
+        run: node tests/browser/super-admin-announcements.mjs
+
+      - name: Verify Super Admin member import and export in Chromium
+        run: node tests/browser/member-data.mjs
+
+      - name: Verify Super Admin gym and account management in Chromium
+        run: node tests/browser/super-admin-management.mjs
+
+      - name: Verify Super Admin Shopping List in Chromium
+        run: node tests/browser/shopping-list.mjs
+
+      - name: Verify nonblocking reception photo warning in Chromium
+        run: node tests/browser/reception-photo-warning.mjs
+
+      - name: Verify Super Admin gym selection and staff return navigation in Chromium
+        run: node tests/browser/staff-enrollment-gym.mjs
+
+      - name: Verify minor renewal guardian form in Chromium
+        run: node tests/browser/staff-minor-renewal.mjs
+
+      - name: Verify tablet enrollment workflow in Chromium
+        run: node tests/browser/tablet-enrollment.mjs
 
       - name: Save member UI screenshots
         if: always()
@@ -54,3 +104,43 @@ jobs:
           name: member-ui-screenshots
           path: test-artifacts/member-ui
           if-no-files-found: ignore
+
+      - name: Save staff UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staff-ui-screenshots
+          path: |
+            test-artifacts/staff-ui
+            test-artifacts/staff-global-scanner
+            test-artifacts/super-admin-member-editor
+            test-artifacts/super-admin-couples-editor
+            test-artifacts/bar-sales
+            test-artifacts/operations-dashboard
+            test-artifacts/announcements
+            test-artifacts/member-data
+          if-no-files-found: ignore
+
+      - name: Save membership print screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: membership-print-screenshots
+          path: test-artifacts/print-a4
+          if-no-files-found: error
+
+      - name: Save reception photo-warning screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reception-photo-warning-screenshots
+          path: test-artifacts/reception-photo
+          if-no-files-found: error
+
+      - name: Save tablet enrollment screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tablet-enrollment-screenshots
+          path: test-artifacts/tablet-enrollment
+          if-no-files-found: error

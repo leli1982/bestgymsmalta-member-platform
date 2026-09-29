@@ -17,12 +17,12 @@ export const LEGACY_MEMBER_HEADERS = [
 ] as const;
 
 export const MEMBER_EXCHANGE_HEADERS = [
-  "CardBarcode",
+  "MembershipNumber",
   ...LEGACY_MEMBER_HEADERS,
 ] as const;
 
 export type MemberExchangeMode = "legacy_15" | "exchange_16";
-export type MemberExchangeHeader = (typeof MEMBER_EXCHANGE_HEADERS)[number];
+export type MemberExchangeHeader = (typeof MEMBER_EXCHANGE_HEADERS)[number] | "CardBarcode";
 
 export type MemberExchangeValues = Record<MemberExchangeHeader, string>;
 
@@ -90,6 +90,6 @@ export function memberExchangeModeFromHeaders(
 
 export function emptyMemberExchangeValues(): MemberExchangeValues {
   return Object.fromEntries(
-    MEMBER_EXCHANGE_HEADERS.map((header) => [header, ""])
+    [...MEMBER_EXCHANGE_HEADERS, "CardBarcode"].map((header) => [header, ""])
   ) as MemberExchangeValues;
 }

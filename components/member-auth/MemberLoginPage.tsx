@@ -18,6 +18,7 @@ import {
   User,
   Video,
 } from "lucide-react";
+import MemberReminderNotifications from "@/components/member/MemberReminderNotifications";
 import {
   cacheVerifiedMember,
   clearSavedMember,
@@ -78,6 +79,12 @@ const quickLinks = [
     description: "Private photo vault",
     href: "/progress",
     icon: Camera,
+  },
+  {
+    label: "Change Password",
+    description: "Update your login password",
+    href: "/change-password",
+    icon: KeyRound,
   },
 ];
 
@@ -397,6 +404,8 @@ export default function MemberLoginPage() {
             <div><p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ff5a0a]">App Access</p><h2 className="mt-1 text-2xl font-black">Your app is activated</h2><p className="mt-3 text-sm font-bold leading-6 text-zinc-600">This device is linked to your BGM member account. Your passport, progress photos, trainer plan and app activity are saved against your profile.</p></div>
           </div>
         </section>
+
+        <MemberReminderNotifications />
 
         <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex items-center gap-3">

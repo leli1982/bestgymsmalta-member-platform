@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSystemContext } from "@/lib/systemAuth";
 import {
   clearAdminSessionCookie,
   createAdminSessionToken,
@@ -9,8 +10,14 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  if (isAdminRequest(request)) {
+    return NextResponse.json({ authenticated: true, source: "admin_pin" });
+  }
+
+  const context = await getSystemContext(request);
   return NextResponse.json({
-    authenticated: isAdminRequest(request),
+    authenticated: Boolean(context?.isSuperAdmin),
+    source: context?.isSuperAdmin ? "super_admin" : null,
   });
 }
 

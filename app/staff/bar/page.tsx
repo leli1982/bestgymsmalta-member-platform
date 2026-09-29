@@ -1,5 +1,5 @@
-import OperationalOrdersPage from "@/components/staff/OperationalOrdersPage";
+import BarSalesPage from "@/components/staff/BarSalesPage";
 
 export default function StaffBarPage() {
-  return <OperationalOrdersPage orderType="bar" />;
+  return <BarSalesPage />;
 }

@@ -105,9 +105,12 @@ function getMapsUrl(gym: Gym) {
   )}`;
 }
 
+function isMemberVisibleGym(gym: Gym) {
+  return gym.status === "active" || gym.status === "coming_soon";
+}
+
 function statusLabel(status?: string) {
   if (status === "coming_soon") return "Coming Soon";
-  if (status === "inactive") return "Inactive";
   return "Open";
 }
 
@@ -127,7 +130,9 @@ export default function LiveGymDetailPage(props: {
         });
 
         const data = await response.json();
-        const foundGym = (data.gyms || []).find((item: Gym) => item.id === gymId);
+        const foundGym = (data.gyms || []).find(
+          (item: Gym) => item.id === gymId && isMemberVisibleGym(item)
+        );
 
         setGym(foundGym || null);
       } catch {

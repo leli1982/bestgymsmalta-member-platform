@@ -12,6 +12,7 @@ type NfcCardState = {
 type NfcMemberState = {
   status?: string | null;
   membershipExpiry?: string | null;
+  cancellationEffectiveDate?: string | null;
 };
 
 export function evaluateNfcAccess({
@@ -31,7 +32,8 @@ export function evaluateNfcAccess({
     return { result: "disabled_card", granted: false };
   }
 
-  if (!member || member.status !== "active") {
+  if (!member || member.status !== "active" ||
+    (member.cancellationEffectiveDate && member.cancellationEffectiveDate <= today)) {
     return { result: "inactive", granted: false };
   }
 

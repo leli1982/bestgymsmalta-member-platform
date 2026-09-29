@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
+import { getSystemContext } from "@/lib/systemAuth";
 
 export const dynamic = "force-dynamic";
 
 const BUCKET_NAME = "bgm-gym-logos";
 
-function isAdmin(request: NextRequest) {
-  return requireAdmin(request) === null;
+async function isAdmin(request: NextRequest) {
+  if (requireAdmin(request) === null) return true;
+  const context = await getSystemContext(request);
+  return Boolean(context?.isSuperAdmin);
 }
 
 function safeFileName(name: string) {
@@ -22,7 +25,7 @@ function safeFileName(name: string) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAdmin(request)) {
+  if (!(await isAdmin(request))) {
     return NextResponse.json({ error: "Not authorised." }, { status: 401 });
   }
 

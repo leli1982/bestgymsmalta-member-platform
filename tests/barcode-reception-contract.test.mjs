@@ -15,7 +15,7 @@ const page = fs.readFileSync(
   "utf8"
 );
 const staffHome = fs.readFileSync(
-  new URL("../components/staff/StaffLoginPage.tsx", import.meta.url),
+  new URL("../components/staff/StaffDashboard.tsx", import.meta.url),
   "utf8"
 );
 
@@ -39,9 +39,22 @@ test("launch reception uses barcode scanner UX", () => {
   assert.doesNotMatch(page, /NfcReceptionPage/);
 });
 
-test("enabled staff reception tile navigates with barcode permission", () => {
-  assert.match(staffHome, /Reception \/ Barcode/);
-  assert.match(staffHome, /barcode\.scan/);
+test("staff home is scanner-ready while the full reception tile remains available", () => {
+  assert.match(staffHome, /StaffHomeScanner/);
+  assert.match(staffHome, /Reception Tools/);
+  assert.match(staffHome, /can\(["']barcode\.scan["']\)/);
   assert.match(staffHome, /href="\/staff\/reception"/);
-  assert.match(staffHome, /enabled\s*&&\s*href/);
+  assert.match(staffHome, /disabled=\{!can\(["']barcode\.scan["']\)\}/);
+});
+
+
+test("staff home scanner provides audible success and warning feedback", () => {
+  const scanner = fs.readFileSync(
+    new URL("../components/staff/StaffHomeScanner.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(scanner, /AudioContext/);
+  assert.match(scanner, /playTone/);
+  assert.match(scanner, /success/);
+  assert.match(scanner, /warning/);
 });

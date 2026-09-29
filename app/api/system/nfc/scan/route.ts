@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { recordCanonicalCheckin } from "@/lib/checkinService";
 import { evaluateNfcAccess } from "@/lib/nfcAccessCore";
+import { todayMaltaDate } from "@/lib/maltaDate";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
 
@@ -15,7 +16,7 @@ function normalizeCardUid(value: unknown) {
 }
 
 function todayString() {
-  return new Date().toISOString().slice(0, 10);
+  return todayMaltaDate();
 }
 
 export async function POST(request: NextRequest) {
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
       const memberResult = await supabase
         .from("bgm_members")
         .select(
-          "id, member_number, full_name, status, membership_expiry, enrollment_gym_id, official_photo_path"
+          "id, member_number, full_name, status, membership_expiry, cancellation_effective_date, enrollment_gym_id, official_photo_path"
         )
         .eq("id", card.member_id)
         .maybeSingle();
@@ -86,6 +87,7 @@ export async function POST(request: NextRequest) {
         ? {
             status: member.status,
             membershipExpiry: member.membership_expiry,
+            cancellationEffectiveDate: member.cancellation_effective_date,
           }
         : null,
       today: todayString(),

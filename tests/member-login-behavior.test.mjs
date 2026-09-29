@@ -6,6 +6,8 @@ import vm from "node:vm";
 import bcrypt from "bcryptjs";
 import ts from "typescript";
 import * as memberNumbers from "../lib/memberNumberCore.ts";
+import { todayMaltaDate } from "../lib/maltaDate.ts";
+import { isCancellationEffective } from "../lib/memberCancellationCore.ts";
 
 const require = createRequire(import.meta.url);
 const password = "login-regression-test-only";
@@ -61,6 +63,8 @@ function loginHarness(members) {
     require(specifier) {
       if (specifier === "@/lib/supabaseAdmin") return { getSupabaseAdmin: () => database };
       if (specifier === "@/lib/memberNumberCore") return memberNumbers;
+      if (specifier === "@/lib/maltaDate") return { todayMaltaDate };
+      if (specifier === "@/lib/memberCancellationCore") return { isCancellationEffective };
       if (specifier === "@/lib/memberAuth") {
         return {
           setMemberSessionCookie(response, memberId) {

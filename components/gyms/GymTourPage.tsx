@@ -26,6 +26,10 @@ type Gym = {
   virtual_tour_url?: string | null;
 };
 
+function isMemberVisibleGym(gym: Gym) {
+  return gym.status === "active" || gym.status === "coming_soon";
+}
+
 function getMapsUrl(gym: Gym) {
   if (typeof gym.latitude === "number" && typeof gym.longitude === "number") {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
@@ -50,7 +54,9 @@ export default function GymTourPage({ gymId }: { gymId: string }) {
         });
 
         const data = await response.json();
-        const foundGym = (data.gyms || []).find((item: Gym) => item.id === gymId);
+        const foundGym = (data.gyms || []).find(
+          (item: Gym) => item.id === gymId && isMemberVisibleGym(item)
+        );
 
         setGym(foundGym || null);
       } catch {

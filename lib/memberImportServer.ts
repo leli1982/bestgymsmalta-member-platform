@@ -13,6 +13,7 @@ import { parseMemberExchangeXlsx } from "@/lib/memberExchangeWorkbook";
 import { normalizeBarcodePayload } from "@/lib/memberCardCredentialCore";
 import {
   classifyMemberImportRow,
+  classifyExistingBgmMemberImport,
   type ExistingMemberForMatch,
   type IncomingMemberForMatch,
   type MemberImportAction,
@@ -49,6 +50,7 @@ export type MemberImportPreviewResult = {
 
 type ExistingMemberDbRow = {
   id: string;
+  member_number: string;
   full_name: string | null;
   email: string | null;
   legacy_gym: string | null;
@@ -74,6 +76,7 @@ type ExistingCardCredentialDbRow = {
 
 type StagedImportRow = {
   batch_id: string;
+  membership_number: string | null;
   row_number: number;
   card_barcode: string | null;
   gym: string | null;
@@ -126,6 +129,7 @@ function dbMemberToMatch(
 ): ExistingMemberForMatch {
   return {
     id: row.id,
+    memberNumber: row.member_number,
     cardBarcode: activeCardByMemberId.get(row.id) || null,
     legacyGym: row.legacy_gym,
     legacyPkCustomer: row.legacy_pk_customer,
@@ -193,7 +197,7 @@ async function loadExistingMembers(supabase: SupabaseClient) {
     const result = await supabase
       .from("bgm_members")
       .select(
-        "id, full_name, email, legacy_gym, legacy_pk_customer, company_name, address_line_1, address_line_2, town, postcode, gender, telephone_no_1, telephone_no_2, mobile, membership_expiry, status"
+        "id, member_number, full_name, email, legacy_gym, legacy_pk_customer, company_name, address_line_1, address_line_2, town, postcode, gender, telephone_no_1, telephone_no_2, mobile, membership_expiry, status"
       )
       .order("id", { ascending: true })
       .range(from, from + PAGE_SIZE - 1);
@@ -230,8 +234,11 @@ function createMemberIndexes(
   existing: ExistingMemberDbRow[],
   credentials: ExistingCardCredentialDbRow[]
 ) {
+  const byMemberNumber = new Map<string, ExistingMemberForMatch>();
   const byCardBarcode = new Map<string, ExistingMemberForMatch[]>();
   const byLegacy = new Map<string, ExistingMemberForMatch[]>();
+  const byLegacyPk = new Map<string, ExistingMemberForMatch[]>();
+  const byNameEmail = new Map<string, ExistingMemberForMatch[]>();
   const occupiedBarcodes = new Set<string>();
   const activeCardByMemberId = new Map<string, string>();
 
@@ -246,6 +253,9 @@ function createMemberIndexes(
 
   for (const raw of existing) {
     const member = dbMemberToMatch(raw, activeCardByMemberId);
+    byMemberNumber.set(raw.member_number.trim().toUpperCase(), member);
+    const identity = [clean(member.fullName).replace(/\s+/g," ").toLocaleLowerCase("en"),clean(member.email).toLocaleLowerCase("en")].join("|");
+    if (clean(member.email) && clean(member.fullName)) byNameEmail.set(identity,[...(byNameEmail.get(identity)||[]),member]);
     const cardBarcode = clean(member.cardBarcode);
     if (cardBarcode) {
       const list = byCardBarcode.get(cardBarcode) || [];
@@ -253,6 +263,8 @@ function createMemberIndexes(
       byCardBarcode.set(cardBarcode, list);
     }
 
+    const pk = clean(member.legacyPkCustomer);
+    if (pk) byLegacyPk.set(pk, [...(byLegacyPk.get(pk) || []), member]);
     const key = legacyKey(member.legacyGym, member.legacyPkCustomer);
     if (key) {
       const list = byLegacy.get(key) || [];
@@ -261,7 +273,7 @@ function createMemberIndexes(
     }
   }
 
-  return { byCardBarcode, byLegacy, occupiedBarcodes };
+  return { byMemberNumber, byCardBarcode, byLegacy, byLegacyPk, byNameEmail, occupiedBarcodes };
 }
 
 function fileFormulaIssue(row: ParsedMemberExchangeRow) {
@@ -271,110 +283,113 @@ function fileFormulaIssue(row: ParsedMemberExchangeRow) {
     .join(" ");
 }
 
+function identityName(row: IncomingMemberForMatch | ExistingMemberForMatch) {
+  const name = "id" in row
+    ? (row.fullName || row.companyName)
+    : (row.customerName || row.companyName);
+  return clean(name).replace(/\s+/g, " ").toLocaleLowerCase("en");
+}
+function conservativeLegacyMatch(
+  incoming: IncomingMemberForMatch,
+  candidates: ExistingMemberForMatch[]
+): { action: MemberImportAction; matchedMemberId: string | null; issue: string } {
+  if (!identityName(incoming)) return { action: "invalid", matchedMemberId: null, issue: "CustomerName and CompanyName are both blank." };
+  if (candidates.length === 0) return { action: "new", matchedMemberId: null, issue: "" };
+  const name = identityName(incoming);
+  const matching = Array.from(new Map(candidates.map(x => [x.id, x])).values()).filter(x => {
+    if (!name || identityName(x) !== name) return false;
+    const a = clean(incoming.email).toLocaleLowerCase("en");
+    const b = clean(x.email).toLocaleLowerCase("en");
+    return !(a && b && a !== b);
+  });
+  if (matching.length === 1) return { action: "unchanged", matchedMemberId: matching[0].id, issue: "" };
+  return { action: "conflict", matchedMemberId: null,
+    issue: "Legacy gym/card reference is ambiguous or conflicts with an existing member. Review rather than guessing or creating a duplicate." };
+}
 function classifyRows(
   parsed: ParsedMemberExchangeFile,
   batchId: string,
   indexes: ReturnType<typeof createMemberIndexes>
 ) {
-  const explicitCardCounts = new Map<string, number>();
+  const bgmCounts = new Map<string, number>();
+  const sourceIdentityCounts = new Map<string, number>();
   for (const row of parsed.rows) {
-    const barcode = normalizeBarcodePayload(row.values.CardBarcode);
-    if (barcode) {
-      explicitCardCounts.set(barcode, (explicitCardCounts.get(barcode) || 0) + 1);
-    }
+    const value = row.values;
+    const id = clean(value.MembershipNumber).toUpperCase();
+    if (id) bgmCounts.set(id, (bgmCounts.get(id) || 0) + 1);
+    const key = [clean(value.Gym).toLocaleLowerCase("en"), clean(value.pkCustomer), clean(value.CustomerName || value.CompanyName).replace(/\s+/g, " ").toLocaleLowerCase("en"), clean(value.Email).toLocaleLowerCase("en")].join("\\u0000");
+    sourceIdentityCounts.set(key, (sourceIdentityCounts.get(key) || 0) + 1);
   }
-
   const staged: StagedImportRow[] = [];
   const issues: MemberImportIssuePreview[] = [];
-  const counts: Record<MemberImportAction, number> = {
-    new: 0,
-    update: 0,
-    unchanged: 0,
-    conflict: 0,
-    invalid: 0,
-  };
+  const counts: Record<MemberImportAction, number> = { new: 0, update: 0, unchanged: 0, conflict: 0, invalid: 0 };
+  const alreadyMatchedMembers = new Set<string>();
   let cardRows = 0;
   let blankCardRows = 0;
-
   for (const row of parsed.rows) {
-    const values = row.values;
-    const cardBarcode = normalizeBarcodePayload(values.CardBarcode);
+    const v = row.values;
+    const memberNumber = clean(v.MembershipNumber).toUpperCase();
+    const legacyPk = normalizeBarcodePayload(v.pkCustomer);
+    const knownCard = indexes.byCardBarcode.get(legacyPk) || [];
+    const candidates = [
+      ...(indexes.byLegacy.get(legacyKey(v.Gym, v.pkCustomer)) || []),
+      ...knownCard,
+      ...(indexes.byLegacyPk.get(legacyPk) || []),
+      ...(indexes.byNameEmail.get([clean(v.CustomerName || v.CompanyName).replace(/\s+/g," ").toLocaleLowerCase("en"),clean(v.Email).toLocaleLowerCase("en")].join("|")) || []),
+    ];
     const incoming = incomingFromRow(row);
+    // The physical legacy card number is not a globally unique person identifier.
+    // Preserve it in pk_customer, but do not automatically mint active card credentials
+    // from the legacy workbook; reception's conservative legacy fallback handles it.
+    incoming.cardBarcode = "";
     let action: MemberImportAction;
     let matchedMemberId: string | null = null;
     let issue = fileFormulaIssue(row);
-
-    if (cardBarcode) cardRows += 1;
-    else blankCardRows += 1;
-
-    if (issue) {
-      action = "invalid";
-    } else if (
-      cardBarcode &&
-      (explicitCardCounts.get(cardBarcode) || 0) > 1
-    ) {
-      action = "conflict";
-      issue = `CardBarcode ${cardBarcode} appears more than once in this upload.`;
-    } else if (
-      cardBarcode &&
-      indexes.occupiedBarcodes.has(cardBarcode) &&
-      (indexes.byCardBarcode.get(cardBarcode) || []).length === 0
-    ) {
-      action = "conflict";
-      issue = `CardBarcode ${cardBarcode} has already been issued or reserved and cannot be reassigned.`;
+    const sourceKey = [clean(v.Gym).toLocaleLowerCase("en"), legacyPk, clean(v.CustomerName || v.CompanyName).replace(/\s+/g, " ").toLocaleLowerCase("en"), clean(v.Email).toLocaleLowerCase("en")].join("\\u0000");
+    if (legacyPk) cardRows += 1; else blankCardRows += 1;
+    if (issue) action = "invalid";
+    else if (!identityName(incoming)) { action = "invalid"; issue = "CustomerName and CompanyName are both blank."; }
+    else if (memberNumber && !/^BGM[0-9]{7}$/.test(memberNumber)) { action = "invalid"; issue = "Invalid permanent BGM membership number."; }
+    else if (memberNumber && (bgmCounts.get(memberNumber) || 0) > 1) { action = "conflict"; issue = "Duplicate permanent BGM number in uploaded sheet."; }
+    else if (!memberNumber && (sourceIdentityCounts.get(sourceKey) || 0) > 1) { action = "conflict"; issue = "Repeated gym/card/name/email identity in the workbook; review the records individually."; }
+    else if (memberNumber) {
+      const existing = indexes.byMemberNumber.get(memberNumber);
+      if (!existing) { action = "conflict"; issue = "Supplied BGM number does not belong to any current member. Leave the number blank for a new member."; }
+      else {
+        const result = classifyExistingBgmMemberImport(incoming, existing);
+        action = result.action === "update" ? "unchanged" : result.action;
+        matchedMemberId = result.matchedMemberId; issue = result.issue;
+      }
     } else {
-      const classification = classifyMemberImportRow({
-        incoming,
-        byCardBarcode: indexes.byCardBarcode.get(cardBarcode) || [],
-        legacyCandidates:
-          indexes.byLegacy.get(legacyKey(values.Gym, values.pkCustomer)) || [],
-      });
-      action = classification.action;
-      matchedMemberId = classification.matchedMemberId;
-      issue = classification.issue;
+      const result = conservativeLegacyMatch(incoming, candidates);
+      action = result.action; matchedMemberId = result.matchedMemberId; issue = result.issue;
+      // Original legacy imports only add missing people; a safely matched member
+      // must retain their current profile, expiry, BGM ID, memberships and payments.
+      if (parsed.mode === "legacy_15" && matchedMemberId) action = "unchanged";
     }
-
+    if (matchedMemberId && (action === "update" || action === "unchanged")) {
+      if (alreadyMatchedMembers.has(matchedMemberId)) {
+        action = "conflict"; issue = "More than one incoming row matches this existing member."; matchedMemberId = null;
+      } else alreadyMatchedMembers.add(matchedMemberId);
+    }
     counts[action] += 1;
-
     const stagedRow: StagedImportRow = {
-      batch_id: batchId,
-      row_number: row.rowNumber,
-      card_barcode: nullable(cardBarcode),
-      gym: nullable(values.Gym),
-      pk_customer: nullable(values.pkCustomer),
-      customer_name: nullable(values.CustomerName),
-      company_name: nullable(values.CompanyName),
-      address1: nullable(values.Address1),
-      address2: nullable(values.Address2),
-      town: nullable(values.Town),
-      postcode: nullable(values.PostCode),
-      gender: nullable(values.Gender),
-      telephone_no_1: nullable(values.TelephoneNo1),
-      telephone_no_2: nullable(values.TelephoneNo2),
-      mobile: nullable(values.Mobile),
-      email: nullable(values.Email),
-      expiry_date: nullable(values.ExpiryDate1),
-      valid_yn: nullable(normalizeLegacyValidity(values.ValidYN) || values.ValidYN),
-      source_fingerprint: fingerprint(row),
-      action,
-      matched_member_id: matchedMemberId,
-      issue: nullable(issue),
+      batch_id: batchId, row_number: row.rowNumber, membership_number: nullable(memberNumber),
+      card_barcode: null, gym: nullable(v.Gym), pk_customer: nullable(v.pkCustomer),
+      customer_name: nullable(v.CustomerName), company_name: nullable(v.CompanyName),
+      address1: nullable(v.Address1), address2: nullable(v.Address2), town: nullable(v.Town),
+      postcode: nullable(v.PostCode), gender: nullable(v.Gender), telephone_no_1: nullable(v.TelephoneNo1),
+      telephone_no_2: nullable(v.TelephoneNo2), mobile: nullable(v.Mobile), email: nullable(v.Email),
+      expiry_date: nullable(v.ExpiryDate1), valid_yn: nullable(normalizeLegacyValidity(v.ValidYN) || v.ValidYN),
+      source_fingerprint: fingerprint(row), action, matched_member_id: matchedMemberId, issue: nullable(issue),
     };
     staged.push(stagedRow);
-
     if ((action === "conflict" || action === "invalid") && issues.length < 100) {
-      issues.push({
-        rowNumber: row.rowNumber,
-        action,
-        cardBarcode,
-        customerName: clean(values.CustomerName) || clean(values.CompanyName),
-        gym: clean(values.Gym),
-        pkCustomer: clean(values.pkCustomer),
-        issue: issue || "Review this row before import.",
-      });
+      issues.push({ rowNumber: row.rowNumber, action, cardBarcode: legacyPk,
+        customerName: clean(v.CustomerName || v.CompanyName), gym: clean(v.Gym),
+        pkCustomer: clean(v.pkCustomer), issue: issue || "Review this row before import." });
     }
   }
-
   return { staged, issues, counts, cardRows, blankCardRows };
 }
 
@@ -382,11 +397,16 @@ async function insertStagingRows(
   supabase: SupabaseClient,
   rows: StagedImportRow[]
 ) {
-  for (let start = 0; start < rows.length; start += STAGING_CHUNK_SIZE) {
-    const result = await supabase
-      .from("bgm_member_import_rows")
-      .insert(rows.slice(start, start + STAGING_CHUNK_SIZE));
-    if (result.error) throw result.error;
+  // Four bounded parallel writes keep the 25k-row legacy workbook practical
+  // without opening hundreds of concurrent PostgREST connections.
+  for (let start = 0; start < rows.length; start += STAGING_CHUNK_SIZE * 4) {
+    const chunks = Array.from({ length: 4 }, (_, index) =>
+      rows.slice(start + index * STAGING_CHUNK_SIZE, start + (index + 1) * STAGING_CHUNK_SIZE)
+    ).filter(chunk => chunk.length > 0);
+    const results = await Promise.all(chunks.map(chunk =>
+      supabase.from("bgm_member_import_rows").insert(chunk)
+    ));
+    for (const result of results) if (result.error) throw result.error;
   }
 }
 
