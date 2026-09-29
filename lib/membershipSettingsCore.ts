@@ -42,13 +42,17 @@ export function normalizeDiscountCode(value: string): string {
 export function validatePriceMatrix(
   entries: PriceEntry[],
 ): { ok: true } | { ok: false; error: string } {
-  if (entries.length !== MEMBERSHIP_TYPES.length * DURATION_KEYS.length) {
-    return { ok: false, error: "Price matrix must contain exactly 21 combinations." };
+  const legacyDurationKeys = DURATION_KEYS.filter((key) => key !== "1_session");
+  const isLegacyMatrix = entries.length === MEMBERSHIP_TYPES.length * legacyDurationKeys.length;
+  const isCurrentMatrix = entries.length === MEMBERSHIP_TYPES.length * DURATION_KEYS.length;
+  if (!isLegacyMatrix && !isCurrentMatrix) {
+    return { ok: false, error: "Price matrix must contain exactly 18 legacy or 21 current combinations." };
   }
 
+  const expectedDurations = isLegacyMatrix ? legacyDurationKeys : DURATION_KEYS;
   const expected = new Set(
     MEMBERSHIP_TYPES.flatMap((membershipType) =>
-      DURATION_KEYS.map((durationKey) => `${membershipType}:${durationKey}`),
+      expectedDurations.map((durationKey) => `${membershipType}:${durationKey}`),
     ),
   );
   const seen = new Set<string>();
