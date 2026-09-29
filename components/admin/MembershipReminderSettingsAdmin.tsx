@@ -56,7 +56,6 @@ export default function MembershipReminderSettingsAdmin() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [testBusy, setTestBusy] = useState<"email" | "push" | null>(null);
 
   async function load() {
     setLoading(true);
@@ -76,30 +75,6 @@ export default function MembershipReminderSettingsAdmin() {
   }
 
   useEffect(() => { void load(); }, []);
-
-  async function sendSingleMemberTest(channel: "email" | "push") {
-    setTestBusy(channel);
-    setMessage("");
-    setError("");
-    try {
-      const response = await fetch("/api/system/membership-reminders/test-member", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channel }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "Could not send TEST reminder.");
-      setMessage(
-        channel === "email"
-          ? "TEST email sent only to BGM0000007."
-          : "TEST app notification sent only to BGM0000007."
-      );
-    } catch (testError) {
-      setError(testError instanceof Error ? testError.message : "Could not send TEST reminder.");
-    } finally {
-      setTestBusy(null);
-    }
-  }
 
   async function save() {
     setSaving(true);
@@ -187,31 +162,6 @@ export default function MembershipReminderSettingsAdmin() {
       <button type="button" disabled={saving} onClick={() => void save()} className="mt-5 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">
         {saving ? "Saving…" : "Save Membership Reminder Settings"}
       </button>
-
-      <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-        <p className="text-sm font-black text-amber-900">TEST Preview only · BGM0000007</p>
-        <p className="mt-1 text-xs font-semibold leading-5 text-amber-800">
-          These buttons bypass the automatic member scan and target only BGM0000007. The master reminder switch can remain OFF.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            disabled={testBusy !== null}
-            onClick={() => void sendSingleMemberTest("email")}
-            className="rounded-xl bg-amber-900 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50"
-          >
-            {testBusy === "email" ? "Sending…" : "Send TEST email to BGM0000007"}
-          </button>
-          <button
-            type="button"
-            disabled={testBusy !== null}
-            onClick={() => void sendSingleMemberTest("push")}
-            className="rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-black text-amber-900 disabled:opacity-50"
-          >
-            {testBusy === "push" ? "Sending…" : "Send TEST app notification"}
-          </button>
-        </div>
-      </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl bg-emerald-50 p-4"><p className="text-xs font-black uppercase tracking-wide text-emerald-700">Sent</p><p className="mt-1 text-2xl font-black text-emerald-950">{totals.sent}</p></div>
