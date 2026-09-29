@@ -1,6 +1,7 @@
 export type MembershipType = "single" | "student" | "couples";
 
 export type MembershipDurationKey =
+  | "1_session"
   | "1_week"
   | "2_weeks"
   | "1_month"
@@ -25,6 +26,7 @@ export type PriceEntry = {
 
 const MEMBERSHIP_TYPES: readonly MembershipType[] = ["single", "student", "couples"];
 const DURATION_KEYS: readonly MembershipDurationKey[] = [
+  "1_session",
   "1_week",
   "2_weeks",
   "1_month",
@@ -41,7 +43,7 @@ export function validatePriceMatrix(
   entries: PriceEntry[],
 ): { ok: true } | { ok: false; error: string } {
   if (entries.length !== MEMBERSHIP_TYPES.length * DURATION_KEYS.length) {
-    return { ok: false, error: "Price matrix must contain exactly 18 combinations." };
+    return { ok: false, error: "Price matrix must contain exactly 21 combinations." };
   }
 
   const expected = new Set(
