@@ -6,11 +6,12 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-async function requireAppMember(request: NextRequest) {
+async function requireAppMember(
+  request: NextRequest,
+): Promise<{ memberId: string } | { error: NextResponse }> {
   const session = getMemberRequestSession(request);
   if (!session) {
     return {
-      memberId: null,
       error: NextResponse.json({ error: "Member session required." }, { status: 401 }),
     };
   }
@@ -23,18 +24,17 @@ async function requireAppMember(request: NextRequest) {
   if (result.error) throw result.error;
   if (!result.data || result.data.app_enrolled !== true) {
     return {
-      memberId: null,
       error: NextResponse.json({ error: "Activate the member app before enabling notifications." }, { status: 403 }),
     };
   }
 
-  return { memberId: session.memberId, error: null };
+  return { memberId: session.memberId };
 }
 
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireAppMember(request);
-    if (auth.error || !auth.memberId) return auth.error;
+    if ("error" in auth) return auth.error;
 
     const supabase = getSupabaseAdmin();
     const [settingsResult, subscriptionResult] = await Promise.all([
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAppMember(request);
-    if (auth.error || !auth.memberId) return auth.error;
+    if ("error" in auth) return auth.error;
 
     const body = await request.json();
     const action = String(body.action || "").trim().toLowerCase();
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const auth = await requireAppMember(request);
-    if (auth.error || !auth.memberId) return auth.error;
+    if ("error" in auth) return auth.error;
 
     const body = await request.json();
     const endpoint = String(body.endpoint || "").trim();
