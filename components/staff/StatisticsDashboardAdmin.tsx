@@ -44,6 +44,7 @@ const options: Array<{
 export default function StatisticsDashboardAdmin() {
   const [view, setView] = useState<View>("overview");
   const selected = options.find((option) => option.key === view)!;
+  const SelectedIcon = selected.icon;
 
   return (
     <main className="bgm-admin-light min-h-screen bg-[#f6f6f6] px-4 py-6 text-zinc-950 sm:px-8">
@@ -89,7 +90,7 @@ export default function StatisticsDashboardAdmin() {
 
         <section className="rounded-3xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6">
           <div className="mb-5 flex items-start gap-3 border-b border-zinc-100 pb-4">
-            <selected.icon className="mt-0.5 h-6 w-6 text-[#ff5a0a]" />
+            <SelectedIcon className="mt-0.5 h-6 w-6 text-[#ff5a0a]" />
             <div>
               <h2 className="text-2xl font-black">{selected.label}</h2>
               <p className="mt-1 text-sm font-semibold text-zinc-500">{selected.description}</p>
