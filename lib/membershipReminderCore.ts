@@ -95,7 +95,7 @@ export function buildMembershipReminderPush(input: {
   return {
     title: "BestGymsMalta membership reminder",
     body: `Your membership expires ${reminderLeadLabel(input.daysBefore)} on ${expiry}. Renew soon to keep uninterrupted access.`,
-    url: "/more",
+    url: "/notifications",
     tag: `bgm-membership-expiry-${input.expiryDate}-${input.daysBefore}`,
   };
 }
