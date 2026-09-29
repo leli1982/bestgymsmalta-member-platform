@@ -11,6 +11,7 @@ import {
   Stamp,
   UserCircle,
 } from "lucide-react";
+import MemberReminderNotifications from "@/components/member/MemberReminderNotifications";
 import {
   clearSavedMember,
   getSavedMember,
@@ -145,6 +146,8 @@ export default function MorePage() {
           </div>
           <ChevronRight className="shrink-0 text-[#ff5a0a]" size={20} strokeWidth={3} />
         </a>
+
+        {member ? <MemberReminderNotifications /> : null}
 
         {member ? (
           <button
