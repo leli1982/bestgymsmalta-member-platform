@@ -3,7 +3,7 @@ import { runMembershipExpiryReminders } from "@/lib/membershipReminderEngine";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   const secret = String(process.env.CRON_SECRET || "").trim();
