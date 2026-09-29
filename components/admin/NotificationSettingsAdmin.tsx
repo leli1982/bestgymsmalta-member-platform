@@ -218,7 +218,7 @@ export default function NotificationSettingsAdmin() {
             <h1 className="mt-1 text-3xl font-bold">Notifications</h1>
             <p className="mt-2 text-sm text-zinc-600">Configure how new Sundries and Bar orders alert management.</p>
           </div>
-          <a href="/bgm-admin/system-users" className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold">Back to System Users</a>
+          <a href="/staff/admin" className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold">Back to Super Admin</a>
         </header>
 
         {error && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
