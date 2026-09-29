@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, ArrowUpRight, Beer, Bell, BellRing, Building2, ClipboardList, Dumbbell,
+  ArrowLeft, ArrowUpRight, Beer, Bell, BellRing, Building2, ChartNoAxesCombined, ClipboardList, Dumbbell,
   FileBarChart2, KeyRound, Megaphone, RefreshCw, Settings2, ShieldCheck, UserPlus, UsersRound, Barcode, ShoppingBasket,
 } from "lucide-react";
 
@@ -29,6 +29,11 @@ const sections: Section[] = [
     href: "/staff/bar/reports", label: "Bar reports",
     description: "Review submitted Bar Lists, cash comparisons and totals by gym and date.",
     icon: FileBarChart2, group: "Operations",
+  },
+  {
+    href: "/staff/admin/statistics", label: "Statistics & analytics",
+    description: "Retention, renewals, revenue, gym usage, engagement, busy periods and detailed existing reports.",
+    icon: ChartNoAxesCombined, group: "Management",
   },
   {
     href: "/staff/admin/announcements", label: "Announcements",
