@@ -214,6 +214,75 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  // A physical card is checked before legacy pkCustomer because those legacy
+  // customer numbers were historically reused and may collide with card values.
+  // Combine modern credentials and imported Scan3 claims so a shared card
+  // returns every possible member instead of selecting an arbitrary record.
+  const [activeCardResult, legacyCardClaimResult] = await Promise.all([
+    supabase
+      .from("bgm_member_card_credentials")
+      .select("member_id")
+      .eq("barcode_value", query)
+      .eq("status", "active")
+      .limit(50),
+    supabase
+      .from("bgm_legacy_card_claims")
+      .select("member_id")
+      .eq("scan3", query.toUpperCase())
+      .eq("assignment_status", "active")
+      .limit(50),
+  ]);
+  if (activeCardResult.error || legacyCardClaimResult.error) {
+    console.error(activeCardResult.error || legacyCardClaimResult.error);
+    return NextResponse.json(
+      { error: "Could not search member cards." },
+      { status: 500 }
+    );
+  }
+
+  const modernCardMemberIds = (activeCardResult.data || [])
+    .map((card) => card.member_id)
+    .filter((id): id is string => Boolean(id));
+  const legacyCardMemberIds = (legacyCardClaimResult.data || [])
+    .map((claim) => claim.member_id)
+    .filter((id): id is string => Boolean(id));
+  const cardMemberIds = Array.from(
+    new Set([...modernCardMemberIds, ...legacyCardMemberIds])
+  );
+
+  if (cardMemberIds.length) {
+    const cardMembersResult = await supabase
+      .from("bgm_members")
+      .select(MEMBER_SEARCH_FIELDS)
+      .in("id", cardMemberIds)
+      .neq("status", "archived");
+    if (cardMembersResult.error) {
+      console.error(cardMembersResult.error);
+      return NextResponse.json(
+        { error: "Could not find the member assigned to this card." },
+        { status: 500 }
+      );
+    }
+    const candidates = (cardMembersResult.data || [])
+      .sort(sortMembersByName)
+      .map((member) => toCandidate(member, canViewOfficialPhoto, today, gymNames))
+      .filter((candidate) =>
+        matchesStaffMemberFilter(candidate.classification, requestedStatus)
+      );
+    return NextResponse.json({
+      candidates,
+      exactMembershipNumber: false,
+      exactCardNumber: true,
+      legacyCardClaim: legacyCardMemberIds.length > 0,
+      ambiguousCard: cardMemberIds.length > 1,
+      page: 1,
+      limit,
+      total: candidates.length,
+      filter: requestedStatus,
+      hasMore: false,
+    });
+  }
+
   // Legacy pkCustomer values were historically reused. A reception lookup
   // must therefore return every matching member instead of forcing a single result.
   const exactLegacyResult = await supabase
@@ -243,46 +312,6 @@ export async function GET(request: NextRequest) {
       candidates,
       exactMembershipNumber: false,
       exactLegacyPkCustomer: true,
-      page: 1,
-      limit,
-      total: candidates.length,
-      filter: requestedStatus,
-      hasMore: false,
-    });
-  }
-
-  // Staff can find an account with either its permanent BGM number (above)
-  // or its CURRENT active physical card number; a retired card is never usable.
-  const activeCardResult = await supabase
-    .from("bgm_member_card_credentials")
-    .select("member_id")
-    .eq("barcode_value", query)
-    .eq("status", "active")
-    .limit(2);
-  if (activeCardResult.error) {
-    console.error(activeCardResult.error);
-    return NextResponse.json({ error: "Could not search member cards." }, { status: 500 });
-  }
-  const cardMemberIds = Array.from(new Set(
-    (activeCardResult.data || []).map((card) => card.member_id).filter((id): id is string => Boolean(id))
-  ));
-  if (cardMemberIds.length) {
-    const cardMembersResult = await supabase
-      .from("bgm_members")
-      .select(MEMBER_SEARCH_FIELDS)
-      .in("id", cardMemberIds)
-      .neq("status", "archived");
-    if (cardMembersResult.error) {
-      console.error(cardMembersResult.error);
-      return NextResponse.json({ error: "Could not find the member assigned to this card." }, { status: 500 });
-    }
-    const candidates = (cardMembersResult.data || [])
-      .map((member) => toCandidate(member, canViewOfficialPhoto, today, gymNames))
-      .filter((candidate) => matchesStaffMemberFilter(candidate.classification, requestedStatus));
-    return NextResponse.json({
-      candidates,
-      exactMembershipNumber: false,
-      exactCardNumber: true,
       page: 1,
       limit,
       total: candidates.length,
