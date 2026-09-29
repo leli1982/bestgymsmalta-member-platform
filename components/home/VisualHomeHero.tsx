@@ -30,14 +30,24 @@ export default function VisualHomeHero() {
       }
     }
 
+    function refreshNotifications() {
+      void loadNotifications();
+    }
+
     loadMember();
     void loadNotifications();
     window.addEventListener("bgmMemberChanged", loadMember);
-    window.addEventListener("bgmNotificationsChanged", loadNotifications);
+    window.addEventListener("bgmNotificationsChanged", refreshNotifications);
+    window.addEventListener("focus", refreshNotifications);
+    window.addEventListener("pageshow", refreshNotifications);
+    document.addEventListener("visibilitychange", refreshNotifications);
 
     return () => {
       window.removeEventListener("bgmMemberChanged", loadMember);
-      window.removeEventListener("bgmNotificationsChanged", loadNotifications);
+      window.removeEventListener("bgmNotificationsChanged", refreshNotifications);
+      window.removeEventListener("focus", refreshNotifications);
+      window.removeEventListener("pageshow", refreshNotifications);
+      document.removeEventListener("visibilitychange", refreshNotifications);
     };
   }, []);
 
