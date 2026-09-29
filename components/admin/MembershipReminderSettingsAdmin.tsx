@@ -38,7 +38,9 @@ const defaultSettings: ReminderSettings = {
   day30Enabled: true,
 };
 
-const timingOptions: Array<{ key: keyof ReminderSettings; label: string }> = [
+type TimingKey = "day1Enabled" | "day7Enabled" | "day14Enabled" | "day21Enabled" | "day30Enabled";
+
+const timingOptions: Array<{ key: TimingKey; label: string }> = [
   { key: "day1Enabled", label: "1 day" },
   { key: "day7Enabled", label: "1 week" },
   { key: "day14Enabled", label: "2 weeks" },
