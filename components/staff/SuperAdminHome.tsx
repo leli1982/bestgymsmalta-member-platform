@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, ArrowUpRight, Beer, Bell, Building2, ClipboardList, Dumbbell,
+  ArrowLeft, ArrowUpRight, Beer, Bell, BellRing, Building2, ClipboardList, Dumbbell,
   FileBarChart2, KeyRound, Megaphone, RefreshCw, Settings2, ShieldCheck, UserPlus, UsersRound, Barcode, ShoppingBasket,
 } from "lucide-react";
 
@@ -34,6 +34,11 @@ const sections: Section[] = [
     href: "/staff/admin/announcements", label: "Announcements",
     description: "Publish member news, images and links; schedule, edit or hide announcements.",
     icon: Megaphone, group: "Management",
+  },
+  {
+    href: "/bgm-admin/notifications", label: "Notifications",
+    description: "Manage order alerts, Super Admin push devices and automatic membership-expiry reminders.",
+    icon: BellRing, group: "Management",
   },
   {
     href: "/staff/admin/gyms", label: "Gym locations",
