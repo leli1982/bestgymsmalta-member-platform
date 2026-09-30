@@ -11,6 +11,7 @@ type Props = {
   max?: string;
   required?: boolean;
   disabled?: boolean;
+  readOnly?: boolean;
   className?: string;
   id?: string;
   name?: string;
@@ -25,6 +26,7 @@ export default function EuropeanDateInput({
   max,
   required = false,
   disabled = false,
+  readOnly = false,
   className = "",
   id,
   name,
@@ -82,9 +84,10 @@ export default function EuropeanDateInput({
         aria-invalid={invalid || undefined}
         required={required}
         disabled={disabled}
+        readOnly={readOnly}
         value={text}
         placeholder={placeholder}
-        onChange={(event) => applyText(event.target.value)}
+        onChange={(event) => { if (!readOnly) applyText(event.target.value); }}
         onBlur={() => {
           if (!text.trim() && !required) return;
           const parsed = parseEuropeanDate(text);
@@ -96,7 +99,7 @@ export default function EuropeanDateInput({
         type="button"
         tabIndex={-1}
         aria-label="Choose date"
-        disabled={disabled}
+        disabled={disabled || readOnly}
         onClick={openPicker}
         className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 disabled:opacity-40"
       >
@@ -108,7 +111,7 @@ export default function EuropeanDateInput({
         value={value}
         min={min}
         max={max}
-        disabled={disabled}
+        disabled={disabled || readOnly}
         tabIndex={-1}
         aria-hidden="true"
         onChange={(event) => {
