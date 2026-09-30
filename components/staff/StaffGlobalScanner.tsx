@@ -23,6 +23,8 @@ type AccessResult = {
   scannedBarcode?: string;
   credentialKind?: string | null;
   cardStatus?: string | null;
+  currentPhysicalCard?: string | null;
+  currentPhysicalCardSource?: "credential" | "legacy_scan3" | null;
   member?: {
     id: string;
     memberNumber: string;
@@ -470,30 +472,30 @@ export default function StaffGlobalScanner() {
       role="dialog"
       aria-modal="true"
       aria-label={problem ? "SCAN VERIFICATION ERROR" : result ? heading(result) : "VERIFYING MEMBER"}
-      className={`fixed inset-0 z-[1000] flex items-center justify-center overflow-auto p-4 ${color}`}
+      className={`fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto p-3 sm:items-center sm:p-4 ${color}`}
     >
-      <div className="w-full max-w-3xl rounded-3xl bg-white p-6 text-center shadow-2xl sm:p-9">
+      <div className="max-h-[calc(100vh-1.5rem)] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-5 text-center shadow-2xl sm:p-6">
         {checking ? (
           <h2 className="text-3xl font-black text-zinc-900">VERIFYING MEMBER…</h2>
         ) : problem ? (
           <>
-            <AlertTriangle className="mx-auto h-16 w-16 text-amber-600" />
+            <AlertTriangle className="mx-auto h-12 w-12 text-amber-600" />
             <h2 className="mt-3 text-3xl font-black text-amber-700">VERIFICATION UNAVAILABLE</h2>
             <p className="mt-4 text-lg font-bold text-zinc-800">{networkError}</p>
           </>
         ) : result ? (
           <>
             {granted ? (
-              <CheckCircle2 className="mx-auto h-16 w-16 text-emerald-600" />
+              <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600" />
             ) : (
-              <XCircle className="mx-auto h-16 w-16 text-red-600" />
+              <XCircle className="mx-auto h-12 w-12 text-red-600" />
             )}
-            <h2 className={`mt-3 text-4xl font-black sm:text-6xl ${granted ? "text-emerald-700" : "text-red-700"}`}>
+            <h2 className={`mt-2 text-3xl font-black sm:text-5xl ${granted ? "text-emerald-700" : "text-red-700"}`}>
               {heading(result)}
             </h2>
             {Boolean(result.cardMatches?.length) && <CardConflictCards members={result.cardMatches || []} scanId={result.scanId} />}
             {result.member ? (
-              <div className="mx-auto mt-6 flex max-w-xl flex-wrap items-center justify-center gap-5 text-left">
+              <div className="mx-auto mt-4 flex max-w-4xl flex-wrap items-center justify-center gap-4 text-left">
                 <div className="relative flex h-36 w-36 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-zinc-100 text-5xl font-black text-zinc-300">
                   {result.member.fullName.slice(0, 1)}
                   {result.member.photoUrl && !photoLoadFailed && (
@@ -507,7 +509,8 @@ export default function StaffGlobalScanner() {
                 </div>
                 <div>
                   <p className="text-2xl font-black text-zinc-950">{result.member.fullName}</p>
-                  <p className="mt-1 font-mono font-bold text-zinc-600">{result.member.memberNumber}</p>
+                  <p className="mt-1 font-mono font-bold text-zinc-600">BGM no. {result.member.memberNumber}</p>
+                  <p className="mt-1 font-mono text-sm font-bold text-zinc-700">Current card: {result.currentPhysicalCard || "Not assigned"}</p>
                   <p className="mt-2 font-bold text-zinc-700">Expiry: {result.member.membershipExpiry || "Not set"}</p>
                   <p className="text-sm font-semibold text-zinc-500">Status: {result.member.status}</p>
                 </div>
@@ -523,12 +526,14 @@ export default function StaffGlobalScanner() {
               </p>
             )}
             {granted && result.member && (result.member.photoRequired || photoLoadFailed) && (
-              <div className="mt-5 rounded-2xl bg-amber-50 p-4 text-left text-amber-900">
-                <p className="text-center text-lg font-black">PHOTO REQUIRED</p>
-                <p className="mt-1 text-center text-sm font-semibold">
-                  Entry remains granted. Capture the official member photo now or close this warning.
-                </p>
-                <div className="mx-auto mt-4 max-w-sm">
+              <div className="mt-4 grid gap-4 rounded-2xl border-4 border-amber-300 bg-amber-50 p-4 text-left text-amber-900 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:items-center">
+                <div>
+                  <p className="text-2xl font-black text-amber-700">PHOTO REQUIRED</p>
+                  <p className="mt-1 text-sm font-semibold">
+                    Entry remains granted. This warning stays open until Staff save an official photo or cancel back to the staff task.
+                  </p>
+                </div>
+                <div className="min-w-0">
                   <OfficialMemberPhotoCapture
                     memberId={result.member.id}
                     source="reception_capture"
@@ -554,11 +559,15 @@ export default function StaffGlobalScanner() {
           <button
             type="button"
             onClick={closeResult}
-            className="mt-7 w-full rounded-2xl bg-zinc-950 px-5 py-4 text-lg font-black text-white"
+            className="mt-4 w-full rounded-2xl bg-zinc-950 px-5 py-3 text-lg font-black text-white"
           >
-            {queuedCodes.current.length > 0
-              ? `Close / Verify Next (${queuedCodes.current.length} queued)`
-              : "Close / Return to Staff Task"}
+            {result?.granted && result.member && (result.member.photoRequired || photoLoadFailed)
+              ? queuedCodes.current.length > 0
+                ? `Cancel / Verify Next (${queuedCodes.current.length} queued)`
+                : "Cancel / Return to Staff Task"
+              : queuedCodes.current.length > 0
+                ? `Close / Verify Next (${queuedCodes.current.length} queued)`
+                : "Close / Return to Staff Task"}
           </button>
         )}
       </div>
