@@ -1,5 +1,7 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useEffect, useState } from "react";
 
 export type CancellationEdit = {
@@ -110,9 +112,8 @@ export default function SuperAdminMemberCancellation({
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <label className="block text-sm font-bold text-zinc-950">
           Cancellation effective date
-          <input type="date" value={effectiveDate} min={edit.today} max={max}
-            onChange={(event) => {
-              const next = event.target.value;
+          <EuropeanDateInput value={effectiveDate} min={edit.today} max={max}
+            onValueChange={(next) => {
               setEffectiveDate(next);
               onDraftChange(next !== (edit.effectiveDate || edit.today)
                 || reason !== (member.cancellationReason || ""));
