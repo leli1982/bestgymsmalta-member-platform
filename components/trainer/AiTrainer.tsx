@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDate } from "@/lib/europeanDate";
+
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   Activity,
@@ -75,17 +77,7 @@ const fieldLabelClass =
   "text-xs font-black uppercase tracking-[.18em] text-zinc-500";
 
 function formatDate(value?: string) {
-  if (!value) return "";
-
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
+  return formatEuropeanDate(value, "");
 }
 
 function normalizePlanPayload(data: any): WorkoutPlan | null {

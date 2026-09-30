@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDate } from "@/lib/europeanDate";
+
 import { useEffect, useRef, useState } from "react";
 import { Barcode, CheckCircle2, XCircle } from "lucide-react";
 import OfficialMemberPhotoCapture from "@/components/staff/OfficialMemberPhotoCapture";
@@ -259,7 +261,7 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
                     <div key={candidate.id} className="rounded-xl bg-white p-3">
                       <p className="font-black text-zinc-950">{candidate.fullName}</p>
                       <p className="mt-1 font-mono text-xs font-bold text-zinc-500">
-                        {candidate.memberNumber} · {candidate.membershipExpiry || "No expiry date"}
+                        {candidate.memberNumber} · {formatEuropeanDate(candidate.membershipExpiry, "No expiry date")}
                       </p>
                     </div>
                   ))}
@@ -307,7 +309,7 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
                   <div className="rounded-2xl bg-zinc-100 p-4">
                     <p className="text-xs font-bold text-zinc-500">Expiry</p>
                     <p className="mt-1 font-black">
-                      {result.member.membershipExpiry || "Not set"}
+                      {formatEuropeanDate(result.member.membershipExpiry, "Not set")}
                     </p>
                   </div>
                   <div className="rounded-2xl bg-zinc-100 p-4">

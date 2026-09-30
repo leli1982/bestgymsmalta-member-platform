@@ -1,5 +1,7 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import {
   useEffect,
   useState } from "react";
@@ -954,25 +956,23 @@ export default function BgmAdminPage() {
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
-                  <input
-                    type="date"
+                  <EuropeanDateInput
                     value={announcementForm.start_date}
-                    onChange={(event) =>
+                    onValueChange={(value) =>
                       setAnnouncementForm({
                         ...announcementForm,
-                        start_date: event.target.value,
+                        start_date: value,
                       })
                     }
                     className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold outline-none"
                   />
 
-                  <input
-                    type="date"
+                  <EuropeanDateInput
                     value={announcementForm.end_date}
-                    onChange={(event) =>
+                    onValueChange={(value) =>
                       setAnnouncementForm({
                         ...announcementForm,
-                        end_date: event.target.value,
+                        end_date: value,
                       })
                     }
                     className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold outline-none"

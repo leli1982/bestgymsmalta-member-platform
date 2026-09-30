@@ -220,7 +220,7 @@ try {
   const identityResponse = page.waitForResponse("**/api/public/membership-enrollment/identity-check");
   await idInput.press("Tab");
   await identityResponse;
-  await page.getByLabel("Date of birth", { exact: true }).fill("1995-05-20");
+  await page.getByLabel("Date of birth", { exact: true }).fill("20/05/1995");
   await page.getByLabel("Address", { exact: true }).fill("1 Browser Street");
   await page.getByLabel("Town / locality", { exact: true }).fill("Birkirkara");
   await page.getByLabel("Mobile / phone", { exact: true }).fill("79000000");

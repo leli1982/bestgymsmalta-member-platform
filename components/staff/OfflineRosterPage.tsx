@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDateTime } from "@/lib/europeanDate";
+
 import { useEffect, useMemo, useState } from "react";
 import {
   loadOfflineRoster,
@@ -90,7 +92,7 @@ export default function OfflineRosterPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm text-zinc-500">Last synced</p>
-                  <p className="font-bold">{new Date(snapshot.generatedAt).toLocaleString()}</p>
+                  <p className="font-bold">{formatEuropeanDateTime(snapshot.generatedAt)}</p>
                   <p className="mt-1 text-sm text-zinc-500">{snapshot.memberCount} active members in this local copy</p>
                 </div>
                 <div className={`rounded-xl px-3 py-2 text-sm font-bold ${ageState === "current" ? "bg-green-100 text-green-700" : ageState === "old" ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-700"}`}>

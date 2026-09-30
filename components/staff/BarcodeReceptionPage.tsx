@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDate } from "@/lib/europeanDate";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import OfficialMemberPhotoCapture from "@/components/staff/OfficialMemberPhotoCapture";
 import CardConflictCards, { type CardConflictMember } from "@/components/staff/CardConflictCards";
@@ -335,7 +337,7 @@ export default function BarcodeReceptionPage() {
                   <div key={candidate.id} className="rounded-xl bg-white p-3 text-left">
                     <p className="font-black text-zinc-950">{candidate.fullName}</p>
                     <p className="mt-1 font-mono text-xs font-bold text-zinc-500">
-                      {candidate.memberNumber} · {candidate.membershipExpiry || "No expiry date"}
+                      {candidate.memberNumber} · {formatEuropeanDate(candidate.membershipExpiry, "No expiry date")}
                     </p>
                   </div>
                 ))}
@@ -387,7 +389,7 @@ export default function BarcodeReceptionPage() {
                 <dl className="mt-6 grid gap-3 sm:grid-cols-2">
                   <Detail
                     label="Expiry"
-                    value={result.member.membershipExpiry || "No expiry date"}
+                    value={formatEuropeanDate(result.member.membershipExpiry, "No expiry date")}
                   />
                   <Detail
                     label="Current physical card"

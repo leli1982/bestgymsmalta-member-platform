@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDate } from "@/lib/europeanDate";
+
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { BadgeCheck, CreditCard, LogIn, ShieldCheck } from "lucide-react";
@@ -53,7 +55,7 @@ export default function HomeMembershipCard() {
   }
 
   const expiryText = member.membershipExpiry
-    ? new Date(member.membershipExpiry).toLocaleDateString()
+    ? formatEuropeanDate(member.membershipExpiry)
     : "Active member";
 
   return (

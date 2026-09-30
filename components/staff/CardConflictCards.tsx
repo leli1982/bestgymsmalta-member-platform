@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDate } from "@/lib/europeanDate";
+
 import { useState } from "react";
 
 export type CardConflictMember = {
@@ -78,7 +80,7 @@ export default function CardConflictCards({ members, scanId }: {
                     {effectiveMembershipStatus(m)}
                   </span>
                   <span className="mt-2 block font-bold text-zinc-700">
-                    Expires {m.membershipExpiry || "unknown"}
+                    Expires {formatEuropeanDate(m.membershipExpiry, "unknown")}
                   </span>
                 </dd>
               </div>

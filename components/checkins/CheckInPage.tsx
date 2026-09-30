@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDateTime } from "@/lib/europeanDate";
+
 import { useEffect, useState } from "react";
 import {
   CheckCircle2,
@@ -28,19 +30,7 @@ function getGymLogo(gym: Gym | null) {
 }
 
 function formatDateTime(value?: string) {
-  if (!value) return "";
-
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
+  return formatEuropeanDateTime(value, "");
 }
 
 export default function CheckInPage({ gymId }: { gymId: string }) {

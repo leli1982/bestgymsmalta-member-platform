@@ -1,5 +1,9 @@
 "use client";
 
+import { formatEuropeanDate, formatEuropeanDateTime } from "@/lib/europeanDate";
+
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BadgeCheck,
@@ -130,17 +134,7 @@ function editableSnapshot(application: Application) {
 }
 
 function formatMalta(value: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Malta",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  return formatEuropeanDateTime(value);
 }
 
 function formatMoney(cents: number | null, currency: string) {
@@ -741,7 +735,7 @@ export default function StaffMembershipReviewModal({
               <div className="grid gap-4 sm:grid-cols-3">
                 <Summary label="Historical base price" value={formatMoney(application.basePriceCents, application.currency)} />
                 <Summary label="Membership" value={`${application.membershipType} · ${application.durationKey.replaceAll("_", " ")}`} />
-                <Summary label="Dates" value={`${application.startDate} → ${application.expiryDate}`} />
+                <Summary label="Dates" value={`${formatEuropeanDate(application.startDate)} → ${formatEuropeanDate(application.expiryDate)}`} />
               </div>
               {declarationEntries(application.declarationSnapshot).length > 0 && (
                 <details className="mt-4 rounded-2xl bg-zinc-50 p-4">
@@ -1390,12 +1384,20 @@ function Field({
   return (
     <label className="text-xs font-black uppercase tracking-wide text-zinc-400">
       {label}
-      <input
-        type={type}
-        value={value || ""}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-1.5 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-zinc-900 outline-none focus:border-[#ff5a0a] focus:ring-3 focus:ring-orange-100"
-      />
+      {type === "date" ? (
+        <EuropeanDateInput
+          value={value || ""}
+          onValueChange={onChange}
+          className="mt-1.5 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-zinc-900 outline-none focus:border-[#ff5a0a] focus:ring-3 focus:ring-orange-100"
+        />
+      ) : (
+        <input
+          type={type}
+          value={value || ""}
+          onChange={(event) => onChange(event.target.value)}
+          className="mt-1.5 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-zinc-900 outline-none focus:border-[#ff5a0a] focus:ring-3 focus:ring-orange-100"
+        />
+      )}
     </label>
   );
 }

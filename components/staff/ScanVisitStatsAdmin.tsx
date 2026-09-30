@@ -1,5 +1,7 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BarChart3, Clock3, RefreshCw, ScanLine, UsersRound } from "lucide-react";
 import { isValidCalendarDate, todayMaltaDate } from "@/lib/maltaDate";
@@ -190,10 +192,10 @@ export default function ScanVisitStatsAdmin() {
           </select>
         </label>
         <label className="text-sm font-black">From (Malta date)
-          <input type="date" aria-label="Check-in statistics from date" value={from} onChange={(e) => setFrom(e.target.value)} className={controlClass}/>
+          <EuropeanDateInput ariaLabel="Check-in statistics from date" value={from} onValueChange={setFrom} className={controlClass}/>
         </label>
         <label className="text-sm font-black">To (Malta date)
-          <input type="date" aria-label="Check-in statistics to date" value={to} onChange={(e) => setTo(e.target.value)} className={controlClass}/>
+          <EuropeanDateInput ariaLabel="Check-in statistics to date" value={to} onValueChange={setTo} className={controlClass}/>
         </label>
         <div className="flex flex-wrap gap-2 sm:col-span-3">
           {([["today", "Today"], ["week", "Last 7 days"], ["month", "This month"]] as const)

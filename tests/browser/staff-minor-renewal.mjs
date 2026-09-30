@@ -62,7 +62,7 @@ try {
   await page.goto(origin + "/staff/members/enroll?kind=renewal&memberNumber=BGMTESTMINOR");
   await page.getByText("Confirmed existing member", { exact: true }).waitFor();
   await page.getByLabel("Membership Type").selectOption("student");
-  await page.getByLabel("Starting Date").fill("2026-09-25");
+  await page.getByLabel("Starting Date").fill("25/09/2026");
   await page.getByLabel("Staff Name").fill("TEST Staff");
   await page.getByText("Parent / Guardian Declaration · v3").waitFor();
   await page.getByText(/members under 16 must be accompanied by a responsible adult/).waitFor();

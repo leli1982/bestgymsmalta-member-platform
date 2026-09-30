@@ -1,5 +1,9 @@
 "use client";
 
+import { formatEuropeanDate, formatEuropeanDateTime } from "@/lib/europeanDate";
+
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, Beer, CheckCircle2, ChevronDown, ChevronUp,
@@ -40,9 +44,6 @@ type Order = {
 type Mode = "all" | OperationalOrderType;
 type StatusFilter = "all" | OperationalOrderStatus;
 const statuses: StatusFilter[] = ["all", "submitted", "ordered", "completed", "cancelled"];
-const timeFormatter = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "Europe/Malta", dateStyle: "medium", timeStyle: "short",
-});
 
 function statusClass(status: OperationalOrderStatus) {
   if (status === "completed") return "bg-emerald-50 text-emerald-700";
@@ -204,7 +205,7 @@ export default function OperationsDashboardAdmin() {
             </select>
           </label>
           <label className="text-sm font-black">Business date (Malta)
-            <input aria-label="Filter operations date" type="date" value={date} onChange={(e) => setDate(e.target.value)}
+            <EuropeanDateInput ariaLabel="Filter operations date" value={date} onValueChange={setDate}
               className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-900"/>
           </label>
           <label className="text-sm font-black">Record type
@@ -268,7 +269,7 @@ export default function OperationsDashboardAdmin() {
                     <div className="min-w-0">
                       <p className="text-xs font-black uppercase tracking-wide text-orange-700">{order.gym_name || order.gym_id}</p>
                       <h3 className="mt-0.5 text-lg font-black">{order.order_type === "sundries" ? "Sundries request" : "Bar List"} · {order.staff_name}</h3>
-                      <p className="mt-1 text-xs text-zinc-500">{timeFormatter.format(new Date(order.submitted_at))} · {order.id}</p>
+                      <p className="mt-1 text-xs text-zinc-500">{formatEuropeanDateTime(order.submitted_at)} · {order.id}</p>
                       <p className="mt-1 text-xs font-bold text-zinc-500">
                         Email: {order.email_notification_status} · Push: {order.push_notification_status}
                       </p>
@@ -314,7 +315,7 @@ export default function OperationsDashboardAdmin() {
                     )}
                     {order.notes && <p className="mt-3 text-sm text-zinc-700"><strong>Notes:</strong> {order.notes}</p>}
                     {order.order_type === "bar" && order.business_date && (
-                      <p className="mt-2 text-xs font-semibold text-zinc-500">Business date: {order.business_date}</p>
+                      <p className="mt-2 text-xs font-semibold text-zinc-500">Business date: {formatEuropeanDate(order.business_date)}</p>
                     )}
                     {order.order_type === "sundries" && nextOperationalOrderActions(order.status).length > 0 && (
                       <div className="mt-4 flex flex-wrap gap-2">

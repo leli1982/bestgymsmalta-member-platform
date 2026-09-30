@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDateTime } from "@/lib/europeanDate";
+
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "react-qr-code";
 import { Copy, QrCode, RefreshCw } from "lucide-react";
@@ -166,7 +168,7 @@ export default function GymQrAdmin({ pin }: { pin: string }) {
                 {checkin.gymName}
               </p>
               <p className="mt-1 text-xs font-bold text-white/45">
-                {new Date(checkin.checkinAt).toLocaleString()}
+                {formatEuropeanDateTime(checkin.checkinAt)}
               </p>
               <p className="mt-1 text-[11px] font-bold uppercase tracking-[.16em] text-[#fcb415]">
                 {checkin.memberId}

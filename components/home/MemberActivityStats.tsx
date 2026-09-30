@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDateTime } from "@/lib/europeanDate";
+
 import { useEffect, useState } from "react";
 import { Activity, Medal, QrCode } from "lucide-react";
 import { getSavedMember, type AppMember } from "@/lib/memberSession";
@@ -122,7 +124,7 @@ export default function MemberActivityStats() {
         <div className="mt-3 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-4">
           <Activity className="text-green-300" size={22} strokeWidth={3} />
           <p className="text-sm font-bold text-white/55">
-            Last visit: {new Date(stats.latestCheckinAt).toLocaleString()}
+            Last visit: {formatEuropeanDateTime(stats.latestCheckinAt)}
           </p>
         </div>
       ) : null}

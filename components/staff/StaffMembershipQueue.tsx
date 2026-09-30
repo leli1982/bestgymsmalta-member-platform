@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDateTime } from "@/lib/europeanDate";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, RefreshCcw, UserRound } from "lucide-react";
 import StaffMembershipReviewModal from "@/components/staff/StaffMembershipReviewModal";
@@ -35,16 +37,7 @@ type Props = {
 };
 
 function formatSubmitted(value: string | null, fallback: string) {
-  const source = value || fallback;
-  const date = new Date(source);
-  if (Number.isNaN(date.getTime())) return "Submitted";
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Malta",
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  return formatEuropeanDateTime(value || fallback, "Submitted");
 }
 
 function needsReview(application: QueueApplication) {

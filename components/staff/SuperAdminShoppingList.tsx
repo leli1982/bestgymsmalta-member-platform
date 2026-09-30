@@ -1,12 +1,11 @@
 "use client";
 
+import { formatEuropeanDateTime } from "@/lib/europeanDate";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CheckCircle2, ClipboardCheck, PackageCheck, RefreshCw, ShoppingBasket } from "lucide-react";
 import { buildShoppingList, type ShoppingListOrder, type ShoppingListLine, type ShoppingListTotal } from "@/lib/shoppingListCore";
 
-const timeFormatter = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "Europe/Malta", dateStyle: "medium", timeStyle: "short",
-});
 const quantityFormatter = new Intl.NumberFormat("en-GB", { maximumFractionDigits: 2 });
 function lineLabel(line: Pick<ShoppingListLine, "item_name" | "quantity" | "unit">) {
   return quantityFormatter.format(Number(line.quantity)) + " × " + line.item_name + (line.unit ? " (" + line.unit + ")" : "");
@@ -156,7 +155,7 @@ export default function SuperAdminShoppingList() {
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
                               <p className="font-black">Request by {order.staff_name}</p>
-                              <p className="mt-1 text-xs font-semibold text-zinc-500">{timeFormatter.format(new Date(order.submitted_at))} · {order.status === "ordered" ? "ORDERED" : "SUBMITTED"} · #{order.id.slice(0, 8)}</p>
+                              <p className="mt-1 text-xs font-semibold text-zinc-500">{formatEuropeanDateTime(order.submitted_at)} · {order.status === "ordered" ? "ORDERED" : "SUBMITTED"} · #{order.id.slice(0, 8)}</p>
                             </div>
                             <button type="button" disabled={Boolean(savingId)}
                               onClick={() => void markDelivered(order)}

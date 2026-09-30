@@ -1,5 +1,8 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+import { formatEuropeanDate } from "@/lib/europeanDate";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Banknote, RefreshCw, Repeat2 } from "lucide-react";
 import { todayMaltaDate } from "@/lib/maltaDate";
@@ -87,7 +90,7 @@ function TrendTable({ rows, mode }: { rows: any[]; mode: "month" | "week" }) {
           <tbody>
             {rows.map((row) => (
               <tr key={row.period} className="border-t border-zinc-100">
-                <td className="px-4 py-3 font-black">{mode === "month" ? monthLabel(row.period) : "Week of " + row.period}</td>
+                <td className="px-4 py-3 font-black">{mode === "month" ? monthLabel(row.period) : "Week of " + formatEuropeanDate(row.period)}</td>
                 <td className="px-4 py-3 tabular-nums">{row.newMemberships}</td>
                 <td className="px-4 py-3 tabular-nums">{row.renewals}</td>
                 <td className="px-4 py-3 font-black tabular-nums">{row.total}</td>
@@ -167,10 +170,10 @@ export default function BusinessAnalyticsAdmin({ section }: { section: Section }
         </select>
       </label>
       <label className="text-sm font-black">From
-        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="mt-1 block w-full rounded-xl border border-zinc-300 px-3 py-3 text-sm" />
+        <EuropeanDateInput value={from} onValueChange={setFrom} className="mt-1 block w-full rounded-xl border border-zinc-300 px-3 py-3 text-sm" />
       </label>
       <label className="text-sm font-black">To
-        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="mt-1 block w-full rounded-xl border border-zinc-300 px-3 py-3 text-sm" />
+        <EuropeanDateInput value={to} onValueChange={setTo} className="mt-1 block w-full rounded-xl border border-zinc-300 px-3 py-3 text-sm" />
       </label>
       <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 py-3 text-sm font-black text-white disabled:opacity-50">
         <RefreshCw className="h-4 w-4" /> {loading ? "Loading…" : "Refresh"}
@@ -316,10 +319,11 @@ export default function BusinessAnalyticsAdmin({ section }: { section: Section }
               <div className="border-b border-zinc-100 p-4"><h3 className="font-black">Check-ins & visits per active member by gym</h3></div>
               <div className="max-h-[440px] overflow-auto">
                 {data.usage.byGym.map((row: any) => (
-                  <div key={row.gymId} className="grid gap-1 border-t border-zinc-100 px-4 py-3 text-sm sm:grid-cols-[1fr_auto_auto_auto]">
+                  <div key={row.gymId} className="grid gap-1 border-t border-zinc-100 px-4 py-3 text-sm sm:grid-cols-[1fr_auto_auto_auto_auto]">
                     <span className="font-black">{row.gymName}</span>
                     <span>{row.visits} visits</span>
                     <span>{row.uniqueMembers} visitors</span>
+                    <span>{int.format(row.activeMembers)} active members</span>
                     <span className="font-black text-orange-700">{row.visitsPerActiveMember} / active member</span>
                   </div>
                 ))}
@@ -374,7 +378,7 @@ export default function BusinessAnalyticsAdmin({ section }: { section: Section }
                 data.engagement.inactiveMembers.map((member: any) => (
                   <div key={member.memberNumber + member.lastVisit} className="grid gap-1 border-t border-zinc-100 px-4 py-3 text-sm sm:grid-cols-[1fr_1fr_auto]">
                     <div><p className="font-black">{member.fullName}</p><p className="text-xs font-semibold text-zinc-500">{member.memberNumber} · {member.gymName}</p></div>
-                    <div className="text-zinc-600">Last visit: <strong>{member.lastVisit}</strong></div>
+                    <div className="text-zinc-600">Last visit: <strong>{formatEuropeanDate(member.lastVisit)}</strong></div>
                     <div className="font-black text-red-700">{member.daysInactive} days</div>
                   </div>
                 ))}
@@ -388,7 +392,7 @@ export default function BusinessAnalyticsAdmin({ section }: { section: Section }
           <div className="grid gap-4 xl:grid-cols-2">
             <Bars title="Busiest months · memberships + renewals" rows={data.trends.busiestMonths.map((r: any) => ({ ...r, label: monthLabel(r.period) }))} labelKey="label" valueKey="total" />
             <Bars title="Quietest recorded months" rows={data.trends.quietestMonths.map((r: any) => ({ ...r, label: monthLabel(r.period) }))} labelKey="label" valueKey="total" />
-            <Bars title="Busiest weeks · memberships + renewals" rows={data.trends.busiestWeeks.map((r: any) => ({ ...r, label: "Week of " + r.period }))} labelKey="label" valueKey="total" />
+            <Bars title="Busiest weeks · memberships + renewals" rows={data.trends.busiestWeeks.map((r: any) => ({ ...r, label: "Week of " + formatEuropeanDate(r.period) }))} labelKey="label" valueKey="total" />
             <Bars title="Quietest recorded weeks" rows={data.trends.quietestWeeks.map((r: any) => ({ ...r, label: "Week of " + r.period }))} labelKey="label" valueKey="total" />
           </div>
           <TrendTable rows={data.memberships.byMonth} mode="month" />

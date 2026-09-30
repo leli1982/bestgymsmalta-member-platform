@@ -1,5 +1,7 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BarChart3, CalendarDays, RefreshCw, UsersRound } from "lucide-react";
 import { todayMaltaDate, isValidCalendarDate } from "@/lib/maltaDate";
@@ -133,10 +135,10 @@ export default function MembershipStatsAdmin() {
           </select>
         </label>
         <label className="text-sm font-black">From (Malta date)
-          <input aria-label="Membership statistics from date" type="date" className={inputStyle} value={from} onChange={(event) => setFrom(event.target.value)}/>
+          <EuropeanDateInput ariaLabel="Membership statistics from date" className={inputStyle} value={from} onValueChange={setFrom}/>
         </label>
         <label className="text-sm font-black">To (Malta date)
-          <input aria-label="Membership statistics to date" type="date" className={inputStyle} value={to} onChange={(event) => setTo(event.target.value)}/>
+          <EuropeanDateInput ariaLabel="Membership statistics to date" className={inputStyle} value={to} onValueChange={setTo}/>
         </label>
         <div className="flex flex-wrap gap-2 sm:col-span-3" aria-label="Membership date shortcuts">
           {([

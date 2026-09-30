@@ -1,4 +1,7 @@
 "use client";
+
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+import { formatEuropeanDate } from "@/lib/europeanDate";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, ImagePlus, Megaphone, Pencil, Plus, RefreshCw, Save, Trash2, X } from "lucide-react";
 
@@ -172,10 +175,10 @@ export default function SuperAdminAnnouncements() {
               <input aria-label="Announcement display order" type="number" step="1" min="-1000000" max="1000000" value={form.sort_order} onChange={e => change({ sort_order: Number(e.target.value) })} className={input}/>
             </label>
             <label className="text-sm font-bold">Start date <span className="font-normal text-zinc-500">(optional)</span>
-              <input aria-label="Announcement start date" type="date" value={form.start_date} onChange={e => change({ start_date: e.target.value })} className={input}/>
+              <EuropeanDateInput ariaLabel="Announcement start date" value={form.start_date} onValueChange={(value) => change({ start_date: value })} className={input}/>
             </label>
             <label className="text-sm font-bold">End date <span className="font-normal text-zinc-500">(optional)</span>
-              <input aria-label="Announcement end date" type="date" value={form.end_date} onChange={e => change({ end_date: e.target.value })} className={input}/>
+              <EuropeanDateInput ariaLabel="Announcement end date" value={form.end_date} onValueChange={(value) => change({ end_date: value })} className={input}/>
             </label>
             <label className="text-sm font-bold sm:col-span-2">Image URL or public path <span className="font-normal text-zinc-500">(optional)</span>
               <input aria-label="Announcement image URL" value={form.image_url} onChange={e => change({ image_url: e.target.value })} className={input} placeholder="https://... or /visuals/..."/>
@@ -226,7 +229,7 @@ export default function SuperAdminAnnouncements() {
                 <p className="text-xs font-black uppercase tracking-wider text-orange-700">{item.category || "Update"} · {item.active ? "Active" : "Hidden"}</p>
                 <h3 className="mt-1 text-xl font-black">{item.title}</h3>
                 <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-600">{item.message}</p>
-                {(item.start_date || item.end_date) && <p className="mt-2 text-xs text-zinc-500">Schedule: {item.start_date || "Any date"} → {item.end_date || "No end date"}</p>}
+                {(item.start_date || item.end_date) && <p className="mt-2 text-xs text-zinc-500">Schedule: {item.start_date ? formatEuropeanDate(item.start_date) : "Any date"} → {item.end_date ? formatEuropeanDate(item.end_date) : "No end date"}</p>}
                 {item.button_text && item.button_url && <p className="mt-2 break-all text-xs text-orange-700">Button: {item.button_text} · {item.button_url}</p>}
               </div>
               {item.image_url && <img src={item.image_url} alt="" className="h-24 w-24 rounded-xl object-cover"/>}

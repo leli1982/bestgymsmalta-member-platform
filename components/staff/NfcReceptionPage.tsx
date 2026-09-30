@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDate } from "@/lib/europeanDate";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getOrCreateOfflineDeviceId } from "@/lib/offlineRosterClient";
 import { nfcReceptionPresentation } from "@/lib/nfcReceptionCore";
@@ -221,7 +223,7 @@ export default function NfcReceptionPage() {
                 <h1 className="text-4xl font-black sm:text-5xl">{result.member.fullName}</h1>
                 <p className="mt-2 text-xl font-bold text-zinc-500">{result.member.memberNumber}</p>
                 <dl className="mt-6 grid gap-3 sm:grid-cols-2">
-                  <Detail label="Expiry" value={result.member.membershipExpiry || "No expiry date"} />
+                  <Detail label="Expiry" value={formatEuropeanDate(result.member.membershipExpiry, "No expiry date")} />
                   <Detail label="Enrollment Gym" value={result.member.enrollmentGymName || "Not recorded"} />
                   <Detail label="Scanned At" value={result.gym?.name || "BGM Gym"} />
                   <Detail label="Membership" value={result.member.status.toUpperCase()} />

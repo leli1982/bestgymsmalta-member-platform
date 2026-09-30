@@ -155,6 +155,7 @@ try {
   await page.getByRole("combobox", { name: "Filter operations gym" }).selectOption("");
   await page.getByText("2 records shown").waitFor({ state: "visible" });
   await page.getByRole("button", { name: "All dates" }).click();
+  await page.waitForFunction(() => document.querySelector('input[aria-label="Filter operations date"]')?.value === "");
   assert.equal(await page.locator('input[aria-label="Filter operations date"]').inputValue(), "");
   assert.equal(captured.some((params) => params.includes("gymId=bgm-marsa")), true);
   await page.screenshot({ path: artifactDir + "/super-admin-operations.png", fullPage: true });

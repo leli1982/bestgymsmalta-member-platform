@@ -125,6 +125,14 @@ function pct(n: number, d: number) {
   return d > 0 ? Math.round((n / d) * 1000) / 10 : 0;
 }
 
+function ratio(n: number, d: number) {
+  if (d <= 0) return 0;
+  const value = n / d;
+  return value > 0 && value < 0.01
+    ? Math.round(value * 10000) / 10000
+    : Math.round(value * 100) / 100;
+}
+
 function gymForMember(member: MemberRow) {
   return member.enrollment_gym_id || LEGACY_TO_GYM_ID[String(member.legacy_gym || "").trim()] || null;
 }
@@ -254,13 +262,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const members = await allRows<MemberRow>((a, b) => {
-      let query = db.from("bgm_members")
+    // Load the full current-member identity set even when analytics is filtered
+    // by visited gym. Cross-gym visitors may belong to another enrollment gym,
+    // and historical check-ins belonging to deleted test members must not count.
+    const members = await allRows<MemberRow>((a, b) =>
+      db.from("bgm_members")
         .select("id,member_number,full_name,enrollment_gym_id,legacy_gym,membership_expiry,status,cancellation_effective_date,archived_at")
-        .order("id").range(a, b);
-      if (gymId) query = query.or(`enrollment_gym_id.eq.${gymId},legacy_gym.eq.${Object.entries(LEGACY_TO_GYM_ID).find(([, id]) => id === gymId)?.[0] || "__none__"}`);
-      return query;
-    });
+        .order("id").range(a, b)
+    );
     const activeMembers = members.filter((m) => isCurrentlyActive(m, today) && (!gymId || gymForMember(m) === gymId));
     const activeIds = new Set(activeMembers.map((m) => m.id));
     const activeByGym = new Map<string, number>();
@@ -269,7 +278,7 @@ export async function GET(request: NextRequest) {
       activeByGym.set(gid, (activeByGym.get(gid) || 0) + 1);
     }
 
-    const checkins = await allRows<CheckinRow>((a, b) => {
+    const rawCheckins = await allRows<CheckinRow>((a, b) => {
       let query = db.from("bgm_member_checkins")
         .select("member_id,gym_id,checkin_at,enrollment_gym_id_at_checkin,enrollment_snapshot_recorded")
         .gte("checkin_at", start).lt("checkin_at", end)
@@ -277,6 +286,8 @@ export async function GET(request: NextRequest) {
       if (gymId) query = query.eq("gym_id", gymId);
       return query;
     });
+    const currentMemberIds = new Set(members.map((member) => member.id));
+    const checkins = rawCheckins.filter((visit) => currentMemberIds.has(visit.member_id));
 
     const visitMembers = new Set<string>();
     const visitGymMap = new Map<string, { gymId: string; gymName: string; visits: number; unique: Set<string> }>();
@@ -489,7 +500,7 @@ export async function GET(request: NextRequest) {
         currentActiveMembers: activeMembers.length,
         visits: checkins.length,
         uniqueVisitors: visitMembers.size,
-        visitsPerActiveMember: activeMembers.length ? Math.round((checkins.length / activeMembers.length) * 100) / 100 : 0,
+        visitsPerActiveMember: ratio(checkins.length, activeMembers.length),
       },
       memberships: {
         byMonth: monthTrend,
@@ -532,7 +543,7 @@ export async function GET(request: NextRequest) {
           visits: g.visits,
           uniqueMembers: g.unique.size,
           activeMembers: activeByGym.get(g.gymId) || 0,
-          visitsPerActiveMember: activeByGym.get(g.gymId) ? Math.round((g.visits / (activeByGym.get(g.gymId) || 1)) * 100) / 100 : 0,
+          visitsPerActiveMember: ratio(g.visits, activeByGym.get(g.gymId) || 0),
         })).sort((a, b) => b.visits - a.visits),
         enrollmentToVisited: Array.from(originMovement.values()).sort((a, b) => b.visits - a.visits).slice(0, 100),
         crossGymVisits,

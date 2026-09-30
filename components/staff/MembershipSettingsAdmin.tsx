@@ -1,5 +1,9 @@
 "use client";
 
+import { formatEuropeanDateTime } from "@/lib/europeanDate";
+
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useCallback, useEffect, useState } from "react";
 import MembershipPrintOverflowPreview, {
   type MembershipPrintMeasurement,
@@ -118,15 +122,7 @@ function inputToCents(value: string) {
 }
 
 function formatDate(value: string | null) {
-  if (!value) return "Not published";
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Malta",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+  return formatEuropeanDateTime(value, "Not published");
 }
 
 function SectionTitle({ title, copy }: { title: string; copy: string }) {
@@ -497,10 +493,10 @@ export default function MembershipSettingsAdmin() {
                   <input inputMode="numeric" value={discountDraft.percentage} onChange={(event) => setDiscountDraft((current) => ({ ...current, percentage: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" placeholder="10" />
                 </label>
                 <label className="text-xs font-black text-zinc-600">Valid from
-                  <input type="date" value={discountDraft.validFrom} onChange={(event) => setDiscountDraft((current) => ({ ...current, validFrom: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" />
+                  <EuropeanDateInput value={discountDraft.validFrom} onValueChange={(value) => setDiscountDraft((current) => ({ ...current, validFrom: value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" />
                 </label>
                 <label className="text-xs font-black text-zinc-600">Valid until
-                  <input type="date" value={discountDraft.validUntil} onChange={(event) => setDiscountDraft((current) => ({ ...current, validUntil: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" />
+                  <EuropeanDateInput value={discountDraft.validUntil} onValueChange={(value) => setDiscountDraft((current) => ({ ...current, validUntil: value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" />
                 </label>
                 <label className="text-xs font-black text-zinc-600">Maximum successful uses
                   <input inputMode="numeric" value={discountDraft.maxUses} onChange={(event) => setDiscountDraft((current) => ({ ...current, maxUses: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" placeholder="Unlimited" />
@@ -574,7 +570,7 @@ export default function MembershipSettingsAdmin() {
                       </div>
                       <textarea value={declarationBodies[contentKey]} onChange={(event) => setDeclarationBodies((current) => ({ ...current, [contentKey]: event.target.value }))} className="mt-4 min-h-40 w-full rounded-2xl border border-zinc-200 p-4 text-sm leading-6 outline-none focus:border-orange-400" placeholder={`Enter ${declarationLabels[contentKey]} wording`} />
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                        <div className="text-xs font-semibold text-zinc-400">{published ? `Published at ${published.publishedAt || "—"} · contentSha256 ${published.contentSha256}` : "No published version yet."}</div>
+                        <div className="text-xs font-semibold text-zinc-400">{published ? `Published at ${formatDate(published.publishedAt)} · contentSha256 ${published.contentSha256}` : "No published version yet."}</div>
                         <div className="flex gap-2">
                           <button type="button" disabled={saving || !hasUnsavedChanges || !declarationBodies[contentKey].trim()} onClick={() => void saveDeclarationDraft(contentKey)} className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-black disabled:opacity-50">Save Draft</button>
                           <button type="button" disabled={saving || !draft || hasUnsavedChanges || printOverflow} onClick={() => void publishDeclaration(contentKey)} className="rounded-xl bg-[#ff5a0a] px-3 py-2 text-xs font-black text-white disabled:opacity-40">{published && !draft && !hasUnsavedChanges ? "Published ✓" : "Publish Declaration"}</button>

@@ -1,5 +1,8 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+import { formatEuropeanDate } from "@/lib/europeanDate";
+
 import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
@@ -151,30 +154,11 @@ function getVolume(entry: StrengthEntry) {
 }
 
 function formatDate(value: string) {
-  if (!value) return "No date";
-
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
+  return formatEuropeanDate(value, "No date");
 }
 
 function formatShortDate(value: string) {
-  if (!value) return "";
-
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
+  return formatEuropeanDate(value, "");
 }
 
 function formatNumber(value: number) {
@@ -719,14 +703,9 @@ export default function StrengthTracker() {
 
               <div className="mt-2 flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">
                 <CalendarDays size={18} className="text-zinc-400" />
-                <input
-                  type="date"
+                <EuropeanDateInput
                   value={row.progressDate}
-                  onChange={(event) =>
-                    updateRow(row.id, {
-                      progressDate: event.target.value,
-                    })
-                  }
+                  onValueChange={(value) => updateRow(row.id, { progressDate: value })}
                   className="w-full bg-transparent text-sm font-black text-zinc-950 outline-none"
                 />
               </div>
