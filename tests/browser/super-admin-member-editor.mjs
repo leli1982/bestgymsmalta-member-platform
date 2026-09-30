@@ -209,7 +209,7 @@ try {
   assert.equal(await page.locator("main").evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.screenshot({ path: artifacts + "/member-gym-changed-390.png", fullPage: true });
 
-  await page.getByLabel("Current membership expiry", { exact: true }).fill("2027-01-31");
+  await page.getByLabel("Current membership expiry", { exact: true }).fill("31/01/2027");
   assert.equal(await page.getByRole("button", { name: "Save membership dates" }).isEnabled(), true);
   assert.equal(await page.getByRole("button", { name: "Save enrollment gym" }).isEnabled(), false);
   await page.getByRole("button", { name: "Save membership dates" }).click();
@@ -222,10 +222,10 @@ try {
   assert.equal(member.memberNumber, "BGM0000123");
   await page.screenshot({ path: artifacts + "/member-dates-corrected-390.png", fullPage: true });
 
-  await page.getByLabel("Cancellation effective date").fill("2026-10-15");
+  await page.getByLabel("Cancellation effective date").fill("15/10/2026");
   assert.equal(await page.getByRole("button", { name: "Save personal details" }).isEnabled(), false);
   await page.getByRole("button", { name: "Schedule cancellation" }).click();
-  await page.getByText("Membership cancellation recorded and audited. Access stops on 2026-10-15 (Malta date).").waitFor();
+  await page.getByText("Membership cancellation recorded and audited. Access stops on 15/10/2026 (Malta date).").waitFor();
   assert.equal(cancellationChange.action, "cancel");
   assert.equal(member.cancellationEffectiveDate, "2026-10-15");
   assert.equal(member.membershipExpiry, "2027-01-31");
