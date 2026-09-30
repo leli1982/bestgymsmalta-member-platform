@@ -1,5 +1,7 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useEffect, useMemo, useState } from "react";
 import MembershipDataAdmin from "@/components/admin/MembershipDataAdmin";
 
@@ -398,14 +400,9 @@ export default function MembersAdmin({ pin }: { pin: string }) {
               <span className="text-xs font-black uppercase tracking-[.18em] text-white/35">
                 Enrolment Date
               </span>
-              <input
-                type="date"
+              <EuropeanDateInput
                 value={form.enrollmentDate || ""}
-                onChange={(event) =>
-                  updateMembershipDates({
-                    enrollmentDate: event.target.value,
-                  })
-                }
+                onValueChange={(value) => updateMembershipDates({ enrollmentDate: value })}
                 className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
               />
             </label>
@@ -450,14 +447,13 @@ export default function MembersAdmin({ pin }: { pin: string }) {
             </p>
           </div>
 
-          <input
-            type="date"
+          <EuropeanDateInput
             value={form.membershipExpiry || ""}
-            onChange={(event) =>
+            onValueChange={(value) =>
               setForm({
                 ...form,
-                membershipExpiry: event.target.value,
-                status: calculateStatus(event.target.value),
+                membershipExpiry: value,
+                status: calculateStatus(value),
               })
             }
             className="rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm font-bold text-white outline-none"
