@@ -1,5 +1,7 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useEffect, useState } from "react";
 
 export type CouplesCancellationEdit = {
@@ -80,8 +82,8 @@ export default function SuperAdminCouplesCancellation({
     </p>}
     <div className="mt-3 grid gap-3 sm:grid-cols-2">
       <label className="text-sm font-bold text-zinc-950">Effective date — both partners
-        <input type="date" value={date} min={edit.today} max={edit.expiryDate} disabled={blocked}
-          onChange={(event) => { setDate(event.target.value); onDraftChange(event.target.value !== (edit.effectiveDate || edit.today) || reason !== (member.cancellationReason || "")); setError(""); setMessage(""); }}
+        <EuropeanDateInput value={date} min={edit.today} max={edit.expiryDate} disabled={blocked}
+          onValueChange={(value) => { setDate(value); onDraftChange(value !== (edit.effectiveDate || edit.today) || reason !== (member.cancellationReason || "")); setError(""); setMessage(""); }}
           className="mt-1 block w-full rounded-xl border border-red-200 bg-white px-4 py-3 text-base disabled:opacity-60" />
       </label>
       <label className="text-sm font-bold text-zinc-950">Notes (optional)
