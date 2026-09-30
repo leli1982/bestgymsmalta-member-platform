@@ -1,5 +1,7 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ArrowLeft, BadgeCheck, Barcode, RefreshCcw, Save, ShieldCheck, UserRound } from "lucide-react";
 import { EDITABLE_PROFILE_FIELDS, type MemberProfileDraft } from "@/lib/superAdminMemberProfileCore";
@@ -416,16 +418,16 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <label className="block text-sm font-bold text-zinc-900">
                     {detail.dateEdit.membershipId ? "Current membership start date" : "Verified start date (optional for legacy imports)"}
-                    <input type="date" value={dateStart}
+                    <EuropeanDateInput value={dateStart}
                       disabled={!detail.dateEdit.allowed || saving || gymSaving || dateSaving || cancelBusy || loading}
-                      onChange={(event) => { setDateStart(event.target.value); setDateMessage(""); setDateError(""); }}
+                      onValueChange={(value) => { setDateStart(value); setDateMessage(""); setDateError(""); }}
                       className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 disabled:opacity-60"/>
                   </label>
                   <label className="block text-sm font-bold text-zinc-900">
                     Current membership expiry
-                    <input type="date" value={dateExpiry} required
+                    <EuropeanDateInput value={dateExpiry} required
                       disabled={!detail.dateEdit.allowed || saving || gymSaving || dateSaving || cancelBusy || loading}
-                      onChange={(event) => { setDateExpiry(event.target.value); setDateMessage(""); setDateError(""); }}
+                      onValueChange={(value) => { setDateExpiry(value); setDateMessage(""); setDateError(""); }}
                       className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 disabled:opacity-60"/>
                   </label>
                 </div>
