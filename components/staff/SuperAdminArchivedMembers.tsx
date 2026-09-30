@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDate } from "@/lib/europeanDate";
+
 import { useEffect, useState } from "react";
 type ArchivedMember = {
   id: string; memberNumber: string; fullName: string; membershipExpiry: string | null;
@@ -47,7 +49,7 @@ export default function SuperAdminArchivedMembers() {
           className="mt-3 block rounded-xl border border-zinc-200 p-4 hover:border-orange-400">
           <span className="font-black">{member.fullName} · {member.memberNumber}</span>
           <span className="mt-1 block text-sm text-zinc-600">Archived {member.archivedAt || "date unavailable"}
-            {" · "}Original expiry {member.membershipExpiry || "not recorded"}</span>
+            {" · "}Original expiry {formatEuropeanDate(member.membershipExpiry, "not recorded")}</span>
           {member.archivedReason && <span className="mt-1 block text-xs text-zinc-600">Reason: {member.archivedReason}</span>}
           <span className="mt-2 block text-sm font-bold text-orange-700">Open member and review Restore →</span>
         </a>
