@@ -30,6 +30,8 @@ type ScanResponse = {
   duplicate?: boolean;
   scannedBarcode?: string;
   credentialKind?: "physical_card" | "member_number" | "legacy_pk_customer" | null;
+  currentPhysicalCard?: string | null;
+  currentPhysicalCardSource?: "credential" | "legacy_scan3" | null;
   legacyMatches?: Array<{
     id: string;
     memberNumber: string;
@@ -56,7 +58,7 @@ function resultTitle(result: ScanResponse) {
   if (result.cardMatches?.length) return "SHARED CARD CONFLICT";
   if (result.result === "expired") return "MEMBERSHIP EXPIRED";
   if (result.result === "inactive") return "MEMBERSHIP INACTIVE";
-  if (result.result === "disabled_card") return "CARD NOT ACTIVE";
+  if (result.result === "disabled_card") return "CARD REPLACED";
   if (result.result === "ambiguous_card") return "DUPLICATE LEGACY NUMBER";
   return "MEMBER NOT FOUND";
 }
@@ -222,21 +224,21 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
 
       {result && (
         <div
-          className={`fixed inset-0 z-[80] flex items-center justify-center p-4 ${
+          className={`fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto p-3 sm:items-center sm:p-4 ${
             result.granted ? "bg-emerald-600" : "bg-red-600"
           }`}
           role="dialog"
           aria-modal="true"
           aria-label={resultTitle(result)}
         >
-          <div className="w-full max-w-3xl rounded-3xl bg-white p-6 text-center shadow-2xl sm:p-8">
+          <div className="max-h-[calc(100vh-1.5rem)] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-5 text-center shadow-2xl sm:p-6">
             {result.granted ? (
-              <CheckCircle2 className="mx-auto h-16 w-16 text-emerald-600" />
+              <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600" />
             ) : (
-              <XCircle className="mx-auto h-16 w-16 text-red-600" />
+              <XCircle className="mx-auto h-12 w-12 text-red-600" />
             )}
             <h2
-              className={`mt-3 text-4xl font-black sm:text-6xl ${
+              className={`mt-2 text-3xl font-black sm:text-5xl ${
                 result.granted ? "text-emerald-600" : "text-red-600"
               }`}
             >
@@ -266,7 +268,7 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
             )}
 
             {result.member ? (
-              <div className="mx-auto mt-6 max-w-xl">
+              <div className="mx-auto mt-4 max-w-4xl">
                 <div className="flex items-center justify-center gap-4">
                   <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-zinc-100 text-3xl font-black text-zinc-300">
                     {result.member.fullName.slice(0, 1).toUpperCase()}
@@ -301,11 +303,17 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
                   </div>
                 </div>
 
-                <div className="mt-5 grid grid-cols-2 gap-3 text-left">
+                <div className="mt-4 grid gap-3 text-left sm:grid-cols-3">
                   <div className="rounded-2xl bg-zinc-100 p-4">
                     <p className="text-xs font-bold text-zinc-500">Expiry</p>
                     <p className="mt-1 font-black">
                       {result.member.membershipExpiry || "Not set"}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-zinc-100 p-4">
+                    <p className="text-xs font-bold text-zinc-500">Current physical card</p>
+                    <p className="mt-1 break-all font-mono font-black">
+                      {result.currentPhysicalCard || "Not assigned"}
                     </p>
                   </div>
                   <div className="rounded-2xl bg-zinc-100 p-4">
@@ -317,12 +325,14 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
                 </div>
 
                 {result.granted && (result.member.photoRequired || photoLoadFailed) && (
-                  <div className="mt-5 rounded-2xl border-4 border-amber-300 bg-amber-50 p-4">
-                    <p className="text-2xl font-black text-amber-700">PHOTO REQUIRED</p>
-                    <p className="mt-1 text-sm font-bold text-amber-900">
-                      Entry is still granted. This warning stays open until Staff take an official photo or cancel to scan the next member.
-                    </p>
-                    <div className="mx-auto mt-4 max-w-sm text-left">
+                  <div className="mt-4 grid gap-4 rounded-2xl border-4 border-amber-300 bg-amber-50 p-4 text-left lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:items-center">
+                    <div>
+                      <p className="text-2xl font-black text-amber-700">PHOTO REQUIRED</p>
+                      <p className="mt-1 text-sm font-bold text-amber-900">
+                        Entry is still granted. This warning stays open until Staff take an official photo or cancel to scan the next member.
+                      </p>
+                    </div>
+                    <div className="min-w-0">
                       <OfficialMemberPhotoCapture
                         memberId={result.member.id}
                         source="reception_capture"
@@ -355,7 +365,7 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
             <button
               type="button"
               onClick={reset}
-              className="mt-7 w-full rounded-2xl bg-zinc-950 px-5 py-4 text-lg font-black text-white"
+              className="mt-4 w-full rounded-2xl bg-zinc-950 px-5 py-3 text-lg font-black text-white"
             >
               {result.granted && result.member && (result.member.photoRequired || photoLoadFailed)
                 ? "Cancel / Scan Next"

@@ -21,6 +21,9 @@ export async function POST(request: NextRequest) {
     const reason = clean(body.reason).toLowerCase();
     const requestedGymId = clean(body.gymId);
     const gymId = auth.context.gymId || requestedGymId;
+    const staffName = auth.context.isSuperAdmin
+      ? auth.context.displayName
+      : clean(body.staffName);
 
     if (!memberId || !barcode) {
       return NextResponse.json(
@@ -37,6 +40,12 @@ export async function POST(request: NextRequest) {
     if (!gymId) {
       return NextResponse.json({ error: "A gym context is required." }, { status: 400 });
     }
+    if (!auth.context.isSuperAdmin && staffName.length < 2) {
+      return NextResponse.json({ error: "Staff Name is required for card replacement." }, { status: 400 });
+    }
+    if (staffName.length > 120) {
+      return NextResponse.json({ error: "Staff Name is too long." }, { status: 400 });
+    }
 
     const supabase = getSupabaseAdmin();
     const result = await supabase.rpc("bgm_replace_member_card", {
@@ -45,6 +54,7 @@ export async function POST(request: NextRequest) {
       p_reason: reason,
       p_system_user_id: auth.context.systemUserId,
       p_context_gym_id: gymId,
+      p_staff_name: staffName || null,
     });
 
     if (result.error) {

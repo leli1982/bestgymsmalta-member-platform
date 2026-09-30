@@ -69,11 +69,13 @@ export async function POST(request: NextRequest) {
       | null = null;
     let cardMatches: any[] = [];
     let ambiguousPhysicalCard = false;
+    let activeLegacyClaimCount = 0;
 
     if (membershipNumber) {
       const claimsResult = await supabase.from("bgm_legacy_card_claims")
         .select("member_id").eq("scan3", membershipNumber.toUpperCase()).eq("assignment_status", "active");
       if (claimsResult.error) throw claimsResult.error;
+      activeLegacyClaimCount = (claimsResult.data || []).length;
       const cardResult = await supabase
         .from("bgm_member_card_credentials")
         .select("id, barcode_value, member_id, status")
@@ -180,7 +182,9 @@ export async function POST(request: NextRequest) {
       decision = { result: "invalid_barcode", granted: false };
     } else if (ambiguousPhysicalCard) {
       decision = { result: "ambiguous_card", granted: false };
-    } else if (card && card.status !== "active" && !member) {
+    } else if (card && card.status !== "active" && activeLegacyClaimCount === 0) {
+      // A retired/replaced modern physical card must never grant entry merely
+      // because its historical credential still points at the member.
       decision = { result: "disabled_card", granted: false };
     } else if (!member) {
       decision = { result: "unknown_card", granted: false };
@@ -225,6 +229,34 @@ export async function POST(request: NextRequest) {
 
     if (scanResult.error) throw scanResult.error;
 
+    let currentPhysicalCard: string | null = null;
+    let currentPhysicalCardSource: "credential" | "legacy_scan3" | null = null;
+    if (member) {
+      const [activeCardResult, legacyClaimResult] = await Promise.all([
+        supabase.from("bgm_member_card_credentials")
+          .select("barcode_value,updated_at")
+          .eq("member_id", member.id)
+          .eq("status", "active")
+          .order("updated_at", { ascending: false })
+          .limit(1),
+        supabase.from("bgm_legacy_card_claims")
+          .select("scan3,updated_at")
+          .eq("member_id", member.id)
+          .eq("assignment_status", "active")
+          .order("updated_at", { ascending: false })
+          .limit(1),
+      ]);
+      if (activeCardResult.error) throw activeCardResult.error;
+      if (legacyClaimResult.error) throw legacyClaimResult.error;
+      if (activeCardResult.data?.[0]?.barcode_value) {
+        currentPhysicalCard = activeCardResult.data[0].barcode_value;
+        currentPhysicalCardSource = "credential";
+      } else if (legacyClaimResult.data?.[0]?.scan3) {
+        currentPhysicalCard = legacyClaimResult.data[0].scan3;
+        currentPhysicalCardSource = "legacy_scan3";
+      }
+    }
+
     let enrollmentGymName = "";
     if (member?.enrollment_gym_id) {
       const enrollmentGymResult = await supabase
@@ -245,6 +277,8 @@ export async function POST(request: NextRequest) {
       scannedAt: scanResult.data.scanned_at,
       scannedBarcode: membershipNumber || rawMembershipNumber,
       credentialKind,
+      currentPhysicalCard,
+      currentPhysicalCardSource,
       cardStatus:
         credentialKind === "physical_card"
           ? card?.status || null

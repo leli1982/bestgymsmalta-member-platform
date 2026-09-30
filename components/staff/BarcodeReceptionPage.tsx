@@ -34,6 +34,8 @@ type ScanResponse = {
   scannedBarcode?: string;
   cardStatus?: string | null;
   credentialKind?: "physical_card" | "member_number" | "legacy_pk_customer" | null;
+  currentPhysicalCard?: string | null;
+  currentPhysicalCardSource?: "credential" | "legacy_scan3" | null;
   legacyMatches?: Array<{
     id: string;
     memberNumber: string;
@@ -388,6 +390,10 @@ export default function BarcodeReceptionPage() {
                     value={result.member.membershipExpiry || "No expiry date"}
                   />
                   <Detail
+                    label="Current physical card"
+                    value={result.currentPhysicalCard || "Not assigned"}
+                  />
+                  <Detail
                     label="Enrollment Gym"
                     value={result.member.enrollmentGymName || "Not recorded"}
                   />
@@ -409,17 +415,17 @@ export default function BarcodeReceptionPage() {
           )}
 
           {needsPhoto && result.member && (
-            <div className="mt-8 rounded-2xl border-4 border-amber-300 bg-amber-50 p-5">
-              <div className="text-center">
+            <div className="mt-6 grid gap-5 rounded-2xl border-4 border-amber-300 bg-amber-50 p-5 lg:grid-cols-[minmax(0,1fr)_minmax(340px,440px)] lg:items-center">
+              <div className="text-left">
                 <p className="text-3xl font-black text-amber-700">PHOTO REQUIRED</p>
                 <p className="mt-2 text-base font-bold text-amber-950">
-                  Access is granted and the check-in has already been recorded. Add the official member photo now if practical.
+                  Access is granted and the check-in has already been recorded.
                 </p>
                 <p className="mt-1 text-sm font-semibold text-amber-800">
                   This warning stays open until Staff save an official photo or cancel to scan the next member. It will return on every valid scan until a photo is saved.
                 </p>
               </div>
-              <div className="mx-auto mt-5 max-w-md">
+              <div className="min-w-0">
                 <OfficialMemberPhotoCapture
                   memberId={result.member.id}
                   source="reception_capture"
@@ -462,7 +468,7 @@ export default function BarcodeReceptionPage() {
 
           <button
             onClick={resetScanner}
-            className="mt-8 w-full rounded-2xl bg-zinc-900 px-5 py-4 text-lg font-black text-white"
+            className="mt-5 w-full rounded-2xl bg-zinc-900 px-5 py-3 text-lg font-black text-white"
           >
             {needsPhoto
               ? "Cancel / Scan Next"
