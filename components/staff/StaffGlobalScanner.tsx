@@ -511,7 +511,7 @@ export default function StaffGlobalScanner() {
                   <p className="text-2xl font-black text-zinc-950">{result.member.fullName}</p>
                   <p className="mt-1 font-mono font-bold text-zinc-600">BGM no. {result.member.memberNumber}</p>
                   <p className="mt-1 font-mono text-sm font-bold text-zinc-700">Current card: {result.currentPhysicalCard || "Not assigned"}</p>
-                  <p className="mt-1 font-mono text-xs font-bold text-zinc-500">Scanned: {result.scannedBarcode || "—"}</p>
+                  <p className="mt-1 text-xs font-bold text-zinc-500">Scanned: <span className="font-mono">{result.scannedBarcode || "—"}</span></p>
                   <p className="mt-2 font-bold text-zinc-700">Expiry: {result.member.membershipExpiry || "Not set"}</p>
                   <p className="text-sm font-semibold text-zinc-500">Status: {result.member.status}</p>
                 </div>
