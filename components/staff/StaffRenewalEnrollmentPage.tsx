@@ -1,5 +1,7 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import StaffMembershipReviewModal from "@/components/staff/StaffMembershipReviewModal";
@@ -874,13 +876,11 @@ export default function MembershipEnrollmentPage() {
                   </Field>
                 )}
                 <Field label="Starting Date">
-                  <input
+                  <EuropeanDateInput
                     required
-                    type="date"
                     value={startDate}
                     readOnly={kind === "renewal" && Boolean(automaticRenewalStart)}
-                    onChange={(event) => {
-                      const nextStart = event.target.value;
+                    onValueChange={(nextStart) => {
                       setStartDate(nextStart);
                       if (nextStart) {
                         setExpiryDate(
@@ -899,12 +899,11 @@ export default function MembershipEnrollmentPage() {
                   />
                 </Field>
                 <Field label="Expiry Date">
-                  <input
+                  <EuropeanDateInput
                     required
-                    type="date"
                     min={startDate || undefined}
                     value={expiryDate}
-                    onChange={(event) => setExpiryDate(event.target.value)}
+                    onValueChange={setExpiryDate}
                     className={inputClass}
                   />
                 </Field>
@@ -1104,10 +1103,9 @@ function ParticipantEditor({
           />
         </Field>
         <Field label="Date of Birth">
-          <input
-            type="date"
+          <EuropeanDateInput
             value={participant.dateOfBirth}
-            onChange={(event) => onChange(index, "dateOfBirth", event.target.value)}
+            onValueChange={(value) => onChange(index, "dateOfBirth", value)}
             readOnly={kind === "renewal"}
             className={inputClass}
           />
