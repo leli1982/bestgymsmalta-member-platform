@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDateTime } from "@/lib/europeanDate";
+
 import { useEffect, useMemo, useState } from "react";
 
 type Scope = "all" | "super_admin" | "gym_staff";
@@ -187,7 +189,7 @@ function SystemUserCard({
           <div className="flex items-center gap-2"><h3 className="text-lg font-black">{user.displayName}</h3><span className={user.isSuperAdmin ? "rounded-full bg-orange-100 px-2 py-1 text-xs font-black text-orange-700" : "rounded-full bg-zinc-100 px-2 py-1 text-xs font-black text-zinc-700"}>{user.isSuperAdmin ? "SUPER ADMIN" : "GYM STAFF"}</span></div>
           <p className="mt-1 text-sm text-zinc-600">@{user.username}{user.gymName ? " · " + user.gymName : ""}</p>
           {staffPath && <a href={staffPath} className="mt-1 block text-sm font-bold text-orange-700 underline">{staffPath}</a>}
-          <p className="mt-1 text-xs text-zinc-500">Last login: {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : "Never"}</p>
+          <p className="mt-1 text-xs text-zinc-500">Last login: {user.lastLoginAt ? formatEuropeanDateTime(user.lastLoginAt) : "Never"}</p>
         </div>
         <button type="button" disabled={disabled} onClick={() => { void onUpdate(user, { active: !user.active }); }} className={user.active ? "rounded-xl bg-emerald-100 px-4 py-2 text-sm font-black text-emerald-800 disabled:opacity-40" : "rounded-xl bg-red-100 px-4 py-2 text-sm font-black text-red-700 disabled:opacity-40"}>{user.active ? "ACTIVE · Disable" : "INACTIVE · Enable"}</button>
       </div>
