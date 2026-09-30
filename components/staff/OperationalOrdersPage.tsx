@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDateTime } from "@/lib/europeanDate";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   nextOperationalOrderActions,
@@ -495,7 +497,7 @@ export default function OperationalOrdersPage({
                       <div>
                         <p className="font-bold">{order.gym_name}</p>
                         <p className="mt-1 text-sm text-zinc-500">
-                          {new Date(order.submitted_at).toLocaleString()} · Staff: {order.staff_name}
+                          {formatEuropeanDateTime(order.submitted_at)} · Staff: {order.staff_name}
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
