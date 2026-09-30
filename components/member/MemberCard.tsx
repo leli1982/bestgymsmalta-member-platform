@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDate } from "@/lib/europeanDate";
+
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BadgeCheck, LogIn, RefreshCw, ShieldCheck } from "lucide-react";
@@ -129,7 +131,7 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
   const active = member.status === "active"
     && (!member.membershipExpiry || member.membershipExpiry.slice(0, 10) >= new Date().toISOString().slice(0, 10));
   const expiryText = member.membershipExpiry
-    ? new Date(member.membershipExpiry).toLocaleDateString()
+    ? formatEuropeanDate(member.membershipExpiry)
     : "Not set";
 
   if (variant === "home") {
