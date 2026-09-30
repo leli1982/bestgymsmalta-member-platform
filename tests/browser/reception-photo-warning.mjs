@@ -148,7 +148,9 @@ try {
       await page.screenshot({ path: artifacts + "/photo-warning-granted.png", fullPage: true });
     }
 
-    await page.getByRole("button", { name: "Allow Entry / Close", exact: true }).click();
+    await page.waitForTimeout(3_800);
+    await page.getByText("PHOTO REQUIRED", { exact: true }).first().waitFor();
+    await page.getByRole("button", { name: "Cancel / Scan Next", exact: true }).click();
     await page.getByRole("heading", { name: "READY TO SCAN", exact: true }).waitFor();
   }
 
@@ -181,7 +183,8 @@ try {
     "Warning must disappear only after saved photo is verified and shown");
   assert.equal(photoWrites, 1);
   assert.ok(photoReads >= 1, "Save must verify authenticated photo retrieval");
-  await page.getByRole("button", { name: "Scan Next Member", exact: true }).click();
+  await page.waitForTimeout(3_800);
+  await page.getByRole("heading", { name: "READY TO SCAN", exact: true }).waitFor();
   await input.fill("BGM-CARD-WARN");
   await page.getByRole("button", { name: "Process Barcode", exact: true }).click();
   await page.getByText("ACCESS GRANTED", { exact: true }).waitFor();
