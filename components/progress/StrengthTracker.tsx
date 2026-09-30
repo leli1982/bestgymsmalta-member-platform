@@ -1,6 +1,7 @@
 "use client";
 
 import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+import { formatEuropeanDate } from "@/lib/europeanDate";
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -153,30 +154,11 @@ function getVolume(entry: StrengthEntry) {
 }
 
 function formatDate(value: string) {
-  if (!value) return "No date";
-
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
+  return formatEuropeanDate(value, "No date");
 }
 
 function formatShortDate(value: string) {
-  if (!value) return "";
-
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
+  return formatEuropeanDate(value, "");
 }
 
 function formatNumber(value: number) {
