@@ -1,5 +1,7 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
@@ -719,14 +721,9 @@ export default function StrengthTracker() {
 
               <div className="mt-2 flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">
                 <CalendarDays size={18} className="text-zinc-400" />
-                <input
-                  type="date"
+                <EuropeanDateInput
                   value={row.progressDate}
-                  onChange={(event) =>
-                    updateRow(row.id, {
-                      progressDate: event.target.value,
-                    })
-                  }
+                  onValueChange={(value) => updateRow(row.id, { progressDate: value })}
                   className="w-full bg-transparent text-sm font-black text-zinc-950 outline-none"
                 />
               </div>
