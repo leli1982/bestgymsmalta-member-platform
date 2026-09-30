@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDateTime } from "@/lib/europeanDate";
+
 import { useCallback, useEffect, useState } from "react";
 import { Bell, CheckCheck, ChevronRight, RefreshCw } from "lucide-react";
 
@@ -14,16 +16,7 @@ type MemberNotification = {
 };
 
 function formatDate(value: string) {
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
+  return formatEuropeanDateTime(value);
 }
 
 export default function MemberNotificationsPage() {
