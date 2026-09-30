@@ -99,7 +99,7 @@ try {
   await page.getByLabel("First name", { exact: true }).fill("Browser");
   await page.getByLabel("Last name", { exact: true }).fill("Applicant");
   await page.getByLabel("ID card / passport number", { exact: true }).fill("TEST123M");
-  await page.getByLabel("Date of birth", { exact: true }).fill("1994-02-04");
+  await page.getByLabel("Date of birth", { exact: true }).fill("04/02/1994");
   await page.getByLabel("Address", { exact: true }).fill("1 Browser Street");
   await page.getByLabel("Town / locality", { exact: true }).fill("Birkirkara");
   await page.getByLabel("Mobile / phone", { exact: true }).fill("79000000");
