@@ -54,3 +54,21 @@ test("missing-photo warning cannot auto-close and normal auto-close resumes afte
     assert.match(ui, /Cancel \/ Scan Next/, path);
   }
 });
+
+
+test("photo-required scan surfaces are viewport-safe and use a landscape layout on larger screens", () => {
+  for (const path of [
+    "components/staff/BarcodeReceptionPage.tsx",
+    "components/staff/StaffHomeScanner.tsx",
+    "components/staff/StaffGlobalScanner.tsx",
+  ]) {
+    const ui = read(path);
+    assert.match(ui, /lg:grid-cols-\[minmax\(0,1fr\)_minmax\(/, path);
+  }
+  const home = read("components/staff/StaffHomeScanner.tsx");
+  const global = read("components/staff/StaffGlobalScanner.tsx");
+  assert.match(home, /max-h-\[calc\(100vh-1\.5rem\)\]/);
+  assert.match(home, /overflow-y-auto/);
+  assert.match(global, /max-h-\[calc\(100vh-1\.5rem\)\]/);
+  assert.match(global, /overflow-y-auto/);
+});
