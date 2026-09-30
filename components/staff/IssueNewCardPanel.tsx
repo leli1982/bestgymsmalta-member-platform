@@ -111,8 +111,7 @@ export default function IssueNewCardPanel() {
         setError(data.error || "Could not issue the replacement card.");
         return;
       }
-      setMessage(`Replacement card ${data.replacement.newBarcode} issued to ${member.fullName}. Membership dates were not changed.`);
-      setMember({ ...member, memberNumber: data.replacement.newBarcode });
+      setMessage(`Replacement card ${data.replacement.newBarcode} issued to ${member.fullName}. The permanent BGM member number remains ${member.memberNumber}; membership dates were not changed.`);
       setBarcode("");
     } catch {
       setError("Could not issue the replacement card.");
@@ -171,7 +170,7 @@ export default function IssueNewCardPanel() {
             )}
             <div>
               <h2 className="text-2xl font-black">{member.fullName}</h2>
-              <p className="mt-1 font-mono text-lg font-bold text-zinc-600">Current card: {member.memberNumber || "Not recorded"}</p>
+              <p className="mt-1 font-mono text-lg font-bold text-zinc-600">Permanent BGM no.: {member.memberNumber || "Not recorded"}</p>
               <p className="mt-2 text-sm text-zinc-500">Status: {member.status.toUpperCase()} · Expiry: {member.membershipExpiry || "Not recorded"}</p>
             </div>
           </div>
