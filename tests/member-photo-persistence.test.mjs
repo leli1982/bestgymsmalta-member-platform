@@ -40,3 +40,17 @@ test("reception, Staff Home and global scanner keep capture action available whe
     assert.match(ui, /photoRequired: false,/, path);
   }
 });
+
+
+test("missing-photo warning cannot auto-close and normal auto-close resumes after a saved photo", () => {
+  for (const path of [
+    "components/staff/BarcodeReceptionPage.tsx",
+    "components/staff/StaffHomeScanner.tsx",
+  ]) {
+    const ui = read(path);
+    assert.match(ui, /if \(resetTimer\.current\) clearTimeout\(resetTimer\.current\);/, path);
+    assert.match(ui, /setPhotoLoadFailed\(true\)/, path);
+    assert.match(ui, /setTimeout\([\s\S]*reset/, path);
+    assert.match(ui, /Cancel \/ Scan Next/, path);
+  }
+});
