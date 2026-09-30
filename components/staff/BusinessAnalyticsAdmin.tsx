@@ -1,5 +1,7 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Banknote, RefreshCw, Repeat2 } from "lucide-react";
 import { todayMaltaDate } from "@/lib/maltaDate";
@@ -167,10 +169,10 @@ export default function BusinessAnalyticsAdmin({ section }: { section: Section }
         </select>
       </label>
       <label className="text-sm font-black">From
-        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="mt-1 block w-full rounded-xl border border-zinc-300 px-3 py-3 text-sm" />
+        <EuropeanDateInput value={from} onValueChange={setFrom} className="mt-1 block w-full rounded-xl border border-zinc-300 px-3 py-3 text-sm" />
       </label>
       <label className="text-sm font-black">To
-        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="mt-1 block w-full rounded-xl border border-zinc-300 px-3 py-3 text-sm" />
+        <EuropeanDateInput value={to} onValueChange={setTo} className="mt-1 block w-full rounded-xl border border-zinc-300 px-3 py-3 text-sm" />
       </label>
       <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 py-3 text-sm font-black text-white disabled:opacity-50">
         <RefreshCw className="h-4 w-4" /> {loading ? "Loading…" : "Refresh"}
