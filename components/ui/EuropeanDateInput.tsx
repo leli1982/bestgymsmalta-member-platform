@@ -61,13 +61,12 @@ export default function EuropeanDateInput({
       onValueChange("");
       return;
     }
-    setInvalid(true);
-    onValueChange("");
+    setInvalid(false);
   }
 
   function openPicker() {
     const picker = pickerRef.current;
-    if (!picker || disabled) return;
+    if (!picker || disabled || readOnly) return;
     if (typeof picker.showPicker === "function") picker.showPicker();
     else picker.click();
   }
@@ -91,7 +90,9 @@ export default function EuropeanDateInput({
         onBlur={() => {
           if (!text.trim() && !required) return;
           const parsed = parseEuropeanDate(text);
-          setInvalid(!parsed || !inRange(parsed));
+          const invalidDate = !parsed || !inRange(parsed);
+          setInvalid(invalidDate);
+          if (invalidDate) onValueChange("");
         }}
         className={`${className} pr-11 ${invalid ? "border-red-400 ring-1 ring-red-300" : ""}`}
       />
