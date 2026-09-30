@@ -1,5 +1,7 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, Beer, CheckCircle2, ChevronDown, ChevronUp,
@@ -204,7 +206,7 @@ export default function OperationsDashboardAdmin() {
             </select>
           </label>
           <label className="text-sm font-black">Business date (Malta)
-            <input aria-label="Filter operations date" type="date" value={date} onChange={(e) => setDate(e.target.value)}
+            <EuropeanDateInput ariaLabel="Filter operations date" value={date} onValueChange={setDate}
               className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-900"/>
           </label>
           <label className="text-sm font-black">Record type
