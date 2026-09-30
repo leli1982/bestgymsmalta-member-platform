@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDate } from "@/lib/europeanDate";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RefreshCw, Search, UserRound, X } from "lucide-react";
 
@@ -205,7 +207,7 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, c
             <span className="min-w-0">
               <span className="block truncate font-black text-zinc-950">{member.fullName || `${member.firstName} ${member.lastName}`.trim()}</span>
               <span className="mt-1 block truncate text-sm text-zinc-500">
-                {member.memberNumber || "No member number"} · Expiry {member.membershipExpiry || "—"}
+                {member.memberNumber || "No member number"} · Expiry {formatEuropeanDate(member.membershipExpiry)}
               </span>
               <span className="mt-1 block truncate text-xs font-bold text-zinc-400">
                 Legacy Gym: {member.legacyGym || "—"}
@@ -283,7 +285,7 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, c
                 ["BGM member number", selected.memberNumber || "—"],
                 ["Physical card / pkCustomer", selected.legacyPkCustomer || "—"],
                 ["ID number", selected.idNumber || "—"],
-                ["Membership expiry", selected.membershipExpiry || "—"],
+                ["Membership expiry", formatEuropeanDate(selected.membershipExpiry)],
                 ["Phone", selected.mobile || "—"],
                 ["Email", selected.email || "—"],
                 ["Gym", selected.legacyGym || selected.enrollmentGymName || "—"],
