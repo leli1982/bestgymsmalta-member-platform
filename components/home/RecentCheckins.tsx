@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDateTime } from "@/lib/europeanDate";
+
 import { useEffect, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { getSavedMember } from "@/lib/memberSession";
@@ -72,7 +74,7 @@ export default function RecentCheckins() {
                 {checkin.gymName}
               </p>
               <p className="mt-1 text-xs font-bold text-white/40">
-                {new Date(checkin.checkinAt).toLocaleString()}
+                {formatEuropeanDateTime(checkin.checkinAt)}
               </p>
             </div>
 
