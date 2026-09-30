@@ -201,7 +201,7 @@ try {
   assert.equal(await page.getByRole("button", { name: "Save enrollment gym" }).isEnabled(), true);
   await page.getByRole("button", { name: "Save enrollment gym" }).click();
   await page.getByText("Current enrollment gym changed and audited. Future visits will use this gym.").waitFor();
-  await page.getByText("Marsa", { exact: true }).first().waitFor();
+  assert.equal(await page.getByRole("combobox", { name: "New enrollment gym" }).inputValue(), "bgm-marsa");
   assert.equal(gymChange.enrollmentGymId, "bgm-marsa");
   assert.equal(member.originalEnrollmentGym, "Mosta");
   assert.equal(memberships[0].enrollmentGymId, "bgm-mosta");
