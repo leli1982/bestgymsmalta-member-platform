@@ -221,18 +221,19 @@ export default function MembershipEnrollmentPage() {
         const authData = await authResponse.json();
         const gymsData = await gymsResponse.json();
         const pricingData = await pricingResponse.json().catch(() => ({}));
-        if (!pricingResponse.ok || !Array.isArray(pricingData.entries)) {
-          throw new Error(pricingData.error || "Could not load the current published membership rates.");
-        }
-        setAvailablePrices(pricingData.entries);
-        setGuardianDeclaration(pricingData.guardianDeclaration || null);
-        setUser(authData.authenticated ? authData.user : null);
+        const authenticatedUser = authData.authenticated ? authData.user : null;
+        setUser(authenticatedUser);
         setGyms(
           Array.isArray(gymsData.gyms)
             ? gymsData.gyms.filter((gym: Gym) => gym.status === "active")
             : []
         );
-        if (authData.user?.gymId) setEnrollmentGymId(authData.user.gymId);
+        if (authenticatedUser?.gymId) setEnrollmentGymId(authenticatedUser.gymId);
+        if (!pricingResponse.ok || !Array.isArray(pricingData.entries)) {
+          throw new Error(pricingData.error || "Could not load the current published membership rates.");
+        }
+        setAvailablePrices(pricingData.entries);
+        setGuardianDeclaration(pricingData.guardianDeclaration || null);
       } catch {
         setError("Could not load membership tools.");
       } finally {
@@ -614,9 +615,9 @@ export default function MembershipEnrollmentPage() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-zinc-100 px-4 text-zinc-900">
         <div className="w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-7 text-center shadow-sm">
-          <h1 className="text-2xl font-bold">Staff login required</h1>
+          <h1 className="text-2xl font-bold">System login required</h1>
           <p className="mt-2 text-sm text-zinc-600">
-            Sign in with the gym&apos;s operational account before managing memberships.
+            Sign in with a Gym Staff or Super Admin account before managing memberships.
           </p>
           <a
             href="/staff"

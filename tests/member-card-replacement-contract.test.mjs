@@ -21,6 +21,8 @@ test("standalone issue-new-card workflow exists and is reachable from reception"
   assert.match(component, /Issue New Card/);
   assert.match(component, /lost|stolen|damaged|other/);
   assert.match(component, /\/api\/system\/members\/card\/replace/);
+  assert.match(component, /Permanent BGM no\./);
+  assert.doesNotMatch(component, /setMember\(\{ \.\.\.member, memberNumber: data\.replacement\.newBarcode \}\)/);
   assert.match(page, /IssueNewCardPanel/);
   assert.match(reception, /\/staff\/reception\/issue-card/);
 });
@@ -49,4 +51,18 @@ test("replacement transaction changes only the card credential and compatibility
   assert.doesNotMatch(migration, /membership_expiry\s*=/);
   assert.doesNotMatch(migration, /enrollment_date\s*=/);
   assert.doesNotMatch(migration, /membership_period\s*=/);
+});
+
+
+test("Super Admin member editor exposes the same audited physical-card replacement flow", () => {
+  const editor = readFileSync(join(root, "components/staff/SuperAdminMemberEditor.tsx"), "utf8");
+  const detailRoute = readFileSync(join(root, "app/api/system/admin/members/[memberId]/route.ts"), "utf8");
+  assert.match(editor, /Physical card/);
+  assert.match(editor, /Replace \/ reassign physical card/);
+  assert.match(editor, /\/api\/system\/members\/card\/replace/);
+  assert.match(editor, /data-bgm-scan-input="true"/);
+  assert.match(editor, /The permanent BGM member number never changes/);
+  assert.match(detailRoute, /bgm_legacy_card_claims/);
+  assert.match(detailRoute, /activeCardSource/);
+  assert.match(detailRoute, /legacy_scan3/);
 });

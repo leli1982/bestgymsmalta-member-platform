@@ -64,5 +64,7 @@ test("Super Admin browser opens profile editor; member and payment contexts are 
   assert.match(editor, /SuperAdminMemberAccountActions/);
   assert.match(editor, /Cancellation remains separate from Archive, Restore and permanent deletion/);
   assert.match(editor, /SuperAdminMemberCancellation/);
+  assert.match(editor, /Replace \/ reassign physical card/);
+  assert.match(editor, /\/api\/system\/members\/card\/replace/);
   assert.doesNotMatch(editor, /method: "DELETE"/);
 });

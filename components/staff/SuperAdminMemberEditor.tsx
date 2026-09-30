@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { ArrowLeft, BadgeCheck, RefreshCcw, Save, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Barcode, RefreshCcw, Save, ShieldCheck, UserRound } from "lucide-react";
 import { EDITABLE_PROFILE_FIELDS, type MemberProfileDraft } from "@/lib/superAdminMemberProfileCore";
 import SuperAdminMemberCancellation, { type CancellationEdit } from "@/components/staff/SuperAdminMemberCancellation";
 import SuperAdminCouplesCancellation, { type CouplesCancellationEdit } from "@/components/staff/SuperAdminCouplesCancellation";
@@ -35,7 +35,7 @@ type DateEdit = {
   expiryDate: string;
 };
 type Detail = {
-  member: Member; activeCardNumber: string | null;
+  member: Member; activeCardNumber: string | null; activeCardSource?: "credential" | "legacy_scan3" | null;
   dateEdit: DateEdit;
   cancellationEdit: CancellationEdit;
   couplesCancellationEdit?: CouplesCancellationEdit | null;
@@ -81,6 +81,12 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
   const [dateSaving, setDateSaving] = useState(false);
   const [dateError, setDateError] = useState("");
   const [dateMessage, setDateMessage] = useState("");
+  const [cardBarcode, setCardBarcode] = useState("");
+  const [cardReason, setCardReason] = useState("lost");
+  const [cardGymId, setCardGymId] = useState("");
+  const [cardSaving, setCardSaving] = useState(false);
+  const [cardError, setCardError] = useState("");
+  const [cardMessage, setCardMessage] = useState("");
   const [cancelDraftDirty, setCancelDraftDirty] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [error, setError] = useState("");
@@ -104,6 +110,8 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
       setDetail({ ...(result as Detail), dateEdit, cancellationEdit: result.cancellationEdit });
       setProfile(profileOf(result.member));
       setGymSelection(result.member.enrollmentGymId || "");
+      const activeGymIds = new Set((result.gyms || []).filter((gym: Detail["gyms"][number]) => gym.status === "active").map((gym: Detail["gyms"][number]) => gym.id));
+      setCardGymId(activeGymIds.has(result.member.enrollmentGymId) ? result.member.enrollmentGymId : "");
       setDateStart(dateEdit.startDate);
       setDateExpiry(dateEdit.expiryDate);
     } catch (caught) {
@@ -117,7 +125,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!detail || !profile || saving || gymSaving || dateSaving || cancelBusy || gymChanged || dateChanged || cancelDraftDirty) return;
+    if (!detail || !profile || saving || gymSaving || dateSaving || cancelBusy || cardSaving || gymChanged || dateChanged || cardDraftDirty || cancelDraftDirty) return;
     setSaving(true);
     setMessage("");
     setError("");
@@ -140,7 +148,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
   }
 
   async function saveGym() {
-    if (!detail || gymSaving || saving || dateSaving || cancelBusy || !gymSelection || changed || dateChanged || cancelDraftDirty) return;
+    if (!detail || gymSaving || saving || dateSaving || cancelBusy || cardSaving || !gymSelection || changed || dateChanged || cardDraftDirty || cancelDraftDirty) return;
     setGymSaving(true);
     setGymError("");
     setGymMessage("");
@@ -168,7 +176,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
   }
 
   async function saveDates() {
-    if (!detail || !detail.dateEdit.allowed || dateSaving || saving || gymSaving || cancelBusy || changed || gymChanged || cancelDraftDirty || !dateChanged) return;
+    if (!detail || !detail.dateEdit.allowed || dateSaving || saving || gymSaving || cancelBusy || cardSaving || changed || gymChanged || cardDraftDirty || cancelDraftDirty || !dateChanged) return;
     setDateSaving(true);
     setDateError("");
     setDateMessage("");
@@ -198,10 +206,56 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
     }
   }
 
+  async function replaceCard() {
+    if (!detail || cardSaving || saving || gymSaving || dateSaving || cancelBusy || changed || gymChanged || dateChanged || cancelDraftDirty) return;
+    const barcode = cardBarcode.trim();
+    if (!barcode) {
+      setCardError("Scan or enter the replacement physical card number.");
+      return;
+    }
+    if (!cardGymId) {
+      setCardError("Select the gym handling this card replacement.");
+      return;
+    }
+    if (barcode === detail.activeCardNumber) {
+      setCardError("The new card must be different from the member's current active card.");
+      return;
+    }
+
+    setCardSaving(true);
+    setCardError("");
+    setCardMessage("");
+    try {
+      const response = await fetch("/api/system/members/card/replace", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          memberId,
+          barcode,
+          reason: cardReason,
+          gymId: cardGymId,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not replace the physical card.");
+      setCardBarcode("");
+      await load();
+      setCardMessage(
+        `Physical card ${result.replacement.newBarcode} is now active. The previous card was retired and the membership dates were not changed.`
+      );
+    } catch (caught) {
+      setCardError(caught instanceof Error ? caught.message : "Could not replace the physical card.");
+    } finally {
+      setCardSaving(false);
+    }
+  }
+
   const member = detail?.member;
   const changed = Boolean(member && profile && JSON.stringify(profile) !== JSON.stringify(profileOf(member)));
   const gymChanged = Boolean(member && gymSelection && gymSelection !== (member.enrollmentGymId || ""));
   const dateChanged = Boolean(detail && (dateStart !== detail.dateEdit.startDate || dateExpiry !== detail.dateEdit.expiryDate));
+  const cardDraftDirty = Boolean(cardBarcode.trim());
 
   return (
     <main className="bgm-admin-light min-h-screen bg-[#f6f6f6] px-4 py-6 text-zinc-950 sm:px-8">
@@ -215,7 +269,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
               <h1 className="mt-1 text-3xl font-black">Member editor</h1>
               <p className="mt-2 text-sm text-zinc-600">Personal details are editable below. Membership, card and payment records are shown separately.</p>
             </div>
-            <button type="button" onClick={() => void load()} disabled={loading || saving || gymSaving || dateSaving || cancelBusy}
+            <button type="button" onClick={() => void load()} disabled={loading || saving || gymSaving || dateSaving || cardSaving || cancelBusy}
               className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-3 text-sm font-bold disabled:opacity-50">
               <RefreshCcw size={16} /> Reload
             </button>
@@ -255,14 +309,66 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                 ))}
               </div>
               <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-zinc-100 pt-5">
-                <button disabled={!changed || gymChanged || dateChanged || cancelDraftDirty || saving || loading || gymSaving || dateSaving || cancelBusy} type="submit"
+                <button disabled={!changed || gymChanged || dateChanged || cardDraftDirty || cancelDraftDirty || saving || loading || gymSaving || dateSaving || cardSaving || cancelBusy} type="submit"
                   className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-5 py-3 font-black text-white disabled:cursor-not-allowed disabled:bg-zinc-300">
                   <Save size={17} /> {saving ? "Saving…" : "Save personal details"}
                 </button>
                 {changed && <span className="text-sm font-medium text-amber-700">You have unsaved changes.</span>}
-                {(gymChanged || dateChanged || cancelDraftDirty) && <span className="text-sm font-medium text-amber-700">Save or discard gym, membership date or cancellation changes before saving personal details.</span>}
+                {(gymChanged || dateChanged || cardDraftDirty || cancelDraftDirty) && <span className="text-sm font-medium text-amber-700">Save or discard gym, membership date, card or cancellation changes before saving personal details.</span>}
               </div>
             </form>
+            <section className="rounded-3xl border border-zinc-200 bg-white p-5 sm:p-7">
+              <div className="flex items-center gap-2"><Barcode size={22} className="text-orange-700"/><h2 className="text-xl font-black">Physical card</h2></div>
+              <p className="mt-2 text-sm text-zinc-600">
+                Current active card: <strong className="font-mono">{detail.activeCardNumber || "Not assigned"}</strong>
+                {detail.activeCardSource === "legacy_scan3" ? " · imported Scan3 card" : ""}
+              </p>
+              <p className="mt-2 text-sm text-zinc-600">Use this for a lost, stolen or damaged card, or to assign a replacement physical card. The permanent BGM member number never changes.</p>
+              <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                <label className="block text-sm font-bold text-zinc-900">
+                  Reason
+                  <select value={cardReason}
+                    onChange={(event) => { setCardReason(event.target.value); setCardError(""); setCardMessage(""); }}
+                    disabled={cardSaving || loading}
+                    className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 disabled:opacity-60">
+                    <option value="lost">Lost</option>
+                    <option value="stolen">Stolen</option>
+                    <option value="damaged">Damaged</option>
+                    <option value="other">Other</option>
+                  </select>
+                </label>
+                <label className="block text-sm font-bold text-zinc-900">
+                  Replacement handled at
+                  <select value={cardGymId}
+                    onChange={(event) => { setCardGymId(event.target.value); setCardError(""); setCardMessage(""); }}
+                    disabled={cardSaving || loading}
+                    className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 disabled:opacity-60">
+                    <option value="">Select gym</option>
+                    {detail.gyms.filter((gym) => gym.status === "active").map((gym) => (
+                      <option key={gym.id} value={gym.id}>{gym.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-sm font-bold text-zinc-900">
+                  New physical card number
+                  <input data-bgm-scan-input="true" value={cardBarcode}
+                    onChange={(event) => { setCardBarcode(event.target.value); setCardError(""); setCardMessage(""); }}
+                    onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void replaceCard(); } }}
+                    placeholder="Scan or enter new card"
+                    disabled={cardSaving || loading}
+                    className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 font-mono text-base text-zinc-950 disabled:opacity-60"/>
+                </label>
+              </div>
+              {(changed || gymChanged || dateChanged || cancelDraftDirty) && <p className="mt-3 text-sm font-bold text-amber-800">Save or discard other member changes before replacing the card.</p>}
+              {cardError && <p role="alert" className="mt-3 text-sm font-bold text-red-800">{cardError}</p>}
+              {cardMessage && <p role="status" className="mt-3 text-sm font-bold text-emerald-800">{cardMessage}</p>}
+              <button type="button" onClick={() => void replaceCard()}
+                disabled={!cardBarcode.trim() || !cardGymId || changed || gymChanged || dateChanged || cancelDraftDirty || saving || gymSaving || dateSaving || cardSaving || cancelBusy || loading}
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-orange-600 px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-zinc-300">
+                <Barcode size={17}/>{cardSaving ? "Saving card…" : detail.activeCardNumber ? "Replace / reassign physical card" : "Assign physical card"}
+              </button>
+              <p className="mt-3 rounded-xl bg-zinc-50 p-3 text-xs text-zinc-600">On success the old card is retired immediately, the new card becomes the only current card, and the action is audited. Membership dates and payment history are unchanged.</p>
+            </section>
             <section className="rounded-3xl border border-zinc-200 bg-white p-5 sm:p-7">
               <div className="flex items-center gap-2"><BadgeCheck size={22} className="text-orange-700"/><h2 className="text-xl font-black">Gym and membership</h2></div>
               <p className="mt-2 text-sm text-zinc-600">All memberships give access to every BGM gym. Enrollment gym is not changed by visiting another location.</p>
