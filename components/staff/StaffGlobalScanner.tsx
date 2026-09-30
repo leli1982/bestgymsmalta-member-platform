@@ -111,7 +111,7 @@ function heading(result: AccessResult) {
   if (result.cardMatches?.length) return "SHARED CARD CONFLICT";
   if (result.result === "expired") return "MEMBERSHIP EXPIRED";
   if (result.result === "inactive") return "MEMBERSHIP INACTIVE";
-  if (result.result === "disabled_card") return "CARD NOT ACTIVE";
+  if (result.result === "disabled_card") return "CARD REPLACED";
   if (result.result === "ambiguous_card") return "CARD NUMBER AMBIGUOUS";
   if (result.result === "invalid_barcode") return "INVALID BARCODE";
   return "MEMBER NOT FOUND";
@@ -511,6 +511,7 @@ export default function StaffGlobalScanner() {
                   <p className="text-2xl font-black text-zinc-950">{result.member.fullName}</p>
                   <p className="mt-1 font-mono font-bold text-zinc-600">BGM no. {result.member.memberNumber}</p>
                   <p className="mt-1 font-mono text-sm font-bold text-zinc-700">Current card: {result.currentPhysicalCard || "Not assigned"}</p>
+                  <p className="mt-1 font-mono text-xs font-bold text-zinc-500">Scanned: {result.scannedBarcode || "—"}</p>
                   <p className="mt-2 font-bold text-zinc-700">Expiry: {result.member.membershipExpiry || "Not set"}</p>
                   <p className="text-sm font-semibold text-zinc-500">Status: {result.member.status}</p>
                 </div>
