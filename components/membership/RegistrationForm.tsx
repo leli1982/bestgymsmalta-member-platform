@@ -1,5 +1,7 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useMemo, useState, type FormEvent } from "react";
 import {
   couplesAgeEligibilityError,
@@ -330,7 +332,7 @@ export default function RegistrationForm({
               <label className="text-sm font-bold text-zinc-800">First name<input value={participant.firstName} onChange={(event) => updateParticipant(index, "firstName", event.target.value)} className={inputClass()} autoComplete="given-name" /></label>
               <label className="text-sm font-bold text-zinc-800">Last name<input value={participant.lastName} onChange={(event) => updateParticipant(index, "lastName", event.target.value)} className={inputClass()} autoComplete="family-name" /></label>
               <label className="text-sm font-bold text-zinc-800">ID card / passport number<input value={participant.idNumber} onChange={(event) => updateParticipant(index, "idNumber", event.target.value)} onBlur={() => checkIdentity(index)} className={inputClass()} autoComplete="off" /></label>
-              <label className="text-sm font-bold text-zinc-800">Date of birth<input type="date" value={participant.dateOfBirth} onChange={(event) => updateParticipant(index, "dateOfBirth", event.target.value)} className={inputClass()} /></label>
+              <label className="text-sm font-bold text-zinc-800">Date of birth<EuropeanDateInput value={participant.dateOfBirth} onValueChange={(value) => updateParticipant(index, "dateOfBirth", value)} className={inputClass()} /></label>
             </div>
 
             {identityMessage ? <div className={`rounded-2xl border p-4 text-sm font-semibold ${identityState === "active" ? "border-red-200 bg-red-50 text-red-800" : identityState === "expired_inactive" ? "border-amber-200 bg-amber-50 text-amber-900" : "border-zinc-200 bg-zinc-50 text-zinc-700"}`}>{identityMessage}</div> : null}
