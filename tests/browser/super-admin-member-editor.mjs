@@ -60,7 +60,26 @@ try {
   };
   let dateChange = null;
   let cancellationChange = null;
+  let activeCardNumber = "CARD-0099";
+  let activeCardSource = "credential";
+  let cardReplacement = null;
   page.on("dialog", (dialog) => void dialog.accept());
+  await context.route("**/api/system/members/card/replace", async (route) => {
+    assert.equal(route.request().method(), "POST");
+    cardReplacement = route.request().postDataJSON();
+    assert.deepEqual(Object.keys(cardReplacement).sort(), ["barcode", "gymId", "memberId", "reason"]);
+    assert.equal(cardReplacement.memberId, memberId);
+    assert.equal(cardReplacement.barcode, "CARD-NEW1");
+    assert.equal(cardReplacement.reason, "lost");
+    assert.equal(cardReplacement.gymId, "bgm-mosta");
+    const oldBarcode = activeCardNumber;
+    activeCardNumber = cardReplacement.barcode;
+    activeCardSource = "credential";
+    return route.fulfill({ json: { ok: true, replacement: {
+      memberId, memberNumber: member.memberNumber, oldBarcode,
+      newBarcode: activeCardNumber, reason: cardReplacement.reason,
+    } } });
+  });
   await context.route("**/api/system/admin/members/" + memberId + "/membership-dates", async (route) => {
     assert.equal(route.request().method(), "PATCH");
     dateChange = route.request().postDataJSON();
@@ -152,7 +171,7 @@ try {
       canWithdraw: Boolean(member.cancellationEffectiveDate && member.cancellationEffectiveDate > "2026-09-23"),
       today: "2026-09-23",
     };
-    return route.fulfill({ json: { member, activeCardNumber: "CARD-0099", dateEdit, cancellationEdit, gyms, memberships } });
+    return route.fulfill({ json: { member, activeCardNumber, activeCardSource, dateEdit, cancellationEdit, gyms, memberships } });
   });
   await page.goto(origin + "/staff/admin/members/" + memberId);
   await page.getByRole("heading", { name: "Member editor" }).waitFor();
@@ -161,6 +180,15 @@ try {
   await page.getByText("PK-OLD-001", { exact: false }).first().waitFor();
   assert.equal(await page.locator("main").evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "member editor must fit narrow viewport");
   await page.screenshot({ path: artifacts + "/member-before-390.png", fullPage: true });
+
+  await page.getByLabel("New physical card number").fill("CARD-NEW1");
+  await page.getByRole("button", { name: "Replace / reassign physical card", exact: true }).click();
+  await page.getByText("Physical card CARD-NEW1 is now active. The previous card was retired and the membership dates were not changed.").waitFor();
+  await page.getByText("CARD-NEW1", { exact: false }).first().waitFor();
+  assert.equal(cardReplacement.memberId, memberId);
+  assert.equal(cardReplacement.gymId, "bgm-mosta");
+  assert.equal(member.memberNumber, "BGM0000123", "physical card replacement must not change permanent BGM identity");
+  await page.screenshot({ path: artifacts + "/member-card-replaced-390.png", fullPage: true });
   await page.getByRole("textbox", { name: "First name" }).fill("Jamie");
   assert.equal(await page.getByText("You have unsaved changes.").count(), 1);
   await page.getByRole("button", { name: "Save personal details" }).click();
@@ -227,7 +255,7 @@ try {
   await page.getByText("Membership contracts and existing audit history.").waitFor();
   assert.equal(await page.getByRole("button", { name: "Delete member permanently", exact: true }).count(), 0);
   assert.deepEqual(clientErrors, []);
-  console.log("PASS member profile, gym, dates, cancellation, Super Admin-only account archive/restore and blocked deletion with fictional data");
+  console.log("PASS member profile, physical card replacement, gym, dates, cancellation, Super Admin-only account archive/restore and blocked deletion with fictional data");
 } finally {
   if (browser) await browser.close();
   server.kill("SIGTERM");
