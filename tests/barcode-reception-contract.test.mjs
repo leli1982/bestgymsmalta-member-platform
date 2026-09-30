@@ -58,3 +58,12 @@ test("staff home scanner provides audible success and warning feedback", () => {
   assert.match(scanner, /success/);
   assert.match(scanner, /warning/);
 });
+
+
+test("retired physical cards are denied and scanner payload exposes the authoritative current card", () => {
+  assert.match(route, /card && card\.status !== "active" && activeLegacyClaimCount === 0/);
+  assert.match(route, /result: "disabled_card", granted: false/);
+  assert.match(route, /currentPhysicalCard/);
+  assert.match(route, /currentPhysicalCardSource/);
+  assert.match(reception, /Current physical card/);
+});
