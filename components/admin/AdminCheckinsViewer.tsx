@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDateTime } from "@/lib/europeanDate";
+
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
@@ -24,19 +26,7 @@ type AdminCheckin = {
 };
 
 function formatDateTime(value: string) {
-  if (!value) return "No date";
-
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
+  return formatEuropeanDateTime(value, "No date");
 }
 
 function csvEscape(value: unknown) {
