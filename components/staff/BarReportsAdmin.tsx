@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDate, formatEuropeanDateTime } from "@/lib/europeanDate";
+
 import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
 
 import { useCallback, useEffect, useState } from "react";
@@ -139,10 +141,8 @@ export default function BarReportsAdmin() {
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <p className="text-xs font-black uppercase tracking-widest text-orange-700">{order.gym_name}</p>
-                      <h2 className="mt-1 text-xl font-black">{order.business_date || "Historical Bar List"} · {order.staff_name}</h2>
-                      <p className="mt-1 text-xs font-semibold text-zinc-500">{new Intl.DateTimeFormat("en-GB", {
-                        timeZone: "Europe/Malta", dateStyle: "medium", timeStyle: "short",
-                      }).format(new Date(order.submitted_at))} · {order.id}</p>
+                      <h2 className="mt-1 text-xl font-black">{order.business_date ? formatEuropeanDate(order.business_date) : "Historical Bar List"} · {order.staff_name}</h2>
+                      <p className="mt-1 text-xs font-semibold text-zinc-500">{formatEuropeanDateTime(order.submitted_at)} · {order.id}</p>
                       <p className="mt-1 text-xs text-zinc-500">Status: {order.status} · Email: {order.email_notification_status} · Push: {order.push_notification_status}</p>
                     </div>
                     <p className={"text-2xl font-black tabular-nums " + barSalesComparisonColor(order.total_cents, order.cash_found_cents)}>
