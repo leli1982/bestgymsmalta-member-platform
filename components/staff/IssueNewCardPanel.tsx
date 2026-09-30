@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 type SystemUser = {
   gymId: string | null;
+  displayName?: string;
   isSuperAdmin: boolean;
   permissions: string[];
 };
@@ -28,6 +29,7 @@ export default function IssueNewCardPanel() {
   const [member, setMember] = useState<Candidate | null>(null);
   const [reason, setReason] = useState("lost");
   const [barcode, setBarcode] = useState("");
+  const [staffName, setStaffName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -91,6 +93,10 @@ export default function IssueNewCardPanel() {
       setError("Select the gym handling this replacement.");
       return;
     }
+    if (!user?.isSuperAdmin && staffName.trim().length < 2) {
+      setError("Enter the Staff Name handling this card replacement.");
+      return;
+    }
 
     setBusy(true);
     setError("");
@@ -104,6 +110,7 @@ export default function IssueNewCardPanel() {
           barcode,
           reason,
           gymId: user?.gymId ? undefined : gymId,
+          staffName: user?.isSuperAdmin ? undefined : staffName.trim(),
         }),
       });
       const data = await response.json();
@@ -175,7 +182,18 @@ export default function IssueNewCardPanel() {
             </div>
           </div>
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div className={`mt-5 grid gap-4 ${user.isSuperAdmin ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
+            {!user.isSuperAdmin && (
+              <label className="text-sm font-bold">Staff Name
+                <input
+                  value={staffName}
+                  onChange={(event) => setStaffName(event.target.value)}
+                  placeholder="e.g. Maria Borg"
+                  maxLength={120}
+                  className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950"
+                />
+              </label>
+            )}
             <label className="text-sm font-bold">Replacement reason
               <select value={reason} onChange={(event) => setReason(event.target.value)} className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-zinc-950 placeholder:text-zinc-400">
                 <option value="lost">Lost</option>
@@ -189,7 +207,7 @@ export default function IssueNewCardPanel() {
             </label>
           </div>
           <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">Issue New Card changes the card only. It does not renew or extend the membership.</p>
-          <button type="button" disabled={busy || !barcode.trim()} onClick={() => void replaceCard()} className="mt-4 w-full rounded-xl bg-orange-500 px-5 py-3 font-black text-white disabled:opacity-40">{busy ? "Issuing…" : "Issue New Card"}</button>
+          <button type="button" disabled={busy || !barcode.trim() || (!user.isSuperAdmin && staffName.trim().length < 2)} onClick={() => void replaceCard()} className="mt-4 w-full rounded-xl bg-orange-500 px-5 py-3 font-black text-white disabled:opacity-40">{busy ? "Issuing…" : "Issue New Card"}</button>
         </section>
       )}
     </div>
