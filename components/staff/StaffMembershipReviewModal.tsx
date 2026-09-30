@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDate, formatEuropeanDateTime } from "@/lib/europeanDate";
+
 import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -132,17 +134,7 @@ function editableSnapshot(application: Application) {
 }
 
 function formatMalta(value: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Malta",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  return formatEuropeanDateTime(value);
 }
 
 function formatMoney(cents: number | null, currency: string) {
@@ -743,7 +735,7 @@ export default function StaffMembershipReviewModal({
               <div className="grid gap-4 sm:grid-cols-3">
                 <Summary label="Historical base price" value={formatMoney(application.basePriceCents, application.currency)} />
                 <Summary label="Membership" value={`${application.membershipType} · ${application.durationKey.replaceAll("_", " ")}`} />
-                <Summary label="Dates" value={`${application.startDate} → ${application.expiryDate}`} />
+                <Summary label="Dates" value={`${formatEuropeanDate(application.startDate)} → ${formatEuropeanDate(application.expiryDate)}`} />
               </div>
               {declarationEntries(application.declarationSnapshot).length > 0 && (
                 <details className="mt-4 rounded-2xl bg-zinc-50 p-4">
