@@ -1,5 +1,7 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BadgeCheck,
@@ -1390,12 +1392,20 @@ function Field({
   return (
     <label className="text-xs font-black uppercase tracking-wide text-zinc-400">
       {label}
-      <input
-        type={type}
-        value={value || ""}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-1.5 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-zinc-900 outline-none focus:border-[#ff5a0a] focus:ring-3 focus:ring-orange-100"
-      />
+      {type === "date" ? (
+        <EuropeanDateInput
+          value={value || ""}
+          onValueChange={onChange}
+          className="mt-1.5 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-zinc-900 outline-none focus:border-[#ff5a0a] focus:ring-3 focus:ring-orange-100"
+        />
+      ) : (
+        <input
+          type={type}
+          value={value || ""}
+          onChange={(event) => onChange(event.target.value)}
+          className="mt-1.5 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-zinc-900 outline-none focus:border-[#ff5a0a] focus:ring-3 focus:ring-orange-100"
+        />
+      )}
     </label>
   );
 }
