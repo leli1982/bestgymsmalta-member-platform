@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDateTime } from "@/lib/europeanDate";
+
 import { isUnder16On } from "@/lib/membershipRegistrationCore";
 
 export type DeclarationPrintSnapshot = {
@@ -88,17 +90,7 @@ function money(cents: number | null | undefined, currency = "EUR") {
 }
 
 function formatDateTime(value: string | null | undefined) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Malta",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  return formatEuropeanDateTime(value);
 }
 
 function snapshotEntries(snapshot: PrintableApplication["declarationSnapshot"]) {
