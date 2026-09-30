@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDate } from "@/lib/europeanDate";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
@@ -512,7 +514,7 @@ export default function StaffGlobalScanner() {
                   <p className="mt-1 font-mono font-bold text-zinc-600">BGM no. {result.member.memberNumber}</p>
                   <p className="mt-1 font-mono text-sm font-bold text-zinc-700">Current card: {result.currentPhysicalCard || "Not assigned"}</p>
                   <p className="mt-1 text-xs font-bold text-zinc-500">Scanned: <span className="font-mono">{result.scannedBarcode || "—"}</span></p>
-                  <p className="mt-2 font-bold text-zinc-700">Expiry: {result.member.membershipExpiry || "Not set"}</p>
+                  <p className="mt-2 font-bold text-zinc-700">Expiry: {formatEuropeanDate(result.member.membershipExpiry, "Not set")}</p>
                   <p className="text-sm font-semibold text-zinc-500">Status: {result.member.status}</p>
                 </div>
               </div>
