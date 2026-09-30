@@ -66,3 +66,21 @@ test("Super Admin member editor exposes the same audited physical-card replaceme
   assert.match(detailRoute, /activeCardSource/);
   assert.match(detailRoute, /legacy_scan3/);
 });
+
+
+test("Gym Staff replacement requires Staff Name and records it in the audited RPC", () => {
+  const component = readFileSync(componentPath, "utf8");
+  const route = readFileSync(routePath, "utf8");
+  const auditMigration = readFileSync(
+    join(root, "supabase/migrations/20260930_095500_card_replacement_staff_audit.sql"),
+    "utf8"
+  );
+  assert.match(component, /Staff Name/);
+  assert.match(component, /staffName\.trim\(\)/);
+  assert.match(route, /Staff Name is required for card replacement/);
+  assert.match(route, /p_staff_name: staffName \|\| null/);
+  assert.match(auditMigration, /staff_name, action_key/);
+  assert.match(auditMigration, /v_staff_name/);
+  assert.match(auditMigration, /upper\(barcode_value\) = upper\(v_new_barcode\)/);
+  assert.match(auditMigration, /upper\(v_old_barcode\) = upper\(v_new_barcode\)/);
+});
