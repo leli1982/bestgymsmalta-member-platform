@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDate } from "@/lib/europeanDate";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BadgeCheck,
@@ -32,17 +34,7 @@ import {
 type Mode = "login" | "activate" | "forgot";
 
 function formatDate(value?: string | null) {
-  if (!value) return "Not set";
-
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
+  return formatEuropeanDate(value, "Not set");
 }
 
 function isMembershipActive(member: AppMember | null) {
