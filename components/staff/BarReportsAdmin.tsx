@@ -1,5 +1,7 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, ClipboardList, RefreshCcw } from "lucide-react";
 import { formatBarEuro } from "@/lib/barSalesCore";
@@ -106,7 +108,7 @@ export default function BarReportsAdmin() {
               </select>
             </label>
             <label className="text-sm font-bold">Business date
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Bar report date"
+              <EuropeanDateInput value={date} onValueChange={setDate} ariaLabel="Bar report date"
                 className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-3"/>
             </label>
             <button type="button" onClick={() => void load()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 py-3 font-bold text-white"><RefreshCcw className="h-4 w-4"/> Refresh</button>
