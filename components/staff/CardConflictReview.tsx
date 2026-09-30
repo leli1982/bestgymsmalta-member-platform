@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDate, formatEuropeanDateTime } from "@/lib/europeanDate";
+
 import { useCallback, useEffect, useState } from "react";
 
 type Member = {
@@ -69,7 +71,7 @@ export default function CardConflictReview() {
       <div className="mt-6 space-y-3">
         {ready.map(item => <section key={item.id} className="rounded-2xl border border-emerald-200 bg-white p-4">
           <h2 className="font-black">Scan3 {item.scan3} · ready to resolve</h2>
-          <p className="text-sm">Flagged {new Date(item.flaggedAt).toLocaleString()}. Fewer than two active members now share this card.</p>
+          <p className="text-sm">Flagged {formatEuropeanDateTime(item.flaggedAt)}. Fewer than two active members now share this card.</p>
           <textarea value={note} onChange={e => setNote(e.target.value)} rows={2}
             placeholder="Resolution note" className="mt-3 w-full rounded-lg border p-2" />
           <button disabled={busy || !note.trim()}
@@ -82,7 +84,7 @@ export default function CardConflictReview() {
             <span>Scan3 {group.scan3} · {group.members.length} active members</span>
             <span className={group.reviewId ? "text-red-700" : "text-zinc-500"}>{group.reviewId ? "FLAGGED" : "Open"}</span>
           </button>
-          {group.flaggedAt && <p className="mt-2 text-sm text-zinc-600">Flagged {new Date(group.flaggedAt).toLocaleString()} · {group.flaggedGym || "Gym unknown"} · {group.flaggedBy || "Staff unknown"}</p>}
+          {group.flaggedAt && <p className="mt-2 text-sm text-zinc-600">Flagged {formatEuropeanDateTime(group.flaggedAt)} · {group.flaggedGym || "Gym unknown"} · {group.flaggedBy || "Staff unknown"}</p>}
           {open === group.scan3 && <div className="mt-4">
             <div className="grid gap-4 md:grid-cols-2">
               {group.members.map(m => <article key={m.id} className="rounded-xl border border-zinc-200 p-4">
@@ -95,7 +97,7 @@ export default function CardConflictReview() {
                     <p className="font-mono">{m.memberNumber}</p>
                     <p className="text-sm">Legacy pkCustomer: {m.legacyPkCustomer || "Not recorded"}</p></div>
                 </div>
-                <p className="mt-3 text-sm">{m.status} · expires {m.membershipExpiry} · {m.enrollmentGymName}</p>
+                <p className="mt-3 text-sm">{m.status} · expires {formatEuropeanDate(m.membershipExpiry)} · {m.enrollmentGymName}</p>
                 <a className="mt-3 inline-block font-bold text-orange-700 underline"
                   href={`/staff/admin/members/${encodeURIComponent(m.id)}`}>Inspect full record · edit or archive member</a>
                 <div className="mt-4 flex flex-wrap gap-2">
