@@ -274,7 +274,11 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
                       <img
                         src={result.member.photoUrl}
                         alt=""
-                        onError={() => setPhotoLoadFailed(true)}
+                        onError={() => {
+                          if (resetTimer.current) clearTimeout(resetTimer.current);
+                          resetTimer.current = null;
+                          setPhotoLoadFailed(true);
+                        }}
                         className="absolute inset-0 h-full w-full object-cover"
                       />
                     )}
@@ -316,7 +320,7 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
                   <div className="mt-5 rounded-2xl border-4 border-amber-300 bg-amber-50 p-4">
                     <p className="text-2xl font-black text-amber-700">PHOTO REQUIRED</p>
                     <p className="mt-1 text-sm font-bold text-amber-900">
-                      Entry is still granted. Take an official photo now or close and scan the next member.
+                      Entry is still granted. This warning stays open until Staff take an official photo or cancel to scan the next member.
                     </p>
                     <div className="mx-auto mt-4 max-w-sm text-left">
                       <OfficialMemberPhotoCapture
@@ -328,6 +332,8 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
                           setResult(current => current?.member && current.member.id === memberId
                             ? { ...current, member: { ...current.member, photoRequired: false, photoUrl } }
                             : current);
+                          if (resetTimer.current) clearTimeout(resetTimer.current);
+                          resetTimer.current = window.setTimeout(reset, 3500);
                         }}
                       />
                     </div>
@@ -351,7 +357,11 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
               onClick={reset}
               className="mt-7 w-full rounded-2xl bg-zinc-950 px-5 py-4 text-lg font-black text-white"
             >
-              {result.granted ? "Close / Scan Next" : "Clear Warning / Scan Next"}
+              {result.granted && result.member && (result.member.photoRequired || photoLoadFailed)
+                ? "Cancel / Scan Next"
+                : result.granted
+                  ? "Close / Scan Next"
+                  : "Clear Warning / Scan Next"}
             </button>
           </div>
         </div>

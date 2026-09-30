@@ -354,7 +354,9 @@ export default function BarcodeReceptionPage() {
                       src={result.member.photoUrl}
                       alt={`${result.member.fullName} official photo`}
                       className="absolute inset-0 h-full w-full object-cover"
-                      onError={(event) => {
+                      onError={() => {
+                        if (resetTimer.current) clearTimeout(resetTimer.current);
+                        resetTimer.current = null;
                         setPhotoLoadFailed(true);
                       }}
                     />
@@ -414,7 +416,7 @@ export default function BarcodeReceptionPage() {
                   Access is granted and the check-in has already been recorded. Add the official member photo now if practical.
                 </p>
                 <p className="mt-1 text-sm font-semibold text-amber-800">
-                  If reception is busy, allow entry and close this warning. It will appear again on every valid scan until a photo is saved.
+                  This warning stays open until Staff save an official photo or cancel to scan the next member. It will return on every valid scan until a photo is saved.
                 </p>
               </div>
               <div className="mx-auto mt-5 max-w-md">
@@ -441,6 +443,11 @@ export default function BarcodeReceptionPage() {
                           }
                         : current
                     );
+                    if (resetTimer.current) clearTimeout(resetTimer.current);
+                    resetTimer.current = setTimeout(
+                      resetScanner,
+                      baseView.autoResetMs || 3_500
+                    );
                   }}
                 />
               </div>
@@ -458,7 +465,7 @@ export default function BarcodeReceptionPage() {
             className="mt-8 w-full rounded-2xl bg-zinc-900 px-5 py-4 text-lg font-black text-white"
           >
             {needsPhoto
-              ? "Allow Entry / Close"
+              ? "Cancel / Scan Next"
               : success
                 ? "Scan Next Member"
                 : "Clear Warning / Scan Next"}

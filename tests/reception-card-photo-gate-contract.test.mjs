@@ -50,7 +50,7 @@ test("reception grants access normally and shows a separate repeating PHOTO REQU
   const photoComponent = readFileSync(photoComponentPath, "utf8");
   assert.match(photoComponent, /Take Photo with Webcam/);
   assert.match(photoComponent, /Upload Photo/);
-  assert.match(component, /Allow Entry \/ Close/);
+  assert.match(component, /Cancel \/ Scan Next/);
   assert.match(component, /OfficialMemberPhotoCapture/);
   assert.match(component, /memberId=/);
   assert.doesNotMatch(component, /No check-in has been created yet/);
