@@ -24,13 +24,14 @@ export async function GET(
     const { memberId } = await params;
     if (!MEMBER_UUID.test(memberId)) return NextResponse.json({ error: "Invalid member ID." }, { status: 400 });
     const db = getSupabaseAdmin();
-    const [memberResult, gymResult, linksResult, cardsResult] = await Promise.all([
+    const [memberResult, gymResult, linksResult, cardsResult, legacyCardResult] = await Promise.all([
       db.from("bgm_members").select(MEMBER_COLUMNS).eq("id", memberId).maybeSingle(),
       db.from("bgm_gyms").select("id,name,status").order("name", { ascending: true }),
       db.from("bgm_membership_members").select("membership_id,member_role").eq("member_id", memberId),
       db.from("bgm_member_card_credentials").select("barcode_value,status,updated_at").eq("member_id", memberId).eq("status", "active").order("updated_at", { ascending: false }),
+      db.from("bgm_legacy_card_claims").select("scan3,assignment_status,updated_at").eq("member_id", memberId).eq("assignment_status", "active").limit(1),
     ]);
-    for (const result of [memberResult, gymResult, linksResult, cardsResult]) {
+    for (const result of [memberResult, gymResult, linksResult, cardsResult, legacyCardResult]) {
       if (result.error) throw result.error;
     }
     const member = memberResult.data;
@@ -169,7 +170,12 @@ export async function GET(
         photoUrl: member.official_photo_path ? `/api/system/members/photo/${encodeURIComponent(member.id)}` : null,
         updatedAt: member.updated_at,
       },
-      activeCardNumber: cardsResult.data?.[0]?.barcode_value || null,
+      activeCardNumber: cardsResult.data?.[0]?.barcode_value || legacyCardResult.data?.[0]?.scan3 || null,
+      activeCardSource: cardsResult.data?.[0]?.barcode_value
+        ? "credential"
+        : legacyCardResult.data?.[0]?.scan3
+          ? "legacy_scan3"
+          : null,
       dateEdit,
       cancellationEdit: { ...cancellationEdit, today: todayMaltaDate() },
       couplesCancellationEdit,
