@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDate } from "@/lib/europeanDate";
+
 import { useEffect, useMemo, useState } from "react";
 import {
   BadgeCheck,
@@ -77,17 +79,7 @@ function getCheckInDate(checkIn: CheckIn) {
 }
 
 function formatDate(value: string) {
-  if (!value) return "No date";
-
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
+  return formatEuropeanDate(value, "No date");
 }
 
 function formatTime(value: string) {
