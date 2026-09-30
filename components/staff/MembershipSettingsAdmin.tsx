@@ -1,5 +1,7 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useCallback, useEffect, useState } from "react";
 import MembershipPrintOverflowPreview, {
   type MembershipPrintMeasurement,
@@ -497,10 +499,10 @@ export default function MembershipSettingsAdmin() {
                   <input inputMode="numeric" value={discountDraft.percentage} onChange={(event) => setDiscountDraft((current) => ({ ...current, percentage: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" placeholder="10" />
                 </label>
                 <label className="text-xs font-black text-zinc-600">Valid from
-                  <input type="date" value={discountDraft.validFrom} onChange={(event) => setDiscountDraft((current) => ({ ...current, validFrom: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" />
+                  <EuropeanDateInput value={discountDraft.validFrom} onValueChange={(value) => setDiscountDraft((current) => ({ ...current, validFrom: value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" />
                 </label>
                 <label className="text-xs font-black text-zinc-600">Valid until
-                  <input type="date" value={discountDraft.validUntil} onChange={(event) => setDiscountDraft((current) => ({ ...current, validUntil: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" />
+                  <EuropeanDateInput value={discountDraft.validUntil} onValueChange={(value) => setDiscountDraft((current) => ({ ...current, validUntil: value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" />
                 </label>
                 <label className="text-xs font-black text-zinc-600">Maximum successful uses
                   <input inputMode="numeric" value={discountDraft.maxUses} onChange={(event) => setDiscountDraft((current) => ({ ...current, maxUses: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" placeholder="Unlimited" />
