@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDate } from "@/lib/europeanDate";
+
 import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
@@ -379,7 +381,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                   ["Original enrollment gym (Excel)", member.originalEnrollmentGym || "Not recorded"],
                   ["Current enrollment gym", gymName(detail.gyms, member.enrollmentGymId)],
                   ["Recorded member start date", member.enrollmentDate || "Unknown — not provided in original Excel"],
-                  ["Current membership expiry (ExpiryDate1)", member.membershipExpiry || "Not recorded"],
+                  ["Current membership expiry (ExpiryDate1)", formatEuropeanDate(member.membershipExpiry, "Not recorded")],
                 ] as Array<[string, string]>).map(([label, value]) => <div key={label} className="rounded-xl bg-zinc-50 p-4">
                   <dt className="text-xs font-bold uppercase text-zinc-500">{label}</dt><dd className="mt-1 break-words font-bold">{value}</dd>
                 </div>)}
@@ -476,7 +478,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                   <article key={item.id} className="rounded-2xl border border-zinc-200 p-4">
                     <div className="flex flex-wrap justify-between gap-2"><strong className="capitalize">{item.membershipType} · {item.duration.replaceAll("_", " ")}</strong>
                       <span className="text-sm font-bold">{item.status} · {item.role}</span></div>
-                    <p className="mt-2 text-sm">From {item.startDate} until {item.expiryDate} · Enrollment: {gymName(detail.gyms, item.enrollmentGymId)}</p>
+                    <p className="mt-2 text-sm">From {formatEuropeanDate(item.startDate)} until {formatEuropeanDate(item.expiryDate)} · Enrollment: {gymName(detail.gyms, item.enrollmentGymId)}</p>
                     {item.application
                       ? <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                           <div>Recorded price: <strong>{currency(item.application.base_price_cents, item.application.currency)}</strong></div>
