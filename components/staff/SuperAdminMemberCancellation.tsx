@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDate } from "@/lib/europeanDate";
+
 import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
 
 import { useEffect, useState } from "react";
@@ -84,7 +86,7 @@ export default function SuperAdminMemberCancellation({
       setMessage(action === "withdraw"
         ? "Pending membership cancellation withdrawn and audited."
         : result.changed
-          ? `Membership cancellation recorded and audited. Access stops on ${result.effectiveDate} (Malta date).`
+          ? `Membership cancellation recorded and audited. Access stops on ${formatEuropeanDate(result.effectiveDate)} (Malta date).`
           : "The same cancellation is already recorded.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not process membership cancellation.");
@@ -106,7 +108,7 @@ export default function SuperAdminMemberCancellation({
         <p className="mt-3 rounded-xl bg-white p-3 text-sm font-bold text-red-900">
           {edit.effectiveDate <= edit.today
             ? "Cancellation effective since " : "Cancellation scheduled for "}
-          {edit.effectiveDate}.
+          {formatEuropeanDate(edit.effectiveDate)}.
         </p>
       )}
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
