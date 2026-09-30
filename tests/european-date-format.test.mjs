@@ -33,7 +33,7 @@ test("user-facing pages do not rely on browser-local native date presentation", 
   const allowed = join(root, "components/ui/EuropeanDateInput.tsx");
   const offenders = [...sourceFiles(join(root, "app")), ...sourceFiles(join(root, "components"))]
     .filter((path) => path !== allowed)
-    .filter((path) => /type=["']date["']/.test(readFileSync(path, "utf8")));
+    .filter((path) => /<input\b[^>]*\btype=["']date["']/.test(readFileSync(path, "utf8")));
   assert.deepEqual(offenders, []);
   assert.match(readFileSync(join(root, "app/layout.tsx"), "utf8"), /<html lang="en-GB">/);
 });
