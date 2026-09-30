@@ -1,6 +1,6 @@
 "use client";
 
-import { formatEuropeanDateTime } from "@/lib/europeanDate";
+import { formatEuropeanDate, formatEuropeanDateTime } from "@/lib/europeanDate";
 
 import { isUnder16On } from "@/lib/membershipRegistrationCore";
 
@@ -321,8 +321,8 @@ export default function MembershipA4Sheet({
             <Info label="Card number" value={participant.barcode} />
             <Info label="Membership type" value={application.membershipType} />
             <Info label="Duration" value={application.durationKey.replaceAll("_", " ")} />
-            <Info label="Start date" value={application.startDate} />
-            <Info label="Expiry date" value={application.expiryDate} />
+            <Info label="Start date" value={formatEuropeanDate(application.startDate)} />
+            <Info label="Expiry date" value={formatEuropeanDate(application.expiryDate)} />
             <Info label="Application" value={application.kind === "renewal" ? "Renewal" : "New membership"} />
             <Info label="Status" value={application.status} />
           </div>
