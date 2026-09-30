@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEuropeanDateTime } from "@/lib/europeanDate";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Barcode,
@@ -48,15 +50,7 @@ function MaltaClock() {
 
   return (
     <span suppressHydrationWarning>
-      {new Intl.DateTimeFormat("en-GB", {
-        timeZone: "Europe/Malta",
-        weekday: "short",
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }).format(now)}
+      {formatEuropeanDateTime(now, "")}
     </span>
   );
 }
