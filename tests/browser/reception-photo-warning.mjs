@@ -139,7 +139,7 @@ try {
     await page.getByText("PHOTO REQUIRED", { exact: true }).first().waitFor();
     await page.getByRole("button", { name: "Take Photo with Webcam", exact: true }).waitFor();
     await page.getByRole("button", { name: "Upload Photo", exact: true }).first().waitFor();
-    await page.getByRole("button", { name: "Allow Entry / Close", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Cancel / Scan Next", exact: true }).waitFor();
 
     const mainClass = await page.locator("main").first().getAttribute("class");
     assert.match(mainClass || "", /bg-green-600/, "valid access remains green");
