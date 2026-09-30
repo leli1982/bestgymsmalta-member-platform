@@ -1,5 +1,7 @@
 "use client";
 
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Camera,
@@ -523,10 +525,9 @@ export default function ProgressVault() {
             <span className="text-xs font-black uppercase tracking-[.18em] text-zinc-400">
               Date
             </span>
-            <input
-              type="date"
+            <EuropeanDateInput
               value={progressDate}
-              onChange={(event) => setProgressDate(event.target.value)}
+              onValueChange={setProgressDate}
               className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-950 outline-none"
             />
           </label>
