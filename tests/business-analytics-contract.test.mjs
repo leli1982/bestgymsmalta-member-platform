@@ -31,6 +31,7 @@ test("statistics dashboard exposes button-driven analytics and existing reports"
     "New memberships",
     "Active members by gym",
     "Check-in statistics",
+    "Vouchers",
   ]) assert.match(dashboard, new RegExp(label.replace(/[&]/g, "\\&")));
 });
 
