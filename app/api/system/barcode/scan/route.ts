@@ -9,7 +9,7 @@ import { requireSystemPermission } from "@/lib/systemAuth";
 export const dynamic = "force-dynamic";
 
 const MEMBER_SELECT =
-  "id, member_number, full_name, status, membership_expiry, cancellation_effective_date, enrollment_gym_id, official_photo_path, legacy_pk_customer";
+  "id, member_number, full_name, status, membership_expiry, cancellation_effective_date, enrollment_gym_id, official_photo_path, legacy_pk_customer, legacy_gym";
 
 function clean(value: unknown) {
   return String(value ?? "").trim();
@@ -314,6 +314,7 @@ export async function POST(request: NextRequest) {
             membershipExpiry: member.membership_expiry,
             enrollmentGymId: member.enrollment_gym_id || null,
             enrollmentGymName,
+            legacyGym: member.legacy_gym || null,
             hasPhoto,
             photoRequired: !hasPhoto,
             photoUrl: hasPhoto
