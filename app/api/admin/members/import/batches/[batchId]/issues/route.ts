@@ -23,17 +23,21 @@ export async function GET(request: NextRequest,{params}:{params:Promise<{batchId
     const batch = await db.from("bgm_member_import_batches").select("id").eq("id",batchId).maybeSingle();
     if (batch.error) throw batch.error;
     if (!batch.data) return NextResponse.json({error:"Import batch not found."},{status:404});
-    const lines = [["Excel row","Issue type","Gym","pkCustomer","Customer name","Reason"].map(csvCell).join(",")];
+    const lines = [["Excel row","Review type","Blocking","BGM number","Legacy gym","pkCustomer","Scan3","Customer name","Reason"].map(csvCell).join(",")];
     for (let offset=0;;offset+=PAGE) {
-      const result = await db.from("bgm_member_import_rows")
-        .select("row_number,action,gym,pk_customer,customer_name,company_name,issue")
-        .eq("batch_id",batchId).in("action",["conflict","invalid"])
-        .order("row_number",{ascending:true}).range(offset,offset+PAGE-1);
+      const result = await db.from("bgm_member_import_review_items")
+        .select("source_row_number,review_type,blocking,member_number,gym,pk_customer,legacy_scan3,customer_name,issue")
+        .eq("batch_id",batchId)
+        .order("blocking",{ascending:false})
+        .order("created_at",{ascending:true})
+        .range(offset,offset+PAGE-1);
       if (result.error) throw result.error;
       const page=result.data||[];
       for (const row of page) {
-        lines.push([row.row_number,row.action,row.gym,row.pk_customer,
-          row.customer_name||row.company_name,row.issue].map(csvCell).join(","));
+        lines.push([
+          row.source_row_number||"",row.review_type,row.blocking?"YES":"NO",row.member_number,
+          row.gym,row.pk_customer,row.legacy_scan3,row.customer_name,row.issue
+        ].map(csvCell).join(","));
       }
       if (page.length<PAGE) break;
     }
