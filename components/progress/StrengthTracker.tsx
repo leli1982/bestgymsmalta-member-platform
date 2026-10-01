@@ -254,9 +254,9 @@ function GraphModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/80 p-4 backdrop-blur-md sm:items-center">
-      <div className="mx-auto max-h-[92vh] w-full max-w-md overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-2xl">
-        <div className="flex items-start justify-between gap-4 border-b border-zinc-200 p-5">
+    <div className="fixed inset-0 z-[100] flex items-end bg-black/80 p-2 backdrop-blur-md sm:items-center sm:p-4">
+      <div className="mx-auto flex max-h-[calc(100dvh-1rem)] w-full max-w-md flex-col overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-2xl sm:max-h-[92vh]">
+        <div className="shrink-0 flex items-start justify-between gap-4 border-b border-zinc-200 p-5">
           <div>
             <p className="text-xs font-black uppercase tracking-[.25em] text-[#ff5a0a]">
               Progress Graph
@@ -276,7 +276,7 @@ function GraphModal({
           </button>
         </div>
 
-        <div className="max-h-[calc(92vh-112px)] overflow-y-auto p-5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 pb-[calc(2rem+env(safe-area-inset-bottom))]">
           <div className="mb-4 flex items-center gap-2">
             <button
               type="button"
