@@ -118,12 +118,18 @@ begin
       raise exception 'Missing member name on row %',v_row.row_number;
     end if;
 
-    if v_row.expiry_date is null then
-      raise exception 'Missing ExpiryDate on row %',v_row.row_number;
+    if v_batch.import_mode='legacy_22' then
+      if v_row.expiry_date is null then
+        raise exception 'Missing ExpiryDate on row %',v_row.row_number;
+      end if;
+      v_status := case when v_row.expiry_date >= (now() at time zone 'Europe/Malta')::date
+                       then 'active' else 'inactive' end;
+    else
+      v_status := case
+        when lower(btrim(coalesce(v_row.valid_yn,'')))='valid'
+         and (v_row.expiry_date is null or v_row.expiry_date >= (now() at time zone 'Europe/Malta')::date)
+        then 'active' else 'inactive' end;
     end if;
-
-    v_status := case when v_row.expiry_date >= (now() at time zone 'Europe/Malta')::date
-                     then 'active' else 'inactive' end;
 
     if v_row.action='unchanged' then
       if v_row.matched_member_id is null then
@@ -155,22 +161,22 @@ begin
 
       update public.bgm_members
       set full_name=v_name,
-          email=nullif(btrim(v_row.email),''),
+          email=coalesce(nullif(btrim(v_row.email),''),email),
           status=v_status,
-          membership_expiry=v_row.expiry_date,
-          legacy_gym=nullif(btrim(v_row.gym),''),
-          legacy_pk_customer=nullif(btrim(v_row.pk_customer),''),
-          address_line_1=nullif(btrim(v_row.address1),''),
-          address_line_2=nullif(btrim(v_row.address2),''),
-          town=nullif(btrim(v_row.town),''),
-          postcode=nullif(btrim(v_row.postcode),''),
-          country=nullif(btrim(v_row.country),''),
-          gender=nullif(btrim(v_row.gender),''),
-          telephone_no_1=nullif(btrim(v_row.telephone_no_1),''),
-          telephone_no_2=nullif(btrim(v_row.telephone_no_2),''),
-          mobile=nullif(btrim(v_row.mobile),''),
-          id_number=nullif(btrim(v_row.id_number),''),
-          date_of_birth=v_row.date_of_birth,
+          membership_expiry=coalesce(v_row.expiry_date,membership_expiry),
+          legacy_gym=coalesce(nullif(btrim(v_row.gym),''),legacy_gym),
+          legacy_pk_customer=coalesce(nullif(btrim(v_row.pk_customer),''),legacy_pk_customer),
+          address_line_1=coalesce(nullif(btrim(v_row.address1),''),address_line_1),
+          address_line_2=coalesce(nullif(btrim(v_row.address2),''),address_line_2),
+          town=coalesce(nullif(btrim(v_row.town),''),town),
+          postcode=coalesce(nullif(btrim(v_row.postcode),''),postcode),
+          country=coalesce(nullif(btrim(v_row.country),''),country),
+          gender=coalesce(nullif(btrim(v_row.gender),''),gender),
+          telephone_no_1=coalesce(nullif(btrim(v_row.telephone_no_1),''),telephone_no_1),
+          telephone_no_2=coalesce(nullif(btrim(v_row.telephone_no_2),''),telephone_no_2),
+          mobile=coalesce(nullif(btrim(v_row.mobile),''),mobile),
+          id_number=coalesce(nullif(btrim(v_row.id_number),''),id_number),
+          date_of_birth=coalesce(v_row.date_of_birth,date_of_birth),
           updated_at=now()
       where id=v_row.matched_member_id
       returning id,member_number into v_id,v_member_number;
