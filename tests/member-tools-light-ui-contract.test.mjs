@@ -63,4 +63,8 @@ test("Progress Vault and Strength Tracker use light working surfaces without cha
   assert.match(strength, /max-h-\[calc\(100dvh-1rem\)\]/);
   assert.match(strength, /min-h-0 flex-1 overflow-y-auto/);
   assert.match(strength, /pb-\[calc\(2rem\+env\(safe-area-inset-bottom\)\)\]/);
+  assert.match(strength, /import \{ createPortal \} from ["']react-dom["']/);
+  assert.match(strength, /return createPortal\(/);
+  assert.match(strength, /document\.body/);
+  assert.match(strength, /document\.body\.style\.overflow = ["']hidden["']/);
 });
