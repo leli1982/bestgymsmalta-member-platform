@@ -162,13 +162,6 @@ export async function parseMemberExchangeXlsx(
       if (!hasValue && issues.length === 0) continue;
 
       const expiry = sourceValues.ExpiryDate || "";
-      if (!expiry && !issues.some((issue) => issue.column === "ExpiryDate")) {
-        issues.push({
-          kind: "invalid_date",
-          column: "ExpiryDate",
-          message: "ExpiryDate is blank. Membership status cannot be determined.",
-        });
-      }
 
       const legacyGym = deriveLegacyGym(sourceValues.pkCustomer);
       if (legacyGym.issue) {
