@@ -3,12 +3,13 @@
 import { useState } from "react";
 import {
   Activity, ArrowLeft, Banknote, BarChart3, CalendarRange, ChartNoAxesCombined,
-  Dumbbell, Repeat2, TrendingUp, UsersRound,
+  Dumbbell, Repeat2, TicketCheck, TrendingUp, UsersRound,
 } from "lucide-react";
 import BusinessAnalyticsAdmin from "@/components/staff/BusinessAnalyticsAdmin";
 import MembershipStatsAdmin from "@/components/staff/MembershipStatsAdmin";
 import ActiveMembersByGymAdmin from "@/components/staff/ActiveMembersByGymAdmin";
 import ScanVisitStatsAdmin from "@/components/staff/ScanVisitStatsAdmin";
+import VoucherAnalyticsAdmin from "@/components/staff/VoucherAnalyticsAdmin";
 
 type View =
   | "overview"
@@ -20,7 +21,8 @@ type View =
   | "trends"
   | "new-memberships"
   | "active-members"
-  | "checkins";
+  | "checkins"
+  | "vouchers";
 
 const options: Array<{
   key: View;
@@ -39,6 +41,7 @@ const options: Array<{
   { key: "new-memberships", label: "New memberships", description: "Existing detailed activation report with gym/date filters.", icon: CalendarRange, group: "Detailed reports" },
   { key: "active-members", label: "Active members by gym", description: "Existing live active-member base by enrollment gym.", icon: UsersRound, group: "Detailed reports" },
   { key: "checkins", label: "Check-in statistics", description: "Existing detailed visits, origins, dates and hours report.", icon: BarChart3, group: "Detailed reports" },
+  { key: "vouchers", label: "Vouchers", description: "Corporate voucher status, validity and employee enrollment reports.", icon: TicketCheck, group: "Detailed reports" },
 ];
 
 export default function StatisticsDashboardAdmin() {
@@ -100,6 +103,7 @@ export default function StatisticsDashboardAdmin() {
           {view === "new-memberships" ? <MembershipStatsAdmin /> :
            view === "active-members" ? <ActiveMembersByGymAdmin /> :
            view === "checkins" ? <ScanVisitStatsAdmin /> :
+           view === "vouchers" ? <VoucherAnalyticsAdmin /> :
            <BusinessAnalyticsAdmin section={view} />}
         </section>
       </div>
