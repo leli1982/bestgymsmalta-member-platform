@@ -9,7 +9,7 @@ import { todayMaltaDate } from "@/lib/maltaDate";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const MEMBER_COLUMNS = "id, member_number, first_name, last_name, full_name, email, mobile, id_number, date_of_birth, address_line_1, address_line_2, town, postcode, next_of_kin, status, membership_expiry, enrollment_date, membership_period, enrollment_gym_id, legacy_gym, legacy_pk_customer, official_photo_path, cancellation_effective_date, cancellation_reason, cancellation_recorded_at, archived_at, archived_reason, updated_at";
+const MEMBER_COLUMNS = "id, member_number, first_name, last_name, full_name, email, mobile, phone, telephone_no_1, telephone_no_2, id_number, date_of_birth, address_line_1, address_line_2, town, postcode, country, company_name, gender, notes, next_of_kin, status, membership_expiry, enrollment_date, membership_period, enrollment_gym_id, legacy_gym, legacy_pk_customer, official_photo_path, cancellation_effective_date, cancellation_reason, cancellation_recorded_at, archived_at, archived_reason, updated_at";
 
 const MEMBER_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const noStore = { "Cache-Control": "private, no-store, max-age=0" };
@@ -132,12 +132,16 @@ export async function GET(
     const applicationIds = membershipRows.map((row) => row.application_id).filter((id): id is string => Boolean(id));
     const applicationsResult = applicationIds.length
       ? await db.from("bgm_membership_applications")
-        .select("id,application_reference,base_price_cents,discount_amount_cents,final_amount_cents,currency,payment_method,payment_other_text,payment_received_at,activated_at")
+        .select("id,application_reference,base_price_cents,discount_code_snapshot,discount_percentage_snapshot,discount_amount_cents,final_amount_cents,currency,payment_method,payment_other_text,payment_staff_name,payment_received_at,activated_at,updated_at")
         .in("id", applicationIds)
       : { data: [], error: null };
     if (applicationsResult.error) throw applicationsResult.error;
     const applications = new Map((applicationsResult.data || []).map((row) => [row.id, row]));
     const roles = new Map(linkRows.map((row) => [row.membership_id, row.member_role]));
+    const voucherResult = await db.from("bgm_discount_codes")
+      .select("id,code,percentage,active,valid_from,valid_until,max_uses,successful_uses")
+      .order("code", { ascending: true });
+    if (voucherResult.error) throw voucherResult.error;
 
     return NextResponse.json({
       member: {
@@ -148,6 +152,13 @@ export async function GET(
         fullName: member.full_name || "",
         email: member.email || "",
         mobile: member.mobile || "",
+        phone: member.phone || "",
+        telephoneNo1: member.telephone_no_1 || "",
+        telephoneNo2: member.telephone_no_2 || "",
+        companyName: member.company_name || "",
+        gender: member.gender || "",
+        country: member.country || "",
+        notes: member.notes || "",
         dateOfBirth: member.date_of_birth || "",
         idNumber: member.id_number || "",
         addressLine1: member.address_line_1 || "",
@@ -180,6 +191,7 @@ export async function GET(
       cancellationEdit: { ...cancellationEdit, today: todayMaltaDate() },
       couplesCancellationEdit,
       gyms: gymResult.data || [],
+      vouchers: voucherResult.data || [],
       memberships: membershipRows.map((row) => ({
         id: row.id,
         role: roles.get(row.id) || "primary",
