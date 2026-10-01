@@ -669,6 +669,22 @@ function classifyRows(
         }
 
         const derivedStatus = statusFromExpiryDate(v.ExpiryDate1, todayMaltaDate());
+        if (!clean(v.ExpiryDate1)) {
+          warningSourceRows.add(row.rowNumber);
+          addReview({
+            batch_id: batchId,
+            review_type: "warning",
+            blocking: false,
+            source_row_number: row.rowNumber,
+            member_id: matchedMemberId,
+            member_number: matchedMemberId ? indexes.rawById.get(matchedMemberId)?.member_number || null : null,
+            customer_name: nullable(v.CustomerName),
+            gym: nullable(v.Gym),
+            pk_customer: nullable(v.pkCustomer),
+            legacy_scan3: nullable(scan3),
+            issue: "ExpiryDate is blank. The member is imported as Inactive and cannot be granted access until a valid expiry is recorded.",
+          });
+        }
         if (derivedStatus && sourceValidityMismatch(source(row, "ValidYN"), derivedStatus)) {
           warningSourceRows.add(row.rowNumber);
           addReview({
