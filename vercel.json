@@ -5,7 +5,8 @@
       "feature/staff-dashboard-reception": false,
       "feature/tablet-enrollment-membership-settings": false,
       "feature/legacy-member-voucher-corrections": false,
-      "feature/super-admin-audit-trail": false
+      "feature/super-admin-audit-trail": false,
+      "fix/audit-trail-input-contrast": false
     }
   },
   "regions": [
