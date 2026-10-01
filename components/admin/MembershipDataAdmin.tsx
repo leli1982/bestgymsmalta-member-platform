@@ -191,7 +191,7 @@ export default function MembershipDataAdmin({
           </button>
         </div>
         <p className="mt-3 text-xs font-bold text-white/40">
-          Accepted formats: the old-system 22-column AllCustomers3 XLSX, the original 15-column legacy file, or the BGM 16-column exchange format. For AllCustomers3, Legacy Gym is derived automatically from pkCustomer and ExpiryDate alone determines Active/Inactive status.
+          Accepted formats: the old-system 22-column AllCustomers3 XLSX, the original 15-column legacy file, or the BGM 16-column exchange format. For AllCustomers3, Legacy Gym is derived automatically from pkCustomer and ExpiryDate alone determines Active/Inactive status. pkCustomer remains the existing legacy membership/card reference, duplicate historical values are preserved, and every person keeps or receives a separate permanent BGM number.
         </p>
       </div>
 
