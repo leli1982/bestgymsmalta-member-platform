@@ -116,11 +116,11 @@ export default function AuditTrailAdmin() {
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <label className="text-sm font-bold">From
             <input inputMode="numeric" value={filters.from} onChange={e=>setFilters({...filters,from:e.target.value})}
-              placeholder="DD/MM/YYYY" className="mt-1 w-full rounded-xl border border-zinc-300 px-3 py-2.5"/>
+              placeholder="DD/MM/YYYY" className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950"/>
           </label>
           <label className="text-sm font-bold">To
             <input inputMode="numeric" value={filters.to} onChange={e=>setFilters({...filters,to:e.target.value})}
-              placeholder="DD/MM/YYYY" className="mt-1 w-full rounded-xl border border-zinc-300 px-3 py-2.5"/>
+              placeholder="DD/MM/YYYY" className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950"/>
           </label>
           <label className="text-sm font-bold">User<select value={filters.user} onChange={e=>setFilters({...filters,user:e.target.value})} className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5">
             <option value="">All users</option>{(data?.users || []).map(u=><option key={u.id} value={u.id}>{u.display_name} · {u.username}{u.is_super_admin?" · Super Admin":""}</option>)}
@@ -128,9 +128,9 @@ export default function AuditTrailAdmin() {
           <label className="text-sm font-bold">Gym<select value={filters.gym} onChange={e=>setFilters({...filters,gym:e.target.value})} className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5">
             <option value="">All gyms</option>{(data?.gyms || []).map(g=><option key={g.id} value={g.id}>{g.name}</option>)}
           </select></label>
-          <label className="text-sm font-bold">Action<input value={filters.action} onChange={e=>setFilters({...filters,action:e.target.value})} placeholder="e.g. voucher, card, refund" className="mt-1 w-full rounded-xl border border-zinc-300 px-3 py-2.5"/></label>
-          <label className="text-sm font-bold">Entity<input value={filters.entity} onChange={e=>setFilters({...filters,entity:e.target.value})} placeholder="e.g. member" className="mt-1 w-full rounded-xl border border-zinc-300 px-3 py-2.5"/></label>
-          <label className="text-sm font-bold xl:col-span-2">Search<input value={filters.q} onChange={e=>setFilters({...filters,q:e.target.value})} onKeyDown={e=>{if(e.key==="Enter")applyFilters();}} placeholder="Member, BGM number, staff, username, entity ID…" className="mt-1 w-full rounded-xl border border-zinc-300 px-3 py-2.5"/></label>
+          <label className="text-sm font-bold">Action<input value={filters.action} onChange={e=>setFilters({...filters,action:e.target.value})} placeholder="e.g. voucher, card, refund" className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950"/></label>
+          <label className="text-sm font-bold">Entity<input value={filters.entity} onChange={e=>setFilters({...filters,entity:e.target.value})} placeholder="e.g. member" className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950"/></label>
+          <label className="text-sm font-bold xl:col-span-2">Search<input value={filters.q} onChange={e=>setFilters({...filters,q:e.target.value})} onKeyDown={e=>{if(e.key==="Enter")applyFilters();}} placeholder="Member, BGM number, staff, username, entity ID…" className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-950 placeholder:text-zinc-400 caret-zinc-950"/></label>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <button onClick={applyFilters} className="inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-black text-white"><Search className="h-4 w-4"/>Apply filters</button>
