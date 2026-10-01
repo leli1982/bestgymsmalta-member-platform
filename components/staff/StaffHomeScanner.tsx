@@ -50,6 +50,7 @@ type ScanResponse = {
     status: string;
     membershipExpiry: string | null;
     enrollmentGymName: string;
+    legacyGym?: string | null;
     photoRequired: boolean;
     photoUrl: string | null;
   };
@@ -270,9 +271,12 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
             )}
 
             {result.member ? (
-              <div className="mx-auto mt-4 max-w-4xl">
-                <div className="flex items-center justify-center gap-4">
-                  <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-zinc-100 text-3xl font-black text-zinc-300">
+              <div className="mx-auto mt-4 max-w-5xl">
+                <div className="grid gap-5 text-left lg:grid-cols-[minmax(320px,460px)_minmax(0,1fr)] lg:items-center">
+                  <div
+                    data-testid="staff-home-scan-photo"
+                    className="relative mx-auto flex aspect-square w-full max-w-[460px] items-center justify-center overflow-hidden rounded-3xl bg-zinc-100 text-8xl font-black text-zinc-300 shadow-inner"
+                  >
                     {result.member.fullName.slice(0, 1).toUpperCase()}
                     {result.member.photoUrl && !photoLoadFailed && (
                       <img
@@ -287,8 +291,8 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
                       />
                     )}
                   </div>
-                  <div className="text-left">
-                    <p className="text-2xl font-black text-zinc-950">
+                  <div className="min-w-0">
+                    <p className="text-3xl font-black text-zinc-950 sm:text-4xl">
                       {result.member.fullName}
                     </p>
                     <p className="mt-1 font-mono text-sm font-black text-zinc-500">
@@ -302,10 +306,14 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
                           ? "legacy pkCustomer"
                           : "BGM member number"}
                     </p>
+                    <div className="mt-4 grid gap-2 text-sm font-semibold text-zinc-600 sm:grid-cols-2">
+                      <p>Current enrollment gym: <strong className="text-zinc-900">{result.member.enrollmentGymName || "Not recorded"}</strong></p>
+                      <p>Legacy gym: <strong className="text-zinc-900">{result.member.legacyGym || "Not recorded"}</strong></p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-3 text-left sm:grid-cols-3">
+                <div className="mt-5 grid gap-3 text-left sm:grid-cols-3">
                   <div className="rounded-2xl bg-zinc-100 p-4">
                     <p className="text-xs font-bold text-zinc-500">Expiry</p>
                     <p className="mt-1 font-black">

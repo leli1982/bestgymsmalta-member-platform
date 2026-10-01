@@ -67,3 +67,15 @@ test("retired physical cards are denied and scanner payload exposes the authorit
   assert.match(route, /currentPhysicalCardSource/);
   assert.match(reception, /Current physical card/);
 });
+
+
+test("staff home scan result uses a large identity photo and shows legacy gym", () => {
+  const scanner = fs.readFileSync(
+    new URL("../components/staff/StaffHomeScanner.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(scanner, /staff-home-scan-photo/);
+  assert.match(scanner, /max-w-\[460px\]/);
+  assert.match(scanner, /Legacy gym:/);
+  assert.match(scanner, /Current enrollment gym:/);
+});
