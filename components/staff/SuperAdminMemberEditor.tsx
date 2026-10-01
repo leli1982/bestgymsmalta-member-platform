@@ -48,6 +48,11 @@ type Detail = {
   couplesCancellationEdit?: CouplesCancellationEdit | null;
   gyms: Array<{ id: string; name: string; status: string }>;
   vouchers: Array<{ id: string; code: string; percentage: number; active: boolean; valid_from: string | null; valid_until: string | null; max_uses: number | null; successful_uses: number }>;
+  legacyVoucherCorrection: {
+    id: string; voucher_code: string; voucher_percentage: number;
+    confirmed_original_paid_cents: number; corrected_final_amount_cents: number;
+    refund_due_cents: number; currency: string; membership_expiry_snapshot: string | null; applied_at: string;
+  } | null;
   memberships: Membership[];
 };
 const FIELDS: Array<{ key: keyof MemberProfileDraft; label: string; type?: string; wide?: boolean }> = [
@@ -125,6 +130,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
       setDetail({
         ...(result as Detail),
         vouchers: Array.isArray(result.vouchers) ? result.vouchers : [],
+        legacyVoucherCorrection: result.legacyVoucherCorrection || null,
         dateEdit,
         cancellationEdit: result.cancellationEdit,
       });
@@ -487,8 +493,11 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
               onBusyChange={setCancelBusy} onUpdated={load}/>
             <SuperAdminMemberVoucherCorrection
               memberId={memberId}
+              memberStatus={member.status}
+              expectedMemberUpdatedAt={member.updatedAt}
               memberships={detail.memberships}
               vouchers={detail.vouchers}
+              legacyCorrection={detail.legacyVoucherCorrection}
               disabled={saving || gymSaving || dateSaving || loading || cancelBusy || changed || gymChanged || dateChanged || cardDraftDirty || cancelDraftDirty}
               onUpdated={load}
             />

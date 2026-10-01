@@ -23,26 +23,48 @@ export async function PATCH(
     }
 
     const body = await request.json();
+    const correctionKind = body?.correctionKind === "legacy" ? "legacy" : "transaction";
     const membershipId = String(body?.membershipId || "").trim();
     const expectedApplicationUpdatedAt = String(body?.expectedApplicationUpdatedAt || "").trim();
+    const expectedMemberUpdatedAt = String(body?.expectedMemberUpdatedAt || "").trim();
     const voucherCode = String(body?.voucherCode || "").trim().toUpperCase();
-
-    if (!UUID.test(membershipId) || !voucherCode || !expectedApplicationUpdatedAt
-      || !Number.isFinite(Date.parse(expectedApplicationUpdatedAt))) {
-      return NextResponse.json(
-        { error: "Reload the member and choose a valid voucher before saving." },
-        { status: 400 }
-      );
-    }
+    const originalPaidCents = Number(body?.originalPaidCents);
 
     const db = getSupabaseAdmin();
-    const result = await db.rpc("bgm_super_admin_apply_member_voucher", {
-      p_system_user_id: auth.context.systemUserId,
-      p_member_id: memberId,
-      p_membership_id: membershipId,
-      p_expected_application_updated_at: expectedApplicationUpdatedAt,
-      p_voucher_code: voucherCode,
-    });
+    let result;
+
+    if (correctionKind === "legacy") {
+      if (!voucherCode || !expectedMemberUpdatedAt
+        || !Number.isFinite(Date.parse(expectedMemberUpdatedAt))
+        || !Number.isInteger(originalPaidCents) || originalPaidCents <= 0) {
+        return NextResponse.json(
+          { error: "Confirm the original amount paid and choose a valid voucher." },
+          { status: 400 }
+        );
+      }
+      result = await db.rpc("bgm_super_admin_apply_legacy_member_voucher", {
+        p_system_user_id: auth.context.systemUserId,
+        p_member_id: memberId,
+        p_expected_member_updated_at: expectedMemberUpdatedAt,
+        p_voucher_code: voucherCode,
+        p_original_paid_cents: originalPaidCents,
+      });
+    } else {
+      if (!UUID.test(membershipId) || !voucherCode || !expectedApplicationUpdatedAt
+        || !Number.isFinite(Date.parse(expectedApplicationUpdatedAt))) {
+        return NextResponse.json(
+          { error: "Reload the member and choose a valid voucher before saving." },
+          { status: 400 }
+        );
+      }
+      result = await db.rpc("bgm_super_admin_apply_member_voucher", {
+        p_system_user_id: auth.context.systemUserId,
+        p_member_id: memberId,
+        p_membership_id: membershipId,
+        p_expected_application_updated_at: expectedApplicationUpdatedAt,
+        p_voucher_code: voucherCode,
+      });
+    }
 
     if (result.error) {
       const message = String(result.error.message || "");
@@ -55,7 +77,7 @@ export async function PATCH(
       if (/Member not found|Membership not found|payment application was not found/i.test(message)) {
         return NextResponse.json({ error: message }, { status: 404, headers: noStore });
       }
-      if (/Shared memberships|does not belong|activated membership|complete price snapshot|recorded payment receipt|Voucher is unavailable|would not create a refund|Choose a voucher/i.test(message)) {
+      if (/Shared memberships|does not belong|activated membership|complete price snapshot|recorded payment receipt|Voucher is unavailable|would not create a refund|Choose a voucher|current active legacy member|transaction-backed membership|confirmed original amount paid|already recorded for this current legacy membership/i.test(message)) {
         return NextResponse.json({ error: message }, { status: 400, headers: noStore });
       }
       console.error(result.error);

@@ -138,10 +138,19 @@ export async function GET(
     if (applicationsResult.error) throw applicationsResult.error;
     const applications = new Map((applicationsResult.data || []).map((row) => [row.id, row]));
     const roles = new Map(linkRows.map((row) => [row.membership_id, row.member_role]));
-    const voucherResult = await db.from("bgm_discount_codes")
-      .select("id,code,percentage,active,valid_from,valid_until,max_uses,successful_uses")
-      .order("code", { ascending: true });
+    const [voucherResult, legacyCorrectionResult] = await Promise.all([
+      db.from("bgm_discount_codes")
+        .select("id,code,percentage,active,valid_from,valid_until,max_uses,successful_uses")
+        .order("code", { ascending: true }),
+      db.from("bgm_legacy_member_voucher_corrections")
+        .select("id,voucher_code,voucher_percentage,confirmed_original_paid_cents,corrected_final_amount_cents,refund_due_cents,currency,membership_expiry_snapshot,applied_at")
+        .eq("member_id", memberId)
+        .order("applied_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
     if (voucherResult.error) throw voucherResult.error;
+    if (legacyCorrectionResult.error) throw legacyCorrectionResult.error;
 
     return NextResponse.json({
       member: {
@@ -192,6 +201,7 @@ export async function GET(
       couplesCancellationEdit,
       gyms: gymResult.data || [],
       vouchers: voucherResult.data || [],
+      legacyVoucherCorrection: legacyCorrectionResult.data || null,
       memberships: membershipRows.map((row) => ({
         id: row.id,
         role: roles.get(row.id) || "primary",

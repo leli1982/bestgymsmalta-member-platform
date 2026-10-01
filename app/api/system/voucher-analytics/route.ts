@@ -40,6 +40,18 @@ type ParticipantRow = {
   id_number: string | null;
 };
 
+type LegacyCorrectionRow = {
+  id: string;
+  voucher_code: string;
+  voucher_percentage: number;
+  member_enrollment_date_snapshot: string | null;
+  enrollment_gym_id_snapshot: string | null;
+  member_first_name: string | null;
+  member_last_name: string | null;
+  member_id_number: string | null;
+  applied_at: string;
+};
+
 function normaliseCode(value: unknown) {
   return String(value || "").trim().toUpperCase();
 }
@@ -165,6 +177,21 @@ export async function GET(request: NextRequest) {
       (application) => Boolean(normaliseCode(application.discount_code_snapshot))
     );
 
+    const legacyRows = await allRows<LegacyCorrectionRow>((a, b) => {
+      let query = db
+        .from("bgm_legacy_member_voucher_corrections")
+        .select("id,voucher_code,voucher_percentage,member_enrollment_date_snapshot,enrollment_gym_id_snapshot,member_first_name,member_last_name,member_id_number,applied_at")
+        .order("applied_at", { ascending: false })
+        .range(a, b);
+      if (requestedVoucher) query = query.eq("voucher_code", requestedVoucher);
+      return query;
+    });
+
+    const legacyCorrections = legacyRows.filter((row) => {
+      const date = row.member_enrollment_date_snapshot || maltaDateFromInstant(row.applied_at);
+      return date >= from && date <= to;
+    });
+
     const applicationIds = applications.map((row) => row.id);
     const participants = await participantRowsForApplications(db, applicationIds);
     const participantsByApplication = new Map<string, ParticipantRow[]>();
@@ -179,7 +206,7 @@ export async function GET(request: NextRequest) {
       gymRows.map((gym) => [gym.id, gym.name || gym.id])
     );
 
-    const members = applications.flatMap((application) => {
+    const applicationMembers = applications.flatMap((application) => {
       const code = normaliseCode(application.discount_code_snapshot);
       if (!code || !application.activated_at) return [];
       return (participantsByApplication.get(application.id) || []).map((participant) => ({
@@ -200,6 +227,23 @@ export async function GET(request: NextRequest) {
           "Unknown gym",
       }));
     });
+
+    const legacyMembers = legacyCorrections.map((row) => ({
+      applicationId: `legacy:${row.id}`,
+      voucherCode: normaliseCode(row.voucher_code),
+      voucherPercentage: Number(row.voucher_percentage),
+      firstName: String(row.member_first_name || "").trim(),
+      lastName: String(row.member_last_name || "").trim(),
+      idNumber: String(row.member_id_number || "").trim(),
+      enrollmentDate: row.member_enrollment_date_snapshot || maltaDateFromInstant(row.applied_at),
+      enrollmentGymId: row.enrollment_gym_id_snapshot || null,
+      enrollmentGymName:
+        gymNames[String(row.enrollment_gym_id_snapshot || "")] ||
+        row.enrollment_gym_id_snapshot ||
+        "Unknown gym",
+    }));
+
+    const members = [...applicationMembers, ...legacyMembers];
 
     const memberCountByVoucher = new Map<string, number>();
     for (const member of members) {
@@ -225,6 +269,12 @@ export async function GET(request: NextRequest) {
           ? null
           : Number(application.discount_percentage_snapshot)
       );
+    }
+
+    for (const correction of legacyCorrections) {
+      const code = normaliseCode(correction.voucher_code);
+      if (!code || historicalPercentageByCode.has(code)) continue;
+      historicalPercentageByCode.set(code, Number(correction.voucher_percentage));
     }
 
     const historicalCodes = new Set(historicalPercentageByCode.keys());

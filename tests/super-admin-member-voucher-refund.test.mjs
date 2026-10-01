@@ -62,3 +62,28 @@ test("operations dashboard surfaces the persistent Super Admin refund queue", ()
   assert.match(refunds, /ID:/);
   assert.match(refunds, /Mobile:/);
 });
+
+
+test("legacy imported members can receive an audited voucher correction only after Super Admin confirms original amount paid", () => {
+  const route = read("app/api/system/admin/members/[memberId]/voucher/route.ts");
+  const editor = read("components/staff/SuperAdminMemberVoucherCorrection.tsx");
+  const sql = read("supabase/migrations/20261001_130000_legacy_member_voucher_corrections.sql");
+  assert.match(route, /correctionKind === "legacy"/);
+  assert.match(route, /p_original_paid_cents/);
+  assert.match(editor, /Original amount paid/);
+  assert.match(editor, /Confirm amount & apply voucher/);
+  assert.match(editor, /no historical amount is invented/i);
+  assert.match(sql, /bgm_super_admin_apply_legacy_member_voucher/);
+  assert.match(sql, /confirmed_original_paid_cents/);
+  assert.match(sql, /transaction-backed membership/);
+  assert.match(sql, /member\.voucher\.legacy_retroactive_applied/);
+  assert.match(sql, /is_super_admin = true/);
+});
+
+test("legacy voucher corrections feed voucher analytics", () => {
+  const analytics = read("app/api/system/voucher-analytics/route.ts");
+  assert.match(analytics, /bgm_legacy_member_voucher_corrections/);
+  assert.match(analytics, /legacyCorrections/);
+  assert.match(analytics, /legacyMembers/);
+  assert.match(analytics, /member_enrollment_date_snapshot/);
+});
