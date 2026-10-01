@@ -3,7 +3,9 @@ export type MemberImportAction =
   | "update"
   | "unchanged"
   | "conflict"
-  | "invalid";
+  | "invalid"
+  | "duplicate"
+  | "redundant";
 
 export type IncomingMemberForMatch = {
   cardBarcode?: string | null;
