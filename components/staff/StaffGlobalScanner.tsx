@@ -33,6 +33,8 @@ type AccessResult = {
     fullName: string;
     status: string;
     membershipExpiry: string | null;
+    enrollmentGymName?: string | null;
+    legacyGym?: string | null;
     photoRequired: boolean;
     photoUrl: string | null;
   } | null;
@@ -497,8 +499,11 @@ export default function StaffGlobalScanner() {
             </h2>
             {Boolean(result.cardMatches?.length) && <CardConflictCards members={result.cardMatches || []} scanId={result.scanId} />}
             {result.member ? (
-              <div className="mx-auto mt-4 flex max-w-4xl flex-wrap items-center justify-center gap-4 text-left">
-                <div className="relative flex h-36 w-36 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-zinc-100 text-5xl font-black text-zinc-300">
+              <div className="mx-auto mt-4 grid max-w-5xl gap-5 text-left lg:grid-cols-[minmax(300px,420px)_minmax(0,1fr)] lg:items-center">
+                <div
+                  data-testid="scan-member-photo"
+                  className="relative mx-auto flex aspect-square w-full max-w-[420px] items-center justify-center overflow-hidden rounded-3xl bg-zinc-100 text-8xl font-black text-zinc-300 shadow-inner"
+                >
                   {result.member.fullName.slice(0, 1)}
                   {result.member.photoUrl && !photoLoadFailed && (
                     <img
@@ -509,13 +514,15 @@ export default function StaffGlobalScanner() {
                     />
                   )}
                 </div>
-                <div>
-                  <p className="text-2xl font-black text-zinc-950">{result.member.fullName}</p>
+                <div className="min-w-0">
+                  <p className="text-3xl font-black text-zinc-950 sm:text-4xl">{result.member.fullName}</p>
                   <p className="mt-1 font-mono font-bold text-zinc-600">BGM no. {result.member.memberNumber}</p>
                   <p className="mt-1 font-mono text-sm font-bold text-zinc-700">Current card: {result.currentPhysicalCard || "Not assigned"}</p>
                   <p className="mt-1 text-xs font-bold text-zinc-500">Scanned: <span className="font-mono">{result.scannedBarcode || "—"}</span></p>
                   <p className="mt-2 font-bold text-zinc-700">Expiry: {formatEuropeanDate(result.member.membershipExpiry, "Not set")}</p>
-                  <p className="text-sm font-semibold text-zinc-500">Status: {result.member.status}</p>
+                  <p className="mt-1 font-semibold text-zinc-600">Current enrollment gym: {result.member.enrollmentGymName || "Not recorded"}</p>
+                  <p className="mt-1 font-semibold text-zinc-600">Legacy gym: {result.member.legacyGym || "Not recorded"}</p>
+                  <p className="mt-1 text-sm font-semibold text-zinc-500">Status: {result.member.status}</p>
                 </div>
               </div>
             ) : (

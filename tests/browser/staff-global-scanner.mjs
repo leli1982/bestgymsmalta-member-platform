@@ -71,6 +71,8 @@ try {
           memberNumber: code,
           status: granted ? "active" : "expired",
           membershipExpiry: granted ? "2027-12-31" : "2025-01-01",
+          enrollmentGymName: "Birkirkara",
+          legacyGym: "Mosta",
           photoRequired: false,
           photoUrl: null,
         },
@@ -95,6 +97,10 @@ try {
   await access.waitFor({ state: "visible", timeout: 15000 });
   assert.equal(await name.inputValue(), "Maria Borg", "Scanner input must not corrupt the focused Staff form");
   await access.getByText("Active Member", { exact: true }).waitFor();
+  await access.getByText("Legacy gym: Mosta", { exact: true }).waitFor();
+  const grantedPhotoBox = await access.getByTestId("scan-member-photo").boundingBox();
+  assert.ok(grantedPhotoBox && grantedPhotoBox.width >= 300,
+    "Granted scan must show a large identity photo panel");
   await page.screenshot({ path: artifacts + "/sundries-granted.png" });
   await access.getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
   assert.equal(await name.inputValue(), "Maria Borg");
@@ -108,6 +114,10 @@ try {
   const denied = page.getByRole("dialog", { name: "MEMBERSHIP EXPIRED" });
   await denied.waitFor({ state: "visible", timeout: 15000 });
   await denied.getByText("DO NOT ALLOW ACCESS until verified by reception.").waitFor();
+  await denied.getByText("Legacy gym: Mosta", { exact: true }).waitFor();
+  const deniedPhotoBox = await denied.getByTestId("scan-member-photo").boundingBox();
+  assert.ok(deniedPhotoBox && deniedPhotoBox.width >= 300,
+    "Declined scan must keep the large identity photo panel");
   assert.equal(await item.inputValue(), "4");
   await page.screenshot({ path: artifacts + "/sundries-declined.png" });
   await denied.getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
