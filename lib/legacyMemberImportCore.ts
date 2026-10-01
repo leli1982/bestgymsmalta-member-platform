@@ -72,6 +72,7 @@ export function statusFromExpiryDate(
   today: string
 ): "active" | "inactive" | null {
   const expiry = clean(expiryDate);
+  if (!expiry) return "inactive";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(expiry)) return null;
   return expiry >= today ? "active" : "inactive";
 }
