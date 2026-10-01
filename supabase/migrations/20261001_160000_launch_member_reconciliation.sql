@@ -119,11 +119,10 @@ begin
     end if;
 
     if v_batch.import_mode='legacy_22' then
-      if v_row.expiry_date is null then
-        raise exception 'Missing ExpiryDate on row %',v_row.row_number;
-      end if;
-      v_status := case when v_row.expiry_date >= (now() at time zone 'Europe/Malta')::date
-                       then 'active' else 'inactive' end;
+      v_status := case
+        when v_row.expiry_date is not null
+         and v_row.expiry_date >= (now() at time zone 'Europe/Malta')::date
+        then 'active' else 'inactive' end;
     else
       v_status := case
         when lower(btrim(coalesce(v_row.valid_yn,'')))='valid'
