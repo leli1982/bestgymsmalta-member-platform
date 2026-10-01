@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Download, RefreshCw, Search, ShieldCheck } from "lucide-react";
-import { formatEuropeanDateTime } from "@/lib/europeanDate";
+import { formatEuropeanDateTime, parseEuropeanDate } from "@/lib/europeanDate";
 
 type Row = {
   id: string; created_at: string; system_user_id: string | null;
@@ -61,7 +61,17 @@ export default function AuditTrailAdmin() {
 
   useEffect(() => { void load(); }, [load]);
 
-  function applyFilters() { setPage(1); setApplied(filters); }
+  function applyFilters() {
+    const from = filters.from ? parseEuropeanDate(filters.from) : "";
+    const to = filters.to ? parseEuropeanDate(filters.to) : "";
+    if ((filters.from && !from) || (filters.to && !to) || (from && to && from > to)) {
+      setError("Enter a valid date range using DD/MM/YYYY.");
+      return;
+    }
+    setError("");
+    setPage(1);
+    setApplied({ ...filters, from: from || "", to: to || "" });
+  }
   function clearFilters() {
     const blank = { from: "", to: "", user: "", gym: "", action: "", entity: "", q: "" };
     setFilters(blank); setApplied(blank); setPage(1);
@@ -104,8 +114,14 @@ export default function AuditTrailAdmin() {
 
       <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <label className="text-sm font-bold">From<input type="date" value={filters.from} onChange={e=>setFilters({...filters,from:e.target.value})} className="mt-1 w-full rounded-xl border border-zinc-300 px-3 py-2.5"/></label>
-          <label className="text-sm font-bold">To<input type="date" value={filters.to} onChange={e=>setFilters({...filters,to:e.target.value})} className="mt-1 w-full rounded-xl border border-zinc-300 px-3 py-2.5"/></label>
+          <label className="text-sm font-bold">From
+            <input inputMode="numeric" value={filters.from} onChange={e=>setFilters({...filters,from:e.target.value})}
+              placeholder="DD/MM/YYYY" className="mt-1 w-full rounded-xl border border-zinc-300 px-3 py-2.5"/>
+          </label>
+          <label className="text-sm font-bold">To
+            <input inputMode="numeric" value={filters.to} onChange={e=>setFilters({...filters,to:e.target.value})}
+              placeholder="DD/MM/YYYY" className="mt-1 w-full rounded-xl border border-zinc-300 px-3 py-2.5"/>
+          </label>
           <label className="text-sm font-bold">User<select value={filters.user} onChange={e=>setFilters({...filters,user:e.target.value})} className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5">
             <option value="">All users</option>{(data?.users || []).map(u=><option key={u.id} value={u.id}>{u.display_name} · {u.username}{u.is_super_admin?" · Super Admin":""}</option>)}
           </select></label>
