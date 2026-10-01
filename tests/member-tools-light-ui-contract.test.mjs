@@ -59,4 +59,8 @@ test("Progress Vault and Strength Tracker use light working surfaces without cha
   assert.match(strength, /text-zinc-950/);
   assert.match(progress, /\/api\/member\/progress-photos/);
   assert.match(strength, /\/api\/member\/strength-progress/);
+  assert.match(strength, /z-\[100\]/);
+  assert.match(strength, /max-h-\[calc\(100dvh-1rem\)\]/);
+  assert.match(strength, /min-h-0 flex-1 overflow-y-auto/);
+  assert.match(strength, /pb-\[calc\(2rem\+env\(safe-area-inset-bottom\)\)\]/);
 });
