@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 type Voucher = {
   id: string | null;
   code: string;
+  percentage: number | null;
   status: "active" | "inactive";
   statusReason: string;
   configuredActive: boolean;
@@ -27,6 +28,7 @@ type Voucher = {
 type VoucherMember = {
   applicationId: string;
   voucherCode: string;
+  voucherPercentage: number | null;
   firstName: string;
   lastName: string;
   idNumber: string;
@@ -154,14 +156,14 @@ export default function VoucherAnalyticsAdmin() {
   }
 
   return (
-    <div className="space-y-5" data-super-admin-vouchers="corporate-vouchers">
+    <div className="space-y-5" data-super-admin-vouchers="membership-vouchers">
       <section className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
         <div className="flex items-start gap-3">
           <TicketCheck className="mt-0.5 h-6 w-6 text-orange-700" />
           <div>
-            <h3 className="font-black text-orange-950">Corporate membership vouchers</h3>
+            <h3 className="font-black text-orange-950">Membership vouchers</h3>
             <p className="mt-1 text-sm font-semibold leading-6 text-orange-900">
-              100% discount codes are reported here as corporate vouchers. Historical usage stays visible even after a voucher is disabled or expires.
+              All configured voucher/discount codes are reported here, regardless of discount percentage. Historical usage stays visible even after a voucher is disabled, expires or is removed.
             </p>
           </div>
         </div>
@@ -282,6 +284,7 @@ export default function VoucherAnalyticsAdmin() {
                 <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
                   <tr>
                     <th className="px-4 py-3">Voucher</th>
+                    <th className="px-4 py-3">Discount</th>
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Validity</th>
                     <th className="px-4 py-3">Total uses</th>
@@ -300,6 +303,9 @@ export default function VoucherAnalyticsAdmin() {
                       <td className="px-4 py-3">
                         <p className="font-black">{voucher.code}</p>
                         <p className="mt-0.5 text-xs font-semibold text-zinc-500">{voucher.statusReason}</p>
+                      </td>
+                      <td className="px-4 py-3 font-black tabular-nums">
+                        {voucher.percentage === null ? "—" : `${voucher.percentage}%`}
                       </td>
                       <td className="px-4 py-3"><StatusBadge voucher={voucher} /></td>
                       <td className="px-4 py-3 font-semibold">{validity(voucher)}</td>
@@ -321,7 +327,7 @@ export default function VoucherAnalyticsAdmin() {
                     </tr>
                   ))}
                   {filteredVouchers.length === 0 ? (
-                    <tr><td colSpan={6} className="px-4 py-8 text-center font-semibold text-zinc-500">No vouchers match this search.</td></tr>
+                    <tr><td colSpan={7} className="px-4 py-8 text-center font-semibold text-zinc-500">No vouchers match this search.</td></tr>
                   ) : null}
                 </tbody>
               </table>

@@ -134,7 +134,6 @@ export async function GET(request: NextRequest) {
         db
           .from("bgm_discount_codes")
           .select("id,code,percentage,active,valid_from,valid_until,max_uses,successful_uses,created_at,updated_at")
-          .eq("percentage", 100)
           .order("code")
           .range(a, b)
       ),
@@ -146,12 +145,11 @@ export async function GET(request: NextRequest) {
     const start = maltaDayUtcRange(from).start;
     const end = maltaDayUtcRange(to).end;
 
-    const applications = await allRows<ApplicationRow>((a, b) => {
+    const applicationRows = await allRows<ApplicationRow>((a, b) => {
       let query = db
         .from("bgm_membership_applications")
         .select("id,enrollment_gym_id,activated_at,discount_code_snapshot,discount_percentage_snapshot,status")
         .eq("status", "activated")
-        .eq("discount_percentage_snapshot", 100)
         .gte("activated_at", start)
         .lt("activated_at", end)
         .order("activated_at", { ascending: false })
@@ -162,6 +160,10 @@ export async function GET(request: NextRequest) {
       }
       return query;
     });
+
+    const applications = applicationRows.filter(
+      (application) => Boolean(normaliseCode(application.discount_code_snapshot))
+    );
 
     const applicationIds = applications.map((row) => row.id);
     const participants = await participantRowsForApplications(db, applicationIds);
@@ -183,6 +185,10 @@ export async function GET(request: NextRequest) {
       return (participantsByApplication.get(application.id) || []).map((participant) => ({
         applicationId: application.id,
         voucherCode: code,
+        voucherPercentage:
+          application.discount_percentage_snapshot === null
+            ? null
+            : Number(application.discount_percentage_snapshot),
         firstName: String(participant.first_name || "").trim(),
         lastName: String(participant.last_name || "").trim(),
         idNumber: String(participant.id_number || "").trim(),
@@ -207,13 +213,21 @@ export async function GET(request: NextRequest) {
       voucherRows.map((voucher) => [normaliseCode(voucher.code), voucher])
     );
 
-    // Historical 100% voucher usage remains reportable even if a code was
+    // Historical voucher usage remains reportable even if a code was
     // later removed from Membership Settings.
-    const historicalCodes = new Set(
-      applications
-        .map((application) => normaliseCode(application.discount_code_snapshot))
-        .filter(Boolean)
-    );
+    const historicalPercentageByCode = new Map<string, number | null>();
+    for (const application of applications) {
+      const code = normaliseCode(application.discount_code_snapshot);
+      if (!code || historicalPercentageByCode.has(code)) continue;
+      historicalPercentageByCode.set(
+        code,
+        application.discount_percentage_snapshot === null
+          ? null
+          : Number(application.discount_percentage_snapshot)
+      );
+    }
+
+    const historicalCodes = new Set(historicalPercentageByCode.keys());
 
     const allCodes = new Set([
       ...Array.from(configuredByCode.keys()),
@@ -226,7 +240,7 @@ export async function GET(request: NextRequest) {
         return {
           id: null,
           code,
-          percentage: 100,
+          percentage: historicalPercentageByCode.get(code) ?? null,
           status: "inactive",
           statusReason: "Removed from settings",
           configuredActive: false,
