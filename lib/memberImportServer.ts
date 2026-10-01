@@ -517,15 +517,177 @@ function sameLegacy22Values(
   return baseMatches && scanMatches;
 }
 
-function strongSourceIdentityKey(row: ParsedMemberExchangeRow) {
-  const name = normalized(row.values.CustomerName);
-  const pk = normalized(row.values.pkCustomer);
-  const id = normalized(source(row, "IDCard"));
-  const dob = source(row, "DOB");
-  const email = clean(row.values.Email).toLocaleLowerCase("en");
-  const support = id || dob || email;
-  if (!name || !pk || !support) return "";
-  return [normalized(row.values.Gym), pk, name, id, dob, email].join("\u0000");
+function sourceBaseDuplicateKey(row: ParsedMemberExchangeRow) {
+  if (!row.sourceValues) return "";
+  return [
+    normalized(source(row, "CustomerName")),
+    normalized(source(row, "Surname")),
+    normalized(source(row, "pkCustomer")),
+    normalizeBarcodePayload(source(row, "Scan3")),
+    clean(source(row, "ExpiryDate")),
+  ].join("\u0000");
+}
+
+function sourceDocument(value: unknown) {
+  return clean(value).toLocaleLowerCase("en").replace(/[^a-z0-9]/g, "");
+}
+
+function sourcePhone(row: ParsedMemberExchangeRow) {
+  for (const key of ["TelephoneNo2", "Mobile", "TelephoneNo1", "ContactPhone"]) {
+    const digits = clean(source(row, key)).replace(/\D/g, "");
+    if (digits) return digits;
+  }
+  return "";
+}
+
+function sourceEvidence(row: ParsedMemberExchangeRow) {
+  return {
+    dob: clean(source(row, "DOB")),
+    id: sourceDocument(source(row, "IDCard")),
+    email: clean(source(row, "Email")).toLocaleLowerCase("en"),
+    phone: sourcePhone(row),
+  };
+}
+
+function sourceEvidenceCount(row: ParsedMemberExchangeRow) {
+  return Object.values(sourceEvidence(row)).filter(Boolean).length;
+}
+
+function normalizedSourceSignature(row: ParsedMemberExchangeRow) {
+  const sourceValues = row.sourceValues || {};
+  return Object.keys(sourceValues)
+    .sort()
+    .map((key) => `${key}=${normalized(sourceValues[key])}`)
+    .join("\u0001");
+}
+
+function sourceEvidenceRelation(
+  row: ParsedMemberExchangeRow,
+  candidate: ParsedMemberExchangeRow
+) {
+  const left = sourceEvidence(row);
+  const right = sourceEvidence(candidate);
+
+  if (left.dob && right.dob) {
+    if (left.dob === right.dob) return "duplicate" as const;
+    return "distinct" as const;
+  }
+
+  let matches = 0;
+  let conflicts = 0;
+  for (const key of ["id", "email", "phone"] as const) {
+    if (!left[key] || !right[key]) continue;
+    if (left[key] === right[key]) matches += 1;
+    else conflicts += 1;
+  }
+
+  if (matches > 0 && conflicts === 0) return "duplicate" as const;
+  if (conflicts > 0) return "distinct" as const;
+  return "unknown" as const;
+}
+
+function preclassifyLegacy22Source(rows: ParsedMemberExchangeRow[]) {
+  const duplicateRows = new Set<number>();
+  const ambiguousRows = new Set<number>();
+  const redundantRows = new Set<number>();
+  const baseGroups = new Map<string, ParsedMemberExchangeRow[]>();
+
+  for (const row of rows) {
+    const key = sourceBaseDuplicateKey(row);
+    if (!key) continue;
+    baseGroups.set(key, [...(baseGroups.get(key) || []), row]);
+  }
+
+  for (const group of Array.from(baseGroups.values())) {
+    if (group.length < 2) continue;
+
+    const representatives: ParsedMemberExchangeRow[] = [];
+    const ordered = [...group].sort(
+      (a, b) =>
+        sourceEvidenceCount(b) - sourceEvidenceCount(a) ||
+        a.rowNumber - b.rowNumber
+    );
+
+    for (const row of ordered) {
+      const normalizedSignature = normalizedSourceSignature(row);
+      if (
+        representatives.some(
+          (candidate) => normalizedSourceSignature(candidate) === normalizedSignature
+        )
+      ) {
+        duplicateRows.add(row.rowNumber);
+        continue;
+      }
+
+      const duplicateCandidates = representatives.filter(
+        (candidate) => sourceEvidenceRelation(row, candidate) === "duplicate"
+      );
+      if (duplicateCandidates.length === 1) {
+        duplicateRows.add(row.rowNumber);
+        continue;
+      }
+      if (duplicateCandidates.length > 1) {
+        ambiguousRows.add(row.rowNumber);
+        representatives.push(row);
+        continue;
+      }
+
+      const evidenceCount = sourceEvidenceCount(row);
+      if (evidenceCount === 0) {
+        const richer = representatives.filter(
+          (candidate) => sourceEvidenceCount(candidate) > 0
+        );
+        if (richer.length === 1) {
+          duplicateRows.add(row.rowNumber);
+          continue;
+        }
+        if (richer.length > 1 || representatives.length > 0) {
+          ambiguousRows.add(row.rowNumber);
+        }
+      }
+
+      representatives.push(row);
+    }
+  }
+
+  const today = todayMaltaDate();
+  const byName = new Map<string, ParsedMemberExchangeRow[]>();
+  for (const row of rows) {
+    if (duplicateRows.has(row.rowNumber) || ambiguousRows.has(row.rowNumber)) {
+      continue;
+    }
+    const name = normalized(row.values.CustomerName);
+    if (!name) continue;
+    byName.set(name, [...(byName.get(name) || []), row]);
+  }
+
+  for (const group of Array.from(byName.values())) {
+    const activeRows = group.filter(
+      (row) => clean(row.values.ExpiryDate1) >= today
+    );
+    if (activeRows.length === 0) continue;
+
+    for (const row of group) {
+      const expiry = clean(row.values.ExpiryDate1);
+      if (!expiry || expiry >= today) continue;
+      const rowEvidence = sourceEvidence(row);
+      if (!rowEvidence.dob || !rowEvidence.id) continue;
+
+      const matches = activeRows.filter((candidate) => {
+        const candidateEvidence = sourceEvidence(candidate);
+        return (
+          candidate.rowNumber !== row.rowNumber &&
+          candidateEvidence.dob === rowEvidence.dob &&
+          Boolean(candidateEvidence.id) &&
+          candidateEvidence.id === rowEvidence.id
+        );
+      });
+
+      if (matches.length === 1) redundantRows.add(row.rowNumber);
+    }
+  }
+
+  return { duplicateRows, ambiguousRows, redundantRows };
 }
 
 function classifyRows(
@@ -534,33 +696,24 @@ function classifyRows(
   existingRows: ExistingMemberDbRow[],
   indexes: ReturnType<typeof createMemberIndexes>
 ) {
-  const fingerprints = new Map<string, number>();
-  const identityRows = new Map<string, ParsedMemberExchangeRow[]>();
   const sourceScanCounts = new Map<string, number>();
   const sourcePkCounts = new Map<string, number>();
 
   for (const row of parsed.rows) {
-    const fp = fingerprint(row);
-    fingerprints.set(fp, (fingerprints.get(fp) || 0) + 1);
-    const identity = parsed.mode === "legacy_22" ? strongSourceIdentityKey(row) : "";
-    if (identity) identityRows.set(identity, [...(identityRows.get(identity) || []), row]);
     const scan3 = normalizeBarcodePayload(source(row, "Scan3"));
     if (scan3) sourceScanCounts.set(scan3, (sourceScanCounts.get(scan3) || 0) + 1);
     const pk = normalized(row.values.pkCustomer);
     if (pk) sourcePkCounts.set(pk, (sourcePkCounts.get(pk) || 0) + 1);
   }
 
-  const redundantRows = new Set<number>();
-  for (const rows of Array.from(identityRows.values())) {
-    if (rows.length < 2) continue;
-    const uniqueFingerprints = new Set(rows.map(fingerprint));
-    if (uniqueFingerprints.size < 2) continue;
-    const sorted = [...rows].sort((a, b) => clean(b.values.ExpiryDate1).localeCompare(clean(a.values.ExpiryDate1)));
-    const newest = sorted[0];
-    for (const row of sorted.slice(1)) {
-      if (clean(row.values.ExpiryDate1) < clean(newest.values.ExpiryDate1)) redundantRows.add(row.rowNumber);
-    }
-  }
+  const legacySource =
+    parsed.mode === "legacy_22"
+      ? preclassifyLegacy22Source(parsed.rows)
+      : {
+          duplicateRows: new Set<number>(),
+          ambiguousRows: new Set<number>(),
+          redundantRows: new Set<number>(),
+        };
 
   const seenFingerprint = new Set<string>();
   const staged: StagedImportRow[] = [];
@@ -614,19 +767,37 @@ function classifyRows(
     let matchedMemberId: string | null = null;
     let issue = fileFormulaIssue(row);
 
-    if (seenFingerprint.has(fp)) {
+    if (
+      seenFingerprint.has(fp) ||
+      legacySource.duplicateRows.has(row.rowNumber)
+    ) {
       action = "duplicate";
-      issue = "Exact duplicate source row skipped; the first identical row is retained.";
+      issue =
+        "Duplicate old-system source record skipped. The richer/corroborated record is retained.";
     } else {
       seenFingerprint.add(fp);
     }
 
-    if (action !== "duplicate" && redundantRows.has(row.rowNumber)) {
+    if (
+      action !== "duplicate" &&
+      legacySource.redundantRows.has(row.rowNumber)
+    ) {
       action = "redundant";
-      issue = "Older redundant record for the same person skipped; the row with the latest ExpiryDate is retained.";
+      issue =
+        "Older expired record for the same documented person skipped; the current active record is retained.";
     }
 
-    if (action !== "duplicate" && action !== "redundant") {
+    if (
+      action !== "duplicate" &&
+      action !== "redundant" &&
+      legacySource.ambiguousRows.has(row.rowNumber)
+    ) {
+      action = "conflict";
+      issue =
+        "Repeated old-system identity could not be deduplicated safely. Review the source rows before importing.";
+    }
+
+    if (action !== "duplicate" && action !== "redundant" && action !== "conflict") {
       if (issue) {
         action = "invalid";
       } else if (!identityName(incoming)) {
