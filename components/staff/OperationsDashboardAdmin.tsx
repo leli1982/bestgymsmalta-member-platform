@@ -14,6 +14,7 @@ import { barSalesComparisonColor } from "@/lib/barCashComparison";
 import { todayMaltaDate } from "@/lib/maltaDate";
 import { nextOperationalOrderActions } from "@/lib/operationalOrdersPresentation";
 import type { OperationalOrderStatus, OperationalOrderType } from "@/lib/operationalOrdersCore";
+import SuperAdminRefundAlerts from "@/components/staff/SuperAdminRefundAlerts";
 
 type Gym = { id: string; name: string };
 type OrderLine = {
@@ -195,6 +196,8 @@ export default function OperationsDashboardAdmin() {
             </div>
           </div>
         </header>
+
+        <SuperAdminRefundAlerts />
 
         <section aria-label="Order filters" className="grid gap-3 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
           <label className="text-sm font-black">Gym
