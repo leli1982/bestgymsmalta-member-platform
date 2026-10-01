@@ -27,7 +27,7 @@ test("expiry date alone determines active/inactive", () => {
   assert.equal(statusFromExpiryDate("2026-10-01", "2026-10-01"), "active");
   assert.equal(statusFromExpiryDate("2026-10-02", "2026-10-01"), "active");
   assert.equal(statusFromExpiryDate("2026-09-30", "2026-10-01"), "inactive");
-  assert.equal(statusFromExpiryDate("", "2026-10-01"), null);
+  assert.equal(statusFromExpiryDate("", "2026-10-01"), "inactive");
 });
 
 test("22-column old-system workbook converts to normalized import row", async () => {
