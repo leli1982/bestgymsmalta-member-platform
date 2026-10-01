@@ -4,6 +4,7 @@ import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
 import { formatEuropeanDate } from "@/lib/europeanDate";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Activity,
   BarChart3,
@@ -253,7 +254,18 @@ function GraphModal({
     onExerciseChange(exerciseTabs[nextIndex]);
   }
 
-  return (
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-end bg-black/80 p-2 backdrop-blur-md sm:items-center sm:p-4">
       <div className="mx-auto flex max-h-[calc(100dvh-1rem)] w-full max-w-md flex-col overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-2xl sm:max-h-[92vh]">
         <div className="shrink-0 flex items-start justify-between gap-4 border-b border-zinc-200 p-5">
@@ -417,7 +429,8 @@ function GraphModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
