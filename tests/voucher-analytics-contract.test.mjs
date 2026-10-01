@@ -35,6 +35,8 @@ test("Voucher UI supports search, active inactive status, date filters and selec
   assert.match(vouchers, /Print selected voucher/);
   assert.match(vouchers, /Print all vouchers/);
   assert.match(vouchers, /Discount/);
+  assert.match(vouchers, /Maximum successful uses/);
+  assert.match(vouchers, /voucher\.maxUses === null \? "N\/A"/);
   assert.match(vouchers, /voucher\.percentage/);
   for (const label of ["Name", "Surname", "ID Number", "Enrollment Date", "Gym", "Voucher"]) {
     assert.match(vouchers, new RegExp(label));
@@ -47,6 +49,8 @@ test("Voucher print view is A4/PDF friendly and prints each voucher with employe
   assert.match(print, /Print \/ Save PDF/);
   assert.match(print, /Voucher Report/);
   assert.match(print, /item\.percentage/);
+  assert.match(print, /maximum successful uses/);
+  assert.match(print, /item\.maxUses === null \? "N\/A"/);
   assert.match(print, /voucher-section/);
   assert.match(print, /voucher-members/);
 });

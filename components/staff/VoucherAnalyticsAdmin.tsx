@@ -288,6 +288,7 @@ export default function VoucherAnalyticsAdmin() {
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Validity</th>
                     <th className="px-4 py-3">Total uses</th>
+                    <th className="px-4 py-3">Maximum successful uses</th>
                     <th className="px-4 py-3">Members in range</th>
                     <th className="px-4 py-3"></th>
                   </tr>
@@ -310,6 +311,9 @@ export default function VoucherAnalyticsAdmin() {
                       <td className="px-4 py-3"><StatusBadge voucher={voucher} /></td>
                       <td className="px-4 py-3 font-semibold">{validity(voucher)}</td>
                       <td className="px-4 py-3 tabular-nums">{voucher.successfulUses}</td>
+                      <td className="px-4 py-3 font-semibold tabular-nums">
+                        {voucher.maxUses === null ? "N/A" : voucher.maxUses}
+                      </td>
                       <td className="px-4 py-3 font-black tabular-nums">{voucher.membersInRange}</td>
                       <td className="px-4 py-3 text-right">
                         <button
@@ -327,7 +331,7 @@ export default function VoucherAnalyticsAdmin() {
                     </tr>
                   ))}
                   {filteredVouchers.length === 0 ? (
-                    <tr><td colSpan={7} className="px-4 py-8 text-center font-semibold text-zinc-500">No vouchers match this search.</td></tr>
+                    <tr><td colSpan={8} className="px-4 py-8 text-center font-semibold text-zinc-500">No vouchers match this search.</td></tr>
                   ) : null}
                 </tbody>
               </table>
