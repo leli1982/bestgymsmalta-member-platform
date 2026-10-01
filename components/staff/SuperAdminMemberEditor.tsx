@@ -10,6 +10,7 @@ import { EDITABLE_PROFILE_FIELDS, type MemberProfileDraft } from "@/lib/superAdm
 import SuperAdminMemberCancellation, { type CancellationEdit } from "@/components/staff/SuperAdminMemberCancellation";
 import SuperAdminCouplesCancellation, { type CouplesCancellationEdit } from "@/components/staff/SuperAdminCouplesCancellation";
 import SuperAdminMemberAccountActions from "@/components/staff/SuperAdminMemberAccountActions";
+import SuperAdminMemberVoucherCorrection from "@/components/staff/SuperAdminMemberVoucherCorrection";
 
 type Member = MemberProfileDraft & {
   id: string; memberNumber: string; fullName: string; status: string;
@@ -23,11 +24,13 @@ type Member = MemberProfileDraft & {
 type Membership = {
   id: string; role: string; membershipType: string; duration: string;
   startDate: string; expiryDate: string; enrollmentGymId: string;
-  status: string; application: {
+  status: string; participantCount: number; application: {
     application_reference: string; base_price_cents: number | null;
     discount_amount_cents: number | null; final_amount_cents: number | null;
     currency: string; payment_method: string | null;
-    payment_other_text: string | null; payment_received_at: string | null;
+    payment_other_text: string | null; payment_staff_name: string | null;
+    payment_received_at: string | null; discount_code_snapshot: string | null;
+    discount_percentage_snapshot: number | null; updated_at: string;
   } | null;
 };
 type DateEdit = {
@@ -44,6 +47,7 @@ type Detail = {
   cancellationEdit: CancellationEdit;
   couplesCancellationEdit?: CouplesCancellationEdit | null;
   gyms: Array<{ id: string; name: string; status: string }>;
+  vouchers: Array<{ id: string; code: string; percentage: number; active: boolean; valid_from: string | null; valid_until: string | null; max_uses: number | null; successful_uses: number }>;
   memberships: Membership[];
 };
 const FIELDS: Array<{ key: keyof MemberProfileDraft; label: string; type?: string; wide?: boolean }> = [
@@ -57,7 +61,14 @@ const FIELDS: Array<{ key: keyof MemberProfileDraft; label: string; type?: strin
   { key: "addressLine2", label: "Address line 2", wide: true },
   { key: "town", label: "Town" },
   { key: "postcode", label: "Postcode" },
+  { key: "country", label: "Country" },
+  { key: "companyName", label: "Company" },
+  { key: "gender", label: "Gender" },
+  { key: "phone", label: "Phone", type: "tel" },
+  { key: "telephoneNo1", label: "Telephone 1", type: "tel" },
+  { key: "telephoneNo2", label: "Telephone 2", type: "tel" },
   { key: "nextOfKin", label: "Next of kin / emergency contact", wide: true },
+  { key: "notes", label: "Member notes", wide: true },
 ];
 function profileOf(member: Member): MemberProfileDraft {
   return Object.fromEntries(EDITABLE_PROFILE_FIELDS.map((key) => [key, member[key] || ""])) as MemberProfileDraft;
@@ -299,7 +310,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
             </section>
             <form onSubmit={(event) => void save(event)} className="rounded-3xl border border-zinc-200 bg-white p-5 sm:p-7">
               <div className="flex items-center gap-2"><ShieldCheck className="text-orange-700" size={22}/><h2 className="text-xl font-black">Personal details</h2></div>
-              <p className="mt-2 text-sm text-zinc-500">Only these fields are changed by Save. BGM number, original Excel values, assigned card, membership dates and payment history are not changed.</p>
+              <p className="mt-2 text-sm text-zinc-500">Super Admin may correct all legitimate member detail fields below. Permanent BGM identity, legacy pkCustomer, card credentials and audit metadata remain protected.</p>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 {FIELDS.map(({ key, label, type, wide }) => (
                   <label key={key} className={wide ? "block sm:col-span-2" : "block"}>
@@ -469,9 +480,16 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
               otherEditsPending={changed || gymChanged || dateChanged || cancelDraftDirty}
               disabled={saving || gymSaving || dateSaving || loading || cancelBusy}
               onBusyChange={setCancelBusy} onUpdated={load}/>
+            <SuperAdminMemberVoucherCorrection
+              memberId={memberId}
+              memberships={detail.memberships}
+              vouchers={detail.vouchers}
+              disabled={saving || gymSaving || dateSaving || loading || cancelBusy || changed || gymChanged || dateChanged || cardDraftDirty || cancelDraftDirty}
+              onUpdated={load}
+            />
             <section className="rounded-3xl border border-zinc-200 bg-white p-5 sm:p-7">
               <h2 className="text-xl font-black">Membership and payment records</h2>
-              <p className="mt-2 text-sm text-zinc-600">Read-only current records. Couples may share one membership. Historical Excel members may have no linked payment record.</p>
+              <p className="mt-2 text-sm text-zinc-600">Current and historical records. Voucher corrections for eligible paid individual memberships are handled in the audited Super Admin section above. Couples may share one membership.</p>
               {detail.memberships.length === 0
                 ? <p className="mt-4 rounded-xl bg-zinc-50 p-4 text-sm">No linked membership transaction is recorded for this member. Their imported expiry date is shown above; no start date or payment has been invented.</p>
                 : <div className="mt-4 space-y-3">{detail.memberships.map((item) => (
@@ -482,6 +500,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                     {item.application
                       ? <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                           <div>Recorded price: <strong>{currency(item.application.base_price_cents, item.application.currency)}</strong></div>
+                          <div>Recorded voucher: <strong>{item.application.discount_code_snapshot || "None"}{item.application.discount_percentage_snapshot == null ? "" : ` · ${item.application.discount_percentage_snapshot}%`}</strong></div>
                           <div>Recorded discount: <strong>{currency(item.application.discount_amount_cents, item.application.currency)}</strong></div>
                           <div>Recorded final amount: <strong>{currency(item.application.final_amount_cents, item.application.currency)}</strong></div>
                           <div>Payment method: <strong>{item.application.payment_method || "Not recorded"}</strong></div>
@@ -491,7 +510,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                       : <p className="mt-2 text-sm text-zinc-500">No linked payment application.</p>}
                   </article>
                 ))}</div>}
-              <p className="mt-4 text-xs text-zinc-500">Payment corrections and outstanding balances require a separate audited ledger; this editor does not overwrite existing transactions.</p>
+              <p className="mt-4 text-xs text-zinc-500">Retroactive voucher corrections preserve an audit trail and create a separate refund-required alert. Shared/couples transactions remain protected from individual edits.</p>
             </section>
           </>
         )}
