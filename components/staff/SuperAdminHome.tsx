@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   ArrowLeft, ArrowUpRight, Beer, Bell, BellRing, Building2, ChartNoAxesCombined, ClipboardList, Dumbbell,
-  FileBarChart2, KeyRound, Megaphone, RefreshCw, Settings2, ShieldCheck, UserPlus, UsersRound, Barcode, ShoppingBasket,
+  FileBarChart2, KeyRound, Megaphone, RefreshCw, Settings2, ShieldCheck, UserPlus, UsersRound, Barcode, ShoppingBasket, ScrollText,
 } from "lucide-react";
 
 type AdminUser = { displayName: string; isSuperAdmin: boolean };
@@ -34,6 +34,11 @@ const sections: Section[] = [
     href: "/staff/admin/statistics", label: "Statistics & analytics",
     description: "Retention, renewals, revenue, gym usage, engagement, busy periods and detailed existing reports.",
     icon: ChartNoAxesCombined, group: "Management",
+  },
+  {
+    href: "/staff/admin/audit-trail", label: "Audit Trail",
+    description: "Review who changed what and when, including staff name, user account, member context and before/after values. Export filtered or complete Excel reports.",
+    icon: ScrollText, group: "Management",
   },
   {
     href: "/staff/admin/announcements", label: "Announcements",
