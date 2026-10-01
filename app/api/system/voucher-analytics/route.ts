@@ -216,8 +216,8 @@ export async function GET(request: NextRequest) {
     );
 
     const allCodes = new Set([
-      ...configuredByCode.keys(),
-      ...historicalCodes,
+      ...Array.from(configuredByCode.keys()),
+      ...Array.from(historicalCodes),
     ]);
 
     let vouchers = Array.from(allCodes).map((code) => {
