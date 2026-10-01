@@ -36,11 +36,12 @@ test("preview route requires the dedicated members.import permission", () => {
   assert.match(route, /requireSystemPermission\(request,\s*["']members\.import["']\)/);
 });
 
-test("import batch review exposes CardBarcode instead of legacy MembershipNumber", () => {
+test("import batch review exposes legacy Scan3 and permanent BGM number separately", () => {
   const route = fs.readFileSync(batchRouteUrl, "utf8");
-  assert.match(route, /card_barcode/);
-  assert.match(route, /cardBarcode:\s*row\.card_barcode/);
-  assert.doesNotMatch(route, /membershipNumber:\s*row\.membership_number/);
+  assert.match(route, /legacy_scan3/);
+  assert.match(route, /member_number/);
+  assert.match(route, /cardBarcode:\s*row\.legacy_scan3/);
+  assert.match(route, /memberNumber:\s*row\.member_number/);
 });
 
 test("CI verifies pull requests to main and pushes to main", () => {
