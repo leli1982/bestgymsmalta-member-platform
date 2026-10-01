@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 type Voucher = {
   code: string;
+  percentage: number | null;
   status: "active" | "inactive";
   statusReason: string;
   validFrom: string | null;
@@ -120,7 +121,7 @@ export default function VoucherReportPrint({
       <div className="mx-auto max-w-5xl">
         <header className="border-b-2 border-zinc-950 pb-5">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-orange-700">BestGymsMalta</p>
-          <h1 className="mt-1 text-3xl font-black">Corporate Voucher Report</h1>
+          <h1 className="mt-1 text-3xl font-black">Voucher Report</h1>
           <div className="mt-3 grid gap-1 text-sm font-semibold sm:grid-cols-2">
             <p>Voucher: <strong>{voucher || "All vouchers"}</strong></p>
             <p>Date range: <strong>{formatEuropeanDate(data.from)} – {formatEuropeanDate(data.to)}</strong></p>
@@ -137,7 +138,7 @@ export default function VoucherReportPrint({
                   <div>
                     <h2 className="text-2xl font-black">{item.code}</h2>
                     <p className="mt-1 text-sm font-semibold text-zinc-600">
-                      {item.status.toUpperCase()} · {item.statusReason} · {validity(item)}
+                      {item.percentage === null ? "Discount not recorded" : `${item.percentage}% discount`} · {item.status.toUpperCase()} · {item.statusReason} · {validity(item)}
                     </p>
                   </div>
                   <div className="text-right text-sm">
