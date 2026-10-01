@@ -122,7 +122,12 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
         startDate: result.member.enrollmentDate || "",
         expiryDate: result.member.membershipExpiry || "",
       };
-      setDetail({ ...(result as Detail), dateEdit, cancellationEdit: result.cancellationEdit });
+      setDetail({
+        ...(result as Detail),
+        vouchers: Array.isArray(result.vouchers) ? result.vouchers : [],
+        dateEdit,
+        cancellationEdit: result.cancellationEdit,
+      });
       setProfile(profileOf(result.member));
       setGymSelection(result.member.enrollmentGymId || "");
       const activeGymIds = new Set((result.gyms || []).filter((gym: Detail["gyms"][number]) => gym.status === "active").map((gym: Detail["gyms"][number]) => gym.id));
