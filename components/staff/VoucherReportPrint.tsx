@@ -12,6 +12,7 @@ type Voucher = {
   validFrom: string | null;
   validUntil: string | null;
   successfulUses: number;
+  maxUses: number | null;
   membersInRange: number;
 };
 
@@ -143,6 +144,7 @@ export default function VoucherReportPrint({
                   </div>
                   <div className="text-right text-sm">
                     <p><strong>{item.successfulUses}</strong> total uses</p>
+                    <p><strong>{item.maxUses === null ? "N/A" : item.maxUses}</strong> maximum successful uses</p>
                     <p><strong>{members.length}</strong> members in selected range</p>
                   </div>
                 </div>
