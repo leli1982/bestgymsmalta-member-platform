@@ -1,6 +1,7 @@
 export const EDITABLE_PROFILE_FIELDS = [
   "firstName", "lastName", "email", "mobile", "dateOfBirth", "idNumber",
-  "addressLine1", "addressLine2", "town", "postcode", "nextOfKin",
+  "addressLine1", "addressLine2", "town", "postcode", "country", "companyName",
+  "gender", "phone", "telephoneNo1", "telephoneNo2", "nextOfKin", "notes",
 ] as const;
 
 export type MemberProfileDraft = Record<(typeof EDITABLE_PROFILE_FIELDS)[number], string>;

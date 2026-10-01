@@ -14,7 +14,7 @@ test("profile validation allows verified fields but never member ids, cards, sta
   const valid = validateMemberProfile(goodProfile);
   assert.equal(valid.ok, true);
   if (valid.ok) assert.equal(valid.profile.firstName, "Alex");
-  for (const key of ["memberNumber", "legacyPkCustomer", "enrollmentGymId", "status", "membershipExpiry", "cardBarcode", "price", "notes"]) {
+  for (const key of ["memberNumber", "legacyPkCustomer", "enrollmentGymId", "status", "membershipExpiry", "cardBarcode", "price"]) {
     assert.equal(validateMemberProfile({ ...goodProfile, [key]: "malicious" }).ok, false, key);
   }
   assert.equal(validateMemberProfile({ ...goodProfile, firstName: "" }).ok, false);
@@ -52,7 +52,7 @@ test("atomic profile RPC preserves identifiers and membership data and appends b
   }
 });
 
-test("Super Admin browser opens profile editor; member and payment contexts are read-only", () => {
+test("Super Admin browser opens full member editor while permanent identity stays protected", () => {
   const browse = read("components/staff/StaffMemberBrowser.tsx");
   const tools = read("components/staff/SuperAdminMembershipTools.tsx");
   const editor = read("components/staff/SuperAdminMemberEditor.tsx");
@@ -61,6 +61,9 @@ test("Super Admin browser opens profile editor; member and payment contexts are 
   assert.match(browse, /\/staff\/admin\/members\//);
   assert.match(editor, /Save personal details/);
   assert.match(editor, /No linked membership transaction is recorded/);
+  assert.match(editor, /SuperAdminMemberVoucherCorrection/);
+  assert.match(editor, /Member notes/);
+  assert.match(editor, /Company/);
   assert.match(editor, /SuperAdminMemberAccountActions/);
   assert.match(editor, /Cancellation remains separate from Archive, Restore and permanent deletion/);
   assert.match(editor, /SuperAdminMemberCancellation/);
