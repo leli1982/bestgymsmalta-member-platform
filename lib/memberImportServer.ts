@@ -551,7 +551,7 @@ function classifyRows(
   }
 
   const redundantRows = new Set<number>();
-  for (const rows of identityRows.values()) {
+  for (const rows of Array.from(identityRows.values())) {
     if (rows.length < 2) continue;
     const uniqueFingerprints = new Set(rows.map(fingerprint));
     if (uniqueFingerprints.size < 2) continue;
