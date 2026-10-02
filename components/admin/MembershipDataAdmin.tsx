@@ -90,7 +90,17 @@ export default function MembershipDataAdmin({
         method: "POST",
         body: formData,
       });
-      const data = await response.json();
+      const responseText = await response.text();
+      let data: ImportPreview & { error?: string };
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        throw new Error(
+          response.ok
+            ? "The import preview returned an unreadable response."
+            : "The import preview took too long or the server returned an unexpected error. Please try again after the current preview fix is deployed."
+        );
+      }
       if (!response.ok) {
         throw new Error(data.error || "Could not prepare the import preview.");
       }
@@ -120,7 +130,17 @@ export default function MembershipDataAdmin({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ batchId: preview.batchId }),
       });
-      const data = await response.json();
+      const responseText = await response.text();
+      let data: ApplyResult & { error?: string };
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        throw new Error(
+          response.ok
+            ? "The membership import returned an unreadable response."
+            : "The membership import took too long or the server returned an unexpected error."
+        );
+      }
       if (!response.ok) {
         throw new Error(data.error || "Could not apply the membership import.");
       }
