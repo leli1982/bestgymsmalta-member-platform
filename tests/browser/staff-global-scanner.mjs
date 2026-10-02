@@ -102,10 +102,10 @@ try {
   assert.ok(grantedPhotoBox && grantedPhotoBox.width >= 300,
     "Granted scan must show a large identity photo panel");
   await page.screenshot({ path: artifacts + "/sundries-granted.png" });
-  await access.getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
+  await access.waitFor({ state: "hidden", timeout: 6000 });
   assert.equal(await name.inputValue(), "Maria Borg");
   assert.equal(await name.evaluate((input) => document.activeElement === input), true,
-    "Staff input focus must be restored after the access overlay");
+    "Normal granted access must auto-close and restore Staff input focus");
 
   const item = page.getByRole("spinbutton", { name: "Toilet paper quantity" });
   await item.fill("4");
@@ -120,6 +120,9 @@ try {
     "Declined scan must keep the large identity photo panel");
   assert.equal(await item.inputValue(), "4");
   await page.screenshot({ path: artifacts + "/sundries-declined.png" });
+  await page.waitForTimeout(4000);
+  assert.equal(await denied.isVisible(), true,
+    "Expired/declined warnings must remain open until Staff dismiss them");
   await denied.getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
   assert.equal(await item.inputValue(), "4");
   assert.equal(await name.inputValue(), "Maria Borg");
