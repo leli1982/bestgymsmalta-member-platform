@@ -46,3 +46,12 @@ test("blocking conflicts stop apply but warnings and missing-source items do not
   assert.match(server, /retained as a separate member pending Super Admin review/i);
   assert.match(server, /Legacy Gym blank rather than guessing a gym/i);
 });
+
+
+test("repeat legacy reconciliation reuses prior applied row lineage before treating shared legacy identifiers as conflicts", () => {
+  assert.match(server, /loadAppliedLegacyLineage/);
+  assert.match(server, /priorAppliedLegacyMember/);
+  assert.match(server, /source_fingerprint/);
+  assert.match(server, /byFingerprintRow/);
+  assert.match(server, /legacy22Match\(row, candidates, indexes\)/);
+});
