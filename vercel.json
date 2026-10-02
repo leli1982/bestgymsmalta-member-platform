@@ -7,7 +7,7 @@
       "feature/legacy-member-voucher-corrections": false,
       "feature/super-admin-audit-trail": false,
       "fix/audit-trail-input-contrast": false,
-      "feature/launch-member-reconciliation": false
+      "feature/launch-member-reconciliation": true
     }
   },
   "regions": [
