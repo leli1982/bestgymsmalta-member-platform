@@ -28,7 +28,7 @@ const STAGING_CHUNK_SIZE = 500;
 
 export type MemberImportIssuePreview = {
   rowNumber: number;
-  action: "conflict" | "invalid" | "warning" | "missing_source";
+  action: "conflict" | "invalid" | "warning" | "missing_source" | "rejected";
   blocking: boolean;
   memberNumber: string;
   cardBarcode: string;
