@@ -322,7 +322,9 @@ async function loadAppliedLegacyLineage(
     .from("bgm_member_import_batches")
     .select("id")
     .eq("status", "applied")
-    .eq("import_mode", "legacy_22");
+    .eq("import_mode", "legacy_22")
+    .order("applied_at", { ascending: false })
+    .limit(1);
 
   if (batches.error) throw batches.error;
   const batchIds = (batches.data || []).map((row) => String(row.id));
