@@ -47,6 +47,7 @@ type AccessResult = {
  * enter the form. Date/password/contenteditable controls use Scan card fallback.
  */
 const SCANNER_PREFIX = "F9";
+const GRANTED_AUTO_CLOSE_MS = 3500;
 
 type ScannerEditable = HTMLInputElement | HTMLTextAreaElement;
 type EditableBurst = {
@@ -162,6 +163,7 @@ export default function StaffGlobalScanner() {
   const burstStart = useRef(0);
   const burstLast = useRef(0);
   const burstTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resultResetTimer = useRef<number | null>(null);
   const focusBeforeScan = useRef<HTMLElement | null>(null);
   const busy = useRef(false);
   const queuedCodes = useRef<string[]>([]);
@@ -262,6 +264,10 @@ export default function StaffGlobalScanner() {
   };
 
   const closeResult = useCallback(() => {
+    if (resultResetTimer.current) {
+      window.clearTimeout(resultResetTimer.current);
+      resultResetTimer.current = null;
+    }
     setResult(null);
     setPhotoLoadFailed(false);
     setNetworkError("");
@@ -273,6 +279,34 @@ export default function StaffGlobalScanner() {
     }
     window.setTimeout(() => processNextRef.current(), 0);
   }, []);
+
+  useEffect(() => {
+    if (resultResetTimer.current) {
+      window.clearTimeout(resultResetTimer.current);
+      resultResetTimer.current = null;
+    }
+
+    const normalGrantedResult = Boolean(
+      result?.granted &&
+      result.member &&
+      !result.member.photoRequired &&
+      !photoLoadFailed
+    );
+
+    if (normalGrantedResult) {
+      resultResetTimer.current = window.setTimeout(
+        closeResult,
+        GRANTED_AUTO_CLOSE_MS
+      );
+    }
+
+    return () => {
+      if (resultResetTimer.current) {
+        window.clearTimeout(resultResetTimer.current);
+        resultResetTimer.current = null;
+      }
+    };
+  }, [result, photoLoadFailed, closeResult]);
 
   useEffect(() => {
     if (!canScan || pathname.startsWith("/staff/reception") || manualScanOpen) return;
