@@ -43,4 +43,6 @@ test("blocking conflicts stop apply but warnings and missing-source items do not
   assert.match(migration, /blocking boolean not null default false/);
   assert.match(server, /action = "rejected"/);
   assert.match(server, /weak[\s\S]*reference-only hit is not enough/i);
+  assert.match(server, /retained as a separate member pending Super Admin review/i);
+  assert.match(server, /Legacy Gym blank rather than guessing a gym/i);
 });
