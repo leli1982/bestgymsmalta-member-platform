@@ -164,13 +164,6 @@ export async function parseMemberExchangeXlsx(
       const expiry = sourceValues.ExpiryDate || "";
 
       const legacyGym = deriveLegacyGym(sourceValues.pkCustomer);
-      if (legacyGym.issue) {
-        issues.push({
-          kind: "invalid_row",
-          column: "pkCustomer",
-          message: legacyGym.issue,
-        });
-      }
 
       const values = emptyMemberExchangeValues();
       values.MembershipNumber = "";
