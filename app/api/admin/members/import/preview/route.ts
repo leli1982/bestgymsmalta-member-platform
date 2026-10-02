@@ -40,8 +40,23 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown import error.";
-    console.error("Membership import preview failed:", message);
+    const errorRecord =
+      error && typeof error === "object"
+        ? (error as Record<string, unknown>)
+        : null;
+    const message =
+      error instanceof Error
+        ? error.message
+        : typeof errorRecord?.message === "string"
+          ? errorRecord.message
+          : "Unknown import error.";
+    console.error("Membership import preview failed:", {
+      message,
+      code: errorRecord?.code,
+      details: errorRecord?.details,
+      hint: errorRecord?.hint,
+      name: error instanceof Error ? error.name : undefined,
+    });
     return NextResponse.json(
       {
         error: isInputError(message)
