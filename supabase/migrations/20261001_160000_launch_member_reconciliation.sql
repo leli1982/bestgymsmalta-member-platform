@@ -84,6 +84,7 @@ declare
   v_kept int := 0;
   v_skipped int := 0;
   v_linked_claims int := 0;
+  v_inserted_member_ids uuid[] := '{}'::uuid[];
 begin
   select * into v_batch
   from public.bgm_member_import_batches
@@ -202,6 +203,7 @@ begin
         select 1
         from public.bgm_members m
         where btrim(lower(m.full_name))=btrim(lower(v_name))
+          and not (m.id = any(v_inserted_member_ids))
           and (
             (
               v_batch.import_mode='legacy_22'
@@ -247,6 +249,7 @@ begin
       )
       returning id,member_number into v_id,v_member_number;
 
+      v_inserted_member_ids := array_append(v_inserted_member_ids, v_id);
       v_added:=v_added+1;
     else
       raise exception 'Unresolved or unsupported import action on row %',v_row.row_number;
