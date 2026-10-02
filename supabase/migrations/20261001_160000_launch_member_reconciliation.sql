@@ -211,7 +211,11 @@ begin
 
       with ranked as (
         select r.*,
-               row_number() over(order by r.row_number)-1 as seq
+               'BGM'||lpad(
+                 (v_first_member_no + row_number() over(order by r.row_number)-1)::text,
+                 7,
+                 '0'
+               ) as assigned_member_number
         from public.bgm_member_import_rows r
         where r.batch_id=p_batch_id and r.action='new'
       ),
@@ -219,11 +223,10 @@ begin
         insert into public.bgm_members (
           member_number,full_name,email,status,membership_expiry,legacy_gym,legacy_pk_customer,
           address_line_1,address_line_2,town,postcode,country,gender,
-          telephone_no_1,telephone_no_2,mobile,id_number,date_of_birth,
-          real_import_batch_id,real_import_row_number
+          telephone_no_1,telephone_no_2,mobile,id_number,date_of_birth
         )
         select
-          'BGM'||lpad((v_first_member_no+ranked.seq)::text,7,'0'),
+          ranked.assigned_member_number,
           coalesce(nullif(btrim(ranked.customer_name),''),nullif(btrim(ranked.company_name),'')),
           nullif(btrim(ranked.email),''),
           case
@@ -243,19 +246,17 @@ begin
           nullif(btrim(ranked.telephone_no_2),''),
           nullif(btrim(ranked.mobile),''),
           nullif(btrim(ranked.id_number),''),
-          ranked.date_of_birth,
-          p_batch_id,
-          ranked.row_number
+          ranked.date_of_birth
         from ranked
-        returning id,member_number,real_import_row_number
+        returning id,member_number
       )
       update public.bgm_member_import_rows r
       set matched_member_id=i.id,
           resolved_membership_number=i.member_number,
           resolved_card_barcode=null
-      from inserted i
-      where r.batch_id=p_batch_id
-        and r.row_number=i.real_import_row_number;
+      from ranked x
+      join inserted i on i.member_number=x.assigned_member_number
+      where r.id=x.id;
     end if;
 
     update public.bgm_member_import_rows r
@@ -279,7 +280,7 @@ begin
       r.matched_member_id,
       btrim(r.legacy_scan3),
       'active',
-      p_batch_id,
+      null,
       r.row_number,
       btrim(r.legacy_scan3),
       now()
@@ -290,7 +291,6 @@ begin
       and nullif(btrim(coalesce(r.legacy_scan3,'')),'') is not null
     on conflict (member_id) do update
       set assignment_status='active',
-          import_batch_id=excluded.import_batch_id,
           source_row_number=excluded.source_row_number,
           source_scan3=excluded.source_scan3,
           updated_at=now()
