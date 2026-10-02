@@ -836,8 +836,7 @@ function classifyRows(
     if (
       action !== "duplicate" &&
       action !== "redundant" &&
-      action !== "rejected" &&
-      action !== "conflict"
+      action !== "rejected"
     ) {
       if (issue) {
         action = "invalid";
