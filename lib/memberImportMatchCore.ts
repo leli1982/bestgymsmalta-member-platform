@@ -5,7 +5,8 @@ export type MemberImportAction =
   | "conflict"
   | "invalid"
   | "duplicate"
-  | "redundant";
+  | "redundant"
+  | "rejected";
 
 export type IncomingMemberForMatch = {
   cardBarcode?: string | null;
