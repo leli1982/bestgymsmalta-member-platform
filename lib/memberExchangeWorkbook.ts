@@ -9,6 +9,11 @@ import {
   type ParsedMemberExchangeFile,
   type ParsedMemberExchangeRow,
 } from "./memberExchangeCore.ts";
+import {
+  OLD_SYSTEM_MEMBER_HEADERS,
+  deriveLegacyGym,
+  oldSystemFullName,
+} from "./legacyMemberImportCore.ts";
 
 function pad(value: number) {
   return String(value).padStart(2, "0");
@@ -70,7 +75,7 @@ function nonFormulaCellText(value: ExcelJS.CellValue) {
 
 function cellValue(
   cell: ExcelJS.Cell,
-  column: MemberExchangeHeader,
+  column: string,
   expiryColumn: boolean
 ) {
   const raw = cell.value;
@@ -127,6 +132,71 @@ export async function parseMemberExchangeXlsx(
   if (!sheet) throw new Error("Membership XLSX does not contain a worksheet.");
 
   const headerCells = sheet.getRow(1);
+  const oldSystemCandidate = OLD_SYSTEM_MEMBER_HEADERS.map((_, index) =>
+    String(nonFormulaCellText(headerCells.getCell(index + 1).value) ?? "").trim()
+  );
+  const isOldSystem =
+    oldSystemCandidate.length === OLD_SYSTEM_MEMBER_HEADERS.length &&
+    OLD_SYSTEM_MEMBER_HEADERS.every((header, index) => oldSystemCandidate[index] === header);
+
+  if (isOldSystem) {
+    const rows: ParsedMemberExchangeRow[] = [];
+    for (let rowNumber = 2; rowNumber <= sheet.rowCount; rowNumber += 1) {
+      const excelRow = sheet.getRow(rowNumber);
+      const sourceValues: Record<string, string> = {};
+      const issues: ParsedMemberExchangeRow["issues"] = [];
+      let hasValue = false;
+
+      for (let index = 0; index < OLD_SYSTEM_MEMBER_HEADERS.length; index += 1) {
+        const header = OLD_SYSTEM_MEMBER_HEADERS[index];
+        const parsed = cellValue(
+          excelRow.getCell(index + 1),
+          header,
+          header === "ExpiryDate" || header === "DOB"
+        );
+        sourceValues[header] = parsed.value;
+        if (parsed.value !== "") hasValue = true;
+        if (parsed.issue) issues.push(parsed.issue);
+      }
+
+      if (!hasValue && issues.length === 0) continue;
+
+      const expiry = sourceValues.ExpiryDate || "";
+
+      const legacyGym = deriveLegacyGym(sourceValues.pkCustomer);
+
+      const values = emptyMemberExchangeValues();
+      values.MembershipNumber = "";
+      values.CardBarcode = sourceValues.Scan3 || "";
+      values.Gym = legacyGym.gym || "";
+      values.pkCustomer = sourceValues.pkCustomer || "";
+      values.CustomerName = oldSystemFullName(
+        sourceValues.CustomerName,
+        sourceValues.Surname
+      );
+      values.CompanyName = "";
+      values.Address1 = sourceValues.Address1 || "";
+      values.Address2 = sourceValues.Address2 || "";
+      values.Town = sourceValues.Town || "";
+      values.PostCode = sourceValues.PostCode || "";
+      values.Gender = sourceValues.Gender || "";
+      values.TelephoneNo1 = sourceValues.TelephoneNo1 || "";
+      values.TelephoneNo2 = sourceValues.TelephoneNo2 || "";
+      values.Mobile = sourceValues.Mobile || "";
+      values.Email = sourceValues.Email || "";
+      values.ExpiryDate1 = expiry;
+      values.ValidYN = sourceValues.ValidYN || "";
+
+      rows.push({ rowNumber, values, issues, sourceValues });
+    }
+
+    return {
+      mode: "legacy_22",
+      headers: [...OLD_SYSTEM_MEMBER_HEADERS],
+      rows,
+    };
+  }
+
   const candidateLengths = [MEMBER_EXCHANGE_HEADERS.length, LEGACY_MEMBER_HEADERS.length];
   let headers: string[] = [];
   let mode = null as ReturnType<typeof memberExchangeModeFromHeaders>;
@@ -145,7 +215,7 @@ export async function parseMemberExchangeXlsx(
 
   if (!mode) {
     throw new Error(
-      "Membership XLSX header does not match the approved 15-column legacy or 16-column exchange format."
+      "Membership XLSX header does not match the approved old-system 22-column, legacy 15-column or BGM 16-column format."
     );
   }
 

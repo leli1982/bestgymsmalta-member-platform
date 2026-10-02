@@ -21,7 +21,7 @@ export default function MemberDataPage() {
           <span className="rounded-2xl bg-orange-50 p-3 text-orange-700"><FileSpreadsheet size={30}/></span>
           <div><p className="text-xs font-black uppercase tracking-widest text-orange-700">Members · Data exchange</p>
           <h1 className="text-3xl font-black">Member import &amp; export</h1>
-          <p className="mt-1 text-sm text-zinc-600">Upload your existing AllCustomers Excel without changing its columns. Preview first; never delete or overwrite an existing member.</p></div>
+          <p className="mt-1 text-sm text-zinc-600">Upload the old-system AllCustomers3 Excel unchanged. Convert and validate first, then reconcile safely: add new members, update safe fields, flag issues, and never delete members simply because they are missing from a later export.</p></div>
         </div>
       </header>
       <section className="rounded-3xl bg-zinc-950 p-4 text-white shadow-lg sm:p-6">

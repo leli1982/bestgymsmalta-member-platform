@@ -21,7 +21,7 @@ export const MEMBER_EXCHANGE_HEADERS = [
   ...LEGACY_MEMBER_HEADERS,
 ] as const;
 
-export type MemberExchangeMode = "legacy_15" | "exchange_16";
+export type MemberExchangeMode = "legacy_15" | "exchange_16" | "legacy_22";
 export type MemberExchangeHeader = (typeof MEMBER_EXCHANGE_HEADERS)[number] | "CardBarcode";
 
 export type MemberExchangeValues = Record<MemberExchangeHeader, string>;
@@ -38,6 +38,7 @@ export type ParsedMemberExchangeRow = {
   rowNumber: number;
   values: MemberExchangeValues;
   issues: MemberExchangeIssue[];
+  sourceValues?: Record<string, string>;
 };
 
 export type ParsedMemberExchangeFile = {

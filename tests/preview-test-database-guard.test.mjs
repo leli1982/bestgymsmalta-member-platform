@@ -21,3 +21,18 @@ test("BGM branch Preview refuses any Supabase URL other than TEST before client 
     else process.env.VERCEL_GIT_COMMIT_REF = saved.VERCEL_GIT_COMMIT_REF;
   }
 });
+
+test("launch reconciliation Preview is also TEST-only", () => {
+  const originalEnv = process.env.VERCEL_ENV;
+  const originalRef = process.env.VERCEL_GIT_COMMIT_REF;
+  try {
+    process.env.VERCEL_ENV = "preview";
+    process.env.VERCEL_GIT_COMMIT_REF = "feature/launch-member-reconciliation";
+    assert.equal(resolveSupabaseAdminConfig({ SUPABASE_URL: testUrl, NEXT_PUBLIC_SUPABASE_URL: testUrl, SUPABASE_SERVICE_ROLE_KEY: key })?.supabaseUrl, testUrl);
+    assert.throws(() => resolveSupabaseAdminConfig({ SUPABASE_URL: liveUrl, NEXT_PUBLIC_SUPABASE_URL: testUrl, SUPABASE_SERVICE_ROLE_KEY: key }), /TEST-only Preview/);
+    assert.throws(() => resolveSupabaseAdminConfig({ SUPABASE_URL: testUrl, NEXT_PUBLIC_SUPABASE_URL: liveUrl, SUPABASE_SERVICE_ROLE_KEY: key }), /TEST-only Preview/);
+  } finally {
+    if (originalEnv === undefined) delete process.env.VERCEL_ENV; else process.env.VERCEL_ENV = originalEnv;
+    if (originalRef === undefined) delete process.env.VERCEL_GIT_COMMIT_REF; else process.env.VERCEL_GIT_COMMIT_REF = originalRef;
+  }
+});

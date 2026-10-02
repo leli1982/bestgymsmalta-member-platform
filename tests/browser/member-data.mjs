@@ -30,7 +30,9 @@ try {
     return route.fulfill({ json: {
       batchId: "11111111-1111-4111-8111-111111111111",
       filename: "bgm-members-test.xlsx", fileFormat: "xlsx", importMode: "exchange_16",
-      totalRows: 14, newRows: 0, updateRows: 0, unchangedRows: 14,
+      totalRows: 14, convertedRows: 14, countVerified: true,
+      newRows: 0, updateRows: 0, unchangedRows: 14,
+      duplicateRows: 0, redundantRows: 0, missingSourceRows: 2, warningRows: 0, rejectedRows: 0,
       conflictRows: 0, invalidRows: 0, cardRows: 13, blankCardRows: 1, issues: [],
     }});
   });
@@ -40,6 +42,7 @@ try {
     return route.fulfill({ json: {
       applied: true, batchId: "11111111-1111-4111-8111-111111111111",
       totalRows: 14, newRows: 0, updateRows: 0, unchangedRows: 14,
+      duplicateRows: 0, redundantRows: 0, missingSourceRows: 2, warningRows: 0, rejectedRows: 0,
       linkedCardCount: 0, blankCardRows: 1,
     }});
   });
@@ -57,13 +60,13 @@ try {
     mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     buffer: Buffer.from("fake-xlsx"),
   });
-  await page.getByRole("button", { name: "Preview Import" }).click();
+  await page.getByRole("button", { name: "Convert & Validate" }).click();
   await page.getByText("BGM 16-column exchange file").waitFor();
   await page.getByText("Preview complete. No blocking rows found; review the totals before confirming.").waitFor();
   assert.equal(previewRequests, 1);
   await page.screenshot({ path: "test-artifacts/member-data/member-data-preview.png", fullPage: true });
 
-  await page.getByRole("button", { name: "Confirm Import" }).click();
+  await page.getByRole("button", { name: "Import Updated List" }).click();
   await page.getByText(/Import applied\. 0 new, 0 updated, 14 unchanged/).waitFor();
   assert.equal(applyRequests, 1);
 

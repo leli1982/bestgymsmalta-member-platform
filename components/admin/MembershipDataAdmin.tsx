@@ -5,7 +5,9 @@ import { Download, FileSpreadsheet, RefreshCw, Upload } from "lucide-react";
 
 type PreviewIssue = {
   rowNumber: number;
-  action: "conflict" | "invalid";
+  action: "conflict" | "invalid" | "warning" | "missing_source" | "rejected";
+  blocking: boolean;
+  memberNumber: string;
   cardBarcode: string;
   customerName: string;
   gym: string;
@@ -17,13 +19,20 @@ type ImportPreview = {
   batchId: string;
   filename: string;
   fileFormat: "xlsx" | "csv";
-  importMode: "legacy_15" | "exchange_16";
+  importMode: "legacy_15" | "exchange_16" | "legacy_22";
   totalRows: number;
+  convertedRows: number;
+  countVerified: boolean;
   newRows: number;
   updateRows: number;
   unchangedRows: number;
+  duplicateRows: number;
+  redundantRows: number;
+  missingSourceRows: number;
+  warningRows: number;
   conflictRows: number;
   invalidRows: number;
+  rejectedRows: number;
   cardRows: number;
   blankCardRows: number;
   issues: PreviewIssue[];
@@ -36,6 +45,11 @@ type ApplyResult = {
   newRows?: number;
   updateRows?: number;
   unchangedRows?: number;
+  duplicateRows?: number;
+  redundantRows?: number;
+  missingSourceRows?: number;
+  warningRows?: number;
+  rejectedRows?: number;
   linkedCardCount?: number;
   blankCardRows?: number;
 };
@@ -76,7 +90,17 @@ export default function MembershipDataAdmin({
         method: "POST",
         body: formData,
       });
-      const data = await response.json();
+      const responseText = await response.text();
+      let data: ImportPreview & { error?: string };
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        throw new Error(
+          response.ok
+            ? "The import preview returned an unreadable response."
+            : "The import preview took too long or the server returned an unexpected error. Please try again after the current preview fix is deployed."
+        );
+      }
       if (!response.ok) {
         throw new Error(data.error || "Could not prepare the import preview.");
       }
@@ -106,7 +130,17 @@ export default function MembershipDataAdmin({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ batchId: preview.batchId }),
       });
-      const data = await response.json();
+      const responseText = await response.text();
+      let data: ApplyResult & { error?: string };
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        throw new Error(
+          response.ok
+            ? "The membership import returned an unreadable response."
+            : "The membership import took too long or the server returned an unexpected error."
+        );
+      }
       if (!response.ok) {
         throw new Error(data.error || "Could not apply the membership import.");
       }
@@ -139,7 +173,7 @@ export default function MembershipDataAdmin({
             <h2 className="text-2xl font-black">Membership Data</h2>
           </div>
           <p className="mt-3 max-w-3xl text-sm font-bold leading-6 text-white/50">
-            Exchange the complete BGM membership list as XLSX or CSV. Uploading a file only creates a preview; nothing changes until you explicitly confirm the import.
+            Step 1 converts and validates the old-system export without changing member data. Step 2 reconciles the validated list only after Super Admin confirmation. Existing members omitted from a later export are retained.
           </p>
         </div>
 
@@ -175,11 +209,11 @@ export default function MembershipDataAdmin({
             className="inline-flex items-center gap-2 rounded-xl bg-[#fcb415] px-5 py-3 text-sm font-black text-black disabled:cursor-not-allowed disabled:opacity-40"
           >
             {previewing ? <RefreshCw size={17} className="animate-spin" /> : <Upload size={17} />}
-            {previewing ? "Checking…" : "Preview Import"}
+            {previewing ? "Converting…" : "Convert & Validate"}
           </button>
         </div>
         <p className="mt-3 text-xs font-bold text-white/40">
-          Accepted formats: the original 15-column legacy XLSX/CSV or the BGM 16-column exchange format. In the legacy file, pkCustomer is the existing scanned membership/card number and duplicate historical values are preserved. Every imported member receives a separate permanent BGM number.
+          Accepted formats: the old-system 22-column AllCustomers3 XLSX, the original 15-column legacy file, or the BGM 16-column exchange format. For AllCustomers3, Legacy Gym is derived automatically from pkCustomer and ExpiryDate alone determines Active/Inactive status. pkCustomer remains the existing scanned membership/card number from the legacy system, duplicate historical values are preserved, and every person keeps or receives a separate permanent BGM number.
         </p>
       </div>
 
@@ -201,7 +235,11 @@ export default function MembershipDataAdmin({
               <p className="text-xs font-black uppercase tracking-[.18em] text-white/35">Preview</p>
               <p className="mt-1 font-black text-white">{preview.filename}</p>
               <p className="mt-1 text-xs font-bold text-white/45">
-                {preview.importMode === "legacy_15" ? "Legacy 15-column file" : "BGM 16-column exchange file"}
+                {preview.importMode === "legacy_22"
+                  ? "Old-system 22-column AllCustomers3 file"
+                  : preview.importMode === "legacy_15"
+                    ? "Legacy 15-column file"
+                    : "BGM 16-column exchange file"}
               </p>
             </div>
             <button
@@ -210,31 +248,35 @@ export default function MembershipDataAdmin({
               disabled={!canConfirm || applying}
               className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-black text-black disabled:cursor-not-allowed disabled:opacity-35"
             >
-              {applying ? "Applying…" : applied ? "Import Applied" : "Confirm Import"}
+              {applying ? "Importing…" : applied ? "Import Applied" : "Import Updated List"}
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-9">
-            <SummaryCard label="Rows" value={preview.totalRows} />
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+            <SummaryCard label="Source rows" value={preview.totalRows} />
+            <SummaryCard label="Converted" value={preview.convertedRows} danger={!preview.countVerified} />
             <SummaryCard label="New" value={preview.newRows} />
             <SummaryCard label="Updates" value={preview.updateRows} />
             <SummaryCard label="Unchanged" value={preview.unchangedRows} />
-            <SummaryCard label="Card / PK" value={preview.cardRows} />
-            <SummaryCard label="No card / PK" value={preview.blankCardRows} />
+            <SummaryCard label="Exact duplicates skipped" value={preview.duplicateRows} />
+            <SummaryCard label="Older redundant skipped" value={preview.redundantRows} />
+            <SummaryCard label="Missing from source" value={preview.missingSourceRows} />
+            <SummaryCard label="Warnings" value={preview.warningRows} />
+            <SummaryCard label="Rejected legacy rows" value={preview.rejectedRows} />
             <SummaryCard label="Conflicts" value={preview.conflictRows} danger={preview.conflictRows > 0} />
             <SummaryCard label="Invalid" value={preview.invalidRows} danger={preview.invalidRows > 0} />
             <SummaryCard label="Deletions" value={0} />
           </div>
 
           <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-xs font-bold leading-5 text-emerald-100/80">
-            This import is non-destructive. Active legacy members are never discarded because pkCustomer is duplicated. pkCustomer remains the old/current scanned card number, while each person receives a separate permanent BGM number. A different modern active card is never replaced by import; it is flagged for review instead.
+            Non-destructive reconciliation: a smaller Excel file is allowed. Existing BGM members missing from the upload are retained unchanged. Permanent BGM numbers, payments, check-ins, vouchers and membership history are never replaced by this import. Shared/duplicate legacy identifiers are reviewed rather than guessed.
           </div>
 
           {preview.issues.length > 0 && (
             <div className="overflow-hidden rounded-2xl border border-red-500/20">
-              <a href={`/api/admin/members/import/batches/${encodeURIComponent(preview.batchId)}/issues`} download className="block border-b border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-black text-red-100 underline">Download all {preview.conflictRows + preview.invalidRows} review rows as CSV</a>
+              <a href={`/api/admin/members/import/batches/${encodeURIComponent(preview.batchId)}/issues`} download className="block border-b border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-black text-red-100 underline">Download complete import review as CSV</a>
               <div className="border-b border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-black text-red-100">
-                Rows requiring review {preview.conflictRows + preview.invalidRows > 100 ? "(first 100 shown)" : ""}
+                Import review {preview.issues.length >= 100 ? "(first 100 shown)" : ""}
               </div>
               <div className="max-h-80 overflow-auto">
                 <table className="w-full min-w-[760px] text-left text-xs">
@@ -252,9 +294,9 @@ export default function MembershipDataAdmin({
                     {preview.issues.map((issue) => (
                       <tr key={`${issue.rowNumber}-${issue.action}`} className="border-t border-white/5 bg-black/20 align-top text-white/70">
                         <td className="px-3 py-3 font-black">{issue.rowNumber}</td>
-                        <td className="px-3 py-3 font-black uppercase text-red-300">{issue.action}</td>
+                        <td className={`px-3 py-3 font-black uppercase ${issue.blocking ? "text-red-300" : "text-amber-300"}`}>{issue.action.replace("_", " ")}</td>
                         <td className="px-3 py-3">{issue.cardBarcode || "—"}</td>
-                        <td className="px-3 py-3">{issue.customerName || "—"}</td>
+                        <td className="px-3 py-3">{issue.customerName || "—"}{issue.memberNumber ? ` · ${issue.memberNumber}` : ""}</td>
                         <td className="px-3 py-3">{issue.gym || "—"}{issue.pkCustomer ? ` · ${issue.pkCustomer}` : ""}</td>
                         <td className="px-3 py-3">{issue.issue}</td>
                       </tr>

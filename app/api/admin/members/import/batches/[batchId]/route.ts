@@ -17,7 +17,7 @@ export async function GET(
     const batchResult = await supabase
       .from("bgm_member_import_batches")
       .select(
-        "id, filename, file_format, import_mode, status, total_rows, new_rows, update_rows, unchanged_rows, conflict_rows, invalid_rows, applied_at, created_at"
+        "id, filename, file_format, import_mode, status, total_rows, converted_rows, new_rows, update_rows, unchanged_rows, duplicate_rows, redundant_rows, missing_source_rows, warning_rows, rejected_rows, conflict_rows, invalid_rows, applied_at, created_at"
       )
       .eq("id", batchId)
       .maybeSingle();
@@ -28,13 +28,13 @@ export async function GET(
     }
 
     const issueResult = await supabase
-      .from("bgm_member_import_rows")
+      .from("bgm_member_import_review_items")
       .select(
-        "row_number, action, card_barcode, customer_name, company_name, gym, pk_customer, issue"
+        "source_row_number, review_type, blocking, member_number, legacy_scan3, customer_name, gym, pk_customer, issue"
       )
       .eq("batch_id", batchId)
-      .in("action", ["conflict", "invalid"])
-      .order("row_number", { ascending: true })
+      .order("blocking", { ascending: false })
+      .order("created_at", { ascending: true })
       .limit(100);
     if (issueResult.error) throw issueResult.error;
 
@@ -47,22 +47,30 @@ export async function GET(
         importMode: batch.import_mode,
         status: batch.status,
         totalRows: batch.total_rows,
+        convertedRows: batch.converted_rows,
         newRows: batch.new_rows,
         updateRows: batch.update_rows,
         unchangedRows: batch.unchanged_rows,
+        duplicateRows: batch.duplicate_rows,
+        redundantRows: batch.redundant_rows,
+        missingSourceRows: batch.missing_source_rows,
+        warningRows: batch.warning_rows,
+        rejectedRows: batch.rejected_rows,
         conflictRows: batch.conflict_rows,
         invalidRows: batch.invalid_rows,
         appliedAt: batch.applied_at,
         createdAt: batch.created_at,
       },
       issues: (issueResult.data || []).map((row) => ({
-        rowNumber: row.row_number,
-        action: row.action,
-        cardBarcode: row.card_barcode || "",
-        customerName: row.customer_name || row.company_name || "",
+        rowNumber: row.source_row_number || 0,
+        action: row.review_type,
+        blocking: row.blocking,
+        memberNumber: row.member_number || "",
+        cardBarcode: row.legacy_scan3 || "",
+        customerName: row.customer_name || "",
         gym: row.gym || "",
         pkCustomer: row.pk_customer || "",
-        issue: row.issue || "Review this row before import.",
+        issue: row.issue || "Review this item before import.",
       })),
     });
   } catch (error) {

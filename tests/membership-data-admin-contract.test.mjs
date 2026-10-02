@@ -10,8 +10,8 @@ const source = fs.readFileSync(
 test("membership data UI makes import preview explicit", () => {
   assert.match(source, /Download XLSX/);
   assert.match(source, /Download CSV/);
-  assert.match(source, /Preview Import/);
-  assert.match(source, /Confirm Import/);
+  assert.match(source, /Convert & Validate/);
+  assert.match(source, /Import Updated List/);
   assert.match(source, /Deletions/);
   assert.match(source, /\.xlsx,.csv/);
   assert.doesNotMatch(source, /Members not included.*removed/i);
