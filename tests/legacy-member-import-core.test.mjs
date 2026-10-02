@@ -55,16 +55,18 @@ test("22-column old-system workbook converts to normalized import row", async ()
   assert.deepEqual(row.issues, []);
 });
 
-test("old-system row with unknown PK prefix is review-blocking", async () => {
+test("old-system row with unknown PK prefix converts with blank gym for later review", async () => {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("AllCustomers3");
   sheet.addRow([...OLD_SYSTEM_MEMBER_HEADERS]);
   const row = Array(OLD_SYSTEM_MEMBER_HEADERS.length).fill("");
   row[0] = "QQ100";
-  row[2] = "TEST";
-  row[3] = "PERSON";
+  row[2] = "Grech";
+  row[3] = "Maverick";
+  row[16] = "maverick@example.com";
   row[17] = new Date(2027, 0, 1);
   sheet.addRow(row);
   const parsed = await parseMemberExchangeXlsx(Buffer.from(await workbook.xlsx.writeBuffer()));
-  assert.match(parsed.rows[0].issues.map(x => x.message).join(" "), /Unrecognised pkCustomer prefix/);
+  assert.equal(parsed.rows[0].values.Gym, "");
+  assert.deepEqual(parsed.rows[0].issues, []);
 });
