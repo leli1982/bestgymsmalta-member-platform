@@ -85,6 +85,9 @@ declare
   v_skipped int := 0;
   v_linked_claims int := 0;
   v_inserted_member_ids uuid[] := '{}'::uuid[];
+  v_new_count int := 0;
+  v_first_member_no bigint;
+  v_problem_row int;
 begin
   select * into v_batch
   from public.bgm_member_import_batches
@@ -107,6 +110,234 @@ begin
 
   if (select count(*) from public.bgm_member_import_rows where batch_id=p_batch_id) <> v_batch.total_rows then
     raise exception 'Staged import row count does not match its preview';
+  end if;
+
+  if v_batch.import_mode='legacy_22' then
+    -- Detect only genuinely concurrent strong-identity duplicates created after
+    -- this preview. Historical pkCustomer/Scan3 values are intentionally excluded.
+    select r.row_number into v_problem_row
+    from public.bgm_member_import_rows r
+    join public.bgm_members m
+      on m.created_at > v_batch.created_at
+     and btrim(lower(m.full_name)) =
+         btrim(lower(coalesce(nullif(r.customer_name,''),nullif(r.company_name,''))))
+     and (
+       (nullif(lower(btrim(m.email)),'')=nullif(lower(btrim(r.email)),'')
+        and nullif(lower(btrim(r.email)),'') is not null)
+       or
+       (nullif(btrim(m.id_number),'')=nullif(btrim(r.id_number),'')
+        and nullif(btrim(r.id_number),'') is not null)
+     )
+    where r.batch_id=p_batch_id
+      and r.action='new'
+    order by r.row_number
+    limit 1;
+
+    if v_problem_row is not null then
+      raise exception 'Possible duplicate was enrolled after preview; preview the workbook again (row %)',v_problem_row;
+    end if;
+
+    select r.row_number into v_problem_row
+    from public.bgm_member_import_rows r
+    join public.bgm_members m on m.id=r.matched_member_id
+    where r.batch_id=p_batch_id
+      and r.action='update'
+      and m.cancellation_effective_date is not null
+    order by r.row_number
+    limit 1;
+
+    if v_problem_row is not null then
+      raise exception 'Member cancellation exists; preview again and review row %',v_problem_row;
+    end if;
+
+    select r.row_number into v_problem_row
+    from public.bgm_member_import_rows r
+    join public.bgm_legacy_card_claims c on c.member_id=r.matched_member_id
+    where r.batch_id=p_batch_id
+      and r.action in ('update','unchanged')
+      and nullif(btrim(coalesce(r.legacy_scan3,'')),'') is not null
+      and upper(btrim(c.scan3)) <> upper(btrim(r.legacy_scan3))
+    order by r.row_number
+    limit 1;
+
+    if v_problem_row is not null then
+      raise exception 'Legacy Scan3 changed after preview on row %',v_problem_row;
+    end if;
+
+    update public.bgm_members m
+    set full_name=coalesce(nullif(btrim(r.customer_name),''),nullif(btrim(r.company_name),''),m.full_name),
+        email=coalesce(nullif(btrim(r.email),''),m.email),
+        status=case
+          when r.expiry_date is not null
+           and r.expiry_date >= (now() at time zone 'Europe/Malta')::date
+          then 'active' else 'inactive' end,
+        membership_expiry=coalesce(r.expiry_date,m.membership_expiry),
+        legacy_gym=coalesce(nullif(btrim(r.gym),''),m.legacy_gym),
+        legacy_pk_customer=coalesce(nullif(btrim(r.pk_customer),''),m.legacy_pk_customer),
+        address_line_1=coalesce(nullif(btrim(r.address1),''),m.address_line_1),
+        address_line_2=coalesce(nullif(btrim(r.address2),''),m.address_line_2),
+        town=coalesce(nullif(btrim(r.town),''),m.town),
+        postcode=coalesce(nullif(btrim(r.postcode),''),m.postcode),
+        country=coalesce(nullif(btrim(r.country),''),m.country),
+        gender=coalesce(nullif(btrim(r.gender),''),m.gender),
+        telephone_no_1=coalesce(nullif(btrim(r.telephone_no_1),''),m.telephone_no_1),
+        telephone_no_2=coalesce(nullif(btrim(r.telephone_no_2),''),m.telephone_no_2),
+        mobile=coalesce(nullif(btrim(r.mobile),''),m.mobile),
+        id_number=coalesce(nullif(btrim(r.id_number),''),m.id_number),
+        date_of_birth=coalesce(r.date_of_birth,m.date_of_birth),
+        updated_at=now()
+    from public.bgm_member_import_rows r
+    where r.batch_id=p_batch_id
+      and r.action='update'
+      and r.matched_member_id=m.id;
+
+    get diagnostics v_updated = row_count;
+
+    select count(*)::int into v_new_count
+    from public.bgm_member_import_rows
+    where batch_id=p_batch_id and action='new';
+
+    if v_new_count > 0 then
+      update public.bgm_member_number_state
+      set last_issued=last_issued+v_new_count,
+          updated_at=now()
+      where id=1
+        and last_issued + v_new_count <= 9999999
+      returning last_issued-v_new_count+1 into v_first_member_no;
+
+      if v_first_member_no is null then
+        raise exception 'BGM membership number range exhausted';
+      end if;
+
+      with ranked as (
+        select r.*,
+               row_number() over(order by r.row_number)-1 as seq
+        from public.bgm_member_import_rows r
+        where r.batch_id=p_batch_id and r.action='new'
+      ),
+      inserted as (
+        insert into public.bgm_members (
+          member_number,full_name,email,status,membership_expiry,legacy_gym,legacy_pk_customer,
+          address_line_1,address_line_2,town,postcode,country,gender,
+          telephone_no_1,telephone_no_2,mobile,id_number,date_of_birth,
+          real_import_batch_id,real_import_row_number
+        )
+        select
+          'BGM'||lpad((v_first_member_no+ranked.seq)::text,7,'0'),
+          coalesce(nullif(btrim(ranked.customer_name),''),nullif(btrim(ranked.company_name),'')),
+          nullif(btrim(ranked.email),''),
+          case
+            when ranked.expiry_date is not null
+             and ranked.expiry_date >= (now() at time zone 'Europe/Malta')::date
+            then 'active' else 'inactive' end,
+          ranked.expiry_date,
+          nullif(btrim(ranked.gym),''),
+          nullif(btrim(ranked.pk_customer),''),
+          nullif(btrim(ranked.address1),''),
+          nullif(btrim(ranked.address2),''),
+          nullif(btrim(ranked.town),''),
+          nullif(btrim(ranked.postcode),''),
+          nullif(btrim(ranked.country),''),
+          nullif(btrim(ranked.gender),''),
+          nullif(btrim(ranked.telephone_no_1),''),
+          nullif(btrim(ranked.telephone_no_2),''),
+          nullif(btrim(ranked.mobile),''),
+          nullif(btrim(ranked.id_number),''),
+          ranked.date_of_birth,
+          p_batch_id,
+          ranked.row_number
+        from ranked
+        returning id,member_number,real_import_row_number
+      )
+      update public.bgm_member_import_rows r
+      set matched_member_id=i.id,
+          resolved_membership_number=i.member_number,
+          resolved_card_barcode=null
+      from inserted i
+      where r.batch_id=p_batch_id
+        and r.row_number=i.real_import_row_number;
+    end if;
+
+    update public.bgm_member_import_rows r
+    set resolved_membership_number=m.member_number,
+        resolved_card_barcode=(
+          select c.barcode_value
+          from public.bgm_member_card_credentials c
+          where c.member_id=m.id and c.status='active'
+          order by c.activated_at desc nulls last
+          limit 1
+        )
+    from public.bgm_members m
+    where r.batch_id=p_batch_id
+      and r.action in ('update','unchanged')
+      and r.matched_member_id=m.id;
+
+    insert into public.bgm_legacy_card_claims(
+      member_id,scan3,assignment_status,import_batch_id,source_row_number,source_scan3,updated_at
+    )
+    select
+      r.matched_member_id,
+      btrim(r.legacy_scan3),
+      'active',
+      p_batch_id,
+      r.row_number,
+      btrim(r.legacy_scan3),
+      now()
+    from public.bgm_member_import_rows r
+    where r.batch_id=p_batch_id
+      and r.action in ('new','update','unchanged')
+      and r.matched_member_id is not null
+      and nullif(btrim(coalesce(r.legacy_scan3,'')),'') is not null
+    on conflict (member_id) do update
+      set assignment_status='active',
+          import_batch_id=excluded.import_batch_id,
+          source_row_number=excluded.source_row_number,
+          source_scan3=excluded.source_scan3,
+          updated_at=now()
+      where upper(btrim(public.bgm_legacy_card_claims.scan3)) =
+            upper(btrim(excluded.scan3));
+
+    get diagnostics v_linked_claims = row_count;
+
+    v_added := v_new_count;
+    v_kept := v_batch.unchanged_rows;
+    v_skipped := v_batch.duplicate_rows + v_batch.redundant_rows + v_batch.rejected_rows;
+
+    update public.bgm_member_import_batches
+    set status='applied',applied_at=now()
+    where id=p_batch_id;
+
+    insert into public.bgm_audit_log(
+      system_user_id,context_gym_id,action_key,entity_type,entity_id,after_data
+    ) values (
+      p_system_user_id,v_system.gym_id,'members.import.applied','member_import_batch',p_batch_id::text,
+      jsonb_build_object(
+        'batchId',p_batch_id,
+        'newRows',v_added,
+        'updateRows',v_updated,
+        'unchangedRows',v_kept,
+        'skippedRows',v_skipped,
+        'missingSourceRows',v_batch.missing_source_rows,
+        'rejectedRows',v_batch.rejected_rows,
+        'deletions',0,
+        'mode',v_batch.import_mode
+      )
+    );
+
+    return jsonb_build_object(
+      'batchId',p_batch_id,
+      'totalRows',v_batch.total_rows,
+      'newRows',v_added,
+      'updateRows',v_updated,
+      'unchangedRows',v_kept,
+      'duplicateRows',v_batch.duplicate_rows,
+      'redundantRows',v_batch.redundant_rows,
+      'missingSourceRows',v_batch.missing_source_rows,
+      'warningRows',v_batch.warning_rows,
+      'rejectedRows',v_batch.rejected_rows,
+      'linkedCardCount',v_linked_claims,
+      'deletions',0
+    );
   end if;
 
   for v_row in
