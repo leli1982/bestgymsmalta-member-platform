@@ -74,3 +74,16 @@ test("first live reconciliation can reuse historical real-import row lineage saf
   assert.match(server, /oldSystemFullName\(source\(row, "CustomerName"\), source\(row, "Surname"\)\)/);
   assert.match(server, /candidateIds\.has\(historicalMatches\[0\]\.id\)/);
 });
+
+
+test("live reconciliation reuses audited historical skip decisions only when the core source identity still matches", () => {
+  assert.match(server, /loadHistoricalRealImportSkips/);
+  assert.match(server, /bgm_real_import_batches/);
+  assert.match(server, /bgm_real_import_rows/);
+  assert.match(server, /historicalSkipKey/);
+  assert.match(server, /sourceData\.ExpiryDate/);
+  assert.match(server, /exact_duplicate/);
+  assert.match(server, /expired_redundant/);
+  assert.match(server, /historicalSkipLineage\.get/);
+  assert.match(server, /historicalDecision\.action/);
+});
