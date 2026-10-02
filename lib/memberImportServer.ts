@@ -1020,9 +1020,10 @@ function classifyRows(
 
         const priorMemberId = priorAppliedLegacyMember(
           fp,
-          row.rowNumber,
+          row,
           candidates,
-          appliedLegacyLineage
+          appliedLegacyLineage,
+          indexes
         );
         const result = priorMemberId
           ? {
