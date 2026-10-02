@@ -55,6 +55,7 @@ export type MemberImportPreviewResult = {
   warningRows: number;
   conflictRows: number;
   invalidRows: number;
+  rejectedRows: number;
   cardRows: number;
   blankCardRows: number;
   issues: MemberImportIssuePreview[];
@@ -131,7 +132,7 @@ type StagedImportRow = {
 
 type ReviewItem = {
   batch_id: string;
-  review_type: "conflict" | "invalid" | "warning" | "missing_source";
+  review_type: "conflict" | "invalid" | "warning" | "missing_source" | "rejected";
   blocking: boolean;
   source_row_number: number | null;
   member_id: string | null;
@@ -383,9 +384,36 @@ function createMemberIndexes(
   };
 }
 
-function fileFormulaIssue(row: ParsedMemberExchangeRow) {
-  if (!row.issues.length) return "";
-  return row.issues.map((issue) => issue.message || `${issue.kind} in ${issue.column}`).join(" ");
+const LEGACY_NONBLOCKING_FORMULA_COLUMNS = new Set([
+  "TelephoneNo1",
+  "TelephoneNo2",
+  "Mobile",
+  "Fax",
+  "Web",
+  "Contact",
+  "ContactPhone",
+]);
+
+function blockingRowIssue(row: ParsedMemberExchangeRow, mode: MemberExchangeMode) {
+  const blocking = row.issues.filter(
+    (issue) =>
+      !(
+        mode === "legacy_22" &&
+        issue.kind === "formula_cell" &&
+        LEGACY_NONBLOCKING_FORMULA_COLUMNS.has(issue.column)
+      )
+  );
+  if (!blocking.length) return "";
+  return blocking.map((issue) => issue.message || `${issue.kind} in ${issue.column}`).join(" ");
+}
+
+function nonBlockingFormulaIssues(row: ParsedMemberExchangeRow, mode: MemberExchangeMode) {
+  if (mode !== "legacy_22") return [];
+  return row.issues.filter(
+    (issue) =>
+      issue.kind === "formula_cell" &&
+      LEGACY_NONBLOCKING_FORMULA_COLUMNS.has(issue.column)
+  );
 }
 
 function identityName(row: IncomingMemberForMatch | ExistingMemberForMatch) {
@@ -462,11 +490,9 @@ function legacy22Match(
     .sort((a, b) => b.score - a.score);
 
   if (scored.length === 0 || scored[0].score < 4) {
-    return {
-      action: "conflict" as MemberImportAction,
-      matchedMemberId: null,
-      issue: "Possible existing member found, but the old-system identity cannot be matched safely.",
-    };
+    // legacy pkCustomer and Scan3 values were historically reused. A weak
+    // reference-only hit is not enough to claim an existing BGM identity.
+    return { action: "new" as MemberImportAction, matchedMemberId: null, issue: "" };
   }
 
   const best = scored.filter((entry) => entry.score === scored[0].score);
@@ -727,6 +753,7 @@ function classifyRows(
     invalid: 0,
     duplicate: 0,
     redundant: 0,
+    rejected: 0,
   };
   const matchedMembers = new Set<string>();
   const warningSourceRows = new Set<number>();
@@ -765,7 +792,8 @@ function classifyRows(
     const fp = fingerprint(row);
     let action: MemberImportAction = "new";
     let matchedMemberId: string | null = null;
-    let issue = fileFormulaIssue(row);
+    let issue = blockingRowIssue(row, parsed.mode);
+    const formulaWarnings = nonBlockingFormulaIssues(row, parsed.mode);
 
     if (
       seenFingerprint.has(fp) ||
@@ -790,6 +818,18 @@ function classifyRows(
     if (
       action !== "duplicate" &&
       action !== "redundant" &&
+      !identityName(incoming) &&
+      parsed.mode === "legacy_22"
+    ) {
+      action = "rejected";
+      issue =
+        "Legacy source row has no customer name/surname. It is retained in the import audit but is not created as a BGM member.";
+    }
+
+    if (
+      action !== "duplicate" &&
+      action !== "redundant" &&
+      action !== "rejected" &&
       legacySource.ambiguousRows.has(row.rowNumber)
     ) {
       action = "conflict";
@@ -797,12 +837,17 @@ function classifyRows(
         "Repeated old-system identity could not be deduplicated safely. Review the source rows before importing.";
     }
 
-    if (action !== "duplicate" && action !== "redundant" && action !== "conflict") {
+    if (
+      action !== "duplicate" &&
+      action !== "redundant" &&
+      action !== "rejected" &&
+      action !== "conflict"
+    ) {
       if (issue) {
         action = "invalid";
       } else if (!identityName(incoming)) {
         action = "invalid";
-        issue = "CustomerName and Surname/CompanyName are blank.";
+        issue = "CustomerName and CompanyName are blank.";
       } else if (parsed.mode === "legacy_22") {
         const candidates = uniqueMembers([
           ...(indexes.byLegacy.get(legacyKey(v.Gym, v.pkCustomer)) || []),
@@ -837,6 +882,23 @@ function classifyRows(
           } else {
             action = sameLegacy22Values(row, existing, existingScan3) ? "unchanged" : "update";
           }
+        }
+
+        for (const formulaIssue of formulaWarnings) {
+          warningSourceRows.add(row.rowNumber);
+          addReview({
+            batch_id: batchId,
+            review_type: "warning",
+            blocking: false,
+            source_row_number: row.rowNumber,
+            member_id: matchedMemberId,
+            member_number: matchedMemberId ? indexes.rawById.get(matchedMemberId)?.member_number || null : null,
+            customer_name: nullable(v.CustomerName),
+            gym: nullable(v.Gym),
+            pk_customer: nullable(v.pkCustomer),
+            legacy_scan3: nullable(scan3),
+            issue: `${formulaIssue.message || "Formula found in a contact-only field."} The formula value is ignored; this does not block the member import.`,
+          });
         }
 
         const derivedStatus = statusFromExpiryDate(v.ExpiryDate1, todayMaltaDate());
@@ -978,6 +1040,22 @@ function classifyRows(
     };
     staged.push(stagedRow);
 
+    if (action === "rejected") {
+      addReview({
+        batch_id: batchId,
+        review_type: "rejected",
+        blocking: false,
+        source_row_number: row.rowNumber,
+        member_id: null,
+        member_number: null,
+        customer_name: nullable(v.CustomerName || v.CompanyName),
+        gym: nullable(v.Gym),
+        pk_customer: nullable(v.pkCustomer),
+        legacy_scan3: nullable(scan3),
+        issue: issue || "Legacy source row rejected from member creation.",
+      });
+    }
+
     if (action === "conflict" || action === "invalid") {
       addReview({
         batch_id: batchId,
@@ -1096,6 +1174,7 @@ export async function previewMemberImport({
         warning_rows: classified.warningRows,
         conflict_rows: classified.counts.conflict,
         invalid_rows: classified.counts.invalid,
+        rejected_rows: classified.counts.rejected,
       })
       .eq("id", batchId);
     if (updateResult.error) throw updateResult.error;
@@ -1117,6 +1196,7 @@ export async function previewMemberImport({
       warningRows: classified.warningRows,
       conflictRows: classified.counts.conflict,
       invalidRows: classified.counts.invalid,
+      rejectedRows: classified.counts.rejected,
       cardRows: classified.cardRows,
       blankCardRows: classified.blankCardRows,
       issues: classified.issues,
