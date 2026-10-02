@@ -12,14 +12,15 @@ alter table public.bgm_member_import_batches
   add column if not exists duplicate_rows integer not null default 0,
   add column if not exists redundant_rows integer not null default 0,
   add column if not exists missing_source_rows integer not null default 0,
-  add column if not exists warning_rows integer not null default 0;
+  add column if not exists warning_rows integer not null default 0,
+  add column if not exists rejected_rows integer not null default 0;
 
 alter table public.bgm_member_import_rows
   drop constraint if exists bgm_member_import_rows_action_check;
 
 alter table public.bgm_member_import_rows
   add constraint bgm_member_import_rows_action_check
-  check (action in ('new','update','unchanged','conflict','invalid','duplicate','redundant'));
+  check (action in ('new','update','unchanged','conflict','invalid','duplicate','redundant','rejected'));
 
 alter table public.bgm_member_import_rows
   add column if not exists legacy_scan3 text,
@@ -45,6 +46,13 @@ create table if not exists public.bgm_member_import_review_items (
   issue text not null,
   created_at timestamptz not null default now()
 );
+
+alter table public.bgm_member_import_review_items
+  drop constraint if exists bgm_member_import_review_items_review_type_check;
+
+alter table public.bgm_member_import_review_items
+  add constraint bgm_member_import_review_items_review_type_check
+  check (review_type in ('conflict','invalid','warning','missing_source','rejected'));
 
 create index if not exists bgm_member_import_review_batch_type_idx
   on public.bgm_member_import_review_items(batch_id, review_type, created_at);
@@ -109,7 +117,7 @@ begin
     v_member_number := null;
     v_name := coalesce(nullif(btrim(v_row.customer_name),''),nullif(btrim(v_row.company_name),''));
 
-    if v_row.action in ('duplicate','redundant') then
+    if v_row.action in ('duplicate','redundant','rejected') then
       v_skipped := v_skipped + 1;
       continue;
     end if;
@@ -271,6 +279,7 @@ begin
       'unchangedRows',v_kept,
       'skippedRows',v_skipped,
       'missingSourceRows',v_batch.missing_source_rows,
+      'rejectedRows',v_batch.rejected_rows,
       'deletions',0,
       'mode',v_batch.import_mode
     )
@@ -286,6 +295,7 @@ begin
     'redundantRows',v_batch.redundant_rows,
     'missingSourceRows',v_batch.missing_source_rows,
     'warningRows',v_batch.warning_rows,
+    'rejectedRows',v_batch.rejected_rows,
     'linkedCardCount',v_linked_claims,
     'deletions',0
   );
