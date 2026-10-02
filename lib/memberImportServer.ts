@@ -97,6 +97,11 @@ type LegacyClaimDbRow = {
   assignment_status: "active" | "removed";
 };
 
+type AppliedLegacyLineage = {
+  byFingerprint: Map<string, string[]>;
+  byFingerprintRow: Map<string, string[]>;
+};
+
 type StagedImportRow = {
   batch_id: string;
   membership_number: string | null;
@@ -310,6 +315,71 @@ async function loadLegacyClaims(supabase: SupabaseClient) {
   return rows;
 }
 
+async function loadAppliedLegacyLineage(
+  supabase: SupabaseClient
+): Promise<AppliedLegacyLineage> {
+  const batches = await supabase
+    .from("bgm_member_import_batches")
+    .select("id")
+    .eq("status", "applied")
+    .eq("import_mode", "legacy_22");
+
+  if (batches.error) throw batches.error;
+  const batchIds = (batches.data || []).map((row) => String(row.id));
+  const byFingerprintSets = new Map<string, Set<string>>();
+  const byFingerprintRowSets = new Map<string, Set<string>>();
+
+  if (batchIds.length === 0) {
+    return { byFingerprint: new Map(), byFingerprintRow: new Map() };
+  }
+
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const result = await supabase
+      .from("bgm_member_import_rows")
+      .select("batch_id, row_number, source_fingerprint, matched_member_id, action")
+      .in("batch_id", batchIds)
+      .in("action", ["new", "update", "unchanged"])
+      .not("matched_member_id", "is", null)
+      .order("id", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (result.error) throw result.error;
+    const page = result.data || [];
+
+    for (const row of page) {
+      const fp = clean(row.source_fingerprint);
+      const memberId = clean(row.matched_member_id);
+      if (!fp || !memberId) continue;
+
+      const fpSet = byFingerprintSets.get(fp) || new Set<string>();
+      fpSet.add(memberId);
+      byFingerprintSets.set(fp, fpSet);
+
+      const fpRowKey = `${fp}\u0000${Number(row.row_number)}`;
+      const fpRowSet = byFingerprintRowSets.get(fpRowKey) || new Set<string>();
+      fpRowSet.add(memberId);
+      byFingerprintRowSets.set(fpRowKey, fpRowSet);
+    }
+
+    if (page.length < PAGE_SIZE) break;
+  }
+
+  return {
+    byFingerprint: new Map(
+      Array.from(byFingerprintSets.entries()).map(([key, value]) => [
+        key,
+        Array.from(value),
+      ])
+    ),
+    byFingerprintRow: new Map(
+      Array.from(byFingerprintRowSets.entries()).map(([key, value]) => [
+        key,
+        Array.from(value),
+      ])
+    ),
+  };
+}
+
 function createMemberIndexes(
   existing: ExistingMemberDbRow[],
   credentials: ExistingCardCredentialDbRow[],
@@ -446,6 +516,31 @@ function conservativeLegacyMatch(
     matchedMemberId: null,
     issue: "Legacy gym/card reference is ambiguous or conflicts with an existing member. Review rather than guessing or creating a duplicate.",
   };
+}
+
+function priorAppliedLegacyMember(
+  sourceFingerprint: string,
+  rowNumber: number,
+  candidates: ExistingMemberForMatch[],
+  lineage: AppliedLegacyLineage
+) {
+  const candidateIds = new Set(candidates.map((candidate) => candidate.id));
+  const fingerprintMatches = lineage.byFingerprint.get(sourceFingerprint) || [];
+
+  if (
+    fingerprintMatches.length === 1 &&
+    candidateIds.has(fingerprintMatches[0])
+  ) {
+    return fingerprintMatches[0];
+  }
+
+  const rowMatches =
+    lineage.byFingerprintRow.get(`${sourceFingerprint}\u0000${rowNumber}`) || [];
+  if (rowMatches.length === 1 && candidateIds.has(rowMatches[0])) {
+    return rowMatches[0];
+  }
+
+  return null;
 }
 
 function legacy22Match(
@@ -720,7 +815,8 @@ function classifyRows(
   parsed: ParsedMemberExchangeFile,
   batchId: string,
   existingRows: ExistingMemberDbRow[],
-  indexes: ReturnType<typeof createMemberIndexes>
+  indexes: ReturnType<typeof createMemberIndexes>,
+  appliedLegacyLineage: AppliedLegacyLineage
 ) {
   const sourceScanCounts = new Map<string, number>();
   const sourcePkCounts = new Map<string, number>();
@@ -869,7 +965,19 @@ function classifyRows(
           ...(indexes.byNameDob.get(nameDobKey(v.CustomerName, source(row, "DOB"))) || []),
         ]);
 
-        const result = legacy22Match(row, candidates, indexes);
+        const priorMemberId = priorAppliedLegacyMember(
+          fp,
+          row.rowNumber,
+          candidates,
+          appliedLegacyLineage
+        );
+        const result = priorMemberId
+          ? {
+              action: "update" as MemberImportAction,
+              matchedMemberId: priorMemberId,
+              issue: "",
+            }
+          : legacy22Match(row, candidates, indexes);
         action = result.action;
         matchedMemberId = result.matchedMemberId;
         issue = result.issue;
@@ -1198,13 +1306,20 @@ export async function previewMemberImport({
   const batchId = String(batchResult.data.id);
 
   try {
-    const [existing, credentials, claims] = await Promise.all([
+    const [existing, credentials, claims, appliedLegacyLineage] = await Promise.all([
       loadExistingMembers(supabase),
       loadExistingCardCredentials(supabase),
       loadLegacyClaims(supabase),
+      loadAppliedLegacyLineage(supabase),
     ]);
     const indexes = createMemberIndexes(existing, credentials, claims);
-    const classified = classifyRows(parsed, batchId, existing, indexes);
+    const classified = classifyRows(
+      parsed,
+      batchId,
+      existing,
+      indexes,
+      appliedLegacyLineage
+    );
 
     await insertStagingRows(supabase, classified.staged);
     if (classified.reviews.length) await insertReviewItems(supabase, classified.reviews);
