@@ -826,16 +826,12 @@ function classifyRows(
         "Legacy source row has no customer name/surname. It is retained in the import audit but is not created as a BGM member.";
     }
 
-    if (
+    const ambiguousLegacyIdentity =
       action !== "duplicate" &&
       action !== "redundant" &&
       action !== "rejected" &&
-      legacySource.ambiguousRows.has(row.rowNumber)
-    ) {
-      action = "conflict";
-      issue =
-        "Repeated old-system identity could not be deduplicated safely. Review the source rows before importing.";
-    }
+      parsed.mode === "legacy_22" &&
+      legacySource.ambiguousRows.has(row.rowNumber);
 
     if (
       action !== "duplicate" &&
@@ -849,6 +845,22 @@ function classifyRows(
         action = "invalid";
         issue = "CustomerName and CompanyName are blank.";
       } else if (parsed.mode === "legacy_22") {
+        const hasUnknownLegacyGym = Boolean(clean(v.pkCustomer)) && !clean(v.Gym);
+        const noIdentityEvidence =
+          !clean(source(row, "DOB")) &&
+          !clean(source(row, "IDCard")) &&
+          !clean(v.Email) &&
+          !sourcePhone(row);
+
+        if (hasUnknownLegacyGym && !clean(v.ExpiryDate1) && noIdentityEvidence) {
+          action = "rejected";
+          issue =
+            "Legacy source row has an unrecognised pkCustomer prefix, no authoritative ExpiryDate and no supporting identity/contact evidence. It is retained in audit but not created as a BGM member.";
+        }
+
+        if (action === "rejected") {
+          // Do not attempt member matching for rejected legacy junk/test rows.
+        } else {
         const candidates = uniqueMembers([
           ...(indexes.byLegacy.get(legacyKey(v.Gym, v.pkCustomer)) || []),
           ...(indexes.byLegacyPk.get(normalizedPk) || []),
@@ -882,6 +894,43 @@ function classifyRows(
           } else {
             action = sameLegacy22Values(row, existing, existingScan3) ? "unchanged" : "update";
           }
+        }
+
+        if (ambiguousLegacyIdentity && !matchedMemberId && action === "new") {
+          warningSourceRows.add(row.rowNumber);
+          addReview({
+            batch_id: batchId,
+            review_type: "warning",
+            blocking: false,
+            source_row_number: row.rowNumber,
+            member_id: null,
+            member_number: null,
+            customer_name: nullable(v.CustomerName),
+            gym: nullable(v.Gym),
+            pk_customer: nullable(v.pkCustomer),
+            legacy_scan3: nullable(scan3),
+            issue:
+              "Potential duplicate identity in the old source. This row is deliberately retained as a separate member pending Super Admin review, matching the authoritative historical import behavior.",
+          });
+        }
+
+        if (hasUnknownLegacyGym && action !== "rejected") {
+          warningSourceRows.add(row.rowNumber);
+          addReview({
+            batch_id: batchId,
+            review_type: "warning",
+            blocking: false,
+            source_row_number: row.rowNumber,
+            member_id: matchedMemberId,
+            member_number: matchedMemberId ? indexes.rawById.get(matchedMemberId)?.member_number || null : null,
+            customer_name: nullable(v.CustomerName),
+            gym: null,
+            pk_customer: nullable(v.pkCustomer),
+            legacy_scan3: nullable(scan3),
+            issue:
+              "pkCustomer prefix is not part of the approved legacy gym mapping. The member is retained with Legacy Gym blank rather than guessing a gym.",
+          });
+        }
         }
 
         for (const formulaIssue of formulaWarnings) {
