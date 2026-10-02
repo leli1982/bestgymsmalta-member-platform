@@ -13,6 +13,7 @@ import { parseMemberExchangeXlsx } from "@/lib/memberExchangeWorkbook";
 import { normalizeBarcodePayload } from "@/lib/memberCardCredentialCore";
 import { todayMaltaDate } from "@/lib/maltaDate";
 import {
+  oldSystemFullName,
   sourceValidityMismatch,
   statusFromExpiryDate,
 } from "@/lib/legacyMemberImportCore";
@@ -83,6 +84,8 @@ type ExistingMemberDbRow = {
   membership_expiry: string | null;
   status: string | null;
   cancellation_effective_date: string | null;
+  real_import_batch_id: string | null;
+  real_import_row_number: number | null;
 };
 
 type ExistingCardCredentialDbRow = {
@@ -160,6 +163,23 @@ function normalized(value: unknown) {
 function nullable(value: unknown) {
   const text = clean(value);
   return text || null;
+}
+
+function legacyScanKey(value: unknown) {
+  return normalizeBarcodePayload(String(value ?? "")).toLocaleUpperCase("en");
+}
+
+function historicalLegacyIdentityKey(
+  rowNumber: number,
+  name: unknown,
+  pkCustomer: unknown,
+  scan3: unknown
+) {
+  const n = normalized(name);
+  const pk = normalized(pkCustomer);
+  const scan = legacyScanKey(scan3);
+  if (!rowNumber || !n || !pk || !scan) return "";
+  return [rowNumber, n, pk, scan].join("\u0000");
 }
 
 function source(row: ParsedMemberExchangeRow, key: string) {
@@ -271,7 +291,7 @@ async function loadExistingMembers(supabase: SupabaseClient) {
     const result = await supabase
       .from("bgm_members")
       .select(
-        "id, member_number, full_name, email, legacy_gym, legacy_pk_customer, company_name, address_line_1, address_line_2, town, postcode, country, gender, telephone_no_1, telephone_no_2, mobile, id_number, date_of_birth, membership_expiry, status, cancellation_effective_date"
+        "id, member_number, full_name, email, legacy_gym, legacy_pk_customer, company_name, address_line_1, address_line_2, town, postcode, country, gender, telephone_no_1, telephone_no_2, mobile, id_number, date_of_birth, membership_expiry, status, cancellation_effective_date, real_import_batch_id, real_import_row_number"
       )
       .order("id", { ascending: true })
       .range(from, from + PAGE_SIZE - 1);
@@ -394,6 +414,7 @@ function createMemberIndexes(
   const byNameDob = new Map<string, ExistingMemberForMatch[]>();
   const byIdNumber = new Map<string, ExistingMemberForMatch[]>();
   const byLegacyScan = new Map<string, ExistingMemberForMatch[]>();
+  const byHistoricalRowIdentity = new Map<string, ExistingMemberForMatch[]>();
   const rawById = new Map(existing.map((row) => [row.id, row]));
   const occupiedBarcodes = new Set<string>();
   const activeCardByMemberId = new Map<string, string>();
@@ -410,7 +431,7 @@ function createMemberIndexes(
 
   for (const claim of claims) {
     if (claim.assignment_status !== "active") continue;
-    const scan3 = normalizeBarcodePayload(claim.scan3);
+    const scan3 = legacyScanKey(claim.scan3);
     if (scan3) scan3ByMemberId.set(claim.member_id, scan3);
   }
 
@@ -438,6 +459,19 @@ function createMemberIndexes(
 
     const scan3 = scan3ByMemberId.get(raw.id);
     if (scan3) byLegacyScan.set(scan3, [...(byLegacyScan.get(scan3) || []), member]);
+
+    const historicalKey = historicalLegacyIdentityKey(
+      raw.real_import_row_number || 0,
+      raw.full_name,
+      raw.legacy_pk_customer,
+      scan3
+    );
+    if (raw.real_import_batch_id && historicalKey) {
+      byHistoricalRowIdentity.set(historicalKey, [
+        ...(byHistoricalRowIdentity.get(historicalKey) || []),
+        member,
+      ]);
+    }
   }
 
   return {
@@ -449,6 +483,7 @@ function createMemberIndexes(
     byNameDob,
     byIdNumber,
     byLegacyScan,
+    byHistoricalRowIdentity,
     rawById,
     scan3ByMemberId,
     occupiedBarcodes,
@@ -521,9 +556,10 @@ function conservativeLegacyMatch(
 
 function priorAppliedLegacyMember(
   sourceFingerprint: string,
-  rowNumber: number,
+  row: ParsedMemberExchangeRow,
   candidates: ExistingMemberForMatch[],
-  lineage: AppliedLegacyLineage
+  lineage: AppliedLegacyLineage,
+  indexes: ReturnType<typeof createMemberIndexes>
 ) {
   const candidateIds = new Set(candidates.map((candidate) => candidate.id));
   const fingerprintMatches = lineage.byFingerprint.get(sourceFingerprint) || [];
@@ -536,9 +572,25 @@ function priorAppliedLegacyMember(
   }
 
   const rowMatches =
-    lineage.byFingerprintRow.get(`${sourceFingerprint}\u0000${rowNumber}`) || [];
+    lineage.byFingerprintRow.get(`${sourceFingerprint}\u0000${row.rowNumber}`) || [];
   if (rowMatches.length === 1 && candidateIds.has(rowMatches[0])) {
     return rowMatches[0];
+  }
+
+  const historicalKey = historicalLegacyIdentityKey(
+    row.rowNumber,
+    oldSystemFullName(source(row, "CustomerName"), source(row, "Surname")),
+    source(row, "pkCustomer"),
+    source(row, "Scan3")
+  );
+  const historicalMatches = historicalKey
+    ? indexes.byHistoricalRowIdentity.get(historicalKey) || []
+    : [];
+  if (
+    historicalMatches.length === 1 &&
+    candidateIds.has(historicalMatches[0].id)
+  ) {
+    return historicalMatches[0].id;
   }
 
   return null;
@@ -558,7 +610,7 @@ function legacy22Match(
   const wantedGym = normalized(row.values.Gym);
   const wantedId = normalized(source(row, "IDCard"));
   const wantedDob = source(row, "DOB");
-  const wantedScan = normalizeBarcodePayload(source(row, "Scan3"));
+  const wantedScan = legacyScanKey(source(row, "Scan3"));
 
   const scored = unique
     .map((candidate) => {
@@ -634,8 +686,8 @@ function sameLegacy22Values(
     return normalized(left) === normalized(right);
   });
 
-  const scan3 = normalizeBarcodePayload(source(row, "Scan3"));
-  const scanMatches = !scan3 || !existingScan3 || scan3 === existingScan3;
+  const scan3 = legacyScanKey(source(row, "Scan3"));
+  const scanMatches = !scan3 || !existingScan3 || scan3 === legacyScanKey(existingScan3);
   return baseMatches && scanMatches;
 }
 
@@ -645,7 +697,7 @@ function sourceBaseDuplicateKey(row: ParsedMemberExchangeRow) {
     normalized(source(row, "CustomerName")),
     normalized(source(row, "Surname")),
     normalized(source(row, "pkCustomer")),
-    normalizeBarcodePayload(source(row, "Scan3")),
+    legacyScanKey(source(row, "Scan3")),
     clean(source(row, "ExpiryDate")),
   ].join("\u0000");
 }
@@ -823,7 +875,7 @@ function classifyRows(
   const sourcePkCounts = new Map<string, number>();
 
   for (const row of parsed.rows) {
-    const scan3 = normalizeBarcodePayload(source(row, "Scan3"));
+    const scan3 = legacyScanKey(source(row, "Scan3"));
     if (scan3) sourceScanCounts.set(scan3, (sourceScanCounts.get(scan3) || 0) + 1);
     const pk = normalized(row.values.pkCustomer);
     if (pk) sourcePkCounts.set(pk, (sourcePkCounts.get(pk) || 0) + 1);
@@ -879,7 +931,7 @@ function classifyRows(
     const memberNumber = clean(v.MembershipNumber).toUpperCase();
     const legacyPk = clean(v.pkCustomer);
     const normalizedPk = normalized(legacyPk);
-    const scan3 = normalizeBarcodePayload(source(row, "Scan3") || v.CardBarcode);
+    const scan3 = legacyScanKey(source(row, "Scan3") || v.CardBarcode);
     const incoming = incomingFromRow(row, parsed.mode);
     if (parsed.mode === "legacy_22") incoming.cardBarcode = "";
 
@@ -996,7 +1048,11 @@ function classifyRows(
           ) {
             action = "conflict";
             issue = "This member has a BGM cancellation recorded. Old-system data will not silently override it.";
-          } else if (scan3 && existingScan3 && scan3 !== existingScan3) {
+          } else if (
+            scan3 &&
+            existingScan3 &&
+            legacyScanKey(scan3) !== legacyScanKey(existingScan3)
+          ) {
             action = "conflict";
             issue = "This member already has a different legacy Scan3. Review the card assignment instead of replacing it automatically.";
           } else {
