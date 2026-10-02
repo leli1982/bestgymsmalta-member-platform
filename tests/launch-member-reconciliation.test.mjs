@@ -41,4 +41,6 @@ test("blocking conflicts stop apply but warnings and missing-source items do not
   assert.match(migration, /v_batch\.conflict_rows > 0 or v_batch\.invalid_rows > 0/);
   assert.match(migration, /review_type in \('conflict','invalid','warning','missing_source'\)/);
   assert.match(migration, /blocking boolean not null default false/);
+  assert.match(server, /action = "rejected"/);
+  assert.match(server, /weak[\s\S]*reference-only hit is not enough/i);
 });
