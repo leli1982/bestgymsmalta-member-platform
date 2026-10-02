@@ -32,7 +32,7 @@ try {
       filename: "bgm-members-test.xlsx", fileFormat: "xlsx", importMode: "exchange_16",
       totalRows: 14, convertedRows: 14, countVerified: true,
       newRows: 0, updateRows: 0, unchangedRows: 14,
-      duplicateRows: 0, redundantRows: 0, missingSourceRows: 2, warningRows: 0,
+      duplicateRows: 0, redundantRows: 0, missingSourceRows: 2, warningRows: 0, rejectedRows: 0,
       conflictRows: 0, invalidRows: 0, cardRows: 13, blankCardRows: 1, issues: [],
     }});
   });
@@ -42,7 +42,7 @@ try {
     return route.fulfill({ json: {
       applied: true, batchId: "11111111-1111-4111-8111-111111111111",
       totalRows: 14, newRows: 0, updateRows: 0, unchangedRows: 14,
-      duplicateRows: 0, redundantRows: 0, missingSourceRows: 2, warningRows: 0,
+      duplicateRows: 0, redundantRows: 0, missingSourceRows: 2, warningRows: 0, rejectedRows: 0,
       linkedCardCount: 0, blankCardRows: 1,
     }});
   });
