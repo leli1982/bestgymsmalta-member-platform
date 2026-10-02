@@ -5,7 +5,7 @@ import { Download, FileSpreadsheet, RefreshCw, Upload } from "lucide-react";
 
 type PreviewIssue = {
   rowNumber: number;
-  action: "conflict" | "invalid" | "warning" | "missing_source";
+  action: "conflict" | "invalid" | "warning" | "missing_source" | "rejected";
   blocking: boolean;
   memberNumber: string;
   cardBarcode: string;
@@ -32,6 +32,7 @@ type ImportPreview = {
   warningRows: number;
   conflictRows: number;
   invalidRows: number;
+  rejectedRows: number;
   cardRows: number;
   blankCardRows: number;
   issues: PreviewIssue[];
@@ -48,6 +49,7 @@ type ApplyResult = {
   redundantRows?: number;
   missingSourceRows?: number;
   warningRows?: number;
+  rejectedRows?: number;
   linkedCardCount?: number;
   blankCardRows?: number;
 };
@@ -240,6 +242,7 @@ export default function MembershipDataAdmin({
             <SummaryCard label="Older redundant skipped" value={preview.redundantRows} />
             <SummaryCard label="Missing from source" value={preview.missingSourceRows} />
             <SummaryCard label="Warnings" value={preview.warningRows} />
+            <SummaryCard label="Rejected legacy rows" value={preview.rejectedRows} />
             <SummaryCard label="Conflicts" value={preview.conflictRows} danger={preview.conflictRows > 0} />
             <SummaryCard label="Invalid" value={preview.invalidRows} danger={preview.invalidRows > 0} />
             <SummaryCard label="Deletions" value={0} />
