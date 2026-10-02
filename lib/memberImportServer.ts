@@ -105,6 +105,13 @@ type AppliedLegacyLineage = {
   byFingerprintRow: Map<string, string[]>;
 };
 
+type HistoricalSkipDecision = {
+  action: "duplicate" | "redundant" | "rejected";
+  issue: string;
+};
+
+type HistoricalSkipLineage = Map<string, HistoricalSkipDecision>;
+
 type StagedImportRow = {
   batch_id: string;
   membership_number: string | null;
@@ -180,6 +187,18 @@ function historicalLegacyIdentityKey(
   const scan = legacyScanKey(scan3);
   if (!rowNumber || !n || !pk || !scan) return "";
   return [rowNumber, n, pk, scan].join("\u0000");
+}
+
+function historicalSkipKey(
+  rowNumber: number,
+  name: unknown,
+  pkCustomer: unknown,
+  scan3: unknown,
+  expiryDate: unknown
+) {
+  const identity = historicalLegacyIdentityKey(rowNumber, name, pkCustomer, scan3);
+  if (!identity) return "";
+  return [identity, clean(expiryDate)].join("\u0000");
 }
 
 function source(row: ParsedMemberExchangeRow, key: string) {
@@ -333,6 +352,68 @@ async function loadLegacyClaims(supabase: SupabaseClient) {
     if (page.length < PAGE_SIZE) break;
   }
   return rows;
+}
+
+
+async function loadHistoricalRealImportSkips(
+  supabase: SupabaseClient
+): Promise<HistoricalSkipLineage> {
+  const batch = await supabase
+    .from("bgm_real_import_batches")
+    .select("id")
+    .eq("status", "complete")
+    .order("completed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (batch.error) throw batch.error;
+  if (!batch.data?.id) return new Map();
+
+  const result = await supabase
+    .from("bgm_real_import_rows")
+    .select("row_number, source_data, action, reason")
+    .eq("batch_id", String(batch.data.id))
+    .in("action", ["exact_duplicate", "expired_redundant", "rejected"])
+    .order("row_number", { ascending: true });
+
+  if (result.error) throw result.error;
+
+  const lineage: HistoricalSkipLineage = new Map();
+  for (const row of result.data || []) {
+    const sourceData = (row.source_data || {}) as Record<string, unknown>;
+    const key = historicalSkipKey(
+      Number(row.row_number),
+      oldSystemFullName(sourceData.CustomerName, sourceData.Surname),
+      sourceData.pkCustomer,
+      sourceData.Scan3,
+      sourceData.ExpiryDate
+    );
+    if (!key) continue;
+
+    const rawAction = clean(row.action);
+    const action =
+      rawAction === "exact_duplicate"
+        ? "duplicate"
+        : rawAction === "expired_redundant"
+          ? "redundant"
+          : rawAction === "rejected"
+            ? "rejected"
+            : null;
+    if (!action) continue;
+
+    lineage.set(key, {
+      action,
+      issue:
+        clean(row.reason) ||
+        (action === "duplicate"
+          ? "Historical Production import classified this source row as an exact duplicate."
+          : action === "redundant"
+            ? "Historical Production import classified this source row as an obsolete redundant record."
+            : "Historical Production import rejected this source row."),
+    });
+  }
+
+  return lineage;
 }
 
 async function loadAppliedLegacyLineage(
@@ -869,7 +950,8 @@ function classifyRows(
   batchId: string,
   existingRows: ExistingMemberDbRow[],
   indexes: ReturnType<typeof createMemberIndexes>,
-  appliedLegacyLineage: AppliedLegacyLineage
+  appliedLegacyLineage: AppliedLegacyLineage,
+  historicalSkipLineage: HistoricalSkipLineage
 ) {
   const sourceScanCounts = new Map<string, number>();
   const sourcePkCounts = new Map<string, number>();
@@ -973,6 +1055,22 @@ function classifyRows(
       action = "rejected";
       issue =
         "Legacy source row has no customer name/surname. It is retained in the import audit but is not created as a BGM member.";
+    }
+
+    if (parsed.mode === "legacy_22") {
+      const historicalDecision = historicalSkipLineage.get(
+        historicalSkipKey(
+          row.rowNumber,
+          oldSystemFullName(source(row, "CustomerName"), source(row, "Surname")),
+          source(row, "pkCustomer"),
+          source(row, "Scan3"),
+          source(row, "ExpiryDate")
+        )
+      );
+      if (historicalDecision) {
+        action = historicalDecision.action;
+        issue = historicalDecision.issue;
+      }
     }
 
     const ambiguousLegacyIdentity =
@@ -1364,11 +1462,18 @@ export async function previewMemberImport({
   const batchId = String(batchResult.data.id);
 
   try {
-    const [existing, credentials, claims, appliedLegacyLineage] = await Promise.all([
+    const [
+      existing,
+      credentials,
+      claims,
+      appliedLegacyLineage,
+      historicalSkipLineage,
+    ] = await Promise.all([
       loadExistingMembers(supabase),
       loadExistingCardCredentials(supabase),
       loadLegacyClaims(supabase),
       loadAppliedLegacyLineage(supabase),
+      loadHistoricalRealImportSkips(supabase),
     ]);
     const indexes = createMemberIndexes(existing, credentials, claims);
     const classified = classifyRows(
@@ -1376,7 +1481,8 @@ export async function previewMemberImport({
       batchId,
       existing,
       indexes,
-      appliedLegacyLineage
+      appliedLegacyLineage,
+      historicalSkipLineage
     );
 
     await insertStagingRows(supabase, classified.staged);
