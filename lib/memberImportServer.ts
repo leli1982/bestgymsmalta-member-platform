@@ -339,16 +339,15 @@ async function loadAppliedLegacyLineage(
     const result = await supabase
       .from("bgm_member_import_rows")
       .select("batch_id, row_number, source_fingerprint, matched_member_id, action")
-      .in("batch_id", batchIds)
-      .in("action", ["new", "update", "unchanged"])
-      .not("matched_member_id", "is", null)
-      .order("id", { ascending: true })
+      .eq("batch_id", batchIds[0])
+      .order("row_number", { ascending: true })
       .range(from, from + PAGE_SIZE - 1);
 
     if (result.error) throw result.error;
     const page = result.data || [];
 
     for (const row of page) {
+      if (!["new", "update", "unchanged"].includes(clean(row.action))) continue;
       const fp = clean(row.source_fingerprint);
       const memberId = clean(row.matched_member_id);
       if (!fp || !memberId) continue;
