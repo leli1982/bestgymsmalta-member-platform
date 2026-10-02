@@ -53,5 +53,7 @@ test("repeat legacy reconciliation reuses prior applied row lineage before treat
   assert.match(server, /priorAppliedLegacyMember/);
   assert.match(server, /source_fingerprint/);
   assert.match(server, /byFingerprintRow/);
+  assert.match(server, /order\("applied_at", \{ ascending: false \}\)/);
+  assert.match(server, /\.limit\(1\)/);
   assert.match(server, /legacy22Match\(row, candidates, indexes\)/);
 });
