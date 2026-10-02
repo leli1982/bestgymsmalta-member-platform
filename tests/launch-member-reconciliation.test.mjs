@@ -57,3 +57,20 @@ test("repeat legacy reconciliation reuses prior applied row lineage before treat
   assert.match(server, /\.limit\(1\)/);
   assert.match(server, /legacy22Match\(row, candidates, indexes\)/);
 });
+
+
+test("legacy Scan3 reconciliation is case-insensitive", () => {
+  assert.match(server, /function legacyScanKey/);
+  assert.match(server, /toLocaleUpperCase\("en"\)/);
+  assert.match(server, /legacyScanKey\(scan3\) !== legacyScanKey\(existingScan3\)/);
+  assert.match(server, /byLegacyScan\.set\(scan3/);
+});
+
+test("first live reconciliation can reuse historical real-import row lineage safely", () => {
+  assert.match(server, /real_import_batch_id/);
+  assert.match(server, /real_import_row_number/);
+  assert.match(server, /byHistoricalRowIdentity/);
+  assert.match(server, /historicalLegacyIdentityKey/);
+  assert.match(server, /oldSystemFullName\(source\(row, "CustomerName"\), source\(row, "Surname"\)\)/);
+  assert.match(server, /candidateIds\.has\(historicalMatches\[0\]\.id\)/);
+});
