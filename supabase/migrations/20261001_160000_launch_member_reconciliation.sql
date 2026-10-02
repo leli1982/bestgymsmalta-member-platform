@@ -203,14 +203,30 @@ begin
         from public.bgm_members m
         where btrim(lower(m.full_name))=btrim(lower(v_name))
           and (
-            (nullif(btrim(m.legacy_pk_customer),'')=nullif(btrim(v_row.pk_customer),'')
-             and nullif(btrim(v_row.pk_customer),'') is not null)
+            (
+              v_batch.import_mode='legacy_22'
+              and (
+                (nullif(lower(btrim(m.email)),'')=nullif(lower(btrim(v_row.email)),'')
+                 and nullif(lower(btrim(v_row.email)),'') is not null)
+                or
+                (nullif(btrim(m.id_number),'')=nullif(btrim(v_row.id_number),'')
+                 and nullif(btrim(v_row.id_number),'') is not null)
+              )
+            )
             or
-            (nullif(lower(btrim(m.email)),'')=nullif(lower(btrim(v_row.email)),'')
-             and nullif(lower(btrim(v_row.email)),'') is not null)
-            or
-            (nullif(btrim(m.id_number),'')=nullif(btrim(v_row.id_number),'')
-             and nullif(btrim(v_row.id_number),'') is not null)
+            (
+              v_batch.import_mode<>'legacy_22'
+              and (
+                (nullif(btrim(m.legacy_pk_customer),'')=nullif(btrim(v_row.pk_customer),'')
+                 and nullif(btrim(v_row.pk_customer),'') is not null)
+                or
+                (nullif(lower(btrim(m.email)),'')=nullif(lower(btrim(v_row.email)),'')
+                 and nullif(lower(btrim(v_row.email)),'') is not null)
+                or
+                (nullif(btrim(m.id_number),'')=nullif(btrim(v_row.id_number),'')
+                 and nullif(btrim(v_row.id_number),'') is not null)
+              )
+            )
           )
       ) then
         raise exception 'Possible duplicate was enrolled after preview; preview the workbook again (row %)',v_row.row_number;
