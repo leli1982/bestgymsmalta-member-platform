@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
+// Task 4 contract: employee/pay configuration routes remain Super Admin-only and history-preserving.
 const paths = {
   employees: "app/api/system/staff-employees/route.ts",
   employee: "app/api/system/staff-employees/[employeeId]/route.ts",
