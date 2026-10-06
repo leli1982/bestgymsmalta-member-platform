@@ -230,7 +230,7 @@ Worked time is calculated to the exact minute.
 
 There is no 5-, 10- or 15-minute rounding rule.
 
-Server timestamps may retain second-level precision for audit purposes, but payroll/reporting calculations and user-facing duration totals use exact elapsed whole minutes under one consistent deterministic rule.
+Server timestamps may retain second-level precision for audit purposes, but payroll/reporting calculations and user-facing duration totals use actual elapsed time expressed in minutes under one consistent deterministic rule.
 
 ## 13. Cross-Midnight Sessions
 
@@ -322,13 +322,13 @@ Open/missing sessions are marked **Needs attention** rather than auto-filled wit
 
 Ordinary payroll uses:
 
-`worked minutes x applicable hourly rate`
+`(worked minutes / 60) x applicable hourly rate`
 
 No overtime premium applies.
 
 For public-holiday minutes:
 
-`worked minutes x applicable base hourly rate x applicable employment-type holiday multiplier`
+`(worked minutes / 60) x applicable base hourly rate x applicable employment-type holiday multiplier`
 
 The engine must resolve rates and employment type by effective date.
 
