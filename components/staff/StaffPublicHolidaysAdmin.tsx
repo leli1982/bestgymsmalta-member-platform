@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, Plus, RefreshCw } from "lucide-react";
-import { formatEuropeanDate } from "@/lib/europeanDate";
+import { europeanDateFromIso, formatEuropeanDate, parseEuropeanDate } from "@/lib/europeanDate";
 
 type Version = {
   id: string; version_no: number; name: string; full_time_multiplier_bps: number;
@@ -42,15 +42,16 @@ export default function StaffPublicHolidaysAdmin() {
     const version = holiday.currentVersion || holiday.versions[0];
     if (!version) return;
     setEditingId(holiday.id);
-    setForm({ name: version.name, date: holiday.holidayDate, fullTime: fromBps(version.full_time_multiplier_bps), partTime: fromBps(version.part_time_multiplier_bps), active: version.active, note: version.note || "" });
+    setForm({ name: version.name, date: europeanDateFromIso(holiday.holidayDate), fullTime: fromBps(version.full_time_multiplier_bps), partTime: fromBps(version.part_time_multiplier_bps), active: version.active, note: version.note || "" });
     setMessage(""); setError("");
   }
 
   async function save() {
     const fullTimeMultiplierBps = toBps(form.fullTime);
     const partTimeMultiplierBps = toBps(form.partTime);
-    if (!form.name.trim() || !form.date || !fullTimeMultiplierBps || !partTimeMultiplierBps) {
-      setError("Name, Date, Full Time multiplier and Part Time multiplier are required."); return;
+    const holidayDate = parseEuropeanDate(form.date);
+    if (!form.name.trim() || !holidayDate || !fullTimeMultiplierBps || !partTimeMultiplierBps) {
+      setError("Name, a valid Date using DD/MM/YYYY, Full Time multiplier and Part Time multiplier are required."); return;
     }
     setBusy(true); setError(""); setMessage("");
     try {
@@ -60,7 +61,7 @@ export default function StaffPublicHolidaysAdmin() {
         body: JSON.stringify(editingId ? {
           name: form.name, fullTimeMultiplierBps, partTimeMultiplierBps, active: form.active, note: form.note,
         } : {
-          name: form.name, holidayDate: form.date, fullTimeMultiplierBps, partTimeMultiplierBps, active: form.active, note: form.note,
+          name: form.name, holidayDate, fullTimeMultiplierBps, partTimeMultiplierBps, active: form.active, note: form.note,
         }),
       });
       const body = await response.json(); if (!response.ok) throw new Error(body.error || "Could not save public holiday.");
@@ -76,7 +77,7 @@ export default function StaffPublicHolidaysAdmin() {
       {message && <p className="mt-3 rounded-xl bg-green-50 p-3 text-sm font-bold text-green-800">{message}</p>}
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <Field label="Name"><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} className="field" placeholder="e.g. Republic Day"/></Field>
-        <Field label="Date"><input type="date" value={form.date} disabled={Boolean(editingId)} onChange={e=>setForm({...form,date:e.target.value})} className="field disabled:bg-zinc-100"/></Field>
+        <Field label="Date"><input inputMode="numeric" placeholder="DD/MM/YYYY" value={form.date} disabled={Boolean(editingId)} onChange={e=>setForm({...form,date:e.target.value})} className="field disabled:bg-zinc-100"/></Field>
         <Field label="Full Time multiplier"><input inputMode="decimal" value={form.fullTime} onChange={e=>setForm({...form,fullTime:e.target.value})} className="field"/><small className="block text-zinc-400">e.g. 2.0x = {10000 * 2} BPS</small></Field>
         <Field label="Part Time multiplier"><input inputMode="decimal" value={form.partTime} onChange={e=>setForm({...form,partTime:e.target.value})} className="field"/></Field>
         <Field label="Note"><input value={form.note} onChange={e=>setForm({...form,note:e.target.value})} className="field"/></Field>
