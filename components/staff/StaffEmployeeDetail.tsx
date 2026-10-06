@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Camera, CheckCircle2, Clock3, Euro, Fingerprint, Save, UserRound } from "lucide-react";
-import { formatEuropeanDate } from "@/lib/europeanDate";
+import { formatEuropeanDate, parseEuropeanDate } from "@/lib/europeanDate";
 
 type Gym = { id: string; name: string; status?: string };
 type EmployeeDetailData = {
@@ -61,10 +61,11 @@ export default function StaffEmployeeDetail({ employeeId, gyms, onChanged }: Pro
 
   async function addRate() {
     const euros = Number(rate.amount);
-    if (!Number.isFinite(euros) || euros < 0 || !rate.effectiveFrom) { setError("Enter an hourly rate and Effective from date."); return; }
+    const effectiveFrom = parseEuropeanDate(rate.effectiveFrom);
+    if (!Number.isFinite(euros) || euros < 0 || !effectiveFrom) { setError("Enter an hourly rate and a valid Effective from date using DD/MM/YYYY."); return; }
     setBusy(true); setError(""); setMessage("");
     try {
-      const response = await fetch(`/api/system/staff-employees/${encodeURIComponent(employeeId)}/rate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hourlyRateCents: Math.round(euros * 100), effectiveFrom: rate.effectiveFrom }) });
+      const response = await fetch(`/api/system/staff-employees/${encodeURIComponent(employeeId)}/rate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hourlyRateCents: Math.round(euros * 100), effectiveFrom }) });
       const body = await response.json(); if (!response.ok) throw new Error(body.error || "Could not add hourly rate.");
       setRate({ amount: "", effectiveFrom: "" }); setMessage("Hourly rate added."); await load(); onChanged();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not add hourly rate."); }
@@ -72,10 +73,11 @@ export default function StaffEmployeeDetail({ employeeId, gyms, onChanged }: Pro
   }
 
   async function addEmploymentType() {
-    if (!employment.effectiveFrom) { setError("Enter an employment type Effective from date."); return; }
+    const effectiveFrom = parseEuropeanDate(employment.effectiveFrom);
+    if (!effectiveFrom) { setError("Enter a valid employment type Effective from date using DD/MM/YYYY."); return; }
     setBusy(true); setError(""); setMessage("");
     try {
-      const response = await fetch(`/api/system/staff-employees/${encodeURIComponent(employeeId)}/employment-type`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employmentType: employment.type, effectiveFrom: employment.effectiveFrom }) });
+      const response = await fetch(`/api/system/staff-employees/${encodeURIComponent(employeeId)}/employment-type`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employmentType: employment.type, effectiveFrom }) });
       const body = await response.json(); if (!response.ok) throw new Error(body.error || "Could not add employment type.");
       setEmployment({ type: "full_time", effectiveFrom: "" }); setMessage("Employment type added."); await load(); onChanged();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not add employment type."); }
@@ -131,7 +133,7 @@ export default function StaffEmployeeDetail({ employeeId, gyms, onChanged }: Pro
         <section className="rounded-2xl border border-zinc-200 p-4">
           <div className="flex items-center gap-2"><Euro className="h-5 w-5 text-orange-600"/><h3 className="font-black">Hourly rate</h3></div>
           <p className="mt-1 text-sm text-zinc-600">Current: <strong>{eur(e.currentHourlyRateCents)}</strong>{e.currentRateEffectiveFrom ? ` · from ${formatEuropeanDate(e.currentRateEffectiveFrom)}` : ""}</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2"><Field label="Hourly rate (€)"><input inputMode="decimal" value={rate.amount} onChange={x=>setRate({...rate,amount:x.target.value})} className="input"/></Field><Field label="Effective from"><input type="date" value={rate.effectiveFrom} onChange={x=>setRate({...rate,effectiveFrom:x.target.value})} className="input"/></Field></div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2"><Field label="Hourly rate (€)"><input inputMode="decimal" value={rate.amount} onChange={x=>setRate({...rate,amount:x.target.value})} className="input"/></Field><Field label="Effective from"><input inputMode="numeric" placeholder="DD/MM/YYYY" value={rate.effectiveFrom} onChange={x=>setRate({...rate,effectiveFrom:x.target.value})} className="input"/></Field></div>
           <button disabled={busy} onClick={()=>void addRate()} className="mt-3 rounded-xl bg-orange-600 px-3 py-2 text-sm font-black text-white">Add rate</button>
           <div className="mt-4 space-y-2">{sortedRates.map(row=><div key={row.id} className="flex justify-between rounded-lg bg-zinc-50 px-3 py-2 text-sm"><span>{formatEuropeanDate(row.effective_from)}</span><strong>{eur(row.hourly_rate_cents)}</strong></div>)}</div>
         </section>
@@ -139,7 +141,7 @@ export default function StaffEmployeeDetail({ employeeId, gyms, onChanged }: Pro
         <section className="rounded-2xl border border-zinc-200 p-4">
           <div className="flex items-center gap-2"><Clock3 className="h-5 w-5 text-orange-600"/><h3 className="font-black">Employment type</h3></div>
           <p className="mt-1 text-sm text-zinc-600">Current: <strong>{e.currentEmploymentType === "full_time" ? "Full Time" : e.currentEmploymentType === "part_time" ? "Part Time" : "—"}</strong></p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2"><Field label="Employment type"><select value={employment.type} onChange={x=>setEmployment({...employment,type:x.target.value})} className="input"><option value="full_time">Full Time</option><option value="part_time">Part Time</option></select></Field><Field label="Effective from"><input type="date" value={employment.effectiveFrom} onChange={x=>setEmployment({...employment,effectiveFrom:x.target.value})} className="input"/></Field></div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2"><Field label="Employment type"><select value={employment.type} onChange={x=>setEmployment({...employment,type:x.target.value})} className="input"><option value="full_time">Full Time</option><option value="part_time">Part Time</option></select></Field><Field label="Effective from"><input inputMode="numeric" placeholder="DD/MM/YYYY" value={employment.effectiveFrom} onChange={x=>setEmployment({...employment,effectiveFrom:x.target.value})} className="input"/></Field></div>
           <button disabled={busy} onClick={()=>void addEmploymentType()} className="mt-3 rounded-xl bg-orange-600 px-3 py-2 text-sm font-black text-white">Add employment type</button>
           <div className="mt-4 space-y-2">{sortedTypes.map(row=><div key={row.id} className="flex justify-between rounded-lg bg-zinc-50 px-3 py-2 text-sm"><span>{formatEuropeanDate(row.effective_from)}</span><strong>{row.employment_type === "full_time" ? "Full Time" : "Part Time"}</strong></div>)}</div>
         </section>
