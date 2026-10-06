@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CalendarDays, Clock3, Fingerprint, Plus, Search, UserRound, UsersRound } from "lucide-react";
 import StaffEmployeeDetail from "@/components/staff/StaffEmployeeDetail";
 import StaffPublicHolidaysAdmin from "@/components/staff/StaffPublicHolidaysAdmin";
+import { parseEuropeanDate } from "@/lib/europeanDate";
 
 type Gym = { id: string; name: string; status?: string };
 type Employee = {
@@ -79,15 +80,17 @@ export default function StaffEmployeesAdmin() {
 
   async function createEmployee() {
     const euros = Number(create.initialHourlyRate);
-    if (!create.firstName.trim() || !create.surname.trim() || !create.idNumber.trim() || !create.homeGymId || !Number.isFinite(euros) || euros < 0 || !create.rateEffectiveFrom || !create.employmentTypeEffectiveFrom) {
-      setError("Complete the employee identity, Home gym, Hourly rate and both Effective from dates."); return;
+    const rateEffectiveFrom = parseEuropeanDate(create.rateEffectiveFrom);
+    const employmentTypeEffectiveFrom = parseEuropeanDate(create.employmentTypeEffectiveFrom);
+    if (!create.firstName.trim() || !create.surname.trim() || !create.idNumber.trim() || !create.homeGymId || !Number.isFinite(euros) || euros < 0 || !rateEffectiveFrom || !employmentTypeEffectiveFrom) {
+      setError("Complete the employee identity, Home gym, Hourly rate and both Effective from dates using DD/MM/YYYY."); return;
     }
     setBusy(true); setError(""); setMessage("");
     try {
       const response = await fetch("/api/system/staff-employees", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({
         firstName:create.firstName, surname:create.surname, idNumber:create.idNumber, address:create.address, mobile:create.mobile, email:create.email,
-        homeGymId:create.homeGymId, initialHourlyRateCents:Math.round(euros*100), rateEffectiveFrom:create.rateEffectiveFrom,
-        initialEmploymentType:create.initialEmploymentType, employmentTypeEffectiveFrom:create.employmentTypeEffectiveFrom,
+        homeGymId:create.homeGymId, initialHourlyRateCents:Math.round(euros*100), rateEffectiveFrom,
+        initialEmploymentType:create.initialEmploymentType, employmentTypeEffectiveFrom,
       }) });
       const body = await response.json(); if (!response.ok) throw new Error(body.error || "Could not create staff employee.");
       setCreate(blankCreate); setShowCreate(false); setMessage("Staff employee created."); await load(); setSelectedId(body.employee.id);
@@ -129,9 +132,9 @@ export default function StaffEmployeesAdmin() {
             <Field label="Mobile"><input className="field" value={create.mobile} onChange={e=>setCreate({...create,mobile:e.target.value})}/></Field>
             <Field label="Email"><input type="email" className="field" value={create.email} onChange={e=>setCreate({...create,email:e.target.value})}/></Field>
             <Field label="Hourly rate (€)"><input inputMode="decimal" className="field" value={create.initialHourlyRate} onChange={e=>setCreate({...create,initialHourlyRate:e.target.value})}/></Field>
-            <Field label="Rate Effective from"><input type="date" className="field" value={create.rateEffectiveFrom} onChange={e=>setCreate({...create,rateEffectiveFrom:e.target.value})}/></Field>
+            <Field label="Rate Effective from"><input inputMode="numeric" placeholder="DD/MM/YYYY" className="field" value={create.rateEffectiveFrom} onChange={e=>setCreate({...create,rateEffectiveFrom:e.target.value})}/></Field>
             <Field label="Employment type"><select className="field" value={create.initialEmploymentType} onChange={e=>setCreate({...create,initialEmploymentType:e.target.value})}><option value="full_time">Full Time</option><option value="part_time">Part Time</option></select></Field>
-            <Field label="Employment Effective from"><input type="date" className="field" value={create.employmentTypeEffectiveFrom} onChange={e=>setCreate({...create,employmentTypeEffectiveFrom:e.target.value})}/></Field>
+            <Field label="Employment Effective from"><input inputMode="numeric" placeholder="DD/MM/YYYY" className="field" value={create.employmentTypeEffectiveFrom} onChange={e=>setCreate({...create,employmentTypeEffectiveFrom:e.target.value})}/></Field>
           </div><div className="mt-4 flex gap-2"><button disabled={busy} onClick={()=>void createEmployee()} className="rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">Create employee</button><button onClick={()=>setShowCreate(false)} className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-black">Cancel</button></div></div>}
 
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
