@@ -8,7 +8,8 @@
       "feature/super-admin-audit-trail": false,
       "fix/audit-trail-input-contrast": false,
       "feature/launch-member-reconciliation": false,
-      "feature/staff-attendance-payroll": false
+      "feature/staff-attendance-payroll": false,
+      "spec/staff-attendance-payroll": false
     }
   },
   "regions": [
