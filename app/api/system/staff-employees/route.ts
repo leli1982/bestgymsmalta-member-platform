@@ -31,11 +31,20 @@ function currentByEmployee<T extends { employee_id: string; effective_from: stri
     grouped.set(row.employee_id, list);
   }
   return new Map(
-    Array.from(grouped.entries()).map(([employeeId, list]) => [
-      employeeId,
-      effectiveRecordOn(list, date),
-    ])
+    Array.from(grouped.entries()).map(([employeeId, list]) => [employeeId, effectiveRecordOn(list, date)])
   );
+}
+
+function fingerprintByEmployee(rows: Array<{ employee_id: string; status: string; active: boolean; enrolled_at: string; revoked_at: string | null }>) {
+  const map = new Map<string, "enrolled" | "pending" | "revoked" | "not_enrolled">();
+  const sorted = [...rows].sort((a, b) => String(b.enrolled_at).localeCompare(String(a.enrolled_at)));
+  for (const row of sorted) {
+    if (map.has(row.employee_id)) continue;
+    if (row.active && row.status === "enrolled") map.set(row.employee_id, "enrolled");
+    else if (row.active && row.status === "pending") map.set(row.employee_id, "pending");
+    else if (row.status === "revoked" || row.revoked_at) map.set(row.employee_id, "revoked");
+  }
+  return map;
 }
 
 export async function GET(request: NextRequest) {
@@ -44,17 +53,19 @@ export async function GET(request: NextRequest) {
     if (auth.error || !auth.context) return auth.error;
     const db = getSupabaseAdmin();
     const today = todayMaltaDate();
-    const [employeesResult, ratesResult, typesResult, gymsResult] = await Promise.all([
+    const [employeesResult, ratesResult, typesResult, gymsResult, biometricsResult] = await Promise.all([
       db.from("bgm_staff_employees").select(STAFF_EMPLOYEE_SELECT).order("surname").order("first_name"),
       db.from("bgm_staff_rate_history").select("id, employee_id, hourly_rate_cents, effective_from, created_at").lte("effective_from", today),
       db.from("bgm_staff_employment_type_history").select("id, employee_id, employment_type, effective_from, created_at").lte("effective_from", today),
       db.from("bgm_gyms").select("id, name, status").order("name"),
+      db.from("bgm_staff_biometrics").select("employee_id, status, active, enrolled_at, revoked_at").order("enrolled_at", { ascending: false }),
     ]);
-    for (const result of [employeesResult, ratesResult, typesResult, gymsResult]) {
+    for (const result of [employeesResult, ratesResult, typesResult, gymsResult, biometricsResult]) {
       if (result.error) throw result.error;
     }
     const rates = currentByEmployee(ratesResult.data || [], today);
     const types = currentByEmployee(typesResult.data || [], today);
+    const fingerprints = fingerprintByEmployee(biometricsResult.data || []);
     return NextResponse.json({
       asOfDate: today,
       employees: (employeesResult.data || []).map((employee) => ({
@@ -67,6 +78,7 @@ export async function GET(request: NextRequest) {
         email: employee.email,
         homeGymId: employee.home_gym_id,
         hasPhoto: Boolean(employee.photo_path),
+        fingerprintStatus: fingerprints.get(employee.id) || "not_enrolled",
         linkedSystemUserId: employee.linked_system_user_id,
         active: employee.active,
         createdAt: employee.created_at,
