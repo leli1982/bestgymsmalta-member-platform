@@ -10,4 +10,8 @@ test("staff branch stays suppressed and enrollment previews use an explicit chec
     typeof config.git.deploymentEnabled["feature/tablet-enrollment-membership-settings"],
     "boolean"
   );
+  assert.equal(
+    config.git.deploymentEnabled["feature/staff-attendance-payroll"],
+    false
+  );
 });
