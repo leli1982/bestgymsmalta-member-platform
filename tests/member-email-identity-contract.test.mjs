@@ -33,7 +33,8 @@ test("password reset scopes duplicate email by member number", () => {
 test("forgot password UI submits membership number with email", () => {
   assert.match(loginUi, /forgotMemberNumber/);
   assert.match(loginUi, /Membership Number/);
-  assert.match(loginUi, /BGM0000001/);
+  assert.match(loginUi, /BGM1000/);
+  assert.doesNotMatch(loginUi, /BGM0000001/);
   assert.match(loginUi, /memberNumber:\s*forgotMemberNumber\.trim\(\)/);
 });
 
@@ -53,7 +54,8 @@ test("activated members can log in with an exact non-BGM card/member identifier"
 
 test("member login UI clearly supports username or permanent membership number", () => {
   assert.match(loginUi, /Username or Membership Number/);
-  assert.match(loginUi, /BGM0000001/);
+  assert.match(loginUi, /BGM1000/);
+  assert.doesNotMatch(loginUi, /BGM0000001/);
 });
 
 test("blank-email members are safely directed to reception before activation", () => {
