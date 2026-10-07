@@ -30,7 +30,7 @@ test("sundries uses explicit minus and plus quantity controls for standard and c
   assert.match(source, /\bPlus\b/);
   assert.match(source, /aria-label=\{`Decrease \$\{name\}`\}/);
   assert.match(source, /aria-label=\{`Increase \$\{name\}`\}/);
-  assert.match(source, /disabled=\{quantity === 0\}/);
+  assert.match(source, /disabled=\{safeQuantity === 0\}/);
   assert.match(source, /<SundriesQuantityPicker/);
 });
 
@@ -42,9 +42,9 @@ test("shared registration form uses canonical Malta locality options for staff a
   assert.match(source, /<select[^>]*value=\{participant\.town\}/s);
   assert.doesNotMatch(source, /Town \/ locality<input/);
   assert.match(localities, /export const MALTA_LOCALITIES/);
-  assert.match(localities, /"Valletta"/);
-  assert.match(localities, /"Victoria"/);
-  assert.match(localities, /"St Julian's"/);
+  assert.match(localities, /"Il-Belt Valletta"/);
+  assert.match(localities, /"Ir-Rabat \(Għawdex\)"/);
+  assert.match(localities, /"San Ġiljan"/);
 
   const staffPage = read("components/staff/MembershipEnrollmentPage.tsx");
   const tabletPage = read("components/membership/JoinEnrollmentPage.tsx");
