@@ -72,7 +72,7 @@ export default function ActiveMembersByGymAdmin() {
           </p>
           <h2 className="mt-1 text-2xl font-black">Active members by gym</h2>
           <p className="mt-2 text-sm text-zinc-600">
-            Uses the member&apos;s current enrollment gym first. If no current enrollment gym is saved, the member&apos;s Legacy Gym is used.
+            Uses the member&apos;s current enrollment gym first. If no current enrollment gym is saved, the member&apos;s Original Gym is used.
           </p>
         </div>
         <button
