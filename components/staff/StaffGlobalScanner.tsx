@@ -66,7 +66,7 @@ function activeScannerEditable(target: EventTarget | null): ScannerEditable | nu
   if (!(field instanceof HTMLInputElement)) return null;
   if (!["text", "search", "email", "tel", "url", "number"].includes(field.type)) return null;
   if (field.dataset.bgmScanInput === "true") {
-    return null; // Dedicated card inputs own their own scanner keystrokes.
+    return null;
   }
   return field;
 }
@@ -79,24 +79,18 @@ function restoreEditableInput(burst: EditableBurst) {
   if (!burst.field.isConnected) return;
   const proto = burst.field instanceof HTMLTextAreaElement
     ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
-  // Use the native setter to notify React's controlled input tracker properly.
   const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
   if (setter) setter.call(burst.field, burst.originalValue);
   else burst.field.value = burst.originalValue;
   if (burst.originalStart !== null && burst.originalEnd !== null) {
     burst.field.setSelectionRange(burst.originalStart, burst.originalEnd);
   }
-  // All keystrokes are held in number inputs, so the value and React state
-  // were never changed during a scan. Do not dispatch a synthetic input event.
   if (!burst.numeric) dispatchEditableInput(burst.field);
 }
 
 function replayHeldKeys(burst: EditableBurst | null) {
   if (!burst?.held || !burst.field.isConnected) return;
   if (burst.numeric && burst.field instanceof HTMLInputElement) {
-    // setRangeText/selectionStart are unsupported on type=number inputs.
-    // Use the native setter so React sees a genuine change when normal human
-    // quantity typing is replayed after the short scanner-detection window.
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
     const nextValue = burst.field.value === "0" && /^[0-9]+$/.test(burst.held)
       ? burst.held : burst.field.value + burst.held;
@@ -274,7 +268,6 @@ export default function StaffGlobalScanner() {
     setChecking(false);
     const previous = focusBeforeScan.current;
     if (previous?.isConnected) {
-      // Restore immediately, before the next form keystroke arrives.
       previous.focus({ preventScroll: true });
     }
     window.setTimeout(() => processNextRef.current(), 0);
@@ -335,9 +328,6 @@ export default function StaffGlobalScanner() {
       event.stopImmediatePropagation();
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      // A selected, explicitly marked card-assignment/verification input owns
-      // the entire keyboard-wedge scan including Enter. This MUST precede F9
-      // handling and burst recognition, or the global reader steals the barcode.
       const focusedInput = document.activeElement;
       if (focusedInput instanceof HTMLElement &&
           focusedInput.closest('[data-bgm-scan-input="true"]')) {
@@ -349,7 +339,6 @@ export default function StaffGlobalScanner() {
         return;
       }
       if (event.key === SCANNER_PREFIX || event.code === SCANNER_PREFIX) {
-        // Prefixed scanners are always unambiguous: no text enters the editor.
         resetBuffer();
         focusBeforeScan.current = document.activeElement as HTMLElement | null;
         scannerActive.current = true;
@@ -382,8 +371,6 @@ export default function StaffGlobalScanner() {
         return;
       }
       if (insideEditable && !field) {
-        // This is a dedicated scanner input or an unsupported editor. Leave
-        // its native behaviour alone and offer the Scan card fallback.
         resetBuffer();
         return;
       }
@@ -435,9 +422,6 @@ export default function StaffGlobalScanner() {
       }
       const nextCode = scannerBuffer.current + event.key;
       const elapsedMs = now - burstStart.current;
-      // Protect number inputs from the FIRST digit: scanners would otherwise
-      // mutate quantity/cash React state before the barcode is recognised.
-      // Text inputs keep the earlier four-key threshold to minimise typing lag.
       if (field && editableBurst.current &&
           (editableBurst.current.numeric || editableBurst.current.held ||
             shouldHoldScannerCandidate(nextCode.length, elapsedMs, lastGapMs))) {
@@ -555,7 +539,7 @@ export default function StaffGlobalScanner() {
                   <p className="mt-1 text-xs font-bold text-zinc-500">Scanned: <span className="font-mono">{result.scannedBarcode || "—"}</span></p>
                   <p className="mt-2 font-bold text-zinc-700">Expiry: {formatEuropeanDate(result.member.membershipExpiry, "Not set")}</p>
                   <p className="mt-1 font-semibold text-zinc-600">Current enrollment gym: {result.member.enrollmentGymName || "Not recorded"}</p>
-                  <p className="mt-1 font-semibold text-zinc-600">Legacy gym: {result.member.legacyGym || "Not recorded"}</p>
+                  <p className="mt-1 font-semibold text-zinc-600">Original gym: {result.member.legacyGym || "Not recorded"}</p>
                   <p className="mt-1 text-sm font-semibold text-zinc-500">Status: {result.member.status}</p>
                 </div>
               </div>
