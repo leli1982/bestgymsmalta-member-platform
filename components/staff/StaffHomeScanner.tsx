@@ -308,7 +308,7 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
                     </p>
                     <div className="mt-4 grid gap-2 text-sm font-semibold text-zinc-600 sm:grid-cols-2">
                       <p>Current enrollment gym: <strong className="text-zinc-900">{result.member.enrollmentGymName || "Not recorded"}</strong></p>
-                      <p>Legacy gym: <strong className="text-zinc-900">{result.member.legacyGym || "Not recorded"}</strong></p>
+                      <p>Original gym: <strong className="text-zinc-900">{result.member.legacyGym || "Not recorded"}</strong></p>
                     </div>
                   </div>
                 </div>
