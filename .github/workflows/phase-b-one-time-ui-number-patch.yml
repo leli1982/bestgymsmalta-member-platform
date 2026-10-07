@@ -1,0 +1,49 @@
+name: Phase B one-time UI member-number patch
+
+on:
+  push:
+    branches:
+      - feature/phase-b-member-number-renumbering
+
+permissions:
+  contents: write
+
+jobs:
+  patch-ui-number-examples:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Phase B branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/phase-b-member-number-renumbering
+          fetch-depth: 0
+      - name: Replace old BGM example values with BGM1000
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          targets = {
+              'components/member-auth/MemberLoginPage.tsx': 3,
+              'tests/browser/member-card-gyms.mjs': 2,
+              'components/staff/MembershipPrintOverflowPreview.tsx': 1,
+          }
+          old = 'BGM0000001'
+          new = 'BGM1000'
+          for filename, expected in targets.items():
+              path = Path(filename)
+              text = path.read_text()
+              count = text.count(old)
+              if count != expected:
+                  raise SystemExit(f'{filename}: expected {expected} old examples, found {count}')
+              path.write_text(text.replace(old, new))
+          PY
+          git diff --check
+      - name: Commit guarded UI patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add components/member-auth/MemberLoginPage.tsx tests/browser/member-card-gyms.mjs components/staff/MembershipPrintOverflowPreview.tsx
+          git commit -m "fix: show canonical BGM1000 examples"
+          git push origin HEAD:feature/phase-b-member-number-renumbering
