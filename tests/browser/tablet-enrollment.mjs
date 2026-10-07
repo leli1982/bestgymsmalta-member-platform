@@ -222,7 +222,7 @@ try {
   await identityResponse;
   await page.getByLabel("Date of birth", { exact: true }).fill("20/05/1995");
   await page.getByLabel("Address", { exact: true }).fill("1 Browser Street");
-  await page.getByLabel("Town / locality", { exact: true }).fill("Birkirkara");
+  await page.getByLabel("Town / locality", { exact: true }).selectOption("Birkirkara");
   await page.getByLabel("Mobile / phone", { exact: true }).fill("79000000");
   await page.getByLabel("Email", { exact: true }).fill("tablet.student@example.test");
   await page.getByLabel("Next of kin / emergency contact", { exact: true }).fill("Browser Kin 79000001");
