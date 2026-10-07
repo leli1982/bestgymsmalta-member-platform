@@ -97,7 +97,7 @@ try {
   await access.waitFor({ state: "visible", timeout: 15000 });
   assert.equal(await name.inputValue(), "Maria Borg", "Scanner input must not corrupt the focused Staff form");
   await access.getByText("Active Member", { exact: true }).waitFor();
-  await access.getByText("Legacy gym: Mosta", { exact: true }).waitFor();
+  await access.getByText("Original gym: Mosta", { exact: true }).waitFor();
   const grantedPhotoBox = await access.getByTestId("scan-member-photo").boundingBox();
   assert.ok(grantedPhotoBox && grantedPhotoBox.width >= 300,
     "Granted scan must show a large identity photo panel");
@@ -114,7 +114,7 @@ try {
   const denied = page.getByRole("dialog", { name: "MEMBERSHIP EXPIRED" });
   await denied.waitFor({ state: "visible", timeout: 15000 });
   await denied.getByText("DO NOT ALLOW ACCESS until verified by reception.").waitFor();
-  await denied.getByText("Legacy gym: Mosta", { exact: true }).waitFor();
+  await denied.getByText("Original gym: Mosta", { exact: true }).waitFor();
   const deniedPhotoBox = await denied.getByTestId("scan-member-photo").boundingBox();
   assert.ok(deniedPhotoBox && deniedPhotoBox.width >= 300,
     "Declined scan must keep the large identity photo panel");
