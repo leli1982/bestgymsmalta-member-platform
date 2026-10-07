@@ -1,0 +1,30 @@
+name: Phase B Task 2 diagnostic
+
+on:
+  push:
+    branches:
+      - feature/phase-b-member-number-renumbering
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+      - name: Member card contract
+        run: node --test --test-name-pattern="member card validates" tests/phase-b-member-number-runtime-contract.test.mjs
+      - name: Delete confirmation contract
+        if: always()
+        run: node --test --test-name-pattern="permanent-delete confirmation" tests/phase-b-member-number-runtime-contract.test.mjs
+      - name: Import validator contract
+        if: always()
+        run: node --test --test-name-pattern="member import validation" tests/phase-b-member-number-runtime-contract.test.mjs
+      - name: Shared entry-points contract
+        if: always()
+        run: node --test --test-name-pattern="existing member-number entry points" tests/phase-b-member-number-runtime-contract.test.mjs
+      - name: Card independence contract
+        if: always()
+        run: node --test --test-name-pattern="does not couple permanent BGM numbers" tests/phase-b-member-number-runtime-contract.test.mjs
