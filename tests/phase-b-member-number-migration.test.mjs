@@ -45,8 +45,12 @@ test("Phase B migration rewrites import snapshots through member UUID links", ()
 test("Phase B migration clears only approved TEST activity in foreign-key-safe order", () => {
   const flags = pos("delete from public.bgm_card_conflict_flags");
   const scans = pos("delete from public.bgm_access_scans");
+  const reviews = pos("delete from public.bgm_card_conflict_reviews");
+  const checkins = pos("delete from public.bgm_member_checkins");
   assert.ok(flags >= 0, "card conflict flags cleanup is required");
   assert.ok(scans > flags, "card conflict flags must be deleted before access scans");
+  assert.ok(reviews > flags, "card conflict flags must be deleted before conflict reviews");
+  assert.ok(checkins > scans, "access scans must be deleted before member check-ins");
   for (const table of [
     "bgm_audit_log",
     "bgm_member_stats",
