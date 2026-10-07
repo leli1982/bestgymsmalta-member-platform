@@ -222,7 +222,7 @@ try {
   await identityResponse;
   await page.getByLabel("Date of birth", { exact: true }).fill("20/05/1995");
   await page.getByLabel("Address", { exact: true }).fill("1 Browser Street");
-  await page.getByLabel("Town / locality", { exact: true }).selectOption("Birkirkara");
+  await page.getByLabel("Town / locality").selectOption("Birkirkara");
   await page.getByLabel("Mobile / phone", { exact: true }).fill("79000000");
   await page.getByLabel("Email", { exact: true }).fill("tablet.student@example.test");
   await page.getByLabel("Next of kin / emergency contact", { exact: true }).fill("Browser Kin 79000001");
@@ -253,7 +253,7 @@ try {
   await waitVisible(page.getByText("Couples applicant 1", { exact: true }));
   await waitVisible(page.getByText("Couples applicant 2", { exact: true }));
   assert.equal(await page.getByLabel("Address", { exact: true }).count(), 1, "Couples enters a shared home address only once");
-  assert.equal(await page.getByLabel("Town / locality", { exact: true }).count(), 1, "Couples enters locality only once");
+  assert.equal(await page.getByLabel("Town / locality").count(), 1, "Couples enters locality only once");
   assert.equal(await page.getByLabel("Postcode", { exact: false }).count(), 1, "Couples enters postcode only once");
   await page.getByLabel("Address", { exact: true }).fill("12 Shared Test Street");
   await waitVisible(page.getByText(/Shared home address entered for Applicant 1 applies to both applicants/));
