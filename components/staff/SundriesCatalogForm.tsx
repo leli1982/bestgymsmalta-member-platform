@@ -3,9 +3,11 @@
 import {
   CreditCard,
   Highlighter,
+  Minus,
   PackagePlus,
   PenLine,
   Pencil,
+  Plus,
   StickyNote,
   Trash2,
 } from "lucide-react";
@@ -120,6 +122,60 @@ export function initialSundriesItems(): SundriesDraftItem[] {
   }));
 }
 
+function SundriesQuantityPicker({
+  name,
+  quantity,
+  onChange,
+}: {
+  name: string;
+  quantity: string;
+  onChange: (value: string) => void;
+}) {
+  const numericQuantity = Number(quantity || 0);
+  const safeQuantity = Number.isSafeInteger(numericQuantity) && numericQuantity >= 0 ? numericQuantity : 0;
+  const next = (value: number) => {
+    if (Number.isSafeInteger(value) && value >= 0) onChange(String(value));
+  };
+
+  return (
+    <span className="flex shrink-0 flex-col gap-1 text-xs font-bold text-zinc-600">
+      Qty
+      <span className="inline-flex items-center gap-1 rounded-xl border border-zinc-200 bg-white p-1">
+        <button
+          type="button"
+          aria-label={`Decrease ${name}`}
+          disabled={safeQuantity === 0}
+          onClick={() => next(safeQuantity - 1)}
+          className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900 disabled:opacity-30"
+        >
+          <Minus className="h-4 w-4" aria-hidden="true" />
+        </button>
+        <input
+          aria-label={`${name} quantity`}
+          type="number"
+          min="0"
+          step="1"
+          inputMode="numeric"
+          value={quantity}
+          onChange={(event) => {
+            const value = event.target.value;
+            if (value === "" || (/^\d+$/.test(value) && Number.isSafeInteger(Number(value)))) onChange(value);
+          }}
+          className="w-12 bg-transparent text-center text-base font-black text-zinc-950 outline-none"
+        />
+        <button
+          type="button"
+          aria-label={`Increase ${name}`}
+          onClick={() => next(safeQuantity + 1)}
+          className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50 text-[#d74b00]"
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </span>
+    </span>
+  );
+}
+
 type Props = {
   items: SundriesDraftItem[];
   updateItem: (index: number, field: keyof SundriesDraftItem, value: string) => void;
@@ -147,7 +203,7 @@ export default function SundriesCatalogForm({
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {SUNDRIES_CATALOG.map(({ name, icon: Icon }, index) => (
-            <label
+            <div
               key={name}
               className={`flex min-w-0 items-center gap-3 rounded-2xl border p-3 transition-colors ${
                 Number(standardItems[index]?.quantity || 0) > 0
@@ -159,20 +215,12 @@ export default function SundriesCatalogForm({
                 <Icon className="h-12 w-12" aria-hidden="true" />
               </span>
               <span className="min-w-0 flex-1 text-sm font-bold text-zinc-900">{name}</span>
-              <span className="flex shrink-0 flex-col gap-1 text-xs font-bold text-zinc-600">
-                Qty
-                <input
-                  aria-label={`${name} quantity`}
-                  type="number"
-                  min="0"
-                  step="1"
-                  inputMode="numeric"
-                  value={standardItems[index]?.quantity ?? "0"}
-                  onChange={(event) => updateItem(index, "quantity", event.target.value)}
-                  className="w-20 rounded-xl border border-zinc-300 bg-white px-2 py-2 text-center text-base font-black text-zinc-950 outline-none focus:border-orange-500"
-                />
-              </span>
-            </label>
+              <SundriesQuantityPicker
+                name={name}
+                quantity={standardItems[index]?.quantity ?? "0"}
+                onChange={(value) => updateItem(index, "quantity", value)}
+              />
+            </div>
           ))}
         </div>
       </section>
@@ -196,7 +244,7 @@ export default function SundriesCatalogForm({
             {customItems.map((item, offset) => {
               const index = SUNDRIES_CATALOG.length + offset;
               return (
-                <div key={index} className="grid gap-2 rounded-xl border border-zinc-200 bg-white p-3 sm:grid-cols-[minmax(0,2fr)_90px_minmax(0,1fr)_auto] sm:items-end">
+                <div key={index} className="grid gap-2 rounded-xl border border-zinc-200 bg-white p-3 sm:grid-cols-[minmax(0,2fr)_auto_minmax(0,1fr)_auto] sm:items-end">
                   <label className="text-xs font-bold text-zinc-600">
                     Item name
                     <input
@@ -208,19 +256,11 @@ export default function SundriesCatalogForm({
                       className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-950"
                     />
                   </label>
-                  <label className="text-xs font-bold text-zinc-600">
-                    Qty
-                    <input
-                      aria-label={`Custom item ${offset + 1} quantity`}
-                      type="number"
-                      min="0"
-                      step="1"
-                      inputMode="numeric"
-                      value={item.quantity}
-                      onChange={(event) => updateItem(index, "quantity", event.target.value)}
-                      className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-center text-sm font-black text-zinc-950"
-                    />
-                  </label>
+                  <SundriesQuantityPicker
+                    name={`Custom item ${offset + 1}`}
+                    quantity={item.quantity}
+                    onChange={(value) => updateItem(index, "quantity", value)}
+                  />
                   <label className="text-xs font-bold text-zinc-600">
                     Notes (optional)
                     <input
