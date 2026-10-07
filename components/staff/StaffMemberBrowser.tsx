@@ -210,7 +210,7 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, c
                 {member.memberNumber || "No member number"} · Expiry {formatEuropeanDate(member.membershipExpiry)}
               </span>
               <span className="mt-1 block truncate text-xs font-bold text-zinc-400">
-                Legacy Gym: {member.legacyGym || "—"}
+                Original Gym: {member.legacyGym || "—"}
               </span>
             </span>
             <span className={`rounded-full px-3 py-1.5 text-[11px] font-black tracking-wide ring-1 ${statusClass(member.classification)}`}>
