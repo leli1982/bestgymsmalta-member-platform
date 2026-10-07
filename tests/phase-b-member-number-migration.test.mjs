@@ -25,12 +25,22 @@ test("Phase B migration replaces fixed-width constraint allocator and immutabili
   assert.match(sql, /drop\s+constraint\s+if\s+exists\s+bgm_members_permanent_member_number_format_check/i);
   assert.match(sql, /\^BGM\[1-9\]\[0-9\]\{3,\}\$/i);
   assert.match(sql, /create\s+or\s+replace\s+function\s+public\.bgm_next_member_number/i);
-  assert.doesNotMatch(sql, /lpad\s*\(/i);
-  assert.match(sql, /'BGM'\s*\|\|\s*next_value::text/i);
+  assert.match(sql, /last_issued\s*<\s*9223372036854775807/i);
+  assert.match(sql, /return\s+'BGM'\s*\|\|\s*next_value::text/i);
   assert.match(sql, /drop\s+constraint\s+if\s+exists\s+bgm_member_number_state_last_issued_check/i);
   assert.match(sql, /check\s*\(\s*last_issued\s*>=\s*0\s*\)/i);
   assert.match(sql, /create\s+or\s+replace\s+function\s+public\.bgm_enforce_permanent_member_number/i);
   assert.match(sql, /before\s+insert\s+or\s+update\s+of\s+member_number/i);
+});
+
+test("Phase B migration updates the active bulk-import allocator to the same unpadded format", () => {
+  assert.match(sql, /bgm_apply_member_import_batch/i);
+  assert.match(sql, /pg_get_functiondef/i);
+  assert.match(sql, /9999999/);
+  assert.match(sql, /9223372036854775807/);
+  assert.match(sql, /assigned_member_number/i);
+  assert.match(sql, /regexp_replace|replace\s*\(/i);
+  assert.match(sql, /bulk import allocator|bulk-import allocator/i);
 });
 
 test("Phase B migration rewrites import snapshots through member UUID links", () => {
