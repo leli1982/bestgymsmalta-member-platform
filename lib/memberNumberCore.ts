@@ -1,11 +1,24 @@
-export const MEMBERSHIP_NUMBER_PATTERN = /^BGM(\d{7})$/;
+export const MEMBERSHIP_NUMBER_PATTERN = /^BGM([1-9][0-9]{3,})$/;
 
-export function formatMembershipNumber(value: number) {
-  if (!Number.isInteger(value) || value < 1 || value > 9_999_999) {
-    throw new Error("Membership number must be between 1 and 9999999.");
+const POSTGRES_BIGINT_MAX = 9_223_372_036_854_775_807n;
+
+export function formatMembershipNumber(value: number | bigint) {
+  let numericValue: bigint;
+
+  if (typeof value === "bigint") {
+    numericValue = value;
+  } else {
+    if (!Number.isSafeInteger(value)) {
+      throw new Error("Membership number must be a safe integer or bigint.");
+    }
+    numericValue = BigInt(value);
   }
 
-  return `BGM${String(value).padStart(7, "0")}`;
+  if (numericValue < 1000n || numericValue > POSTGRES_BIGINT_MAX) {
+    throw new Error("Membership number must be between 1000 and the PostgreSQL bigint maximum.");
+  }
+
+  return `BGM${numericValue.toString()}`;
 }
 
 export function normalizeMembershipNumber(value: unknown) {
@@ -17,6 +30,10 @@ export function parseMembershipNumber(value: unknown) {
   const match = normalized.match(MEMBERSHIP_NUMBER_PATTERN);
   if (!match) return null;
 
-  const parsed = Number(match[1]);
-  return parsed >= 1 && parsed <= 9_999_999 ? parsed : null;
+  try {
+    const parsed = BigInt(match[1]);
+    return parsed <= POSTGRES_BIGINT_MAX ? match[1] : null;
+  } catch {
+    return null;
+  }
 }
