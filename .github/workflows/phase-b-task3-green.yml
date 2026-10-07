@@ -1,0 +1,17 @@
+name: Phase B Task 3 GREEN
+
+on:
+  push:
+    branches:
+      - feature/phase-b-member-number-renumbering
+
+permissions:
+  contents: read
+
+jobs:
+  migration-contract-green:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Phase B migration contract
+        run: node --test tests/phase-b-member-number-migration.test.mjs
