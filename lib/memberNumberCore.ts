@@ -1,6 +1,7 @@
 export const MEMBERSHIP_NUMBER_PATTERN = /^BGM([1-9][0-9]{3,})$/;
 
-const POSTGRES_BIGINT_MAX = 9_223_372_036_854_775_807n;
+const MIN_MEMBERSHIP_NUMBER = BigInt(1000);
+const POSTGRES_BIGINT_MAX = BigInt("9223372036854775807");
 
 export function formatMembershipNumber(value: number | bigint) {
   let numericValue: bigint;
@@ -14,7 +15,7 @@ export function formatMembershipNumber(value: number | bigint) {
     numericValue = BigInt(value);
   }
 
-  if (numericValue < 1000n || numericValue > POSTGRES_BIGINT_MAX) {
+  if (numericValue < MIN_MEMBERSHIP_NUMBER || numericValue > POSTGRES_BIGINT_MAX) {
     throw new Error("Membership number must be between 1000 and the PostgreSQL bigint maximum.");
   }
 
