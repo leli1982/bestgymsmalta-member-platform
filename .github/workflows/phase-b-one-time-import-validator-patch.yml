@@ -1,0 +1,59 @@
+name: Phase B one-time import validator patch
+
+on:
+  push:
+    branches:
+      - feature/phase-b-member-number-renumbering
+
+permissions:
+  contents: write
+
+jobs:
+  patch-member-import:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Phase B branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/phase-b-member-number-renumbering
+          fetch-depth: 0
+
+      - name: Replace fixed-width import validation
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/memberImportServer.ts')
+          text = path.read_text()
+
+          import_anchor = 'import { normalizeBarcodePayload } from "@/lib/memberCardCredentialCore";\n'
+          import_replacement = import_anchor + 'import { parseMembershipNumber } from "@/lib/memberNumberCore";\n'
+          if text.count(import_anchor) != 1:
+              raise SystemExit(f'Expected exactly one import anchor, found {text.count(import_anchor)}')
+          if 'from "@/lib/memberNumberCore"' not in text:
+              text = text.replace(import_anchor, import_replacement, 1)
+
+          old = 'if (!/^BGM[0-9]{7}$/.test(memberNumber)) {'
+          new = 'if (parseMembershipNumber(memberNumber) === null) {'
+          if text.count(old) != 1:
+              raise SystemExit(f'Expected exactly one fixed-width validator, found {text.count(old)}')
+          text = text.replace(old, new, 1)
+
+          path.write_text(text)
+          PY
+          git diff --check
+
+      - name: Commit guarded patch
+        shell: bash
+        run: |
+          if git diff --quiet -- lib/memberImportServer.ts; then
+            echo "No patch required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/memberImportServer.ts
+          git commit -m "refactor: use canonical BGM validation for member import"
+          git push origin HEAD:feature/phase-b-member-number-renumbering
