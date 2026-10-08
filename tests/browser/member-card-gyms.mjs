@@ -10,6 +10,12 @@ const member = {
   memberNumber: "BGM0000123", email: "browser@example.test", status: "active",
   membershipExpiry: "9999-12-31",
 };
+const activeAccess = {
+  state: "active",
+  daysUntilExpiry: 9999,
+  graceDaysRemaining: 0,
+  reminderDue: false,
+};
 const readyCard = {
   member,
   cardLinked: true,
@@ -39,7 +45,7 @@ async function lightLayout() {
   assert.equal(await page.locator("main").evaluate((el) => getComputedStyle(el).backgroundColor), "rgb(246, 246, 246)");
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "page must fit the mobile viewport");
 }
-async function newPage(cached = null, width = 390) {
+async function newPage(cached = null, width = 390, mockActiveSession = true) {
   if (page) await page.context().close();
   const context = await browser.newContext({ viewport: { width, height: 844 } });
   await context.addInitScript(({ member, cached }) => {
@@ -52,6 +58,9 @@ async function newPage(cached = null, width = 390) {
   }, { member, cached });
   page = await context.newPage();
   page.on("pageerror", (error) => pageErrors.push(error.message));
+  if (mockActiveSession) {
+    await page.route("**/api/member/auth/session", (route) => route.fulfill({ json: { member, access: activeAccess } }));
+  }
   await page.route("**/api/gyms", (route) => route.fulfill({ json: { gyms: [gym] } }));
   await page.route("https://my.matterport.com/**", (route) => route.fulfill({ contentType: "text/html", body: "<p>Test tour</p>" }));
 }
@@ -65,17 +74,17 @@ try {
   browser = await chromium.launch({ headless: true });
 
   // Reproduce the reported stale-profile state, then use the real login form.
-  await newPage(member);
+  await newPage(member, 390, false);
   let signedIn = false;
   await page.route("**/api/member/card", (route) => route.fulfill(signedIn
     ? { json: readyCard } : { status: 401, json: { error: "Member session required." } }));
   await page.route("**/api/member/auth/session", (route) => route.fulfill(signedIn
-    ? { json: { member } } : { status: 401, json: { error: "Please sign in." } }));
+    ? { json: { member, access: activeAccess } } : { status: 401, json: { error: "Please sign in." } }));
   await page.route("**/api/member/auth/login", (route) => {
     assert.equal(route.request().method(), "POST");
     assert.deepEqual(route.request().postDataJSON(), { login: "browser-member", password: "test-password" });
     signedIn = true;
-    return route.fulfill({ json: { member } });
+    return route.fulfill({ json: { member, access: activeAccess } });
   });
   await page.goto(origin + "/card");
   await visible(page.getByRole("heading", { name: "Sign in to show your card" }));
