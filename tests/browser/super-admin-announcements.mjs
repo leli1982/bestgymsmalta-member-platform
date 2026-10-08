@@ -105,6 +105,20 @@ try {
   assert.deepEqual(calls.map(x => x.mode), ["create", "update", "update", "update", "delete"]);
 
   // Member home reuses the legacy public news feed and must honour old button_* fields.
+  await context.route("**/api/member/auth/session", route => route.fulfill({
+    json: {
+      member: {
+        id: "browser-announcement-member",
+        username: "browser-news",
+        fullName: "Browser News Member",
+        memberNumber: "BGM0000999",
+        email: "browser-news@example.test",
+        status: "active",
+        membershipExpiry: "9999-12-31",
+      },
+      access: { state: "active", daysUntilExpiry: 9999, graceDaysRemaining: 0, reminderDue: false },
+    },
+  }));
   await context.route("**/api/public/announcements", route => route.fulfill({
     json: { announcement: { id: "news-1", title: "TEST Members News", message: "Public announcement",
       category: "News", button_text: "Read more", button_url: "https://example.org/bgm-test" } },
