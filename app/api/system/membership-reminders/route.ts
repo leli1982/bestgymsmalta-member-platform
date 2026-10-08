@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     const members = new Map((membersResult.data || []).map((member) => [member.id, member]));
 
     const row = settingsResult.data || {
-      enabled: false,
+      enabled: true,
       email_enabled: true,
       push_enabled: true,
       day_1_enabled: true,

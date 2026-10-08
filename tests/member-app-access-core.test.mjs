@@ -18,13 +18,20 @@ function access(input = {}) {
   });
 }
 
-test("expiry day remains active", () => {
+test("expiry day remains active and shows a renewal reminder", () => {
   assert.deepEqual(access(), {
     state: "active",
     daysUntilExpiry: 0,
     graceDaysRemaining: 0,
-    reminderDue: false,
+    reminderDue: true,
   });
+});
+
+test("expiry-day reminder is independent of configured pre-expiry intervals", () => {
+  const result = access({ reminderDays: [] });
+  assert.equal(result.state, "active");
+  assert.equal(result.daysUntilExpiry, 0);
+  assert.equal(result.reminderDue, true);
 });
 
 test("the seven calendar days after expiry remain in grace", () => {
