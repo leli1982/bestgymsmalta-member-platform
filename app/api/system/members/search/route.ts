@@ -214,43 +214,6 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Legacy pkCustomer values were historically reused. A reception lookup
-  // must therefore return every matching member instead of forcing a single result.
-  const exactLegacyResult = await supabase
-    .from("bgm_members")
-    .select(MEMBER_SEARCH_FIELDS)
-    .eq("legacy_pk_customer", query)
-    .neq("status", "archived")
-    .order("full_name", { ascending: true })
-    .limit(50);
-
-  if (exactLegacyResult.error) {
-    console.error(exactLegacyResult.error);
-    return NextResponse.json(
-      { error: "Could not search legacy member numbers." },
-      { status: 500 }
-    );
-  }
-
-  if ((exactLegacyResult.data || []).length > 0) {
-    const candidates = (exactLegacyResult.data || [])
-      .map((member) => toCandidate(member, canViewOfficialPhoto, today, gymNames))
-      .filter((candidate) =>
-        matchesStaffMemberFilter(candidate.classification, requestedStatus)
-      );
-
-    return NextResponse.json({
-      candidates,
-      exactMembershipNumber: false,
-      exactLegacyPkCustomer: true,
-      page: 1,
-      limit,
-      total: candidates.length,
-      filter: requestedStatus,
-      hasMore: false,
-    });
-  }
-
   // Staff can find an account with either its permanent BGM number (above)
   // or its CURRENT active physical card number; a retired card is never usable.
   const activeCardResult = await supabase
@@ -342,7 +305,7 @@ export async function GET(request: NextRequest) {
     supabase
       .from("bgm_members")
       .select(MEMBER_SEARCH_FIELDS)
-      .eq("legacy_pk_customer", query)
+      .ilike("legacy_pk_customer", pattern)
       .neq("status", "archived")
       .limit(searchPoolLimit),
   ]);
