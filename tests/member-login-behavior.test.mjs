@@ -30,8 +30,22 @@ function member(id, memberNumber, overrides = {}) {
   };
 }
 
-// Run the real route and password comparison. Replace only the database and
-// session-writing boundaries so these tests cannot access or modify real members.
+function fakeAccess(row) {
+  const today = todayMaltaDate();
+  const locked = row.status !== "active"
+    || isCancellationEffective(row.cancellation_effective_date, today)
+    || Boolean(row.membership_expiry && row.membership_expiry < "2000-01-10");
+  return {
+    state: locked ? "locked" : "active",
+    daysUntilExpiry: 0,
+    graceDaysRemaining: 0,
+    reminderDue: false,
+  };
+}
+
+// Run the real route and password comparison. Replace only the database,
+// access resolver and session-writing boundaries so these tests cannot access
+// or modify real members.
 function loginHarness(members) {
   const sessions = [];
   const database = {
@@ -65,6 +79,7 @@ function loginHarness(members) {
       if (specifier === "@/lib/memberNumberCore") return memberNumbers;
       if (specifier === "@/lib/maltaDate") return { todayMaltaDate };
       if (specifier === "@/lib/memberCancellationCore") return { isCancellationEffective };
+      if (specifier === "@/lib/memberAppAccess") return { resolveMemberAppAccess: async (row) => fakeAccess(row) };
       if (specifier === "@/lib/memberAuth") {
         return {
           setMemberSessionCookie(response, memberId) {
@@ -136,12 +151,16 @@ test("an exact identifier still requires the correct password", async () => {
   assert.deepEqual(app.sessions, []);
 });
 
-test("inactive and expired memberships cannot create sessions", async () => {
+test("inactive and expired enrolled members authenticate into locked renewal state", async () => {
   const app = loginHarness([
     member("inactive", "CARD1", { status: "inactive" }),
     member("expired", "CARD2", { membership_expiry: "2000-01-01" }),
   ]);
-  assert.equal((await app.login("CARD1")).status, 403);
-  assert.equal((await app.login("CARD2")).status, 403);
-  assert.deepEqual(app.sessions, []);
+  const inactive = await app.login("CARD1");
+  const expired = await app.login("CARD2");
+  assert.equal(inactive.status, 200);
+  assert.equal(expired.status, 200);
+  assert.equal((await inactive.json()).access.state, "locked");
+  assert.equal((await expired.json()).access.state, "locked");
+  assert.deepEqual(app.sessions, ["inactive", "expired"]);
 });
