@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const row = result.data;
     return NextResponse.json({
       settings: {
-        enabled: row?.enabled ?? false,
+        enabled: row?.enabled ?? true,
         inactivityEnabled: row?.inactivity_enabled ?? true,
         streakEnabled: row?.streak_enabled ?? true,
         updatedAt: row?.updated_at ?? null,

@@ -10,7 +10,7 @@ type EngagementSettings = {
 };
 
 const defaults: EngagementSettings = {
-  enabled: false,
+  enabled: true,
   inactivityEnabled: true,
   streakEnabled: true,
 };

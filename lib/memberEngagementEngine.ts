@@ -69,7 +69,7 @@ async function loadEngagementSettings(): Promise<EngagementSettings> {
 
   const row = result.data;
   return {
-    enabled: row?.enabled ?? false,
+    enabled: row?.enabled ?? true,
     inactivityEnabled: row?.inactivity_enabled ?? true,
     streakEnabled: row?.streak_enabled ?? true,
   };
