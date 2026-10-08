@@ -21,6 +21,38 @@ test("Super Admin voucher analytics include all configured percentages and histo
   assert.match(route, /Removed from settings/);
 });
 
+test("voucher attendance is derived from canonical staffed check-ins and real membership identities", () => {
+  assert.match(route, /bgm_memberships/);
+  assert.match(route, /bgm_membership_members/);
+  assert.match(route, /bgm_members/);
+  assert.match(route, /member_number/);
+  assert.match(route, /bgm_member_checkins/);
+  assert.match(route, /\.in\(["']source["'],\s*\[["']barcode["'],\s*["']nfc["']\]\)/);
+  assert.match(route, /summariseVoucherAttendance/);
+  assert.match(route, /attendancePercentage/);
+  assert.match(route, /totalVisits/);
+  assert.match(route, /gymBreakdown/);
+  assert.match(route, /eligibleDays/);
+  assert.match(route, /attendedDays/);
+  assert.match(route, /missedDays/);
+  assert.match(route, /attendanceStatus/);
+});
+
+test("voucher attendance uses membership overlap rather than enrollment date and honors effective cancellation", () => {
+  assert.match(route, /start_date/);
+  assert.match(route, /expiry_date/);
+  assert.match(route, /cancellation_effective_date/);
+  assert.match(route, /application_id/);
+  assert.match(route, /previousCalendarDate/);
+  assert.doesNotMatch(route, /\.gte\(["']activated_at["'],\s*start\)\s*\.lt\(["']activated_at["'],\s*end\)/);
+});
+
+test("voucher attendance check-ins are paged across the full selected period", () => {
+  assert.match(route, /allRows<[^>]*CheckinRow/);
+  assert.match(route, /\.gte\(["']checkin_at["'],\s*start\)/);
+  assert.match(route, /\.lt\(["']checkin_at["'],\s*end\)/);
+});
+
 test("Statistics dashboard exposes Vouchers as a detailed report", () => {
   assert.match(dashboard, /key:\s*["']vouchers["']/);
   assert.match(dashboard, /label:\s*["']Vouchers["']/);
