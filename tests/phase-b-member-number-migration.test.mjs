@@ -5,7 +5,9 @@ import { join } from "node:path";
 
 const root = new URL("..", import.meta.url).pathname;
 const migrationPath = "supabase/migrations/20261007_191500_phase_b_member_number_renumbering.sql";
+const cleanupMigrationPath = "supabase/migrations/20261008_071800_phase_b_retired_old_bgm_card_cleanup.sql";
 const sql = readFileSync(join(root, migrationPath), "utf8");
+const cleanupSql = readFileSync(join(root, cleanupMigrationPath), "utf8");
 
 function pos(fragment) {
   return sql.toLowerCase().indexOf(fragment.toLowerCase());
@@ -74,6 +76,14 @@ test("Phase B migration clears only approved TEST activity in foreign-key-safe o
   assert.doesNotMatch(sql, /delete\s+from\s+public\.bgm_members\b/i);
   assert.doesNotMatch(sql, /update\s+public\.bgm_members\s+set\s+legacy_pk_customer/i);
   assert.doesNotMatch(sql, /update\s+public\.bgm_member_card_credentials/i);
+});
+
+test("Phase B follow-up removes only retired obsolete BGM-as-card test credentials", () => {
+  assert.match(cleanupSql, /delete\s+from\s+public\.bgm_member_card_credentials/i);
+  assert.match(cleanupSql, /status\s*=\s*'retired'/i);
+  assert.match(cleanupSql, /barcode_value\s*~\s*'\^BGM\[0-9\]\{7\}\$'/i);
+  assert.doesNotMatch(cleanupSql, /status\s*=\s*'active'/i);
+  assert.match(cleanupSql, /if\s+exists[\s\S]*status\s*<>\s*'retired'[\s\S]*raise\s+exception/i);
 });
 
 test("Phase B migration fails closed on mapping and post-migration invariant violations", () => {
