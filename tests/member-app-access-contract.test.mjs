@@ -5,6 +5,7 @@ import test from "node:test";
 const login = readFileSync(new URL("../app/api/member/auth/login/route.ts", import.meta.url), "utf8");
 const session = readFileSync(new URL("../app/api/member/auth/session/route.ts", import.meta.url), "utf8");
 const shell = readFileSync(new URL("../components/ui/AppShell.tsx", import.meta.url), "utf8");
+const accessGate = readFileSync(new URL("../components/member/MemberAccessGate.tsx", import.meta.url), "utf8");
 const workout = readFileSync(new URL("../app/api/member/workout-plan/route.ts", import.meta.url), "utf8");
 const progress = readFileSync(new URL("../app/api/member/progress-photos/route.ts", import.meta.url), "utf8");
 
@@ -23,6 +24,13 @@ test("member session returns authoritative app access state", () => {
 
 test("member shell installs the expiry access gate", () => {
   assert.match(shell, /MemberAccessGate/);
+});
+
+test("expiry-day member warning has dedicated copy and a day-specific dismissal key", () => {
+  assert.match(accessGate, /Your membership expires today/);
+  assert.match(accessGate, /Renew today to avoid interruption to your gym access/);
+  assert.match(accessGate, /daysUntilExpiry/);
+  assert.match(accessGate, /bgm-member-access-notice/);
 });
 
 test("member-only feature APIs permit grace and reject only locked access through the shared rule", () => {
