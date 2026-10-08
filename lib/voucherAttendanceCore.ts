@@ -26,6 +26,8 @@ export type VoucherAttendanceSummary = {
   attendancePercentage: number;
   totalVisits: number;
   lastVisitAt: string | null;
+  attendedDates: string[];
+  missedDates: string[];
   gymBreakdown: VoucherGymBreakdown[];
 };
 
@@ -133,9 +135,13 @@ export function summariseVoucherAttendance({
     (left, right) => new Date(left.checkinAt).getTime() - new Date(right.checkinAt).getTime()
   );
 
-  const eligibleDays = eligibleDates.size;
-  const attendedDays = attendedDates.size;
-  const missedDays = Math.max(0, eligibleDays - attendedDays);
+  const eligibleDateList = Array.from(eligibleDates).sort();
+  const attendedDateList = Array.from(attendedDates).sort();
+  const attendedDateLookup = new Set(attendedDateList);
+  const missedDateList = eligibleDateList.filter((date) => !attendedDateLookup.has(date));
+  const eligibleDays = eligibleDateList.length;
+  const attendedDays = attendedDateList.length;
+  const missedDays = missedDateList.length;
   const attendancePercentage = eligibleDays
     ? Math.round((attendedDays / eligibleDays) * 1_000) / 10
     : 0;
@@ -147,6 +153,8 @@ export function summariseVoucherAttendance({
     attendancePercentage,
     totalVisits: qualifyingCheckins.length,
     lastVisitAt: qualifyingCheckins.at(-1)?.checkinAt ?? null,
+    attendedDates: attendedDateList,
+    missedDates: missedDateList,
     gymBreakdown: Array.from(gymVisits.values()).sort(
       (left, right) => right.visits - left.visits || left.gymName.localeCompare(right.gymName)
     ),
