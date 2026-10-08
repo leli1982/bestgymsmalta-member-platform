@@ -83,6 +83,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Archived accounts are intentionally disabled, not merely membership-locked.
+    // Expired/inactive/cancelled enrolled members may authenticate into the restricted
+    // renewal/account state, but an archived account must not create a member session.
+    if (member.status === "archived") {
+      return NextResponse.json(
+        { error: "Member account is unavailable." },
+        { status: 401 }
+      );
+    }
+
     const passwordOk = await bcrypt.compare(password, member.password_hash);
 
     if (!passwordOk) {
