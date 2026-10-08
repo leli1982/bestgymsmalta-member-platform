@@ -5,6 +5,7 @@ import { setMemberSessionCookie } from "@/lib/memberAuth";
 import { MEMBERSHIP_NUMBER_PATTERN, normalizeMembershipNumber } from "@/lib/memberNumberCore";
 import { todayMaltaDate } from "@/lib/maltaDate";
 import { isCancellationEffective } from "@/lib/memberCancellationCore";
+import { resolveMemberAppAccess } from "@/lib/memberAppAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -82,23 +83,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (member.status !== "active" ||
-        isCancellationEffective(member.cancellation_effective_date, todayMaltaDate())) {
-      return NextResponse.json(
-        { error: "This membership is inactive. Please renew at reception." },
-        { status: 403 }
-      );
-    }
-
-    const today = todayMaltaDate();
-
-    if (member.membership_expiry && member.membership_expiry < today) {
-      return NextResponse.json(
-        { error: "This membership has expired. Please renew at reception." },
-        { status: 403 }
-      );
-    }
-
     const passwordOk = await bcrypt.compare(password, member.password_hash);
 
     if (!passwordOk) {
@@ -107,6 +91,11 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Expired, inactive and cancelled enrolled members may still authenticate so the
+    // app can show the restricted renewal/account state. Full-app authorization is
+    // determined separately by the authoritative server access state.
+    const access = await resolveMemberAppAccess(member);
 
     await supabase
       .from("bgm_members")
@@ -118,6 +107,7 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json({
       member: publicMember(member),
+      access,
     });
 
     return setMemberSessionCookie(response, String(member.id));
