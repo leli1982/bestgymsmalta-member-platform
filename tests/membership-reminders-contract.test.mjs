@@ -32,8 +32,9 @@ const adminNotifications = fs.readFileSync(
 );
 const vercel = JSON.parse(fs.readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
 
-test("membership reminders are opt-in and deduplicated by member expiry interval and channel", () => {
-  assert.match(migration, /enabled boolean not null default false/i);
+test("membership reminders default on and remain deduplicated by member expiry interval and channel", () => {
+  assert.match(migration, /enabled boolean not null default true/i);
+  assert.match(settingsApi, /enabled:\s*true/);
   assert.match(migration, /unique \(member_id, membership_expiry, days_before, channel\)/i);
   assert.match(migration, /days_before in \(1,7,14,21,30\)/i);
 });
