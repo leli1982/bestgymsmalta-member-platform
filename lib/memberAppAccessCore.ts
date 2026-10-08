@@ -63,7 +63,8 @@ export function evaluateMemberAppAccess({
       daysUntilExpiry,
       graceDaysRemaining: 0,
       reminderDue:
-        daysUntilExpiry > 0 && normalizedReminderDays(reminderDays).has(daysUntilExpiry),
+        daysUntilExpiry === 0 ||
+        (daysUntilExpiry > 0 && normalizedReminderDays(reminderDays).has(daysUntilExpiry)),
     };
   }
 
