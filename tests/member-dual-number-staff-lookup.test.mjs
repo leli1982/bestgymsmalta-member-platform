@@ -28,3 +28,9 @@ test("staff member browser searches active card numbers as well as friendly BGM 
   assert.match(staffSearch, /in\("id", cardMemberIds\)/);
   assert.match(staffSearch, /exactCardNumber: true/);
 });
+
+test("partial numeric staff search aggregates member number and legacy pkCustomer matches", () => {
+  assert.doesNotMatch(staffSearch, /exactLegacyPkCustomer:\s*true/);
+  assert.match(staffSearch, /ilike\("member_number", pattern\)/);
+  assert.match(staffSearch, /ilike\("legacy_pk_customer", pattern\)/);
+});
