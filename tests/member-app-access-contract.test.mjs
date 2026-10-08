@@ -8,10 +8,11 @@ const shell = readFileSync(new URL("../components/ui/AppShell.tsx", import.meta.
 const workout = readFileSync(new URL("../app/api/member/workout-plan/route.ts", import.meta.url), "utf8");
 const progress = readFileSync(new URL("../app/api/member/progress-photos/route.ts", import.meta.url), "utf8");
 
-test("member login uses shared app access evaluation instead of rejecting every expired membership", () => {
+test("member login authenticates enrolled accounts and returns shared app access state", () => {
   assert.match(login, /resolveMemberAppAccess/);
-  assert.match(login, /access\.state\s*===\s*["']locked["']/);
+  assert.match(login, /access/);
   assert.doesNotMatch(login, /member\.membership_expiry\s*&&\s*member\.membership_expiry\s*<\s*today/);
+  assert.doesNotMatch(login, /This membership is inactive\. Please renew at reception/);
 });
 
 test("member session returns authoritative app access state", () => {
@@ -24,7 +25,7 @@ test("member shell installs the expiry access gate", () => {
   assert.match(shell, /MemberAccessGate/);
 });
 
-test("member-only feature APIs permit grace through the shared app access rule", () => {
+test("member-only feature APIs permit grace and reject only locked access through the shared rule", () => {
   for (const source of [workout, progress]) {
     assert.match(source, /resolveMemberAppAccess/);
     assert.match(source, /state\s*===\s*["']locked["']/);
