@@ -6,6 +6,10 @@ const migration = fs.readFileSync(
   new URL("../supabase/migrations/20260929_121500_membership_expiry_reminders.sql", import.meta.url),
   "utf8",
 );
+const defaultOnMigration = fs.readFileSync(
+  new URL("../supabase/migrations/20261008194935_renewal_reminders_enabled_by_default.sql", import.meta.url),
+  "utf8",
+);
 const engine = fs.readFileSync(
   new URL("../lib/membershipReminderEngine.ts", import.meta.url),
   "utf8",
@@ -32,11 +36,13 @@ const adminNotifications = fs.readFileSync(
 );
 const vercel = JSON.parse(fs.readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
 
-test("membership reminders default on and remain deduplicated by member expiry interval and channel", () => {
-  assert.match(migration, /enabled boolean not null default true/i);
-  assert.match(settingsApi, /enabled:\s*true/);
+test("membership reminders now default on and remain deduplicated by member expiry interval and channel", () => {
   assert.match(migration, /unique \(member_id, membership_expiry, days_before, channel\)/i);
   assert.match(migration, /days_before in \(1,7,14,21,30\)/i);
+  assert.match(defaultOnMigration, /alter column enabled set default true/i);
+  assert.match(defaultOnMigration, /set enabled = true/i);
+  assert.match(settingsApi, /enabled:\s*true/);
+  assert.match(engine, /enabled:\s*row\?\.enabled\s*!==\s*false/);
 });
 
 test("daily reminder engine filters effective members and skips scheduled cancellations", () => {
