@@ -33,6 +33,15 @@ function isPublicPath(pathname: string) {
   return PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
+function noticeStorageKey(access: Access, expiry: string) {
+  const phase = access.state === "active"
+    ? `days-${access.daysUntilExpiry}`
+    : access.state === "grace"
+      ? `grace-${access.graceDaysRemaining}`
+      : "locked";
+  return `bgm-member-access-notice:${access.state}:${expiry}:${phase}`;
+}
+
 export default function MemberAccessGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -69,7 +78,7 @@ export default function MemberAccessGate({ children }: { children: ReactNode }) 
         setPayload(json);
         if (json.access?.state === "grace" || (json.access?.state === "active" && json.access.reminderDue)) {
           const expiry = json.member?.membershipExpiry || "unknown";
-          const key = `bgm-member-access-notice:${json.access.state}:${expiry}`;
+          const key = noticeStorageKey(json.access, expiry);
           let alreadyShown = false;
           try {
             alreadyShown = window.sessionStorage.getItem(key) === "shown";
@@ -92,7 +101,7 @@ export default function MemberAccessGate({ children }: { children: ReactNode }) 
   const access = payload?.access;
   const expiry = payload?.member?.membershipExpiry || null;
   const noticeKey = useMemo(
-    () => access && expiry ? `bgm-member-access-notice:${access.state}:${expiry}` : "",
+    () => access && expiry ? noticeStorageKey(access, expiry) : "",
     [access, expiry],
   );
 
@@ -175,6 +184,14 @@ export default function MemberAccessGate({ children }: { children: ReactNode }) 
                 </p>
                 <p className="mt-3 rounded-xl bg-amber-50 p-3 text-xs font-bold leading-5 text-amber-900">
                   App grace does not extend gym-entry access. An expired membership will still be declined at check-in.
+                </p>
+              </>
+            ) : access.daysUntilExpiry === 0 ? (
+              <>
+                <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-orange-700">Membership reminder</p>
+                <h2 className="mt-2 text-2xl font-black">Your membership expires today</h2>
+                <p className="mt-3 text-sm font-semibold leading-6 text-zinc-600">
+                  Your membership expires today{expiry ? `, ${formatEuropeanDate(expiry)}` : ""}. Renew today to avoid interruption to your gym access.
                 </p>
               </>
             ) : (
