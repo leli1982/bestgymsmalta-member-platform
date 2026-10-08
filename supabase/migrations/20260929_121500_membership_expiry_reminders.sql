@@ -1,10 +1,10 @@
 -- Membership expiry reminder settings, audit log and member push subscriptions.
--- Reminders are disabled by default so imported TEST members can never be
--- contacted until a Super Admin explicitly enables the feature.
+-- Renewal reminders are enabled by default. Super Admin can still disable the
+-- master switch or individual channels/timings from notification settings.
 
 create table if not exists public.bgm_membership_reminder_settings (
   id text primary key check (id = 'membership_expiry'),
-  enabled boolean not null default false,
+  enabled boolean not null default true,
   email_enabled boolean not null default true,
   push_enabled boolean not null default true,
   day_1_enabled boolean not null default true,
@@ -30,7 +30,7 @@ insert into public.bgm_membership_reminder_settings (
 )
 values (
   'membership_expiry',
-  false,
+  true,
   true,
   true,
   true,
