@@ -52,3 +52,14 @@ create index if not exists bgm_member_engagement_notification_log_status_idx
 alter table public.bgm_member_notification_preferences enable row level security;
 alter table public.bgm_member_engagement_settings enable row level security;
 alter table public.bgm_member_engagement_notification_log enable row level security;
+
+-- C3 accesses these tables only from authenticated Next.js server routes/engines.
+-- Make the Data API boundary explicit even on projects that still grant new
+-- public tables to anon/authenticated by default.
+revoke all on table public.bgm_member_notification_preferences from anon, authenticated;
+revoke all on table public.bgm_member_engagement_settings from anon, authenticated;
+revoke all on table public.bgm_member_engagement_notification_log from anon, authenticated;
+
+grant select, insert, update, delete on table public.bgm_member_notification_preferences to service_role;
+grant select, insert, update, delete on table public.bgm_member_engagement_settings to service_role;
+grant select, insert, update, delete on table public.bgm_member_engagement_notification_log to service_role;
