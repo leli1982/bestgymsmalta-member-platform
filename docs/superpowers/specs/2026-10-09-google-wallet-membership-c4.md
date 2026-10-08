@@ -27,6 +27,7 @@ Success means:
 - card replacement never creates a second usable credential and the old card remains rejected immediately by BGM even if Google synchronization is temporarily delayed;
 - renewal, cancellation, archive, expiry, and card replacement are reflected on the same Wallet object instead of creating duplicate passes;
 - the BGM expiry date itself remains a valid access day in Malta time;
+- a scheduled cancellation ends Wallet validity automatically at the start of its cancellation-effective Malta date;
 - the existing seven-day C1 app grace period never extends gym access or Wallet validity;
 - Google credentials/private keys never reach the browser;
 - Google Wallet does not add a second expiry-notification channel alongside C3;
@@ -220,9 +221,18 @@ C4 must preserve the standing rule that the membership expiry date itself is sti
 
 If a membership expires on `2026-10-09`, the pass remains valid through the whole Malta calendar day of 9 October.
 
-The Google `validTimeInterval.end` is therefore calculated as **the start of the following Malta calendar day converted to an absolute timestamp**, not as a naive UTC end-of-date string.
+For membership expiry, Google `validTimeInterval.end` is calculated as **the start of the following Malta calendar day converted to an absolute timestamp**, not as a naive UTC end-of-date string.
 
-This handles Malta DST correctly and avoids shortening or extending the expiry day around clock changes.
+A future cancellation needs different semantics because `cancellation_effective_date` is inactive starting on that date. If cancellation is effective on `2026-10-20`, Wallet validity must end at **the start of 20 October in Malta**, so 19 October is the last active day.
+
+For an otherwise active member with a future cancellation, the effective Wallet end timestamp is the earlier of:
+
+- next Malta midnight after `membership_expiry`; or
+- Malta midnight at `cancellation_effective_date`.
+
+This means a scheduled cancellation does not rely on a database write happening later when the date arrives. Google can expire the pass automatically from the already-synchronized validity interval.
+
+These conversions must use Malta timezone rules so DST cannot shorten or extend access incorrectly.
 
 The C1 seven-day member-app grace window is not Wallet validity. From the first Malta date after membership expiry, gym access is expired and the Wallet pass must no longer present an active scannable access credential.
 
@@ -231,7 +241,7 @@ The C1 seven-day member-app grace window is not Wallet validity. From the first 
 ### Active member with active card
 
 - Google object `state = ACTIVE`
-- `validTimeInterval.end` = next Malta midnight after BGM expiry date
+- `validTimeInterval.end` = the earlier applicable Malta-derived end timestamp from membership expiry/future cancellation
 - `barcode.type = CODE_128`
 - `barcode.value` = current active BGM physical-card credential
 
@@ -249,7 +259,7 @@ The C1 seven-day member-app grace window is not Wallet validity. From the first 
 ### Renewal/reactivation
 
 - update the existing object back to `ACTIVE`;
-- apply the new expiry interval;
+- apply the new expiry/cancellation validity interval;
 - restore `CODE_128` using the current active physical-card barcode.
 
 ## Google Wallet server module
@@ -341,7 +351,7 @@ Mandatory mutation classes include:
 
 - physical-card replacement/reassignment;
 - membership renewal/activation;
-- cancellation becoming effective;
+- cancellation scheduling/change/removal;
 - archive/restore;
 - Super Admin edits to expiry/status/display identity fields.
 
@@ -362,6 +372,8 @@ To avoid unnecessary Vercel Cron proliferation, the preferred design is to invok
 One Wallet failure must not fail expiry reminders, C3 engagement notifications, or other Wallet members.
 
 A member pressing Add to Google Wallet also forces a fresh synchronization before a save URL is returned, providing an additional self-healing path.
+
+Future cancellation timing does not depend on this recovery engine because the synced `validTimeInterval` already ends at the cancellation-effective Malta midnight.
 
 ## Card replacement safety
 
@@ -481,7 +493,8 @@ Test:
 - no-card/inactive member never retains a scannable old barcode in desired state;
 - C1 grace maps to expired Wallet access;
 - permanent BGM member number remains display-only and is not used as the access barcode;
-- Malta expiry conversion uses next local midnight;
+- membership expiry converts to next Malta midnight;
+- future cancellation converts to cancellation-date Malta midnight and wins when earlier than membership expiry;
 - Malta DST boundary dates produce correct absolute timestamps;
 - signed JWT payload references only the expected existing object/class and contains no private-key data;
 - configuration fails closed.
@@ -537,9 +550,10 @@ Before Production rollout, use TEST Supabase + Preview + approved Google test ac
 4. replacing the TEST member card retires the old barcode immediately in BGM and updates the same Wallet pass to the new barcode;
 5. old Wallet barcode cannot grant access after replacement even during forced sync failure;
 6. membership expiry makes Wallet non-active while C1 app grace still permits only renewal access;
-7. renewal reactivates the same Wallet object with the new expiry/current card;
-8. cancellation/archive moves the pass inactive;
-9. Google-generated expiry notification is not enabled.
+7. a future cancellation automatically ends Wallet validity at the cancellation-effective Malta midnight;
+8. renewal reactivates the same Wallet object with the new expiry/current card;
+9. cancellation/archive moves the pass inactive;
+10. Google-generated expiry notification is not enabled.
 
 ### Regression suite
 
@@ -557,7 +571,7 @@ Before any Production database/configuration change:
 2. apply additive migration to TEST only;
 3. configure Preview Google Wallet credentials directly in Vercel secrets;
 4. complete mocked automated tests;
-5. complete manual TEST Wallet save/scan/replacement/expiry/renewal verification;
+5. complete manual TEST Wallet save/scan/replacement/expiry/cancellation/renewal verification;
 6. run Supabase advisors/security checks;
 7. run full Phase 2 CI and Vercel Preview build;
 8. present the exact Production migration and environment/configuration actions for owner approval;
@@ -590,6 +604,7 @@ C4 is complete only when all are true:
 - active Wallet barcode is `CODE_128` and exactly matches the member's current active BGM physical-card credential;
 - permanent BGM number is displayed separately and is never substituted as the scanner credential;
 - expiry day remains valid through Malta local midnight;
+- a scheduled future cancellation ends validity automatically at the start of its effective Malta date;
 - C1 grace never extends Wallet/gym access;
 - renewal/card replacement/cancellation/archive synchronize the existing object;
 - no stale retired barcode can regain BGM access;
@@ -597,7 +612,7 @@ C4 is complete only when all are true:
 - official Add to Google Wallet branding is used;
 - Google service-account secrets stay server-only;
 - Google expiry/upcoming notifications are not enabled;
-- TEST manual Wallet scan/replacement/expiry/renewal scenarios pass;
+- TEST manual Wallet scan/replacement/expiry/cancellation/renewal scenarios pass;
 - full BGM regression CI and Vercel Preview are green;
 - Production rollout receives separate explicit owner approval.
 
