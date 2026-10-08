@@ -3,16 +3,19 @@ import { ensurePushVapidConfig } from "@/lib/pushNotifications";
 import { buildMembershipReminderPush, type MembershipReminderDays } from "@/lib/membershipReminderCore";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
-export async function sendMemberMembershipReminderPush(input: {
-  memberId: string;
-  expiryDate: string;
-  daysBefore: MembershipReminderDays;
-}) {
+export type MemberPushPayload = {
+  title: string;
+  body: string;
+  url?: string;
+  tag?: string;
+};
+
+export async function sendMemberPush(memberId: string, payload: MemberPushPayload) {
   const supabase = getSupabaseAdmin();
   const subscriptionsResult = await supabase
     .from("bgm_member_push_subscriptions")
     .select("id, endpoint, p256dh, auth, failure_count")
-    .eq("member_id", input.memberId)
+    .eq("member_id", memberId)
     .eq("active", true);
 
   if (subscriptionsResult.error) throw subscriptionsResult.error;
@@ -23,7 +26,7 @@ export async function sendMemberMembershipReminderPush(input: {
 
   const config = await ensurePushVapidConfig();
   webpush.setVapidDetails(config.subject, config.publicKey, config.privateKey);
-  const payload = JSON.stringify(buildMembershipReminderPush(input));
+  const encodedPayload = JSON.stringify(payload);
 
   let sent = 0;
   let failed = 0;
@@ -35,7 +38,7 @@ export async function sendMemberMembershipReminderPush(input: {
           endpoint: subscription.endpoint,
           keys: { p256dh: subscription.p256dh, auth: subscription.auth },
         },
-        payload,
+        encodedPayload,
       );
       sent += 1;
       const now = new Date().toISOString();
@@ -62,7 +65,7 @@ export async function sendMemberMembershipReminderPush(input: {
         .update(update)
         .eq("id", subscription.id);
       if (updateResult.error) console.error(updateResult.error);
-      console.error("Member membership reminder push failed:", error);
+      console.error("Member push failed:", error);
     }
   }
 
@@ -72,4 +75,12 @@ export async function sendMemberMembershipReminderPush(input: {
     failed,
     subscriptions: subscriptions.length,
   };
+}
+
+export async function sendMemberMembershipReminderPush(input: {
+  memberId: string;
+  expiryDate: string;
+  daysBefore: MembershipReminderDays;
+}) {
+  return sendMemberPush(input.memberId, buildMembershipReminderPush(input));
 }
