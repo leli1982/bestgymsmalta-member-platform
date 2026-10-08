@@ -58,8 +58,6 @@ export async function loadMembershipReminderSettings(): Promise<MembershipRemind
 }
 
 function targetExpiryDate(today: string, daysBefore: MembershipReminderDays): string {
-  // "1 month" is represented by the 30-day setting key. Keep its business
-  // meaning as one calendar month rather than a fixed 30 x 24 hours.
   if (daysBefore !== 30) return addCalendarDays(today, daysBefore);
 
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(today);
@@ -218,7 +216,10 @@ async function processMember(
             daysBefore,
           });
 
-          if (pushResult.status === "not_available") {
+          if (pushResult.status === "disabled") {
+            await finishReminder(logId, "skipped", { reason: "critical_disabled" });
+            summary.push.skipped += 1;
+          } else if (pushResult.status === "not_available") {
             await finishReminder(logId, "skipped", { reason: "no_push_subscription" });
             summary.push.skipped += 1;
           } else if (pushResult.status === "sent") {

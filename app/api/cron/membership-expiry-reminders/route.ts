@@ -1,9 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
+import { runMemberEngagementNotifications } from "@/lib/memberEngagementEngine";
 import { runMembershipExpiryReminders } from "@/lib/membershipReminderEngine";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+type EngineOutcome<T> =
+  | { ok: true; summary: T }
+  | { ok: false; error: string };
+
+async function runEngine<T>(
+  name: string,
+  work: () => Promise<T>,
+): Promise<EngineOutcome<T>> {
+  try {
+    return { ok: true, summary: await work() };
+  } catch (error) {
+    console.error(`${name} cron failed:`, error);
+    return { ok: false, error: `${name} run failed.` };
+  }
+}
 
 export async function GET(request: NextRequest) {
   const secret = String(process.env.CRON_SECRET || "").trim();
@@ -16,11 +33,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  try {
-    const summary = await runMembershipExpiryReminders();
-    return NextResponse.json({ ok: true, summary }, { headers: { "Cache-Control": "no-store" } });
-  } catch (error) {
-    console.error("Membership expiry reminder cron failed:", error);
-    return NextResponse.json({ error: "Membership reminder run failed." }, { status: 500 });
-  }
+  const [membershipReminders, memberEngagement] = await Promise.all([
+    runEngine("Membership expiry reminder", () => runMembershipExpiryReminders()),
+    runEngine("Member engagement notification", () => runMemberEngagementNotifications()),
+  ]);
+  const ok = membershipReminders.ok && memberEngagement.ok;
+
+  return NextResponse.json(
+    { ok, membershipReminders, memberEngagement },
+    {
+      status: ok ? 200 : 500,
+      headers: { "Cache-Control": "no-store" },
+    },
+  );
 }

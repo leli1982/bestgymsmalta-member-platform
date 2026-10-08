@@ -14,6 +14,10 @@ const engine = fs.readFileSync(
   new URL("../lib/membershipReminderEngine.ts", import.meta.url),
   "utf8",
 );
+const pushDelivery = fs.readFileSync(
+  new URL("../lib/memberPushNotifications.ts", import.meta.url),
+  "utf8",
+);
 const cron = fs.readFileSync(
   new URL("../app/api/cron/membership-expiry-reminders/route.ts", import.meta.url),
   "utf8",
@@ -52,6 +56,13 @@ test("daily reminder engine filters effective members and skips scheduled cancel
   assert.match(engine, /no_usable_email/);
   assert.match(engine, /app_not_activated/);
   assert.match(engine, /no_push_subscription/);
+});
+
+test("membership expiry push remains wired through its dedicated wrapper", () => {
+  assert.match(engine, /sendMemberMembershipReminderPush/);
+  assert.match(pushDelivery, /export async function sendMemberMembershipReminderPush/);
+  assert.match(pushDelivery, /buildMembershipReminderPush\(input\)/);
+  assert.match(pushDelivery, /return sendMemberPush\(input\.memberId,/);
 });
 
 test("reminder cron is secret protected and scheduled once daily", () => {

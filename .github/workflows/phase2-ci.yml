@@ -55,6 +55,9 @@ jobs:
       - name: Verify member card and gym pages in Chromium
         run: node tests/browser/member-card-gyms.mjs
 
+      - name: Verify member engagement notifications in Chromium
+        run: node tests/browser/member-engagement-notifications.mjs
+
       - name: Verify Super Admin member editor with fictional records in Chromium
         run: node tests/browser/super-admin-member-editor.mjs
 
