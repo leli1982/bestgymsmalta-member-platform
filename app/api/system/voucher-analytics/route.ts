@@ -272,7 +272,7 @@ export async function GET(request: NextRequest) {
           db.from("bgm_member_checkins")
             .select("id,member_id,gym_id,checkin_at,source")
             .in("member_id", memberIds)
-            .in("source", ["barcode", "nfc"])
+            .in("source", ["qr", "nfc", "barcode"])
             .gte("checkin_at", start)
             .lt("checkin_at", end)
             .order("checkin_at")
