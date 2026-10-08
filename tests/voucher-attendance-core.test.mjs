@@ -36,6 +36,14 @@ test("attendance uses eligible calendar days and counts multiple same-day visits
   assert.equal(result.missedDays, 5);
   assert.equal(result.totalVisits, 3);
   assert.equal(result.attendancePercentage, 28.6);
+  assert.deepEqual(result.attendedDates, ["2026-10-01", "2026-10-03"]);
+  assert.deepEqual(result.missedDates, [
+    "2026-10-02",
+    "2026-10-04",
+    "2026-10-05",
+    "2026-10-06",
+    "2026-10-07",
+  ]);
 });
 
 test("attendance clips eligibility to the selected range and unions overlapping membership periods", () => {
@@ -53,6 +61,7 @@ test("attendance clips eligibility to the selected range and unions overlapping 
   assert.equal(result.attendedDays, 0);
   assert.equal(result.missedDays, 10);
   assert.equal(result.attendancePercentage, 0);
+  assert.equal(result.missedDates.length, 10);
 });
 
 test("visits outside eligible voucher membership days do not count", () => {
@@ -71,6 +80,8 @@ test("visits outside eligible voucher membership days do not count", () => {
   assert.equal(result.attendedDays, 1);
   assert.equal(result.eligibleDays, 3);
   assert.equal(result.missedDays, 2);
+  assert.deepEqual(result.attendedDates, ["2026-10-03"]);
+  assert.deepEqual(result.missedDates, ["2026-10-04", "2026-10-05"]);
 });
 
 test("gym breakdown is accurate and sorted by visits descending", () => {
@@ -105,6 +116,7 @@ test("Malta local calendar date decides whether a UTC check-in is eligible", () 
   assert.equal(result.eligibleDays, 1);
   assert.equal(result.attendedDays, 1);
   assert.equal(result.totalVisits, 1);
+  assert.deepEqual(result.attendedDates, ["2026-10-25"]);
 });
 
 test("invalid report ranges are rejected instead of producing misleading attendance", () => {
