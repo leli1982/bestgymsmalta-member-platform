@@ -116,11 +116,11 @@ test("numeric card identifiers retain leading zeros", async () => {
   assert.equal((await response.json()).member.id, "padded");
 });
 
-test("lowercase legacy BGM identifiers remain supported", async () => {
-  const app = loginHarness([member("legacy", "BGM0000042")]);
-  const response = await app.login("bgm0000042");
+test("lowercase canonical BGM identifiers remain supported", async () => {
+  const app = loginHarness([member("canonical", "BGM1003")]);
+  const response = await app.login("bgm1003");
   assert.equal(response.status, 200);
-  assert.equal((await response.json()).member.id, "legacy");
+  assert.equal((await response.json()).member.id, "canonical");
 });
 
 test("usernames remain case-insensitive", async () => {

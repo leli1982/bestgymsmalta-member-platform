@@ -18,7 +18,7 @@ const testSecret = "member-session-regression-test-only";
 const password = "member-session-test-password";
 const member = {
   id: "00000000-0000-4000-8000-000000000001", username: "test-member",
-  member_number: "BGM0000123", legacy_pk_customer: "OLDPK001", full_name: "Test Member", email: "member@example.test",
+  member_number: "BGM1003", legacy_pk_customer: "OLDPK001", full_name: "Test Member", email: "member@example.test",
   status: "active", membership_expiry: "9999-12-31", app_enrolled: true,
   password_hash: bcrypt.hashSync(password, 4),
 };

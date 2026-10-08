@@ -83,8 +83,8 @@ try {
   assert.equal(await page.evaluate(() => localStorage.getItem("bgmMemberSession")), null);
   await lightLayout();
   await page.getByRole("link", { name: "Sign in", exact: true }).click();
-  await visible(page.getByPlaceholder("Username or BGM0000001"));
-  await page.getByPlaceholder("Username or BGM0000001").fill("browser-member");
+  await visible(page.getByPlaceholder("Username or BGM1000"));
+  await page.getByPlaceholder("Username or BGM1000").fill("browser-member");
   await page.getByPlaceholder("Your password").fill("test-password");
   await page.locator('form button[type="submit"]').click();
   await page.waitForURL(origin + "/card");
