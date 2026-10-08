@@ -68,6 +68,11 @@ test("print route resolves allocated member and card numbers after activation", 
   assert.match(printRoute, /memberRole|member_role/);
 });
 
+test("print preview uses authenticated inline photo bytes for member and application photos", () => {
+  assert.match(printRoute, /\/api\/system\/members\/photo\/\$\{encodeURIComponent\(memberId\)\}\?inline=1/);
+  assert.match(printRoute, /applicationMemberId=\$\{encodeURIComponent\(participant\.id\)\}&inline=1/);
+});
+
 test("Super Admin declaration publishing has an A4 overflow measurement gate", () => {
   assert.match(overflow, /scrollHeight/);
   assert.match(overflow, /clientHeight/);
