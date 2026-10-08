@@ -59,7 +59,7 @@ test("Statistics dashboard exposes Vouchers as a detailed report", () => {
   assert.match(dashboard, /<VoucherAnalyticsAdmin\s*\/>/);
 });
 
-test("Voucher UI supports search, active inactive status, date filters and selected/all printing", () => {
+test("Voucher UI supports search, voucher status, attendance filtering and compliance detail", () => {
   assert.match(vouchers, /Search voucher name/);
   assert.match(vouchers, /Active only/);
   assert.match(vouchers, /Inactive only/);
@@ -70,19 +70,35 @@ test("Voucher UI supports search, active inactive status, date filters and selec
   assert.match(vouchers, /Maximum successful uses/);
   assert.match(vouchers, /voucher\.maxUses === null \? "N\/A"/);
   assert.match(vouchers, /voucher\.percentage/);
+  assert.match(vouchers, /No Show/);
+  assert.match(vouchers, /Attending/);
+  assert.match(vouchers, /Historical \/ Unlinked/);
+  assert.match(vouchers, /Attendance %/);
+  assert.match(vouchers, /Eligible Days/);
+  assert.match(vouchers, /Attended Days/);
+  assert.match(vouchers, /Missed Days/);
+  assert.match(vouchers, /Total Visits/);
+  assert.match(vouchers, /Gym Breakdown/);
+  assert.match(vouchers, /Missed dates/);
   for (const label of ["Name", "Surname", "ID Number", "Enrollment Date", "Gym", "Voucher"]) {
     assert.match(vouchers, new RegExp(label));
   }
 });
 
-test("Voucher print view is A4/PDF friendly and prints each voucher with employee detail", () => {
+test("Voucher print view is A4/PDF friendly and carries attendance filter/detail", () => {
   assert.match(print, /@page \{ size: A4 portrait/);
   assert.match(print, /window\.print\(\)/);
   assert.match(print, /Print \/ Save PDF/);
-  assert.match(print, /Voucher Report/);
+  assert.match(print, /Voucher Attendance Compliance Report/);
   assert.match(print, /item\.percentage/);
   assert.match(print, /maximum successful uses/);
   assert.match(print, /item\.maxUses === null \? "N\/A"/);
   assert.match(print, /voucher-section/);
   assert.match(print, /voucher-members/);
+  assert.match(print, /Attendance %/);
+  assert.match(print, /Total Visits/);
+  assert.match(print, /Missed Days/);
+  assert.match(print, /Gym Breakdown/);
+  assert.match(print, /Missed dates/);
+  assert.match(print, /attendanceFilter/);
 });
