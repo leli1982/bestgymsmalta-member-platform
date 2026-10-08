@@ -92,6 +92,33 @@ test("gym breakdown is accurate and sorted by visits descending", () => {
   assert.equal(result.lastVisitAt, "2026-10-03T08:00:00Z");
 });
 
+test("Malta local calendar date decides whether a UTC check-in is eligible", () => {
+  const result = summariseVoucherAttendance({
+    reportFrom: "2026-10-25",
+    reportTo: "2026-10-25",
+    eligibility: [{ startDate: "2026-10-25", endDate: "2026-10-25" }],
+    checkins: [
+      checkin("1", "m1", "marsa", "Marsa", "2026-10-24T22:30:00Z"),
+    ],
+  });
+
+  assert.equal(result.eligibleDays, 1);
+  assert.equal(result.attendedDays, 1);
+  assert.equal(result.totalVisits, 1);
+});
+
+test("invalid report ranges are rejected instead of producing misleading attendance", () => {
+  assert.throws(
+    () => summariseVoucherAttendance({
+      reportFrom: "2026-10-08",
+      reportTo: "2026-10-01",
+      eligibility: [],
+      checkins: [],
+    }),
+    /report range/i
+  );
+});
+
 test("attendance status distinguishes no-show from attended members", () => {
   assert.equal(voucherAttendanceStatus({ eligibleDays: 10, attendedDays: 0 }), "no-show");
   assert.equal(voucherAttendanceStatus({ eligibleDays: 10, attendedDays: 1 }), "attended");
