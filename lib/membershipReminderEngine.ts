@@ -46,7 +46,7 @@ export async function loadMembershipReminderSettings(): Promise<MembershipRemind
 
   const row = result.data;
   return {
-    enabled: Boolean(row?.enabled),
+    enabled: row?.enabled !== false,
     emailEnabled: row?.email_enabled !== false,
     pushEnabled: row?.push_enabled !== false,
     day1Enabled: row?.day_1_enabled !== false,
