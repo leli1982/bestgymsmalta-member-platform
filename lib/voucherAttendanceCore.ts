@@ -1,4 +1,4 @@
-import { visitMaltaDate } from "./scanVisitStatsCore";
+import { visitMaltaDate } from "./scanVisitStatsCore.ts";
 
 export type VoucherEligibilityPeriod = {
   startDate: string;
