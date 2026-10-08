@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMemberRequestSession } from "@/lib/memberAuth";
+import { clearMemberSessionCookie, getMemberRequestSession } from "@/lib/memberAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { MEMBER_PROFILE_COLUMNS, publicMemberProfile } from "@/lib/memberPublicProfile";
 import { resolveMemberAppAccess } from "@/lib/memberAppAccess";
@@ -23,6 +23,14 @@ export async function GET(request: NextRequest) {
     if (result.error) throw result.error;
     if (!result.data) {
       return NextResponse.json({ error: "Member account not found. Please sign in again." }, { status: 401, headers });
+    }
+
+    if (result.data.status === "archived") {
+      const response = NextResponse.json(
+        { error: "Member account is unavailable. Please sign in again." },
+        { status: 401, headers }
+      );
+      return clearMemberSessionCookie(response);
     }
 
     const access = await resolveMemberAppAccess(result.data);
