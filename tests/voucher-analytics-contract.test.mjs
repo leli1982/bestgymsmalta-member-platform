@@ -21,13 +21,13 @@ test("Super Admin voucher analytics include all configured percentages and histo
   assert.match(route, /Removed from settings/);
 });
 
-test("voucher attendance is derived from canonical staffed check-ins and real membership identities", () => {
+test("voucher attendance is derived from all canonical member check-in sources and real membership identities", () => {
   assert.match(route, /bgm_memberships/);
   assert.match(route, /bgm_membership_members/);
   assert.match(route, /bgm_members/);
   assert.match(route, /member_number/);
   assert.match(route, /bgm_member_checkins/);
-  assert.match(route, /\.in\(["']source["'],\s*\[["']barcode["'],\s*["']nfc["']\]\)/);
+  assert.match(route, /\.in\(["']source["'],\s*\[["']qr["'],\s*["']nfc["'],\s*["']barcode["']\]\)/);
   assert.match(route, /summariseVoucherAttendance/);
   assert.match(route, /attendancePercentage/);
   assert.match(route, /totalVisits/);
