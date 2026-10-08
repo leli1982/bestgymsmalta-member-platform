@@ -53,6 +53,10 @@ export default function MemberAccessGate({ children }: { children: ReactNode }) 
         const json = (await response.json().catch(() => ({}))) as SessionPayload;
         if (!response.ok) {
           if (response.status === 401) {
+            // Keep the existing signed-out card surface available. It contains no
+            // member data and its own protected card API still requires a session.
+            // This also preserves the established sign-in -> return-to-card flow.
+            if (pathname === "/card") return {};
             router.replace(`/member-login?next=${encodeURIComponent(pathname || "/")}`);
             return null;
           }
