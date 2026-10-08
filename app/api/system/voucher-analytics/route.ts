@@ -39,6 +39,13 @@ type ApplicationRow = {
   status: string | null;
 };
 
+type ParticipantRow = {
+  application_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  id_number: string | null;
+};
+
 type MembershipRow = {
   id: string;
   application_id: string;
@@ -85,6 +92,10 @@ type LegacyCorrectionRow = {
 
 function normaliseCode(value: unknown) {
   return String(value || "").trim().toUpperCase();
+}
+
+function normaliseIdentity(value: unknown) {
+  return String(value || "").trim().toUpperCase().replace(/\s+/g, " ");
 }
 
 function maltaDateFromInstant(value: string): string {
@@ -203,8 +214,6 @@ export async function GET(request: NextRequest) {
     const end = maltaDayUtcRange(to).end;
     const gymNames = Object.fromEntries(gymRows.map((gym) => [gym.id, gym.name || gym.id]));
 
-    // Voucher attribution is historical application data, while attendance eligibility
-    // is based on the normalized membership contract that application produced.
     const applicationRows = await allRows<ApplicationRow>((a, b) => {
       let query = db.from("bgm_membership_applications")
         .select("id,enrollment_gym_id,activated_at,discount_code_snapshot,discount_percentage_snapshot,status")
@@ -218,8 +227,22 @@ export async function GET(request: NextRequest) {
     const applications = applicationRows.filter((row) => Boolean(normaliseCode(row.discount_code_snapshot)));
     const applicationById = new Map(applications.map((row) => [row.id, row]));
 
-    // Contracts overlap the selected report period; enrollment/activation date alone
-    // must not determine whether a voucher member is expected to attend.
+    // Preserve original application snapshots for audit/backward compatibility.
+    // They are fallback identity rows only; attendance/no-show status requires a
+    // normalized membership and canonical check-in linkage.
+    const participantRows = await rowsForIds<ParticipantRow>(applications.map((row) => row.id), (ids) =>
+      db.from("bgm_membership_application_members")
+        .select("application_id,first_name,last_name,id_number")
+        .in("application_id", ids)
+        .order("participant_order")
+    );
+    const participantsByApplication = new Map<string, ParticipantRow[]>();
+    for (const participant of participantRows) {
+      const list = participantsByApplication.get(participant.application_id) || [];
+      list.push(participant);
+      participantsByApplication.set(participant.application_id, list);
+    }
+
     const memberships = await allRows<MembershipRow>((a, b) =>
       db.from("bgm_memberships")
         .select("id,application_id,start_date,expiry_date,enrollment_gym_id,status,cancellation_effective_date")
@@ -346,6 +369,56 @@ export async function GET(request: NextRequest) {
       };
     }).filter((member) => member.eligibleDays > 0);
 
+    const normalizedIdentityByApplication = new Map<string, Set<string>>();
+    for (const member of normalizedMembers) {
+      const keys = normalizedIdentityByApplication.get(member.applicationId) || new Set<string>();
+      if (member.idNumber) keys.add(`id:${normaliseIdentity(member.idNumber)}`);
+      keys.add(`name:${normaliseIdentity(`${member.firstName} ${member.lastName}`)}`);
+      normalizedIdentityByApplication.set(member.applicationId, keys);
+    }
+
+    const snapshotFallbackMembers = applications.flatMap((application) => {
+      if (!application.activated_at) return [];
+      const enrollmentDate = maltaDateFromInstant(application.activated_at);
+      if (enrollmentDate < from || enrollmentDate > to) return [];
+      const voucherCode = normaliseCode(application.discount_code_snapshot);
+      if (!voucherCode) return [];
+      const normalizedKeys = normalizedIdentityByApplication.get(application.id) || new Set<string>();
+      return (participantsByApplication.get(application.id) || []).flatMap((participant) => {
+        const idKey = participant.id_number ? `id:${normaliseIdentity(participant.id_number)}` : "";
+        const nameKey = `name:${normaliseIdentity(`${participant.first_name || ""} ${participant.last_name || ""}`)}`;
+        if ((idKey && normalizedKeys.has(idKey)) || normalizedKeys.has(nameKey)) return [];
+        return [{
+          applicationId: application.id,
+          memberId: null,
+          memberNumber: "",
+          voucherCode,
+          voucherPercentage: application.discount_percentage_snapshot === null
+            ? null
+            : Number(application.discount_percentage_snapshot),
+          firstName: String(participant.first_name || "").trim(),
+          lastName: String(participant.last_name || "").trim(),
+          idNumber: String(participant.id_number || "").trim(),
+          enrollmentDate,
+          enrollmentGymId: application.enrollment_gym_id || null,
+          enrollmentGymName: application.enrollment_gym_id
+            ? (gymNames[application.enrollment_gym_id] || application.enrollment_gym_id)
+            : "Unknown gym",
+          membershipStart: null,
+          membershipExpiry: null,
+          eligibleDays: 0,
+          attendedDays: 0,
+          missedDays: 0,
+          attendancePercentage: 0,
+          totalVisits: 0,
+          lastVisitAt: null,
+          gymBreakdown: [],
+          attendanceStatus: "not-eligible" as const,
+          attendanceNote: "Historical application participant has no normalized membership/check-in link.",
+        }];
+      });
+    });
+
     const legacyRows = await allRows<LegacyCorrectionRow>((a, b) => {
       let query = db.from("bgm_legacy_member_voucher_corrections")
         .select("id,voucher_code,voucher_percentage,member_enrollment_date_snapshot,enrollment_gym_id_snapshot,member_first_name,member_last_name,member_id_number,applied_at")
@@ -383,7 +456,7 @@ export async function GET(request: NextRequest) {
       attendanceNote: "Historical voucher correction has no normalized membership/check-in link.",
     }));
 
-    const members = [...normalizedMembers, ...legacyMembers];
+    const members = [...normalizedMembers, ...snapshotFallbackMembers, ...legacyMembers];
     const memberCountByVoucher = new Map<string, number>();
     for (const member of members) {
       memberCountByVoucher.set(member.voucherCode, (memberCountByVoucher.get(member.voucherCode) || 0) + 1);
