@@ -36,7 +36,7 @@ function dayDistance(from: string, to: string) {
 }
 
 function uniqueSortedDates(values: string[]) {
-  return [...new Set(values)].sort();
+  return Array.from(new Set(values)).sort();
 }
 
 export function attendanceDatesFromCheckins(checkins: CheckinLike[]): string[] {
