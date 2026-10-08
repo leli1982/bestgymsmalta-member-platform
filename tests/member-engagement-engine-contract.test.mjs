@@ -51,10 +51,10 @@ test("engagement events are claimed durably before in-app creation and generic p
   assert.match(engine, /pushResult\.status === "not_available"/);
 });
 
-test("global settings gate inactivity and streak processing independently", () => {
+test("global engagement defaults on while inactivity and streak processing remain independently gated", () => {
   const engine = sourceIfPresent(enginePath);
   assert.match(engine, /bgm_member_engagement_settings/);
-  assert.match(engine, /enabled:\s*row\?\.enabled\s*\?\?\s*false/);
+  assert.match(engine, /enabled:\s*row\?\.enabled\s*\?\?\s*true/);
   assert.match(engine, /inactivityEnabled:\s*row\?\.inactivity_enabled\s*\?\?\s*true/);
   assert.match(engine, /streakEnabled:\s*row\?\.streak_enabled\s*\?\?\s*true/);
   assert.match(engine, /buildInactivityEvent/);
