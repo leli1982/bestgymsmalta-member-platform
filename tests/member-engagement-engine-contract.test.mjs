@@ -38,8 +38,8 @@ test("engagement engine combines preferences, active subscriptions and motivatio
 test("engagement events are claimed durably before in-app creation and generic push delivery", () => {
   const engine = sourceIfPresent(enginePath);
   const claimIndex = engine.indexOf('.from("bgm_member_engagement_notification_log")');
-  const notificationIndex = engine.indexOf("createMemberNotification");
-  const pushIndex = engine.indexOf("sendMemberPush");
+  const notificationIndex = engine.indexOf("await createMemberNotification({");
+  const pushIndex = engine.indexOf("await sendMemberPush(");
   assert.ok(claimIndex >= 0, "engagement log claim must exist");
   assert.ok(notificationIndex > claimIndex, "in-app notification must happen after durable claim");
   assert.ok(pushIndex > claimIndex, "push delivery must happen after durable claim");
@@ -47,8 +47,8 @@ test("engagement events are claimed durably before in-app creation and generic p
   assert.match(engine, /error\.code === "23505"/);
   assert.match(engine, /dedupeKey:\s*event\.eventKey/);
   assert.match(engine, /tag:\s*event\.eventKey/);
-  assert.match(engine, /status === "sent"/);
-  assert.match(engine, /status === "not_available"/);
+  assert.match(engine, /pushResult\.status === "sent"/);
+  assert.match(engine, /pushResult\.status === "not_available"/);
 });
 
 test("global settings gate inactivity and streak processing independently", () => {
