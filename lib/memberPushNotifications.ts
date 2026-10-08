@@ -82,5 +82,16 @@ export async function sendMemberMembershipReminderPush(input: {
   expiryDate: string;
   daysBefore: MembershipReminderDays;
 }) {
+  const preferenceResult = await getSupabaseAdmin()
+    .from("bgm_member_notification_preferences")
+    .select("critical_enabled")
+    .eq("member_id", input.memberId)
+    .maybeSingle();
+  if (preferenceResult.error) throw preferenceResult.error;
+
+  if (preferenceResult.data?.critical_enabled === false) {
+    return { status: "disabled" as const, sent: 0, failed: 0, subscriptions: 0 };
+  }
+
   return sendMemberPush(input.memberId, buildMembershipReminderPush(input));
 }

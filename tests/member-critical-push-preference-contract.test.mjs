@@ -2,25 +2,29 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 
+const sender = fs.readFileSync(
+  new URL("../lib/memberPushNotifications.ts", import.meta.url),
+  "utf8",
+);
 const engine = fs.readFileSync(
   new URL("../lib/membershipReminderEngine.ts", import.meta.url),
   "utf8",
 );
 
-test("critical member preference gates expiry push while preserving existing in-app expiry notification", () => {
-  assert.match(engine, /bgm_member_notification_preferences/);
-  assert.match(engine, /critical_enabled/);
-  assert.match(engine, /criticalPushEnabled/);
-  assert.match(engine, /critical_disabled/);
-
-  const inAppIndex = engine.indexOf("await createMemberNotification({");
-  const criticalGateIndex = engine.indexOf("criticalPushEnabled");
-  assert.ok(inAppIndex >= 0, "existing expiry in-app notification must remain");
-  assert.ok(criticalGateIndex >= 0, "critical push preference gate must exist");
-  assert.ok(inAppIndex < engine.lastIndexOf("criticalPushEnabled"), "in-app expiry creation must not be suppressed by the push preference");
+test("critical member preference gates expiry push at the expiry wrapper", () => {
+  assert.match(sender, /bgm_member_notification_preferences/);
+  assert.match(sender, /critical_enabled/);
+  assert.match(sender, /critical_enabled === false/);
+  assert.match(sender, /status:\s*"disabled"/);
+  assert.match(sender, /return sendMemberPush\(input\.memberId,\s*buildMembershipReminderPush\(input\)\);/s);
 });
 
-test("missing critical preference defaults to enabled", () => {
-  assert.match(engine, /critical_enabled/);
-  assert.match(engine, /\?\?\s*true/);
+test("missing critical preference defaults enabled and opt-out is logged without weakening in-app expiry", () => {
+  assert.match(sender, /critical_enabled === false/);
+  assert.match(engine, /pushResult\.status === "disabled"/);
+  assert.match(engine, /reason:\s*"critical_disabled"/);
+
+  const inAppIndex = engine.indexOf("await createMemberNotification({");
+  const pushIndex = engine.indexOf("await sendMemberMembershipReminderPush({");
+  assert.ok(inAppIndex >= 0 && pushIndex > inAppIndex, "existing expiry in-app notification must be created before the push preference is evaluated");
 });
