@@ -1106,7 +1106,7 @@ function ParticipantEditor({
           <EuropeanDateInput
             value={participant.dateOfBirth}
             onValueChange={(value) => onChange(index, "dateOfBirth", value)}
-            readOnly={kind === "renewal"}
+            readOnly={kind === "renewal" && Boolean(participant.dateOfBirth)}
             className={inputClass}
           />
         </Field>
@@ -1149,7 +1149,7 @@ function ParticipantEditor({
         return (
           <div className="mt-4 space-y-3 rounded-2xl border border-violet-200 bg-violet-50 p-4">
             <p className="font-black text-violet-950">Parent / legal guardian — required for every member under 18</p>
-            <p className="text-sm text-violet-900">The guardian must attend reception and sign the printed renewal declaration before activation.</p>
+            <p className="mt-1 text-sm text-violet-900">The guardian must attend reception and sign the printed renewal declaration before activation.</p>
             {!guardianDeclaration ? (
               <p role="alert" className="text-sm font-bold text-red-700">A published guardian declaration is unavailable. This application cannot be submitted.</p>
             ) : (
