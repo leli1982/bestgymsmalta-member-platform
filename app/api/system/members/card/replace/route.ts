@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { normalizeBarcodePayload } from "@/lib/memberCardCredentialCore";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
+import { bestEffortSyncGoogleWalletMembers } from "@/lib/googleWalletSync";
 
 export const dynamic = "force-dynamic";
 const REASONS = new Set(["lost", "stolen", "damaged", "other"]);
@@ -65,6 +66,8 @@ export async function POST(request: NextRequest) {
         { status: expected ? 409 : 500 }
       );
     }
+
+    await bestEffortSyncGoogleWalletMembers([memberId]).catch(() => undefined);
 
     return NextResponse.json({ ok: true, replacement: result.data });
   } catch (error) {

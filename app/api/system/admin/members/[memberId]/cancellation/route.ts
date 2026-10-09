@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSuperAdmin } from "@/lib/systemAuth";
 import { isMemberUuid, validateCancellationCommand } from "@/lib/memberCancellationCore";
+import { bestEffortSyncGoogleWalletMembers } from "@/lib/googleWalletSync";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -46,6 +47,7 @@ export async function POST(
       console.error(result.error);
       return NextResponse.json({ error: "Cancellation was not confirmed. Reload before retrying." }, { status: 500 });
     }
+    await bestEffortSyncGoogleWalletMembers([memberId]).catch(() => undefined);
     return NextResponse.json({
       ok: true,
       changed: result.data?.changed === true,

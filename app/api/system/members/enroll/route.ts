@@ -10,6 +10,7 @@ import { pendingGuardianConsentGap } from "@/lib/guardianConsentSafety";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
 import { broadcastStaffMembershipRefresh } from "@/lib/staffRealtime";
+import { bestEffortSyncGoogleWalletMembers } from "@/lib/googleWalletSync";
 
 export const dynamic = "force-dynamic";
 
@@ -286,6 +287,13 @@ export async function POST(request: NextRequest) {
       await broadcastStaffMembershipRefresh(
         applicationResult.data.enrollment_gym_id
       );
+
+      const walletMemberIds = Array.isArray(activationResult.data?.members)
+        ? activationResult.data.members
+          .map((row: { memberId?: string }) => row.memberId)
+          .filter((memberId: string | undefined): memberId is string => Boolean(memberId))
+        : [];
+      await bestEffortSyncGoogleWalletMembers(walletMemberIds).catch(() => undefined);
 
       return NextResponse.json({
         ok: true,

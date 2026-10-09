@@ -5,6 +5,7 @@ import { validateMemberProfile } from "@/lib/superAdminMemberProfileCore";
 import { resolveMemberDateEdit } from "@/lib/memberDateEditCore";
 import { resolveMemberCancellation, resolveCouplesCancellation } from "@/lib/memberCancellationCore";
 import { todayMaltaDate } from "@/lib/maltaDate";
+import { bestEffortSyncGoogleWalletMembers } from "@/lib/googleWalletSync";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -266,6 +267,7 @@ export async function PATCH(
       console.error(result.error);
       return NextResponse.json({ error: "Could not save member details. No change was confirmed." }, { status: 500 });
     }
+    await bestEffortSyncGoogleWalletMembers([memberId]).catch(() => undefined);
     return NextResponse.json({ ok: true, updatedAt: result.data?.updatedAt || null }, { headers: noStore });
   } catch (error) {
     console.error(error);

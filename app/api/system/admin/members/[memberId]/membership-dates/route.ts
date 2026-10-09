@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSuperAdmin } from "@/lib/systemAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { validateMembershipDateEdit } from "@/lib/memberDateEditCore";
+import { bestEffortSyncGoogleWalletMembers } from "@/lib/googleWalletSync";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -47,6 +48,7 @@ export async function PATCH(
       console.error(result.error);
       return NextResponse.json({ error: "Could not correct membership dates. No update was confirmed." }, { status: 500 });
     }
+    await bestEffortSyncGoogleWalletMembers([memberId]).catch(() => undefined);
     return NextResponse.json({
       ok: true,
       changed: result.data?.changed === true,
