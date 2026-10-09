@@ -149,6 +149,75 @@ try {
   await page.screenshot({ path: artifacts + "/card-unlinked-320.png", fullPage: true });
   console.log("PASS request failure, retry and unassigned card without scannable barcode at 320px");
 
+  // Google Wallet: active full card uses the official button, submits once, and navigates to Google's save URL.
+  await newPage(null, 390);
+  let walletPostCount = 0;
+  await page.route("**/api/member/card", (route) => route.fulfill({ json: readyCard }));
+  await page.route("**/api/member/google-wallet", async (route) => {
+    if (route.request().method() === "GET") {
+      return route.fulfill({ json: {
+        available: true, eligible: true, reason: null, provisioned: false, syncStatus: null, lastSyncedAt: null,
+      } });
+    }
+    assert.equal(route.request().method(), "POST");
+    walletPostCount += 1;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    return route.fulfill({ json: { saveUrl: "https://pay.google.com/gp/v/save/browser-test-wallet" } });
+  });
+  await page.route("https://pay.google.com/**", (route) => route.fulfill({ contentType: "text/html", body: "<p>Wallet save intercepted</p>" }));
+  await page.goto(origin + "/card");
+  await visible(page.locator('svg[aria-label="Member barcode NEW001aB"]'));
+  const walletButton = page.getByRole("button", { name: "Add to Google Wallet" });
+  await visible(walletButton);
+  assert.equal(await walletButton.locator('img[src="/google-wallet/add-to-google-wallet.svg"]').count(), 1);
+  await lightLayout();
+  await walletButton.evaluate((element) => { element.click(); element.click(); });
+  await page.waitForURL("https://pay.google.com/gp/v/save/browser-test-wallet");
+  assert.equal(walletPostCount, 1, "duplicate Wallet taps must issue exactly one POST");
+  console.log("PASS eligible Google Wallet button, duplicate-click guard and save navigation");
+
+  // Feature/config unavailable is hidden rather than exposing a broken action.
+  await newPage(null, 390);
+  await page.route("**/api/member/card", (route) => route.fulfill({ json: readyCard }));
+  await page.route("**/api/member/google-wallet", (route) => route.fulfill({ json: {
+    available: false, eligible: false, reason: "unavailable", provisioned: false, syncStatus: null, lastSyncedAt: null,
+  } }));
+  await page.goto(origin + "/card");
+  await visible(page.locator('svg[aria-label="Member barcode NEW001aB"]'));
+  await page.waitForLoadState("networkidle");
+  assert.equal(await page.getByRole("button", { name: "Add to Google Wallet" }).count(), 0);
+  await lightLayout();
+  console.log("PASS unavailable Google Wallet action stays hidden");
+
+  // Canonical Wallet status supplies ineligibility; the client does not infer it from card dates/barcodes.
+  await newPage(null, 320);
+  await page.route("**/api/member/card", (route) => route.fulfill({ json: {
+    ...readyCard, cardLinked: false, cardBarcode: null, physicalCardBarcode: null, source: null,
+  } }));
+  await page.route("**/api/member/google-wallet", (route) => route.fulfill({ json: {
+    available: true, eligible: false, reason: "card_missing", provisioned: false, syncStatus: null, lastSyncedAt: null,
+  } }));
+  await page.goto(origin + "/card");
+  await visible(page.getByText("Ask staff to assign an active card before adding it to Google Wallet."));
+  assert.equal(await page.getByRole("button", { name: "Add to Google Wallet" }).count(), 0);
+  assert.equal(await page.locator('svg[aria-label^="Member barcode"]').count(), 0);
+  await visible(page.getByText("BGM0000123", { exact: true }).first());
+  await lightLayout();
+  console.log("PASS cardless Wallet ineligibility and 320px layout");
+
+  await newPage(null, 390);
+  await page.route("**/api/member/card", (route) => route.fulfill({ json: readyCard }));
+  await page.route("**/api/member/google-wallet", (route) => route.fulfill({ json: {
+    available: true, eligible: false, reason: "expired", provisioned: true, syncStatus: "synced", lastSyncedAt: "2026-10-09T00:00:00Z",
+  } }));
+  await page.goto(origin + "/card");
+  await visible(page.getByText("Renew your membership before adding it to Google Wallet."));
+  assert.equal(await page.getByRole("button", { name: "Add to Google Wallet" }).count(), 0);
+  assert.equal(await page.locator('svg[aria-label="Member barcode NEW001aB"]').count(), 1);
+  assert.equal(await page.locator('svg[aria-label="Member barcode BGM0000123"]').count(), 0);
+  await lightLayout();
+  console.log("PASS expired Wallet ineligibility preserves physical-card/BGM-number separation");
+
   // Verify the real client-side gym rendering and navigation at narrow widths.
   for (const width of [320, 390]) {
     await newPage(null, width);
