@@ -19,7 +19,7 @@ test("Wallet mapping table is additive, one-per-member, unique per Google object
     assert.match(compact, new RegExp(`\\b${column}\\b`));
   }
   assert.match(compact, /alter table public\.bgm_google_wallet_passes enable row level security/);
-  assert.match(compact, /revoke all on table public\.bgm_google_wallet_passes from anon, authenticated/);
+  assert.match(compact, /revoke all on table public\.bgm_google_wallet_passes from anon, authenticated, service_role/);
   assert.match(compact, /grant select, insert, update, delete on table public\.bgm_google_wallet_passes to service_role/);
 });
 
