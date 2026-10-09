@@ -16,7 +16,9 @@ create table if not exists public.bgm_google_wallet_passes (
 alter table public.bgm_google_wallet_passes enable row level security;
 
 -- The Wallet mapping is server-managed. Member and staff clients never access it directly.
-revoke all on table public.bgm_google_wallet_passes from anon, authenticated;
+-- Revoke service_role too so legacy/default public-schema privileges such as
+-- TRUNCATE/TRIGGER/REFERENCES cannot survive; grant back only the CRUD used by Next.js.
+revoke all on table public.bgm_google_wallet_passes from anon, authenticated, service_role;
 grant select, insert, update, delete on table public.bgm_google_wallet_passes to service_role;
 
 create or replace function public.bgm_mark_google_wallet_member_pending()
