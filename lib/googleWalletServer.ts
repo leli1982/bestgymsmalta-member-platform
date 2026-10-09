@@ -9,6 +9,7 @@ import {
   type GoogleWalletMemberSnapshot,
   type GoogleWalletProjection,
 } from "./googleWalletCore.ts";
+import { todayMaltaDate } from "./maltaDate.ts";
 
 const WALLET_SCOPE = "https://www.googleapis.com/auth/wallet_object.issuer";
 const WALLET_API = "https://walletobjects.googleapis.com/walletobjects/v1";
@@ -73,18 +74,7 @@ function googleObjectBody(
   snapshot: GoogleWalletMemberSnapshot,
   config: GoogleWalletConfig,
 ): Record<string, unknown> {
-  const projection = projectGoogleWalletMember(
-    snapshot,
-    // Sync callers enforce current eligibility. For projection state here, the
-    // current Malta date is supplied on the snapshot's business-date lifecycle
-    // by syncGoogleWalletPassForMember; this fallback is only for direct client use.
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Europe/Malta",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date()),
-  );
+  const projection = projectGoogleWalletMember(snapshot, todayMaltaDate());
   const objectId = googleWalletObjectId(
     config.issuerId,
     snapshot.memberId,
