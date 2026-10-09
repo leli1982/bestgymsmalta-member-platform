@@ -68,6 +68,7 @@ function localized(value: string) {
 function googleObjectBody(
   snapshot: GoogleWalletMemberSnapshot,
   config: GoogleWalletConfig,
+  clearStaleBarcodeAlternateText = false,
 ): Record<string, unknown> {
   const projection = projectGoogleWalletMember(snapshot, todayMaltaDate());
   const objectId = googleWalletObjectId(
@@ -75,6 +76,10 @@ function googleObjectBody(
     snapshot.memberId,
     config.objectPrefix,
   );
+  const barcode =
+    clearStaleBarcodeAlternateText && projection.barcode.type === "TEXT_ONLY"
+      ? { ...projection.barcode, alternateText: null }
+      : projection.barcode;
 
   const body: Record<string, unknown> = {
     id: objectId,
@@ -89,7 +94,7 @@ function googleObjectBody(
       sourceUri: { uri: config.logoUrl },
       contentDescription: localized("BestGymsMalta logo"),
     },
-    barcode: projection.barcode,
+    barcode,
     textModulesData: [
       {
         id: "member_number",
@@ -276,7 +281,7 @@ export async function upsertGoogleWalletObject(
     resource,
     {
       method: "PATCH",
-      body: JSON.stringify(body),
+      body: JSON.stringify(googleObjectBody(snapshot, config, true)),
     },
     config,
   );
