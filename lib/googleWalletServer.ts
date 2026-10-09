@@ -1,6 +1,5 @@
 import "server-only";
 
-import { createSign } from "node:crypto";
 import { JWT } from "google-auth-library";
 import {
   googleWalletClassId,
@@ -9,11 +8,11 @@ import {
   type GoogleWalletMemberSnapshot,
   type GoogleWalletProjection,
 } from "./googleWalletCore.ts";
+import { buildGoogleWalletSaveUrl as buildSaveUrl } from "./googleWalletSaveLink.ts";
 import { todayMaltaDate } from "./maltaDate.ts";
 
 const WALLET_SCOPE = "https://www.googleapis.com/auth/wallet_object.issuer";
 const WALLET_API = "https://walletobjects.googleapis.com/walletobjects/v1";
-const SAVE_URL = "https://pay.google.com/gp/v/save/";
 
 export type GoogleWalletConfig = {
   issuerId: string;
@@ -64,10 +63,6 @@ function localized(value: string) {
       value,
     },
   };
-}
-
-function encodeJwtPart(value: unknown): string {
-  return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
 
 function googleObjectBody(
@@ -293,28 +288,7 @@ export function buildGoogleWalletSaveUrl(
   objectId: string,
   config: GoogleWalletConfig,
 ): string {
-  const header = { alg: "RS256", typ: "JWT" };
-  const claims = {
-    iss: config.serviceAccountEmail,
-    aud: "google",
-    typ: "savetowallet",
-    iat: Math.floor(Date.now() / 1000),
-    origins: [config.origin],
-    payload: {
-      genericObjects: [
-        {
-          id: objectId,
-          classId: config.classId,
-        },
-      ],
-    },
-  };
-  const signingInput = `${encodeJwtPart(header)}.${encodeJwtPart(claims)}`;
-  const signer = createSign("RSA-SHA256");
-  signer.update(signingInput);
-  signer.end();
-  const signature = signer.sign(config.privateKey).toString("base64url");
-  return `${SAVE_URL}${signingInput}.${signature}`;
+  return buildSaveUrl(objectId, config);
 }
 
 export function safeGoogleWalletError(error: unknown): string {
