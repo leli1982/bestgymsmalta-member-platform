@@ -39,7 +39,6 @@ type CardRow = {
   barcode_value: string | null;
   status: string | null;
   updated_at: string | null;
-  assigned_at: string | null;
 };
 
 type WalletPassRow = {
@@ -75,7 +74,7 @@ export async function loadGoogleWalletMemberSnapshot(
 
   const { data: card, error: cardError } = await admin
     .from("bgm_member_card_credentials")
-    .select("barcode_value,status,updated_at,assigned_at")
+    .select("barcode_value,status,updated_at")
     .eq("member_id", memberId)
     .eq("status", "active")
     .order("updated_at", { ascending: false })
