@@ -83,8 +83,8 @@ test("save link is an RS256 service-account JWT referencing an existing GenericO
 });
 
 test("REST lifecycle uses GET then create-on-404 and PATCH for existing objects", () => {
-  assert.match(source, /genericclass\//);
-  assert.match(source, /genericobject\//);
+  assert.match(source, /genericClass\//);
+  assert.match(source, /genericObject\//);
   assert.match(source, /method:\s*"GET"/);
   assert.match(source, /method:\s*"POST"/);
   assert.match(source, /method:\s*"PATCH"/);
