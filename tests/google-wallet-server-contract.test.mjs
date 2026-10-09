@@ -9,12 +9,15 @@ const serverUrl = new URL("../lib/googleWalletServer.ts", import.meta.url);
 const serverPath = fileURLToPath(serverUrl);
 assert.ok(existsSync(serverPath), "googleWalletServer.ts must exist before server contract can pass");
 const source = readFileSync(serverPath, "utf8");
+const saveLinkUrl = new URL("../lib/googleWalletSaveLink.ts", import.meta.url);
+const saveLinkPath = fileURLToPath(saveLinkUrl);
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 
 test("Google auth dependency and server-only boundary are explicit", () => {
   assert.match(String(pkg.dependencies?.["google-auth-library"] || ""), /^\^?11\./);
   assert.match(source, /import\s+"server-only"/);
   assert.match(source, /from\s+"google-auth-library"/);
+  assert.match(source, /from\s+"\.\/googleWalletSaveLink\.ts"/);
   assert.match(source, /https:\/\/www\.googleapis\.com\/auth\/wallet_object\.issuer/);
   assert.match(source, /https:\/\/walletobjects\.googleapis\.com\/walletobjects\/v1/);
 });
@@ -35,35 +38,26 @@ test("configuration stays server-only and requires all enabled Wallet settings",
 });
 
 test("save link is an RS256 service-account JWT referencing an existing GenericObject", () => {
+  assert.ok(existsSync(saveLinkPath), "googleWalletSaveLink.ts must isolate pure save-link signing");
   const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
   const pem = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
   const script = `
-    const mod = await import(${JSON.stringify(serverUrl.href)});
-    const config = mod.getGoogleWalletConfig();
-    if (!config) throw new Error("config missing");
-    console.log(JSON.stringify({ url: mod.buildGoogleWalletSaveUrl("123456789.test_member_abc", config) }));
+    const mod = await import(${JSON.stringify(saveLinkUrl.href)});
+    console.log(JSON.stringify({
+      url: mod.buildGoogleWalletSaveUrl("123456789.test_member_abc", {
+        serviceAccountEmail: "wallet-test@example.test",
+        privateKey: ${JSON.stringify(pem)},
+        origin: "https://test.example.test",
+        classId: "123456789.bgm_membership_test_v1",
+      }),
+    }));
   `;
   const child = spawnSync(process.execPath, [
-    "--conditions=react-server",
     "--experimental-strip-types",
     "--input-type=module",
     "-e",
     script,
-  ], {
-    encoding: "utf8",
-    env: {
-      ...process.env,
-      GOOGLE_WALLET_ENABLED: "true",
-      GOOGLE_WALLET_ISSUER_ID: "123456789",
-      GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL: "wallet-test@example.test",
-      GOOGLE_WALLET_PRIVATE_KEY: pem.replace(/\n/g, "\\n"),
-      GOOGLE_WALLET_CLASS_SUFFIX: "bgm_membership_test_v1",
-      GOOGLE_WALLET_OBJECT_PREFIX: "test_",
-      GOOGLE_WALLET_ORIGIN: "https://test.example.test",
-      GOOGLE_WALLET_LOGO_URL: "https://test.example.test/logo.png",
-      GOOGLE_WALLET_APP_URL: "https://test.example.test/card",
-    },
-  });
+  ], { encoding: "utf8" });
   assert.equal(child.status, 0, child.stderr);
   const { url } = JSON.parse(child.stdout.trim());
   assert.ok(url.startsWith("https://pay.google.com/gp/v/save/"));
