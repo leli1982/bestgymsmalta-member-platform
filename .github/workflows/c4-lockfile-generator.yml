@@ -1,0 +1,29 @@
+name: C4 Lockfile Generator
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  generate:
+    if: github.head_ref == 'feature/google-wallet-c4'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out C4 branch
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Generate Google auth dependency lockfile
+        run: npm install google-auth-library@11.2.0 --save
+      - name: Upload generated package metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: c4-google-auth-package-files
+          path: |
+            package.json
+            package-lock.json
+          if-no-files-found: error
