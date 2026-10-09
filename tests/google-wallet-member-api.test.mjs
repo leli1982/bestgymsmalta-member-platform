@@ -47,6 +47,11 @@ test("Wallet sync loads canonical member state and only the current active card"
   assert.match(sync, /\.eq\(["']status["'],\s*["']active["']\)/);
   assert.match(sync, /barcode_value/);
   assert.match(sync, /order\(["']updated_at["'],\s*\{\s*ascending:\s*false\s*\}\)/);
+  assert.doesNotMatch(
+    sync,
+    /\bassigned_at\b/,
+    "Wallet card lookup must only select columns that exist in bgm_member_card_credentials",
+  );
 });
 
 test("Wallet sync is idempotent, durable, and never provisions from provision:false", () => {
