@@ -1,0 +1,97 @@
+name: C4 Task 6 Apply
+
+on:
+  push:
+    branches: [feature/google-wallet-c4]
+    paths: [.github/workflows/c4-task6-apply.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/google-wallet-c4
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Add post-success Wallet sync hooks
+        shell: python
+        run: |
+          from pathlib import Path
+
+          IMPORT = 'import { bestEffortSyncGoogleWalletMembers } from "@/lib/googleWalletSync";\n'
+
+          def patch(path, import_anchor, target, replacement):
+              p = Path(path)
+              text = p.read_text()
+              if IMPORT not in text:
+                  if import_anchor not in text:
+                      raise SystemExit(f"import anchor missing: {path}")
+                  text = text.replace(import_anchor, import_anchor + IMPORT, 1)
+              if target not in text:
+                  raise SystemExit(f"target missing: {path}")
+              text = text.replace(target, replacement, 1)
+              p.write_text(text)
+
+          patch(
+              'app/api/system/members/card/replace/route.ts',
+              'import { requireSystemPermission } from "@/lib/systemAuth";\n',
+              '    return NextResponse.json({ ok: true, replacement: result.data });',
+              '    await bestEffortSyncGoogleWalletMembers([memberId]).catch(() => undefined);\n\n    return NextResponse.json({ ok: true, replacement: result.data });',
+          )
+
+          patch(
+              'app/api/system/members/enroll/route.ts',
+              'import { broadcastStaffMembershipRefresh } from "@/lib/staffRealtime";\n',
+              '      await broadcastStaffMembershipRefresh(\n        applicationResult.data.enrollment_gym_id\n      );\n\n      return NextResponse.json({',
+              '      await broadcastStaffMembershipRefresh(\n        applicationResult.data.enrollment_gym_id\n      );\n\n      const walletMemberIds = Array.isArray(activationResult.data?.members)\n        ? activationResult.data.members\n          .map((row: { memberId?: string }) => row.memberId)\n          .filter((memberId: string | undefined): memberId is string => Boolean(memberId))\n        : [];\n      await bestEffortSyncGoogleWalletMembers(walletMemberIds).catch(() => undefined);\n\n      return NextResponse.json({',
+          )
+
+          patch(
+              'app/api/system/admin/members/[memberId]/route.ts',
+              'import { todayMaltaDate } from "@/lib/maltaDate";\n',
+              '    return NextResponse.json({ ok: true, updatedAt: result.data?.updatedAt || null }, { headers: noStore });',
+              '    await bestEffortSyncGoogleWalletMembers([memberId]).catch(() => undefined);\n    return NextResponse.json({ ok: true, updatedAt: result.data?.updatedAt || null }, { headers: noStore });',
+          )
+
+          patch(
+              'app/api/system/admin/members/[memberId]/membership-dates/route.ts',
+              'import { validateMembershipDateEdit } from "@/lib/memberDateEditCore";\n',
+              '    return NextResponse.json({\n      ok: true,\n      changed: result.data?.changed === true,',
+              '    await bestEffortSyncGoogleWalletMembers([memberId]).catch(() => undefined);\n    return NextResponse.json({\n      ok: true,\n      changed: result.data?.changed === true,',
+          )
+
+          patch(
+              'app/api/system/admin/members/[memberId]/cancellation/route.ts',
+              'import { isMemberUuid, validateCancellationCommand } from "@/lib/memberCancellationCore";\n',
+              '    return NextResponse.json({\n      ok: true,\n      changed: result.data?.changed === true,',
+              '    await bestEffortSyncGoogleWalletMembers([memberId]).catch(() => undefined);\n    return NextResponse.json({\n      ok: true,\n      changed: result.data?.changed === true,',
+          )
+
+          patch(
+              'app/api/system/admin/members/[memberId]/couples-cancellation/route.ts',
+              'import { validateCouplesCancellationCommand } from "@/lib/memberCancellationCore";\n',
+              '    return NextResponse.json({\n      ok: true, changed: result.data?.changed === true,',
+              '    await bestEffortSyncGoogleWalletMembers([memberId, validation.partnerId]).catch(() => undefined);\n    return NextResponse.json({\n      ok: true, changed: result.data?.changed === true,',
+          )
+
+          patch(
+              'app/api/system/admin/members/[memberId]/account-status/route.ts',
+              'import { isMemberUuid } from "@/lib/memberCancellationCore";\n',
+              '    return NextResponse.json({ ok: true, ...result.data }, { headers: noStore });',
+              '    await bestEffortSyncGoogleWalletMembers([memberId]).catch(() => undefined);\n    return NextResponse.json({ ok: true, ...result.data }, { headers: noStore });',
+          )
+
+          Path('.github/workflows/c4-task6-apply.yml').unlink()
+      - name: Commit implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/api/system/members/card/replace/route.ts app/api/system/members/enroll/route.ts 'app/api/system/admin/members/[memberId]/route.ts' 'app/api/system/admin/members/[memberId]/membership-dates/route.ts' 'app/api/system/admin/members/[memberId]/cancellation/route.ts' 'app/api/system/admin/members/[memberId]/couples-cancellation/route.ts' 'app/api/system/admin/members/[memberId]/account-status/route.ts' .github/workflows/c4-task6-apply.yml
+          git commit -m "feat(wallet): sync passes after member mutations"
+          git push origin HEAD:feature/google-wallet-c4
