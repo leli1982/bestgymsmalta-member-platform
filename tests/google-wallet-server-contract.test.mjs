@@ -93,6 +93,10 @@ test("REST lifecycle uses GET then create-on-404 and PATCH for existing objects"
   assert.doesNotMatch(source, /method:\s*"PUT"/);
 });
 
+test("TEXT_ONLY barcode updates explicitly clear stale alternateText before PATCH", () => {
+  assert.match(source, /projection\.barcode\.type\s*===\s*"TEXT_ONLY"[\s\S]*alternateText:\s*null/);
+});
+
 test("safe Google errors never echo tokens keys or raw provider bodies", () => {
   assert.match(source, /export function safeGoogleWalletError/);
   assert.doesNotMatch(source, /throw new Error\([^\n]*responseText/);
