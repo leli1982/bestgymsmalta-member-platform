@@ -61,11 +61,14 @@ test("global engagement defaults on while inactivity and streak processing remai
   assert.match(engine, /buildStreakEvent/);
 });
 
-test("secured daily cron runs expiry and engagement engines independently", () => {
+test("secured daily cron runs expiry, engagement and Wallet recovery engines independently", () => {
   assert.match(cron, /runMembershipExpiryReminders/);
   assert.match(cron, /runMemberEngagementNotifications/);
+  assert.match(cron, /runGoogleWalletRecoverySync/);
   assert.match(cron, /membershipReminders/);
   assert.match(cron, /memberEngagement/);
+  assert.match(cron, /googleWalletSync/);
   assert.match(cron, /Promise\.all/);
   assert.match(cron, /CRON_SECRET/);
+  assert.match(cron, /maxDuration\s*=\s*60/);
 });
