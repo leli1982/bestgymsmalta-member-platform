@@ -65,11 +65,16 @@ test("membership expiry push remains wired through its dedicated wrapper", () =>
   assert.match(pushDelivery, /return sendMemberPush\(input\.memberId,/);
 });
 
-test("reminder cron is secret protected and scheduled once daily", () => {
+test("reminder cron stays secret protected, Node-bound and scheduled only once daily while hosting Wallet recovery", () => {
   assert.match(cron, /process\.env\.CRON_SECRET/);
   assert.match(cron, /authorization/);
+  assert.match(cron, /runtime\s*=\s*"nodejs"/);
+  assert.match(cron, /maxDuration\s*=\s*60/);
+  assert.match(cron, /runGoogleWalletRecoverySync/);
   assert.ok(Array.isArray(vercel.crons));
-  assert.ok(vercel.crons.some((item) => item.path === "/api/cron/membership-expiry-reminders"));
+  const reminderCrons = vercel.crons.filter((item) => item.path === "/api/cron/membership-expiry-reminders");
+  assert.equal(reminderCrons.length, 1, "Wallet recovery must reuse the existing secured daily cron");
+  assert.equal(vercel.crons.some((item) => /google-wallet/i.test(item.path)), false, "C4 must not create a new Wallet cron");
 });
 
 test("Super Admin and signed-in member both have reminder controls", () => {

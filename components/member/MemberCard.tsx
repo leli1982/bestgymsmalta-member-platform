@@ -11,6 +11,7 @@ import {
 } from "@/lib/memberSession";
 import { resolveMemberCardResponse, type MemberCardState } from "@/lib/memberCardState";
 import MemberBarcode from "@/components/member/MemberBarcode";
+import GoogleWalletButton from "@/components/member/GoogleWalletButton";
 
 type MemberCardProps = {
   variant?: "full" | "home";
@@ -178,7 +179,6 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
                 <p className="mt-1 text-[8px] font-semibold text-slate-500">{assignedCardNumber ? "Current card: " + assignedCardNumber : "BGM member number · tap for details"}</p>
               </div>
             </div>
-            
           </section>
 
           <section
@@ -203,79 +203,82 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
   }
 
   return (
-    <button type="button" onClick={() => setFlipped((value) => !value)}
-      className="block w-full text-left text-zinc-950" style={{ perspective: "1200px" }}
-      aria-label={flipped ? "Show membership barcode" : "Show membership details"}>
-      <div className="grid transition-transform duration-700 motion-reduce:transition-none"
-        style={{ transformStyle: "preserve-3d", transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)" }}>
-        <section
-          className="relative col-start-1 row-start-1 flex min-h-[420px] flex-col justify-between overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,0.07)]"
-          style={{ backfaceVisibility: "hidden" }} aria-hidden={flipped}>
-          <div className="absolute inset-x-0 top-0 h-1.5 bg-[#ff5a0a]" />
-          <div>
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#c2410c]">BestGymsMalta</p>
-                <h2 className="mt-3 break-words text-2xl font-black leading-tight">{member.fullName || member.username}</h2>
-                <p className="mt-2 text-xs font-bold text-slate-500">Digital membership card</p>
-                <p className="mt-2 font-mono text-lg font-black text-[#c2410c]">{member.memberNumber}</p>
+    <>
+      <button type="button" onClick={() => setFlipped((value) => !value)}
+        className="block w-full text-left text-zinc-950" style={{ perspective: "1200px" }}
+        aria-label={flipped ? "Show membership barcode" : "Show membership details"}>
+        <div className="grid transition-transform duration-700 motion-reduce:transition-none"
+          style={{ transformStyle: "preserve-3d", transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)" }}>
+          <section
+            className="relative col-start-1 row-start-1 flex min-h-[420px] flex-col justify-between overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,0.07)]"
+            style={{ backfaceVisibility: "hidden" }} aria-hidden={flipped}>
+            <div className="absolute inset-x-0 top-0 h-1.5 bg-[#ff5a0a]" />
+            <div>
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#c2410c]">BestGymsMalta</p>
+                  <h2 className="mt-3 break-words text-2xl font-black leading-tight">{member.fullName || member.username}</h2>
+                  <p className="mt-2 text-xs font-bold text-slate-500">Digital membership card</p>
+                  <p className="mt-2 font-mono text-lg font-black text-[#c2410c]">{member.memberNumber}</p>
+                </div>
+                <div className="relative h-16 w-16 shrink-0 rounded-full bg-zinc-950 p-2">
+                  <Image src="/bgm-logo.png" alt="BestGymsMalta" fill priority className="object-contain p-2" />
+                </div>
               </div>
-              <div className="relative h-16 w-16 shrink-0 rounded-full bg-zinc-950 p-2">
-                <Image src="/bgm-logo.png" alt="BestGymsMalta" fill priority className="object-contain p-2" />
+              <div className="mt-7 rounded-2xl border border-zinc-200 bg-white p-2">
+                {assignedCardNumber ? <MemberBarcode memberNumber={assignedCardNumber} /> : <p className="py-9 text-center text-sm font-bold text-amber-700">Card not assigned. Staff can still find you using your BGM membership number.</p>}
               </div>
+              <p className="mt-3 text-center text-xs text-slate-500">
+                {assignedCardNumber ? "Present this current card barcode at reception." : "Ask staff to assign a card at reception."}
+              </p>
             </div>
-            <div className="mt-7 rounded-2xl border border-zinc-200 bg-white p-2">
-              {assignedCardNumber ? <MemberBarcode memberNumber={assignedCardNumber} /> : <p className="py-9 text-center text-sm font-bold text-amber-700">Card not assigned. Staff can still find you using your BGM membership number.</p>}
+            <div className="mt-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-zinc-50 p-4">
+                <div className={`flex items-center gap-2 ${active ? "text-emerald-700" : "text-amber-700"}`}>
+                  <BadgeCheck size={21} />
+                  <p className="text-xs font-black capitalize">{active ? "Active member" : "Inactive / expired"}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold text-slate-500">Valid until</p>
+                  <p className="mt-1 text-xs font-black">{expiryText}</p>
+                </div>
+              </div>
+              <p className="mt-5 text-center text-[10px] font-bold text-slate-500">Tap card to view details</p>
             </div>
-            <p className="mt-3 text-center text-xs text-slate-500">
-              {assignedCardNumber ? "Present this current card barcode at reception." : "Ask staff to assign a card at reception."}
-            </p>
-          </div>
-          <div className="mt-6">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-zinc-50 p-4">
-              <div className={`flex items-center gap-2 ${active ? "text-emerald-700" : "text-amber-700"}`}>
-                <BadgeCheck size={21} />
-                <p className="text-xs font-black capitalize">{active ? "Active member" : "Inactive / expired"}</p>
+          </section>
+          <section
+            className="col-start-1 row-start-1 flex min-h-[420px] flex-col justify-between rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,0.07)]"
+            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }} aria-hidden={!flipped}>
+            <div>
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#c2410c]">Member details</p>
+                <ShieldCheck className="text-[#ff5a0a]" size={25} />
               </div>
-              <div>
-                <p className="text-[10px] font-semibold text-slate-500">Valid until</p>
-                <p className="mt-1 text-xs font-black">{expiryText}</p>
-              </div>
+              <dl className="mt-5 space-y-4">
+                <div className="rounded-2xl bg-zinc-50 p-4">
+                  <dt className="text-xs font-semibold text-slate-500">Name</dt>
+                  <dd className="mt-1 break-words text-lg font-black">{member.fullName || member.username}</dd>
+                </div>
+                <div className="rounded-2xl bg-orange-50 p-4">
+                  <dt className="text-xs font-semibold text-slate-500">BGM member number</dt>
+                  <dd className="mt-1 break-all font-mono text-lg font-black text-[#c2410c]">{member.memberNumber}</dd>
+                </div>
+                <div className="rounded-2xl bg-zinc-50 p-4">
+                  <dt className="text-xs font-semibold text-slate-500">Current card number</dt>
+                  <dd className="mt-1 break-all font-mono text-sm font-black">{assignedCardNumber || "Not assigned"}</dd>
+                  {!cardLinked && <p className="mt-2 text-xs text-slate-500">Physical card not linked</p>}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><dt className="text-xs text-slate-500">Valid until</dt><dd className="mt-1 text-sm font-bold">{expiryText}</dd></div>
+                  <div className="min-w-0"><dt className="text-xs text-slate-500">Email</dt><dd className="mt-1 break-all text-xs font-bold">{member.email || "Not set"}</dd></div>
+                </div>
+              </dl>
             </div>
-            <p className="mt-5 text-center text-[10px] font-bold text-slate-500">Tap card to view details</p>
-          </div>
-        </section>
-        <section
-          className="col-start-1 row-start-1 flex min-h-[420px] flex-col justify-between rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,0.07)]"
-          style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }} aria-hidden={!flipped}>
-          <div>
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#c2410c]">Member details</p>
-              <ShieldCheck className="text-[#ff5a0a]" size={25} />
-            </div>
-            <dl className="mt-5 space-y-4">
-              <div className="rounded-2xl bg-zinc-50 p-4">
-                <dt className="text-xs font-semibold text-slate-500">Name</dt>
-                <dd className="mt-1 break-words text-lg font-black">{member.fullName || member.username}</dd>
-              </div>
-              <div className="rounded-2xl bg-orange-50 p-4">
-                <dt className="text-xs font-semibold text-slate-500">BGM member number</dt>
-                <dd className="mt-1 break-all font-mono text-lg font-black text-[#c2410c]">{member.memberNumber}</dd>
-              </div>
-              <div className="rounded-2xl bg-zinc-50 p-4">
-                <dt className="text-xs font-semibold text-slate-500">Current card number</dt>
-                <dd className="mt-1 break-all font-mono text-sm font-black">{assignedCardNumber || "Not assigned"}</dd>
-                {!cardLinked && <p className="mt-2 text-xs text-slate-500">Physical card not linked</p>}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><dt className="text-xs text-slate-500">Valid until</dt><dd className="mt-1 text-sm font-bold">{expiryText}</dd></div>
-                <div className="min-w-0"><dt className="text-xs text-slate-500">Email</dt><dd className="mt-1 break-all text-xs font-bold">{member.email || "Not set"}</dd></div>
-              </div>
-            </dl>
-          </div>
-          <p className="mt-5 text-center text-[10px] font-bold text-slate-500">Tap card to return to your barcode</p>
-        </section>
-      </div>
-    </button>
+            <p className="mt-5 text-center text-[10px] font-bold text-slate-500">Tap card to return to your barcode</p>
+          </section>
+        </div>
+      </button>
+      <GoogleWalletButton />
+    </>
   );
 }

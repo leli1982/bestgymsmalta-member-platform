@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { runGoogleWalletRecoverySync } from "@/lib/googleWalletSyncEngine";
 import { runMemberEngagementNotifications } from "@/lib/memberEngagementEngine";
 import { runMembershipExpiryReminders } from "@/lib/membershipReminderEngine";
 
@@ -33,14 +34,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  const [membershipReminders, memberEngagement] = await Promise.all([
+  const [membershipReminders, memberEngagement, googleWalletSync] = await Promise.all([
     runEngine("Membership expiry reminder", () => runMembershipExpiryReminders()),
     runEngine("Member engagement notification", () => runMemberEngagementNotifications()),
+    runEngine("Google Wallet sync", () => runGoogleWalletRecoverySync()),
   ]);
-  const ok = membershipReminders.ok && memberEngagement.ok;
+  const ok = membershipReminders.ok && memberEngagement.ok && googleWalletSync.ok;
 
   return NextResponse.json(
-    { ok, membershipReminders, memberEngagement },
+    { ok, membershipReminders, memberEngagement, googleWalletSync },
     {
       status: ok ? 200 : 500,
       headers: { "Cache-Control": "no-store" },

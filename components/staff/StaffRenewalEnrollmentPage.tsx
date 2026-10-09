@@ -1106,7 +1106,7 @@ function ParticipantEditor({
           <EuropeanDateInput
             value={participant.dateOfBirth}
             onValueChange={(value) => onChange(index, "dateOfBirth", value)}
-            readOnly={kind === "renewal"}
+            readOnly={kind === "renewal" && Boolean(participant.dateOfBirth)}
             className={inputClass}
           />
         </Field>
