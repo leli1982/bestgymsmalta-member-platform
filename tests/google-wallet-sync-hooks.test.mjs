@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+// Wallet projection updates are deliberately post-success side effects: they must
+// never provision a pass implicitly or turn a completed BGM mutation into a failure.
 const root = new URL("..", import.meta.url).pathname;
 
 const routes = {
