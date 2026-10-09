@@ -84,7 +84,7 @@ function googleObjectBody(
     cardTitle: localized("BestGymsMalta"),
     subheader: localized("Gym membership"),
     header: localized(snapshot.fullName || "BGM Member"),
-    hexBackgroundColor: "#f97316",
+    hexBackgroundColor: "#ff5a0a",
     logo: {
       sourceUri: { uri: config.logoUrl },
       contentDescription: localized("BestGymsMalta logo"),
