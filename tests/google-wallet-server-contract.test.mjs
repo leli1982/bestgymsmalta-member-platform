@@ -78,7 +78,10 @@ test("save link is an RS256 service-account JWT referencing an existing GenericO
   assert.equal(payload.aud, "google");
   assert.equal(payload.typ, "savetowallet");
   assert.deepEqual(payload.origins, ["https://test.example.test"]);
-  assert.deepEqual(payload.payload.genericObjects, [{ id: "123456789.test_member_abc" }]);
+  assert.deepEqual(payload.payload.genericObjects, [{
+    id: "123456789.test_member_abc",
+    classId: "123456789.bgm_membership_test_v1",
+  }]);
   assert.equal(typeof payload.iat, "number");
 });
 
