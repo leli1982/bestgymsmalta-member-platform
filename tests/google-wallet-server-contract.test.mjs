@@ -37,6 +37,10 @@ test("configuration stays server-only and requires all enabled Wallet settings",
   assert.doesNotMatch(source, /NEXT_PUBLIC_GOOGLE_WALLET/);
 });
 
+test("Wallet object uses the approved BGM orange exactly", () => {
+  assert.match(source, /hexBackgroundColor:\s*"#ff5a0a"/);
+});
+
 test("save link is an RS256 service-account JWT referencing an existing GenericObject", () => {
   assert.ok(existsSync(saveLinkPath), "googleWalletSaveLink.ts must isolate pure save-link signing");
   const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
