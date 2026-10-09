@@ -207,7 +207,7 @@ export async function syncGoogleWalletPassForMember(
 export async function bestEffortSyncGoogleWalletMembers(
   memberIds: string[],
 ): Promise<void> {
-  const uniqueMemberIds = new Set(memberIds.filter(Boolean));
+  const uniqueMemberIds = Array.from(new Set(memberIds.filter(Boolean)));
   for (const memberId of uniqueMemberIds) {
     try {
       await syncGoogleWalletPassForMember(memberId, { provision: false });
