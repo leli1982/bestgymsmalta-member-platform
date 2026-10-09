@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   generate:
     if: github.head_ref == 'feature/google-wallet-c4'
@@ -12,6 +15,8 @@ jobs:
     steps:
       - name: Check out C4 branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -19,11 +24,14 @@ jobs:
           cache: npm
       - name: Generate Google auth dependency lockfile
         run: npm install google-auth-library@11.2.0 --save
-      - name: Upload generated package metadata
-        uses: actions/upload-artifact@v4
-        with:
-          name: c4-google-auth-package-files
-          path: |
-            package.json
-            package-lock.json
-          if-no-files-found: error
+      - name: Commit generated package metadata
+        run: |
+          if git diff --quiet -- package.json package-lock.json; then
+            echo "Package metadata already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "chore: add Google auth dependency"
+          git push origin HEAD:${GITHUB_HEAD_REF}
