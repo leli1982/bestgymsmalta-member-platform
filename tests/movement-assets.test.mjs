@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { movementCatalog } from "../lib/movements/catalog.ts";
+import { movementVisualAssets } from "../lib/movements/visualAssets.ts";
 
 const firstVisualBatch = [
   "chest-press-machine",
@@ -24,10 +25,9 @@ function decodeWebpDataUri(value) {
   assert.ok(bytes.length > 1_000, "movement artwork must not be an empty/tiny placeholder");
   assert.equal(bytes.subarray(0, 4).toString("ascii"), "RIFF");
   assert.equal(bytes.subarray(8, 12).toString("ascii"), "WEBP");
-  return bytes;
 }
 
-test("the approved first movement-visual batch has embedded WebP artwork", () => {
+test("the approved first movement-visual batch has stable catalogue paths and embedded WebP artwork", () => {
   const byId = new Map(movementCatalog.map((movement) => [movement.id, movement]));
 
   assert.equal(firstVisualBatch.length, 12);
@@ -35,7 +35,11 @@ test("the approved first movement-visual batch has embedded WebP artwork", () =>
   for (const id of firstVisualBatch) {
     const movement = byId.get(id);
     assert.ok(movement, `approved visual movement is missing from catalogue: ${id}`);
-    assert.ok(movement.diagramAsset, `${id} must declare diagramAsset`);
-    decodeWebpDataUri(movement.diagramAsset);
+    assert.equal(movement.diagramAsset, `/movements/${id}.webp`);
+    assert.equal(movement.diagramAsset.includes(".."), false, `${id} asset path must not escape /movements/`);
+
+    const artwork = movementVisualAssets[id];
+    assert.ok(artwork, `approved artwork is missing for ${id}`);
+    decodeWebpDataUri(artwork);
   }
 });
