@@ -26,11 +26,31 @@ type MovementSeed = Pick<
     >
   >;
 
+const firstVisualBatchIds = new Set([
+  "chest-press-machine",
+  "lat-pulldown",
+  "leg-press",
+  "romanian-deadlift",
+  "goblet-squat",
+  "seated-cable-row",
+  "shoulder-press-machine",
+  "dumbbell-biceps-curl",
+  "triceps-rope-pushdown",
+  "90-90-hip-switch",
+  "cat-cow",
+  "half-kneeling-hip-flexor-stretch",
+]);
+
+function diagramAssetFor(id: string): string | undefined {
+  return firstVisualBatchIds.has(id) ? `/movements/${id}.webp` : undefined;
+}
+
 function defineMovement(seed: MovementSeed): MovementDefinition {
   const recovery = ["mobility", "stretch", "warmup", "cooldown"].includes(seed.type);
 
   return {
     ...seed,
+    diagramAsset: seed.diagramAsset ?? diagramAssetFor(seed.id),
     description:
       seed.description ??
       `${seed.name} is a ${recovery ? "controlled mobility/recovery" : "resistance-training"} movement used in BGM programming.`,
