@@ -4,7 +4,6 @@ import Image from "next/image";
 import { useState } from "react";
 
 import type { MovementDefinition } from "@/lib/movements/types";
-import { movementVisualAssets } from "@/lib/movements/visualAssets";
 import MovementDetail from "./MovementDetail";
 
 export type MovementProgramming = {
@@ -29,9 +28,7 @@ export default function MovementCard({
   context = "trainer",
 }: MovementCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const diagramAsset = movement
-    ? movementVisualAssets[movement.id] ?? movement.diagramAsset
-    : undefined;
+  const diagramAsset = movement?.diagramAsset;
   const hasProgramming = Boolean(
     programming.sets ||
       programming.reps ||
@@ -54,7 +51,6 @@ export default function MovementCard({
               width={960}
               height={540}
               sizes="(max-width: 640px) 100vw, 640px"
-              unoptimized={diagramAsset.startsWith("data:")}
               className="h-auto w-full rounded-xl border border-zinc-200 bg-white object-cover"
             />
           ) : (

@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
+import { existsSync, statSync } from "node:fs";
+import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { movementCatalog } from "../lib/movements/catalog.ts";
-import { movementVisualAssets } from "../lib/movements/visualAssets.ts";
 
+const publicRoot = fileURLToPath(new URL("../public/", import.meta.url));
 const firstVisualBatch = [
   "chest-press-machine",
   "lat-pulldown",
@@ -19,15 +22,7 @@ const firstVisualBatch = [
   "half-kneeling-hip-flexor-stretch",
 ];
 
-function decodeWebpDataUri(value) {
-  assert.match(value, /^data:image\/webp;base64,[A-Za-z0-9+/=]+$/);
-  const bytes = Buffer.from(value.slice("data:image/webp;base64,".length), "base64");
-  assert.ok(bytes.length > 1_000, "movement artwork must not be an empty/tiny placeholder");
-  assert.equal(bytes.subarray(0, 4).toString("ascii"), "RIFF");
-  assert.equal(bytes.subarray(8, 12).toString("ascii"), "WEBP");
-}
-
-test("the approved first movement-visual batch has stable catalogue paths and embedded WebP artwork", () => {
+test("the approved first movement-visual batch has stable static WebP assets", () => {
   const byId = new Map(movementCatalog.map((movement) => [movement.id, movement]));
 
   assert.equal(firstVisualBatch.length, 12);
@@ -36,10 +31,14 @@ test("the approved first movement-visual batch has stable catalogue paths and em
     const movement = byId.get(id);
     assert.ok(movement, `approved visual movement is missing from catalogue: ${id}`);
     assert.equal(movement.diagramAsset, `/movements/${id}.webp`);
-    assert.equal(movement.diagramAsset.includes(".."), false, `${id} asset path must not escape /movements/`);
+    assert.equal(
+      movement.diagramAsset.includes(".."),
+      false,
+      `${id} asset path must not escape /movements/`,
+    );
 
-    const artwork = movementVisualAssets[id];
-    assert.ok(artwork, `approved artwork is missing for ${id}`);
-    decodeWebpDataUri(artwork);
+    const assetPath = join(publicRoot, movement.diagramAsset.replace(/^\//, ""));
+    assert.ok(existsSync(assetPath), `approved artwork is missing for ${id}`);
+    assert.ok(statSync(assetPath).size > 1_000, `${id} artwork must not be an empty/tiny placeholder`);
   }
 });
