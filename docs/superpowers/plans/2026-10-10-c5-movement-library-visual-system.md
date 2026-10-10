@@ -6,7 +6,7 @@
 
 **Architecture:** Add a version-controlled movement domain (`lib/movements`) that owns canonical movement definitions, explicit aliases, mobility display groupings, and conservative name resolution. Trainer plan entries may gain an optional `movementId`; legacy plans continue to resolve by name at render time. Trainer and Mobility share presentation components in `components/movements`. Unknown exercises retain the current text fallback. C5 v1 changes application code and static assets only: no Supabase migration and no historical workout-plan rewrite.
 
-**Tech Stack:** Next.js 16 / React / TypeScript, Tailwind CSS, Node 22 native test runner with `--experimental-strip-types`, Playwright/Chromium browser verification, static assets under `public/movements`, Vercel Preview.
+**Tech Stack:** Next.js 16 / React / TypeScript, Tailwind CSS, Node 22 native test runner with `--experimental-strip-types`, Playwright/Chromium browser verification, static WebP assets under `public/movements`, Vercel Preview.
 
 **Spec:** `docs/superpowers/specs/2026-10-10-c5-movement-library-visual-system-design.md`
 
@@ -99,11 +99,11 @@ Create `tests/movement-catalog.test.mjs` to import the TypeScript catalogue dire
 - Every mobility-group entry references a real movement ID.
 - Current Trainer exercise names from `app/api/member/workout-plan/route.ts` are represented by a canonical name or explicit alias.
 - Current Mobility & Stretch movement names from `components/mobility/MobilityStretchPage.tsx` are represented.
+- `Dumbbell Biceps Curl` is canonical `dumbbell-biceps-curl` and explicitly accepts `Dumbbell Curl` as an alias.
+- `Triceps Rope Pushdown` is canonical `triceps-rope-pushdown`; `Cable Triceps Pushdown` remains a separate movement because the attachment/setup may differ.
 - No C5 catalogue entry is required to declare `diagramAsset` yet.
 
 - [ ] **Step 2: Run the RED test.**
-
-Run:
 
 ```bash
 node --experimental-strip-types --test tests/movement-catalog.test.mjs
@@ -171,13 +171,13 @@ No token similarity, substring matching, stemming, or “closest exercise” sub
 Cover:
 - canonical `Lat Pulldown` resolves to `lat-pulldown`;
 - safe case/extra-space normalization resolves;
-- approved alias `Dumbbell Curl` resolves only to its intentionally configured canonical movement;
+- approved alias `Dumbbell Curl` resolves to `dumbbell-biceps-curl`;
 - `90/90 Hip Switch` keeps slash semantics and resolves;
 - known `movementId` wins over a conflicting display name;
 - unknown ID falls back to a valid name only when a valid name is supplied;
 - empty/null/unknown names return `null`;
 - similar-but-different names do not fuzzy-match;
-- `Romanian Deadlift` does not collapse into a materially distinct dumbbell variant unless explicitly aliased by the catalogue.
+- `Romanian Deadlift` does not collapse into `dumbbell-romanian-deadlift`.
 
 - [ ] **Step 2: Run RED.**
 
@@ -189,7 +189,7 @@ Expected: FAIL because the resolver does not exist.
 
 - [ ] **Step 3: Implement the resolver using precomputed maps from the catalogue.**
 
-Keep normalization intentionally narrow: Unicode-safe trim, whitespace collapse and lowercase; strip only harmless presentational punctuation if a test/spec requires it. Do not broaden matching during implementation to make tests pass.
+Keep normalization intentionally narrow: Unicode-safe trim, whitespace collapse and lowercase. Do not strip meaningful characters such as `/` from names like `90/90 Hip Switch`, and do not broaden matching during implementation merely to make tests pass.
 
 - [ ] **Step 4: Run GREEN plus catalogue regression.**
 
@@ -285,30 +285,28 @@ git commit -m "feat: add shared movement instruction cards"
 
 **Files:**
 - Modify: `lib/movements/catalog.ts`
-- Create assets under: `public/movements/`
 - Create: `tests/movement-assets.test.mjs`
+- Create exactly these first-batch static assets:
+  - `public/movements/chest-press-machine.webp`
+  - `public/movements/lat-pulldown.webp`
+  - `public/movements/leg-press.webp`
+  - `public/movements/romanian-deadlift.webp`
+  - `public/movements/goblet-squat.webp`
+  - `public/movements/seated-cable-row.webp`
+  - `public/movements/shoulder-press-machine.webp`
+  - `public/movements/dumbbell-biceps-curl.webp`
+  - `public/movements/triceps-rope-pushdown.webp`
+  - `public/movements/90-90-hip-switch.webp`
+  - `public/movements/cat-cow.webp`
+  - `public/movements/half-kneeling-hip-flexor-stretch.webp`
 
-**First batch IDs/assets:**
-- `chest-press-machine`
-- `lat-pulldown`
-- `leg-press`
-- `romanian-deadlift`
-- `goblet-squat`
-- `seated-cable-row`
-- `shoulder-press-machine`
-- `dumbbell-curl` (or the canonical curl ID selected in Task 1)
-- `triceps-pushdown` (or canonical rope-pushdown ID selected in Task 1)
-- `90-90-hip-switch`
-- `cat-cow`
-- `half-kneeling-hip-flexor-stretch`
+Use WebP for the entire first batch. Generate source artwork at a consistent landscape aspect ratio (approximately 16:9) and convert/optimize to WebP without visibly degrading line detail.
 
-Use one consistent browser-safe static format after generation/optimization; prefer `.webp` when the generated source can be converted without visible loss, otherwise use optimized `.png`. Do not mix formats arbitrarily within the batch.
-
-- [ ] **Step 1: Write a failing asset-integrity test before adding diagram references.**
+- [ ] **Step 1: Write a failing asset-integrity test before adding the files.**
 
 The test should assert that the 12 approved IDs:
 - exist in the catalogue;
-- each declare a `diagramAsset` under `/movements/`;
+- each declare the exact `/movements/<id>.webp` path above;
 - each referenced file exists under `public/`;
 - each asset is non-empty;
 - no catalogue path escapes the `/movements/` directory.
@@ -319,7 +317,7 @@ The test should assert that the 12 approved IDs:
 node --experimental-strip-types --test tests/movement-assets.test.mjs
 ```
 
-Expected: FAIL with missing asset files.
+Expected: FAIL with the 12 missing asset files.
 
 - [ ] **Step 3: Generate the original BGM diagram batch.**
 
@@ -333,9 +331,9 @@ Use the image-generation tool with the user-provided example only as style direc
 - no long baked-in instructional prose;
 - consistent line/illustration language across male/female figures.
 
-Generate at a consistent landscape aspect ratio suitable for a two-panel mobile card (target approximately 16:9 before optimization). Inspect every image for anatomical/equipment/form errors before accepting it.
+Inspect every generated source image for anatomy, equipment geometry and exercise-form errors before accepting it. Reject/regenerate unsafe or ambiguous artwork rather than attempting to explain around it in UI copy.
 
-- [ ] **Step 4: Optimize/store the assets and run GREEN.**
+- [ ] **Step 4: Convert/optimize accepted artwork to the exact WebP files above and run GREEN.**
 
 ```bash
 node --experimental-strip-types --test tests/movement-assets.test.mjs tests/movement-catalog.test.mjs
@@ -343,9 +341,9 @@ node --experimental-strip-types --test tests/movement-assets.test.mjs tests/move
 
 Expected: PASS.
 
-- [ ] **Step 5: Build a temporary review surface only if needed for visual QA, then inspect all 12 at narrow/mobile size.**
+- [ ] **Step 5: Inspect all 12 through the shared card at narrow/mobile size.**
 
-Do not create a permanent extra member page solely for QA. Use the shared card component or test fixture to verify readability.
+Do not create a permanent extra member page solely for QA. Use the shared card component or a test fixture to verify readability.
 
 - [ ] **Step 6: Commit the first visual batch.**
 
@@ -404,16 +402,11 @@ Expected: new integration test FAIL; current contract PASS.
 
 - [ ] **Step 3: Add movement IDs to current deterministic generator outputs with the smallest possible diff.**
 
-Do not rewrite the split/rep logic. Each current known exercise should keep the same programming and name while gaining a stable ID where the catalogue has a canonical mapping.
+Do not rewrite the split/rep logic. Each current known exercise keeps the same programming and display name while gaining a stable ID where the catalogue has a canonical mapping.
 
 - [ ] **Step 4: Update `AiTrainer.tsx` normalization/rendering.**
 
-Preserve support for:
-- old string exercises;
-- old object exercises;
-- new objects with `movementId`.
-
-Resolve at render time and pass plan-specific sets/reps/notes to `MovementCard`. Do not mutate or resave an old plan merely because it resolved successfully.
+Preserve support for old string exercises, old object exercises, and new objects with `movementId`. Resolve at render time and pass plan-specific sets/reps/notes to `MovementCard`. Do not mutate or resave an old plan merely because it resolved successfully.
 
 - [ ] **Step 5: Run GREEN, all movement tests, type-check and build.**
 
@@ -539,8 +532,6 @@ Expected: PASS with no `pageerror`, no horizontal overflow and screenshots saved
 
 - [ ] **Step 5: Add a dedicated CI step after existing member browser checks.**
 
-Add:
-
 ```yaml
 - name: Verify Trainer and Mobility movement guides in Chromium
   run: node tests/browser/member-trainer-mobility.mjs
@@ -557,7 +548,7 @@ npm run build
 node tests/browser/member-trainer-mobility.mjs
 ```
 
-Then run any existing member browser tests changed indirectly by the Trainer/Mobility surface, at minimum:
+Then run at minimum:
 
 ```bash
 node tests/browser/member-card-gyms.mjs
@@ -582,9 +573,9 @@ git commit -m "test: verify trainer and mobility movement guides"
 - Create: `tests/c5-no-database-migration.test.mjs`
 - Modify only if tests expose real issues: `lib/movements/*`, `components/movements/*`
 
-- [ ] **Step 1: Add a failing/guarding C5 scope test.**
+- [ ] **Step 1: Add a C5 scope guard.**
 
-The guard should verify C5 runtime modules (`lib/movements`, `components/movements`) do not import Supabase/admin clients and that this feature did not add a C5 migration file. Do not attempt to prove repository-wide absence of Supabase; scope the assertion to C5 files.
+The guard should verify C5 runtime modules (`lib/movements`, `components/movements`) do not import Supabase/admin clients and that this feature did not add a C5 migration file. Do not attempt to prove repository-wide absence of Supabase; scope the assertion to C5 files/branch changes.
 
 - [ ] **Step 2: Run the guard and fix only genuine scope leaks.**
 
@@ -621,20 +612,20 @@ If no production code needed changes, keep the commit test-only.
 
 **Files:**
 - Modify: `lib/movements/catalog.ts`
-- Create: remaining current-movement assets under `public/movements/`
+- Create: remaining approved current-movement WebP assets under `public/movements/`
 - Modify: `tests/movement-assets.test.mjs`
 
 - [ ] **Step 1: Extend the asset test to require a diagram for every current C5 v1 movement selected for visual coverage.**
 
 Do not require future/unknown AI exercises to have assets. The requirement applies only to the approved version-controlled current catalogue coverage target.
 
-- [ ] **Step 2: Run RED after adding the intended remaining `diagramAsset` references.**
+- [ ] **Step 2: Add the remaining exact `diagramAsset` references, then run RED.**
 
 ```bash
 node --experimental-strip-types --test tests/movement-assets.test.mjs
 ```
 
-Expected: FAIL listing the remaining missing assets.
+Expected: FAIL listing the remaining missing WebP assets.
 
 - [ ] **Step 3: Generate the remaining diagrams using the owner-approved Task 4 style.**
 
@@ -668,7 +659,7 @@ git commit -m "feat: complete current BGM movement artwork"
 
 **Files:**
 - No planned product-code files unless verification exposes a defect.
-- Update only if useful after successful QA: `docs/superpowers/specs/2026-10-10-c5-movement-library-visual-system-design.md` status line or PR description; do not rewrite the approved design requirements.
+- Update only if useful after successful QA: PR description/release notes; do not rewrite the approved design requirements.
 
 - [ ] **Step 1: Run the complete repository verification before pushing final implementation head.**
 
