@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireMemberSession } from "@/lib/memberAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveMemberAppAccess } from "@/lib/memberAppAccess";
+import { resolveMovement } from "@/lib/movements/resolveMovement";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,13 @@ function repGuide(goal: string, level: string) {
   return { main: "3-4", reps: "8-12", accessory: "3", accessoryReps: "10-12" };
 }
 
+function attachMovementIds(exercises: any[]) {
+  return exercises.map((exercise) => {
+    const movement = resolveMovement(exercise.name);
+    return movement ? { ...exercise, movementId: movement.id } : exercise;
+  });
+}
+
 function dayExercises(focus: string, goal: string, level: string) {
   const guide = repGuide(goal, level);
   const lowerFocus = focus.toLowerCase();
@@ -136,12 +144,14 @@ function dayExercises(focus: string, goal: string, level: string) {
     ],
   };
 
-  if (lowerFocus.includes("upper")) return plans.upper;
-  if (lowerFocus.includes("lower")) return plans.lower;
-  if (lowerFocus.includes("strength")) return plans.full;
-  if (lowerFocus.includes("conditioning")) return plans.conditioning;
+  let selectedPlan: any[];
+  if (lowerFocus.includes("upper")) selectedPlan = plans.upper;
+  else if (lowerFocus.includes("lower")) selectedPlan = plans.lower;
+  else if (lowerFocus.includes("strength")) selectedPlan = plans.full;
+  else if (lowerFocus.includes("conditioning")) selectedPlan = plans.conditioning;
+  else selectedPlan = plans[focus] || plans.full;
 
-  return plans[focus] || plans.full;
+  return attachMovementIds(selectedPlan);
 }
 
 function splitForDays(daysPerWeek: number, preferredFocus: string) {
