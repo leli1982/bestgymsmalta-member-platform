@@ -8,7 +8,7 @@ const trainer = readFileSync(new URL("../components/trainer/AiTrainer.tsx", impo
 test("generated known Trainer exercises gain stable movement IDs without changing programming", () => {
   assert.match(route, /resolveMovement/);
   assert.match(route, /movementId:\s*movement\.id/);
-  assert.match(route, /Chest Press Machine["']\s*,\s*sets:\s*["']4["']\s*,\s*reps:\s*["']10["']/);
+  assert.match(route, /Chest Press Machine["']\s*,\s*sets:\s*guide\.main\s*,\s*reps:\s*guide\.reps/);
   assert.match(route, /Dumbbell Curl/);
   assert.match(route, /return\s+movement\s*\?\s*\{\s*\.\.\.exercise,\s*movementId:\s*movement\.id\s*\}\s*:\s*exercise/);
 });
