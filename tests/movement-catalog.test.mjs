@@ -6,7 +6,6 @@ import { fileURLToPath } from "node:url";
 const catalogUrl = new URL("../lib/movements/catalog.ts", import.meta.url);
 const groupsUrl = new URL("../lib/movements/mobilityGroups.ts", import.meta.url);
 const trainerUrl = new URL("../app/api/member/workout-plan/route.ts", import.meta.url);
-const mobilityUrl = new URL("../components/mobility/MobilityStretchPage.tsx", import.meta.url);
 
 assert.ok(existsSync(fileURLToPath(catalogUrl)), "movement catalog must exist");
 assert.ok(existsSync(fileURLToPath(groupsUrl)), "mobility groups must exist");
@@ -77,11 +76,14 @@ test("all current Trainer exercise names are represented by a canonical name or 
   for (const name of trainerNames) assert.ok(names.has(normalize(name)), `Trainer movement is missing from catalog: ${name}`);
 });
 
-test("all current Mobility & Stretch movement names are represented", () => {
-  const names = representedNames();
-  const mobilityNames = sourceMovementNames(mobilityUrl);
-  assert.ok(mobilityNames.length > 20, "expected current Mobility & Stretch seed data");
-  for (const name of mobilityNames) assert.ok(names.has(normalize(name)), `Mobility movement is missing from catalog: ${name}`);
+test("shared Mobility grouping data preserves broad movement coverage", () => {
+  const ids = new Set(movementCatalog.map((movement) => movement.id));
+  const mobilityIds = new Set(
+    mobilityGroups.flatMap((group) => group.entries.map((entry) => entry.movementId)),
+  );
+
+  assert.ok(mobilityIds.size > 20, "expected current Mobility & Stretch movement coverage");
+  for (const id of mobilityIds) assert.ok(ids.has(id), `Mobility movement is missing from catalog: ${id}`);
 });
 
 test("diagram assets remain optional while the catalogue is first seeded", () => {
