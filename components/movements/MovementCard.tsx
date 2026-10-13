@@ -43,7 +43,7 @@ export default function MovementCard({
       className="overflow-hidden rounded-2xl border border-zinc-200 border-t-2 border-t-[#ff5a0a] bg-white text-zinc-950 shadow-sm"
     >
       {movement ? (
-        <div className="border-b border-zinc-100 bg-zinc-50/70 p-3">
+        <div className="border-b border-zinc-100 bg-white p-3">
           {diagramAsset ? (
             <Image
               src={diagramAsset}
