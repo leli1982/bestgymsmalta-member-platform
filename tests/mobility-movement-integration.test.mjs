@@ -52,7 +52,7 @@ test("Mobility page renders shared movement cards without duplicating canonical 
 
 test("Mobility retains safety introduction and controlled category selector", () => {
   assert.match(page, /Important/);
-  assert.match(page, /Stop if you feel pain, numbness, dizziness or sharp discomfort/);
+  assert.match(page, /Stop if you feel pain,\s+numbness, dizziness or sharp discomfort/);
   assert.match(page, /value=\{selectedCategory\}/);
   assert.match(page, /setSelectedCategory\(event\.target\.value\)/);
 });
