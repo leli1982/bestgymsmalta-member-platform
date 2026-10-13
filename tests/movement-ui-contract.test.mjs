@@ -34,6 +34,11 @@ test("MovementCard uses the shared light BGM surface and supports visual assets 
   assert.doesNotMatch(card, /<svg[^>]*>[\s\S]*?(?:circle|line|path)[\s\S]*?<\/svg>/i);
 });
 
+test("movement diagrams sit on a pure white presentation surface", () => {
+  assert.match(card, /border-b border-zinc-100 bg-white p-3/);
+  assert.doesNotMatch(card, /bg-zinc-50\/70/);
+});
+
 test("unknown movements retain their original name, programming and notes instead of disappearing", () => {
   assert.match(card, /\{name\}/);
   assert.match(card, /programming\.sets/);
