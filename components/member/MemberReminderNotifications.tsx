@@ -357,7 +357,7 @@ export default function MemberReminderNotifications() {
             <label className="flex items-center justify-between gap-4 rounded-xl bg-white p-3 text-sm font-bold text-zinc-800">
               <span>
                 Motivation &amp; streaks
-                <span className="mt-0.5 block text-xs font-semibold text-zinc-500">3-day inactivity and streak achievement pushes.</span>
+                <span className="mt-0.5 block text-xs font-semibold text-zinc-500">Comeback reminders while you’re away, plus streak achievement pushes.</span>
               </span>
               <input
                 type="checkbox"
