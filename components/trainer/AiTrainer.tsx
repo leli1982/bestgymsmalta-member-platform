@@ -1,6 +1,8 @@
 "use client";
 
+import MovementCard from "@/components/movements/MovementCard";
 import { formatEuropeanDate } from "@/lib/europeanDate";
+import { resolveMovement } from "@/lib/movements/resolveMovement";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
@@ -26,6 +28,7 @@ import { getSavedMember, type AppMember } from "@/lib/memberSession";
 type Exercise =
   | string
   | {
+      movementId?: string;
       name?: string;
       sets?: string;
       reps?: string;
@@ -141,33 +144,36 @@ function normalizePlanPayload(data: any): WorkoutPlan | null {
 
 function renderExercise(exercise: Exercise, index: number) {
   if (typeof exercise === "string") {
+    const movement = resolveMovement(exercise);
     return (
-      <li
-        key={index}
-        className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm font-bold leading-6 text-zinc-700"
-      >
-        {exercise}
+      <li key={index}>
+        <MovementCard
+          name={exercise}
+          movement={movement}
+          context="trainer"
+        />
       </li>
     );
   }
 
+  const name = exercise.name || `Exercise ${index + 1}`;
+  const movement = resolveMovement({
+    movementId: exercise.movementId,
+    name: exercise.name,
+  });
+
   return (
-    <li key={index} className="rounded-2xl border border-zinc-200 bg-white p-4">
-      <p className="text-sm font-black text-zinc-950">
-        {exercise.name || `Exercise ${index + 1}`}
-      </p>
-
-      {exercise.sets || exercise.reps ? (
-        <p className="mt-1 text-xs font-black text-[#ff5a0a]">
-          {[exercise.sets, exercise.reps].filter(Boolean).join(" × ")}
-        </p>
-      ) : null}
-
-      {exercise.notes ? (
-        <p className="mt-2 text-xs font-bold leading-5 text-zinc-500">
-          {exercise.notes}
-        </p>
-      ) : null}
+    <li key={index}>
+      <MovementCard
+        name={name}
+        movement={movement}
+        programming={{
+          sets: exercise.sets,
+          reps: exercise.reps,
+          notes: exercise.notes,
+        }}
+        context="trainer"
+      />
     </li>
   );
 }
