@@ -35,6 +35,18 @@ test("engagement engine combines preferences, active subscriptions and motivatio
   assert.match(engine, /motivationalEnabled:\s*preference\?\.motivational_enabled\s*\?\?\s*true/);
 });
 
+test("inactivity can continue beyond the recent streak window without scanning all attendance history", () => {
+  const engine = sourceIfPresent(enginePath);
+  assert.match(engine, /loadRecentInactivityAnchors/);
+  assert.match(engine, /bgm_member_engagement_notification_log/);
+  assert.match(engine, /event_type/);
+  assert.match(engine, /inactivity/);
+  assert.match(engine, /loadLatestCanonicalCheckin/);
+  assert.match(engine, /\.eq\("member_id",\s*memberId\)/);
+  assert.match(engine, /inactivityAnchorDate/);
+  assert.match(engine, /latestCanonicalCheckin/);
+});
+
 test("engagement events are claimed durably before in-app creation and generic push delivery", () => {
   const engine = sourceIfPresent(enginePath);
   const claimIndex = engine.indexOf('.from("bgm_member_engagement_notification_log")');

@@ -7,6 +7,8 @@ const coreUrl = new URL("../lib/memberEngagementCore.ts", import.meta.url);
 assert.ok(existsSync(fileURLToPath(coreUrl)), "memberEngagementCore.ts must exist before C3 behavior can pass");
 
 const {
+  ENGAGEMENT_INACTIVITY_MILESTONES,
+  ENGAGEMENT_INACTIVITY_REPEAT_DAYS,
   ENGAGEMENT_STREAK_MILESTONES,
   attendanceDatesFromCheckins,
   buildInactivityEvent,
@@ -24,18 +26,32 @@ test("canonical check-ins resolve to Malta calendar dates and same-day visits co
   assert.deepEqual(dates, ["2026-10-25", "2026-10-26"]);
 });
 
-test("inactivity fires only at exactly three complete Malta calendar days", () => {
-  assert.equal(buildInactivityEvent(["2026-10-05"], "2026-10-07"), null);
-  assert.deepEqual(buildInactivityEvent(["2026-10-05"], "2026-10-08"), {
-    eventType: "inactivity",
-    eventKey: "inactivity:2026-10-05",
-    eventDate: "2026-10-08",
-    title: "We miss you at BGM 💪",
-    body: "It’s been 3 days since your last workout. Ready for the next one?",
-    href: "/gyms",
-  });
-  assert.equal(buildInactivityEvent(["2026-10-05"], "2026-10-09"), null);
-  assert.equal(buildInactivityEvent([], "2026-10-08"), null);
+test("inactivity nudges use the approved milestone cadence and repeat every 14 days after day 30", () => {
+  assert.deepEqual(ENGAGEMENT_INACTIVITY_MILESTONES, [3, 5, 7, 10, 14, 21, 30]);
+  assert.equal(ENGAGEMENT_INACTIVITY_REPEAT_DAYS, 14);
+
+  const lastVisit = "2026-10-01";
+  const expectedDays = [3, 5, 7, 10, 14, 21, 30, 44, 58, 72];
+  for (const daysAway of expectedDays) {
+    const date = new Date(Date.UTC(2026, 9, 1 + daysAway)).toISOString().slice(0, 10);
+    const event = buildInactivityEvent([lastVisit], date);
+    assert.ok(event, `expected inactivity event at ${daysAway} days away`);
+    assert.equal(event.eventKey, `inactivity:${lastVisit}:${daysAway}`);
+    assert.match(event.body, new RegExp(`\\b${daysAway}\\b`));
+    assert.equal(event.href, "/gyms");
+  }
+
+  for (const daysAway of [1, 2, 4, 6, 8, 9, 11, 13, 15, 20, 22, 29, 31, 43, 45, 57, 59]) {
+    const date = new Date(Date.UTC(2026, 9, 1 + daysAway)).toISOString().slice(0, 10);
+    assert.equal(buildInactivityEvent([lastVisit], date), null, `did not expect event at ${daysAway} days away`);
+  }
+});
+
+test("a new gym check-in resets the inactivity cadence from the latest attendance date", () => {
+  const event = buildInactivityEvent(["2026-10-01", "2026-10-10"], "2026-10-13");
+  assert.ok(event);
+  assert.equal(event.eventKey, "inactivity:2026-10-10:3");
+  assert.equal(buildInactivityEvent([], "2026-10-13"), null);
 });
 
 test("streak milestones are fixed and duplicate same-day visits cannot inflate them", () => {

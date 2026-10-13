@@ -94,7 +94,7 @@ export default function MemberEngagementSettingsAdmin() {
         <label className="flex items-center justify-between rounded-xl border border-zinc-200 p-4 text-sm font-bold">
           <span>
             Inactivity notifications
-            <span className="mt-0.5 block text-xs font-semibold text-zinc-500">Remind eligible members after exactly 3 complete Malta calendar days away.</span>
+            <span className="mt-0.5 block text-xs font-semibold text-zinc-500">Send eligible members friendly comeback reminders at 3, 5, 7, 10, 14, 21 and 30 days away, then every 14 days until they return.</span>
           </span>
           <input type="checkbox" checked={settings.inactivityEnabled} onChange={(event) => setSettings((current) => ({ ...current, inactivityEnabled: event.target.checked }))} className="h-5 w-5 accent-orange-600" />
         </label>
