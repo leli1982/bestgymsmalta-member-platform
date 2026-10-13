@@ -43,6 +43,13 @@ type CheckinRow = {
   source: string | null;
 };
 
+type InactivityAnchorRow = {
+  id: string;
+  member_id: string;
+  event_key: string;
+  event_date: string;
+};
+
 export type MemberEngagementRunSummary = {
   enabled: boolean;
   businessDate: string;
@@ -150,6 +157,60 @@ async function loadCanonicalCheckins(memberIds: string[], businessDate: string):
   return rows;
 }
 
+function inactivityAnchorDate(eventKey: string): string | null {
+  const match = /^inactivity:(\d{4}-\d{2}-\d{2})(?::\d+)?$/.exec(eventKey);
+  return match?.[1] || null;
+}
+
+async function loadRecentInactivityAnchors(
+  memberIds: string[],
+  businessDate: string,
+): Promise<Map<string, string>> {
+  const anchors = new Map<string, string>();
+  if (!memberIds.length) return anchors;
+
+  const db = getSupabaseAdmin();
+  const fromDate = addCalendarDays(businessDate, -ATTENDANCE_LOOKBACK_DAYS);
+
+  for (let from = 0; ; from += CHECKIN_PAGE_SIZE) {
+    const result = await db
+      .from("bgm_member_engagement_notification_log")
+      .select("id,member_id,event_key,event_date")
+      .in("member_id", memberIds)
+      .eq("event_type", "inactivity")
+      .gte("event_date", fromDate)
+      .lte("event_date", businessDate)
+      .order("event_date", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, from + CHECKIN_PAGE_SIZE - 1);
+    if (result.error) throw result.error;
+
+    const page = (result.data || []) as InactivityAnchorRow[];
+    for (const row of page) {
+      if (anchors.has(row.member_id)) continue;
+      const anchor = inactivityAnchorDate(row.event_key);
+      if (anchor) anchors.set(row.member_id, anchor);
+    }
+    if (page.length < CHECKIN_PAGE_SIZE) break;
+  }
+
+  return anchors;
+}
+
+async function loadLatestCanonicalCheckin(memberId: string): Promise<CheckinRow | null> {
+  const result = await getSupabaseAdmin()
+    .from("bgm_member_checkins")
+    .select("id,member_id,checkin_at,source")
+    .eq("member_id", memberId)
+    .in("source", ["qr", "nfc", "barcode"])
+    .order("checkin_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (result.error) throw result.error;
+  return (result.data as CheckinRow | null) || null;
+}
+
 async function claimEvent(memberId: string, event: EngagementEvent): Promise<string | null> {
   const now = new Date().toISOString();
   const result = await getSupabaseAdmin()
@@ -246,9 +307,20 @@ async function processMember(input: {
   preference: PreferenceRow | undefined;
   hasActiveSubscription: boolean;
   checkins: CheckinRow[];
+  inactivityAnchorDate: string | undefined;
   summary: MemberEngagementRunSummary;
 }) {
-  const { member, businessDate, settings, preference, hasActiveSubscription, checkins, summary } = input;
+  const {
+    member,
+    businessDate,
+    settings,
+    preference,
+    hasActiveSubscription,
+    checkins,
+    inactivityAnchorDate: storedInactivityAnchorDate,
+    summary,
+  } = input;
+
   const eligibility = evaluateMotivationalEligibility({
     appEnrolled: member.app_enrolled === true,
     archivedAt: member.archived_at,
@@ -267,9 +339,23 @@ async function processMember(input: {
   summary.eligible += 1;
 
   const attendanceDates = attendanceDatesFromCheckins(checkins);
+  let inactivityDates = attendanceDates;
+  let latestCanonicalCheckin: CheckinRow | null = null;
+
+  if (settings.inactivityEnabled && !inactivityDates.length) {
+    if (storedInactivityAnchorDate) {
+      inactivityDates = [storedInactivityAnchorDate];
+    } else {
+      latestCanonicalCheckin = await loadLatestCanonicalCheckin(member.id);
+      if (latestCanonicalCheckin) {
+        inactivityDates = attendanceDatesFromCheckins([latestCanonicalCheckin]);
+      }
+    }
+  }
+
   const events: EngagementEvent[] = [];
   if (settings.inactivityEnabled) {
-    const event = buildInactivityEvent(attendanceDates, businessDate);
+    const event = buildInactivityEvent(inactivityDates, businessDate);
     if (event) events.push(event);
   }
   if (settings.streakEnabled) {
@@ -313,10 +399,13 @@ export async function runMemberEngagementNotifications(
     summary.candidates += members.length;
 
     const memberIds = members.map((member) => member.id);
-    const [preferences, subscriptionMemberIds, checkins] = await Promise.all([
+    const [preferences, subscriptionMemberIds, checkins, inactivityAnchors] = await Promise.all([
       loadPreferences(memberIds),
       loadActiveSubscriptionMemberIds(memberIds),
       loadCanonicalCheckins(memberIds, businessDate),
+      settings.inactivityEnabled
+        ? loadRecentInactivityAnchors(memberIds, businessDate)
+        : Promise.resolve(new Map<string, string>()),
     ]);
 
     const checkinsByMember = new Map<string, CheckinRow[]>();
@@ -335,6 +424,7 @@ export async function runMemberEngagementNotifications(
           preference: preferences.get(member.id),
           hasActiveSubscription: subscriptionMemberIds.has(member.id),
           checkins: checkinsByMember.get(member.id) || [],
+          inactivityAnchorDate: inactivityAnchors.get(member.id),
           summary,
         });
       } catch (error) {
