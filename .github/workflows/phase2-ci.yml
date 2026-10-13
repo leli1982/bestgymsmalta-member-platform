@@ -39,10 +39,7 @@ jobs:
           node /tmp/bgm-ci-playwright/node_modules/playwright/cli.js install --with-deps chromium
 
       - name: Run tests
-        run: |
-          mkdir -p test-artifacts/unit-tests
-          set -o pipefail
-          node --experimental-strip-types --test tests/*.test.mjs 2>&1 | tee test-artifacts/unit-tests/output.log
+        run: node --experimental-strip-types --test tests/*.test.mjs
 
       - name: Type check
         run: npx tsc --noEmit
@@ -102,14 +99,6 @@ jobs:
 
       - name: Verify tablet enrollment workflow in Chromium
         run: node tests/browser/tablet-enrollment.mjs
-
-      - name: Save unit test output
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: unit-test-output
-          path: test-artifacts/unit-tests/output.log
-          if-no-files-found: error
 
       - name: Save member UI screenshots
         if: always()
