@@ -1,7 +1,10 @@
 import { todayMaltaDate } from "./maltaDate.ts";
 
 export const ENGAGEMENT_STREAK_MILESTONES = [3, 5, 7, 14, 30] as const;
-export const ENGAGEMENT_INACTIVITY_DAYS = 3;
+export const ENGAGEMENT_INACTIVITY_MILESTONES = [3, 5, 7, 10, 14, 21, 30] as const;
+export const ENGAGEMENT_INACTIVITY_REPEAT_DAYS = 14;
+// Kept for compatibility with code/tests that still refer to the first inactivity threshold.
+export const ENGAGEMENT_INACTIVITY_DAYS = ENGAGEMENT_INACTIVITY_MILESTONES[0];
 
 export type EngagementEvent = {
   eventType: "inactivity" | "streak";
@@ -52,19 +55,76 @@ export function attendanceDatesFromCheckins(checkins: CheckinLike[]): string[] {
   );
 }
 
+function isInactivityNudgeDay(daysAway: number) {
+  if ((ENGAGEMENT_INACTIVITY_MILESTONES as readonly number[]).includes(daysAway)) return true;
+  const finalMilestone = ENGAGEMENT_INACTIVITY_MILESTONES.at(-1) ?? 30;
+  return daysAway > finalMilestone
+    && (daysAway - finalMilestone) % ENGAGEMENT_INACTIVITY_REPEAT_DAYS === 0;
+}
+
+function inactivityCopy(daysAway: number) {
+  switch (daysAway) {
+    case 3:
+      return {
+        title: "Your next BGM session is waiting 💪",
+        body: "3 days away already — how about a quick BGM session today?",
+      };
+    case 5:
+      return {
+        title: "Five-day comeback challenge 🔥",
+        body: "5 days away. One workout today is all it takes to restart the momentum.",
+      };
+    case 7:
+      return {
+        title: "A week away — comeback time? 👟",
+        body: "7 days since your last BGM visit. Future you will be glad you went today.",
+      };
+    case 10:
+      return {
+        title: "Let’s get moving ⚡",
+        body: "10 days away. Even a short session counts — come get that win.",
+      };
+    case 14:
+      return {
+        title: "Two weeks — time for a comeback 💪",
+        body: "14 days away. No need to be perfect — just show up and restart.",
+      };
+    case 21:
+      return {
+        title: "Your gym misses you 👀",
+        body: "21 days away. How about making today your comeback day?",
+      };
+    case 30:
+      return {
+        title: "30-day comeback mission 🏆",
+        body: "30 days away. Start fresh today — one session, one win.",
+      };
+    default:
+      return {
+        title: "Ready for a BGM comeback? 🔥",
+        body: `${daysAway} days since your last visit. Your comeback can start with one workout today.`,
+      };
+  }
+}
+
 export function buildInactivityEvent(
   attendanceDates: string[],
   businessDate: string,
 ): EngagementEvent | null {
   const dates = uniqueSortedDates(attendanceDates);
   const latest = dates.at(-1);
-  if (!latest || dayDistance(latest, businessDate) !== ENGAGEMENT_INACTIVITY_DAYS) return null;
+  if (!latest) return null;
+
+  const daysAway = dayDistance(latest, businessDate);
+  if (daysAway < 0 || !isInactivityNudgeDay(daysAway)) return null;
+
+  const copy = inactivityCopy(daysAway);
   return {
     eventType: "inactivity",
-    eventKey: `inactivity:${latest}`,
+    eventKey: `inactivity:${latest}:${daysAway}`,
     eventDate: businessDate,
-    title: "We miss you at BGM 💪",
-    body: "It’s been 3 days since your last workout. Ready for the next one?",
+    title: copy.title,
+    body: copy.body,
     href: "/gyms",
   };
 }
