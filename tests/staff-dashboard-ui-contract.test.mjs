@@ -61,7 +61,9 @@ test("member browser keeps profile fields read-only while exposing canonical sta
   assert.doesNotMatch(browser, /Save Member|Update Member|Delete Member/);
   assert.match(browser, /canRenew/);
   assert.match(browser, /RENEW MEMBERSHIP/);
-  assert.match(browser, /Physical card \/ pkCustomer/);
+  assert.match(browser, /Current physical card/);
+  assert.match(browser, /Legacy pkCustomer/);
+  assert.doesNotMatch(browser, /Physical card \/ pkCustomer/);
   assert.match(browser, /legacyGym\s*\|\|\s*selected\.enrollmentGymName/);
 });
 
