@@ -27,11 +27,52 @@ function positiveInteger(value: string | null, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+async function loadCurrentPhysicalCards(supabase: any, members: any[]) {
+  const memberIds = Array.from(
+    new Set(members.map((member) => member.id).filter((id): id is string => Boolean(id)))
+  );
+  const cards = new Map<string, string>();
+  if (!memberIds.length) return cards;
+
+  const result = await supabase
+    .from("bgm_member_card_credentials")
+    .select("member_id,barcode_value,updated_at")
+    .in("member_id", memberIds)
+    .eq("status", "active")
+    .order("updated_at", { ascending: false });
+
+  if (result.error) {
+    console.error(result.error);
+    return cards;
+  }
+
+  for (const credential of result.data || []) {
+    if (credential.member_id && credential.barcode_value && !cards.has(credential.member_id)) {
+      cards.set(credential.member_id, credential.barcode_value);
+    }
+  }
+  return cards;
+}
+
+async function toCandidates(
+  supabase: any,
+  members: any[],
+  canViewOfficialPhoto: boolean,
+  today: string,
+  gymNames: Map<string, string>
+) {
+  const currentPhysicalCards = await loadCurrentPhysicalCards(supabase, members);
+  return members.map((member) =>
+    toCandidate(member, canViewOfficialPhoto, today, gymNames, currentPhysicalCards)
+  );
+}
+
 function toCandidate(
   member: any,
   canViewOfficialPhoto: boolean,
   today: string,
-  gymNames: Map<string, string>
+  gymNames: Map<string, string>,
+  currentPhysicalCards: Map<string, string>
 ) {
   const classification = classifyStaffMember({
     status: member.status,
@@ -66,6 +107,7 @@ function toCandidate(
     enrollmentGymName: member.enrollment_gym_id
       ? gymNames.get(member.enrollment_gym_id) || ""
       : "",
+    currentPhysicalCard: currentPhysicalCards.get(member.id) || "",
     legacyPkCustomer: member.legacy_pk_customer || "",
     legacyGym: member.legacy_gym || "",
     officialPhotoPath: canViewOfficialPhoto
@@ -160,8 +202,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const candidates = (browseResult.data || []).map((member) =>
-      toCandidate(member, canViewOfficialPhoto, today, gymNames)
+    const candidates = await toCandidates(
+      supabase,
+      browseResult.data || [],
+      canViewOfficialPhoto,
+      today,
+      gymNames
     );
     const total = browseResult.count || 0;
 
@@ -197,11 +243,15 @@ export async function GET(request: NextRequest) {
   }
 
   if ((exactResult.data || []).length > 0) {
-    const candidates = (exactResult.data || [])
-      .map((member) => toCandidate(member, canViewOfficialPhoto, today, gymNames))
-      .filter((candidate) =>
-        matchesStaffMemberFilter(candidate.classification, requestedStatus)
-      );
+    const candidates = (await toCandidates(
+      supabase,
+      exactResult.data || [],
+      canViewOfficialPhoto,
+      today,
+      gymNames
+    )).filter((candidate) =>
+      matchesStaffMemberFilter(candidate.classification, requestedStatus)
+    );
 
     return NextResponse.json({
       candidates,
@@ -239,9 +289,13 @@ export async function GET(request: NextRequest) {
       console.error(cardMembersResult.error);
       return NextResponse.json({ error: "Could not find the member assigned to this card." }, { status: 500 });
     }
-    const candidates = (cardMembersResult.data || [])
-      .map((member) => toCandidate(member, canViewOfficialPhoto, today, gymNames))
-      .filter((candidate) => matchesStaffMemberFilter(candidate.classification, requestedStatus));
+    const candidates = (await toCandidates(
+      supabase,
+      cardMembersResult.data || [],
+      canViewOfficialPhoto,
+      today,
+      gymNames
+    )).filter((candidate) => matchesStaffMemberFilter(candidate.classification, requestedStatus));
     return NextResponse.json({
       candidates,
       exactMembershipNumber: false,
@@ -336,12 +390,16 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const filteredCandidates = Array.from(uniqueCandidates.values())
-    .sort(sortMembersByName)
-    .map((member) => toCandidate(member, canViewOfficialPhoto, today, gymNames))
-    .filter((candidate) =>
-      matchesStaffMemberFilter(candidate.classification, requestedStatus)
-    );
+  const sortedMembers = Array.from(uniqueCandidates.values()).sort(sortMembersByName);
+  const filteredCandidates = (await toCandidates(
+    supabase,
+    sortedMembers,
+    canViewOfficialPhoto,
+    today,
+    gymNames
+  )).filter((candidate) =>
+    matchesStaffMemberFilter(candidate.classification, requestedStatus)
+  );
   const offset = (page - 1) * limit;
   const candidates = filteredCandidates.slice(offset, offset + limit);
 
