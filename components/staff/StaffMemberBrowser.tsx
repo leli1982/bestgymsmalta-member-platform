@@ -22,6 +22,7 @@ type StaffMember = {
   idNumber: string;
   enrollmentGymId: string | null;
   enrollmentGymName: string;
+  currentPhysicalCard: string;
   legacyPkCustomer: string;
   legacyGym: string;
   photoUrl: string | null;
@@ -283,7 +284,8 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, c
             <dl className="mt-6 grid gap-3 sm:grid-cols-2">
               {[
                 ["BGM member number", selected.memberNumber || "—"],
-                ["Physical card / pkCustomer", selected.legacyPkCustomer || "—"],
+                ["Current physical card", selected.currentPhysicalCard || "—"],
+                ["Legacy pkCustomer", selected.legacyPkCustomer || "—"],
                 ["ID number", selected.idNumber || "—"],
                 ["Membership expiry", formatEuropeanDate(selected.membershipExpiry)],
                 ["Phone", selected.mobile || "—"],
