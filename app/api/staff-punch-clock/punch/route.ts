@@ -85,6 +85,7 @@ export async function handleStaffPunch(
       return kioskError("invalid_request", "The punch could not be processed.", 400);
     }
 
+    const duplicateIgnored = punch.outcome === "duplicate_ignored";
     const db = getSupabaseAdmin();
     const anchor = new Date(punch.effectiveAt || match.matchedAt);
     const businessDate = todayMaltaDate(anchor);
@@ -132,6 +133,7 @@ export async function handleStaffPunch(
       {
         ok: true,
         outcome: punch.outcome,
+        message: duplicateIgnored ? "Punch already recorded." : null,
         employee: {
           firstName: employeeResult.data.first_name,
           surname: employeeResult.data.surname,
