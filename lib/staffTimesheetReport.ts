@@ -146,7 +146,7 @@ function periodTotals(
     accumulate(row, segment);
     totals.set(key, row);
   }
-  return [...totals.values()].sort((a, b) => a.key.localeCompare(b.key));
+  return Array.from(totals.values()).sort((a, b) => a.key.localeCompare(b.key));
 }
 
 export function buildStaffTimesheetEmployeeReport(
@@ -232,7 +232,7 @@ export function buildStaffTimesheetEmployeeReport(
     });
   }
 
-  const sortedDays = [...days.values()].sort((a, b) => a.date.localeCompare(b.date));
+  const sortedDays = Array.from(days.values()).sort((a, b) => a.date.localeCompare(b.date));
   for (const day of sortedDays) {
     day.allocations.sort((a, b) => a.clockInAt.localeCompare(b.clockInAt));
   }
