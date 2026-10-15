@@ -1,4 +1,4 @@
-import { maltaDayUtcRange, todayMaltaDate } from "@/lib/maltaDate";
+import { maltaDayUtcRange, todayMaltaDate } from "./maltaDate.ts";
 
 export const MIDNIGHT_AUTO_CLOCK_OUT_ATTENTION_CODE = "midnight_auto_clock_out" as const;
 export const MIDNIGHT_AUTO_CLOCK_OUT_LABEL = "System – Midnight Auto Clock-Out" as const;
