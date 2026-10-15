@@ -35,7 +35,7 @@ test("midnight close records exact effective cutoff and leaves the session needi
 test("midnight close is retry safe", () => {
   assert.match(migration, /staff-midnight-auto-clock-out:/);
   assert.match(migration, /on conflict\s*\(event_key\)\s*do nothing/i);
-  assert.match(migration, /for update skip locked/i);
+  assert.match(migration, /for update(?:\s+of\s+s)?\s+skip locked/i);
 });
 
 test("midnight cron is secret protected and invokes only the atomic database function", () => {
