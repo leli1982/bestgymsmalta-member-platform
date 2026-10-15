@@ -173,7 +173,7 @@ export default function StaffPunchClockKiosk() {
         {(state === "error" || state === "terminal_not_registered" || state === "inactive" || state === "needs_attention") && <button onClick={()=>void loadTerminal()} className="mt-7 rounded-xl bg-white px-5 py-3 text-sm font-black text-zinc-950">Try again</button>}
       </section>
 
-      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5 text-xs text-zinc-500"><span>Online-only attendance · Europe/Malta</span><span>No payroll information is shown on this terminal.</span></footer>
+      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5 text-xs text-zinc-500"><span>Online-only attendance · Europe/Malta</span><span>Compensation details are never shown on this terminal.</span></footer>
     </div>
   </main>;
 }
