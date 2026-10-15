@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CalendarDays, Clock3, Fingerprint, Plus, Search, UserRound, UsersRound } from "lucide-react";
 import StaffEmployeeDetail from "@/components/staff/StaffEmployeeDetail";
 import StaffPublicHolidaysAdmin from "@/components/staff/StaffPublicHolidaysAdmin";
+import StaffTerminalsAdmin from "@/components/staff/StaffTerminalsAdmin";
 import { parseEuropeanDate } from "@/lib/europeanDate";
 
 type Gym = { id: string; name: string; status?: string };
@@ -117,7 +118,7 @@ export default function StaffEmployeesAdmin() {
 
       {area === "Public Holidays" && <StaffPublicHolidaysAdmin/>}
       {area === "Timesheets" && <Coming title="Timesheets" text="The employee records are ready. Attendance totals and payroll reports are connected in the next implementation plan." icon={<Clock3 className="h-10 w-10"/>}/>} 
-      {area === "Punch Clock Terminals" && <Coming title="Punch Clock Terminals" text="Terminal registration and the online punch state machine are connected in the next implementation plan." icon={<Fingerprint className="h-10 w-10"/>}/>} 
+      {area === "Punch Clock Terminals" && <StaffTerminalsAdmin/>}
 
       {area === "Employees" && <>
         {!selectedId && <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
