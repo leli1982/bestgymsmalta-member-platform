@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import MembershipReminderSettingsAdmin from "@/components/admin/MembershipReminderSettingsAdmin";
+import MemberEngagementSettingsAdmin from "@/components/admin/MemberEngagementSettingsAdmin";
 
 type Settings = {
   ordersEmail: string;
@@ -216,7 +217,7 @@ export default function NotificationSettingsAdmin() {
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-orange-600">BestGymsMalta</p>
             <h1 className="mt-1 text-3xl font-bold">Notifications</h1>
-            <p className="mt-2 text-sm text-zinc-600">Configure how new Sundries and Bar orders alert management.</p>
+            <p className="mt-2 text-sm text-zinc-600">Configure management alerts, member renewal reminders and engagement notifications.</p>
           </div>
           <a href="/staff/admin" className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold">Back to Super Admin</a>
         </header>
@@ -256,6 +257,7 @@ export default function NotificationSettingsAdmin() {
         </form>
 
         <MembershipReminderSettingsAdmin />
+        <MemberEngagementSettingsAdmin />
 
         <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">

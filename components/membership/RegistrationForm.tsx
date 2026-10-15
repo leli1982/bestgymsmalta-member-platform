@@ -1,6 +1,7 @@
 "use client";
 
 import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+import { MALTA_LOCALITIES } from "@/lib/maltaLocalities";
 
 import { useMemo, useState, type FormEvent } from "react";
 import {
@@ -346,7 +347,7 @@ export default function RegistrationForm({
                 ) : null}
                 <label className="text-sm font-bold text-zinc-800 sm:col-span-2">Address<input value={participant.addressLine1} onChange={(event) => updateParticipant(index, "addressLine1", event.target.value)} className={inputClass()} autoComplete="address-line1" /></label>
                 <label className="text-sm font-bold text-zinc-800 sm:col-span-2">Address line 2 <span className="font-medium text-zinc-400">(optional)</span><input value={participant.addressLine2} onChange={(event) => updateParticipant(index, "addressLine2", event.target.value)} className={inputClass()} autoComplete="address-line2" /></label>
-                <label className="text-sm font-bold text-zinc-800">Town / locality<input value={participant.town} onChange={(event) => updateParticipant(index, "town", event.target.value)} className={inputClass()} autoComplete="address-level2" /></label>
+                <label className="text-sm font-bold text-zinc-800">Town / locality<select value={participant.town} onChange={(event) => updateParticipant(index, "town", event.target.value)} className={inputClass()} autoComplete="address-level2"><option value="">Choose locality</option>{MALTA_LOCALITIES.map((locality) => <option key={locality} value={locality}>{locality}</option>)}</select></label>
                 <label className="text-sm font-bold text-zinc-800">Postcode <span className="font-medium text-zinc-400">(optional)</span><input value={participant.postcode} onChange={(event) => updateParticipant(index, "postcode", event.target.value)} className={inputClass()} autoComplete="postal-code" /></label>
               </div>
             ) : (

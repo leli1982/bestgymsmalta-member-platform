@@ -7,13 +7,12 @@ const root = new URL("..", import.meta.url).pathname;
 const read = (path) => readFileSync(join(root, path), "utf8");
 const migrationPath = "supabase/migrations/20260918_123000_permanent_member_number_dual_barcode.sql";
 
-test("legacy members receive permanent BGM numbers without losing duplicate pkCustomer values", () => {
+test("historical permanent-number migration preserves duplicate pkCustomer values", () => {
   assert.equal(existsSync(join(root, migrationPath)), true);
   const sql = read(migrationPath);
   assert.equal(sql.includes("bgm_next_member_number()"), true);
   assert.equal(sql.includes("legacy_pk_customer"), true);
   assert.equal(sql.includes("duplicate legacy members"), true);
-  assert.equal(sql.includes("^BGM[0-9]{7}$"), true);
   assert.equal(sql.includes("create unique index"), true);
   assert.equal(sql.includes("before insert or update of member_number"), true);
 });

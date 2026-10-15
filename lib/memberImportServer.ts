@@ -11,6 +11,7 @@ import {
 import { parseMemberExchangeCsv } from "@/lib/memberExchangeCsv";
 import { parseMemberExchangeXlsx } from "@/lib/memberExchangeWorkbook";
 import { normalizeBarcodePayload } from "@/lib/memberCardCredentialCore";
+import { parseMembershipNumber } from "@/lib/memberNumberCore";
 import { todayMaltaDate } from "@/lib/maltaDate";
 import {
   oldSystemFullName,
@@ -1268,7 +1269,7 @@ function classifyRows(
           warningSourceRows.add(row.rowNumber);
         }
       } else if (memberNumber) {
-        if (!/^BGM[0-9]{7}$/.test(memberNumber)) {
+        if (parseMembershipNumber(memberNumber) === null) {
           action = "invalid";
           issue = "Invalid permanent BGM membership number.";
         } else {

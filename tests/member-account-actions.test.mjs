@@ -10,7 +10,8 @@ test("archived accounts cannot enter with barcode or NFC even with a valid membe
   const member = { status: "archived", membershipExpiry: "2027-12-31", cancellationEffectiveDate: null };
   assert.equal(evaluateBarcodeAccess({ member, today: "2026-09-23" }).granted, false);
   assert.equal(evaluateNfcAccess({ member, card: { status: "active" }, today: "2026-09-23" }).granted, false);
-  assert.match(read("app/api/member/auth/login/route.ts"), /member\.status !== "active"/);
+  assert.match(read("app/api/member/auth/login/route.ts"), /member\.status === "archived"/);
+  assert.match(read("app/api/member/auth/session/route.ts"), /result\.data\.status === "archived"/);
   assert.match(read("app/api/checkins/route.ts"), /member\.status !== "active"/);
   assert.match(read("app/api/member/card/route.ts"), /memberResult\.data\.status === "archived"/);
 });

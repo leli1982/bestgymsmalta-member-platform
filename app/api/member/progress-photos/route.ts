@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireMemberSession } from "@/lib/memberAuth";
+import { resolveMemberAppAccess } from "@/lib/memberAppAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -22,34 +23,18 @@ function safeFileName(name: string) {
 }
 
 async function getActiveMember(memberId: string) {
-  const supabase = getSupabaseAdmin();
-
-  const result = await supabase
+  const result = await getSupabaseAdmin()
     .from("bgm_members")
-    .select("id, status, membership_expiry")
+    .select("id,status,membership_expiry,cancellation_effective_date")
     .eq("id", memberId)
     .maybeSingle();
 
   if (result.error) throw result.error;
+  if (!result.data) return { ok: false, error: "Member account not found." };
 
-  const member = result.data;
-
-  if (!member) {
-    return { ok: false, error: "Member account not found." };
-  }
-
-  if (member.status !== "active") {
-    return {
-      ok: false,
-      error: "This membership is inactive. Please renew at reception.",
-    };
-  }
-
-  if (member.membership_expiry && member.membership_expiry < todayString()) {
-    return {
-      ok: false,
-      error: "This membership has expired. Please renew at reception.",
-    };
+  const access = await resolveMemberAppAccess(result.data);
+  if (access.state === "locked") {
+    return { ok: false, error: "Membership renewal is required to use this member-app feature." };
   }
 
   return { ok: true, error: "" };
@@ -94,6 +79,11 @@ export async function GET(request: NextRequest) {
 
     const authError = requireMemberSession(request, memberId);
     if (authError) return authError;
+
+    const activeMember = await getActiveMember(memberId);
+    if (!activeMember.ok) {
+      return NextResponse.json({ photos: [], error: activeMember.error }, { status: 403 });
+    }
 
     const supabase = getSupabaseAdmin();
 
@@ -221,6 +211,11 @@ export async function DELETE(request: NextRequest) {
 
     const authError = requireMemberSession(request, memberId);
     if (authError) return authError;
+
+    const activeMember = await getActiveMember(memberId);
+    if (!activeMember.ok) {
+      return NextResponse.json({ error: activeMember.error }, { status: 403 });
+    }
 
     const supabase = getSupabaseAdmin();
 

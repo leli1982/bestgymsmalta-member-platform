@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
       unassignedActiveMembers: unassigned,
       gyms,
       definition:
-        "Active members are members whose account is active, not archived, not effectively cancelled, and whose membership has not expired. Current enrollment gym is used first; legacy gym is used only when current enrollment gym is missing.",
+        "Active members are members whose account is active, not archived, not effectively cancelled, and whose membership has not expired. Current enrollment gym is used first; Original Gym is used only when current enrollment gym is missing.",
     });
   } catch (error) {
     console.error(error);

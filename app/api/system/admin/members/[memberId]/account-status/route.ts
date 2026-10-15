@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSuperAdmin } from "@/lib/systemAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { isMemberUuid } from "@/lib/memberCancellationCore";
+import { bestEffortSyncGoogleWalletMembers } from "@/lib/googleWalletSync";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       console.error(result.error);
       return NextResponse.json({ error: "No account-status change was confirmed." }, { status: 500, headers: noStore });
     }
+    await bestEffortSyncGoogleWalletMembers([memberId]).catch(() => undefined);
     return NextResponse.json({ ok: true, ...result.data }, { headers: noStore });
   } catch (error) {
     console.error(error);

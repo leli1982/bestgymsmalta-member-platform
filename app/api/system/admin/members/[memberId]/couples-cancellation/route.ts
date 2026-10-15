@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSuperAdmin } from "@/lib/systemAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { validateCouplesCancellationCommand } from "@/lib/memberCancellationCore";
+import { bestEffortSyncGoogleWalletMembers } from "@/lib/googleWalletSync";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest,
       console.error(result.error);
       return NextResponse.json({ error: "Joint cancellation was not confirmed. Neither partner should be assumed changed." }, { status: 500 });
     }
+    await bestEffortSyncGoogleWalletMembers([memberId, validation.partnerId]).catch(() => undefined);
     return NextResponse.json({
       ok: true, changed: result.data?.changed === true,
       effectiveDate: result.data?.effectiveDate || null,

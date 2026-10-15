@@ -34,7 +34,7 @@ const participant: PrintableParticipant = {
   email: "long.email.address@example.com",
   nextOfKin: "Example Parent +356 7999 9999",
   memberId: null,
-  memberNumber: "BGM0000001",
+  memberNumber: "BGM1000",
   barcode: "BGM-CARD-0000001",
   photoUrl: null,
   under18AtSubmission: true,

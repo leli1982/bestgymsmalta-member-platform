@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSuperAdmin } from "@/lib/systemAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { isMemberUuid } from "@/lib/memberCancellationCore";
+import { parseMembershipNumber } from "@/lib/memberNumberCore";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const body = await request.json();
     if (!body || typeof body !== "object" || Array.isArray(body)
       || Object.keys(body).sort().join(",") !== "confirmedMemberNumber,expectedUpdatedAt"
-      || typeof body.confirmedMemberNumber !== "string" || !/^BGM[0-9]{7}$/.test(body.confirmedMemberNumber)
+      || typeof body.confirmedMemberNumber !== "string" || parseMembershipNumber(body.confirmedMemberNumber) === null
       || typeof body.expectedUpdatedAt !== "string" || !Number.isFinite(Date.parse(body.expectedUpdatedAt))) {
       return NextResponse.json({ error: "Type the member's exact BGM number and reload before deleting." },
         { status: 400, headers: noStore });

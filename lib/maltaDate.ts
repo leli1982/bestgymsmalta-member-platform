@@ -113,3 +113,8 @@ export function maltaDayUtcRange(calendarDate: string): { start: string; end: st
     end: localMidnight(midnightUtc + 24 * 60 * 60 * 1000),
   };
 }
+
+/** Absolute instant for the start of a Malta calendar date. */
+export function maltaMidnightUtc(calendarDate: string): string {
+  return maltaDayUtcRange(calendarDate).start;
+}

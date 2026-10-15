@@ -164,9 +164,9 @@ export async function GET(
         null;
 
       const photoUrl = memberId && member?.official_photo_path
-        ? `/api/system/members/photo/${encodeURIComponent(memberId)}`
+        ? `/api/system/members/photo/${encodeURIComponent(memberId)}?inline=1`
         : participant.official_photo_path
-          ? `/api/system/members/photo?applicationMemberId=${encodeURIComponent(participant.id)}`
+          ? `/api/system/members/photo?applicationMemberId=${encodeURIComponent(participant.id)}&inline=1`
           : null;
 
       return {

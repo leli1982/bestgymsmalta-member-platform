@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireMemberSession } from "@/lib/memberAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { resolveMemberAppAccess } from "@/lib/memberAppAccess";
+import { resolveMovement } from "@/lib/movements/resolveMovement";
 
 export const dynamic = "force-dynamic";
-
-function todayString() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function clean(value: unknown) {
   return String(value || "").trim();
@@ -36,34 +34,18 @@ function publicPlan(row: any) {
 }
 
 async function getActiveMember(memberId: string) {
-  const supabase = getSupabaseAdmin();
-
-  const result = await supabase
+  const result = await getSupabaseAdmin()
     .from("bgm_members")
-    .select("id, status, membership_expiry")
+    .select("id,status,membership_expiry,cancellation_effective_date")
     .eq("id", memberId)
     .maybeSingle();
 
   if (result.error) throw result.error;
+  if (!result.data) return { ok: false, error: "Member account not found." };
 
-  const member = result.data;
-
-  if (!member) {
-    return { ok: false, error: "Member account not found." };
-  }
-
-  if (member.status !== "active") {
-    return {
-      ok: false,
-      error: "This membership is inactive. Please renew at reception.",
-    };
-  }
-
-  if (member.membership_expiry && member.membership_expiry < todayString()) {
-    return {
-      ok: false,
-      error: "This membership has expired. Please renew at reception.",
-    };
+  const access = await resolveMemberAppAccess(result.data);
+  if (access.state === "locked") {
+    return { ok: false, error: "Membership renewal is required to use this member-app feature." };
   }
 
   return { ok: true, error: "" };
@@ -88,6 +70,13 @@ function repGuide(goal: string, level: string) {
   }
 
   return { main: "3-4", reps: "8-12", accessory: "3", accessoryReps: "10-12" };
+}
+
+function attachMovementIds(exercises: any[]) {
+  return exercises.map((exercise) => {
+    const movement = resolveMovement(exercise.name);
+    return movement ? { ...exercise, movementId: movement.id } : exercise;
+  });
 }
 
 function dayExercises(focus: string, goal: string, level: string) {
@@ -155,12 +144,14 @@ function dayExercises(focus: string, goal: string, level: string) {
     ],
   };
 
-  if (lowerFocus.includes("upper")) return plans.upper;
-  if (lowerFocus.includes("lower")) return plans.lower;
-  if (lowerFocus.includes("strength")) return plans.full;
-  if (lowerFocus.includes("conditioning")) return plans.conditioning;
+  let selectedPlan: any[];
+  if (lowerFocus.includes("upper")) selectedPlan = plans.upper;
+  else if (lowerFocus.includes("lower")) selectedPlan = plans.lower;
+  else if (lowerFocus.includes("strength")) selectedPlan = plans.full;
+  else if (lowerFocus.includes("conditioning")) selectedPlan = plans.conditioning;
+  else selectedPlan = plans[focus] || plans.full;
 
-  return plans[focus] || plans.full;
+  return attachMovementIds(selectedPlan);
 }
 
 function splitForDays(daysPerWeek: number, preferredFocus: string) {
@@ -258,6 +249,11 @@ export async function GET(request: NextRequest) {
 
     const authError = requireMemberSession(request, memberId);
     if (authError) return authError;
+
+    const activeMember = await getActiveMember(memberId);
+    if (!activeMember.ok) {
+      return NextResponse.json({ savedPlan: null, error: activeMember.error }, { status: 403 });
+    }
 
     const supabase = getSupabaseAdmin();
 
@@ -374,6 +370,11 @@ export async function DELETE(request: NextRequest) {
 
     const authError = requireMemberSession(request, memberId);
     if (authError) return authError;
+
+    const activeMember = await getActiveMember(memberId);
+    if (!activeMember.ok) {
+      return NextResponse.json({ error: activeMember.error }, { status: 403 });
+    }
 
     const supabase = getSupabaseAdmin();
 

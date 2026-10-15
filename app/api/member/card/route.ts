@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { MEMBER_PROFILE_COLUMNS, publicMemberProfile } from "@/lib/memberPublicProfile";
 import { isCancellationEffective } from "@/lib/memberCancellationCore";
 import { todayMaltaDate } from "@/lib/maltaDate";
+import { parseMembershipNumber } from "@/lib/memberNumberCore";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
       (credential) => credential.status === "active"
     );
     const memberNumber = String(memberResult.data.member_number || "").trim();
-    if (!/^BGM[0-9]{7}$/.test(memberNumber)) {
+    if (parseMembershipNumber(memberNumber) === null) {
       throw new Error("Member is missing a permanent BGM membership number.");
     }
 
