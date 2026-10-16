@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import {
   ArrowLeft, ArrowUpRight, Beer, Bell, BellRing, Building2, ChartNoAxesCombined, ClipboardList, Dumbbell,
-  FileBarChart2, KeyRound, Megaphone, RefreshCw, Settings2, ShieldCheck, UserPlus, UsersRound, Barcode, ShoppingBasket, ScrollText,
+  FileBarChart2, Fingerprint, KeyRound, Megaphone, RefreshCw, Settings2, ShieldCheck, UserPlus, UsersRound,
+  Barcode, ShoppingBasket, ScrollText,
 } from "lucide-react";
 
 type AdminUser = { displayName: string; isSuperAdmin: boolean };
@@ -54,6 +55,11 @@ const sections: Section[] = [
     href: "/staff/admin/gyms", label: "Gym locations",
     description: "Add and edit gyms, opening hours, active status, staff access and tablet registration links.",
     icon: Building2, group: "Management",
+  },
+  {
+    href: "/staff/admin/staff", label: "Staff",
+    description: "Manage staff employment, pay configuration, attendance and payroll.",
+    icon: Fingerprint, group: "Management",
   },
   {
     href: "/staff/admin/super-admins", label: "Super Admin accounts",
@@ -149,7 +155,7 @@ export default function SuperAdminHome() {
             <div className="flex flex-wrap items-end justify-between gap-2 px-1">
               <h2 className="text-xl font-black">{group}</h2>
               <p className="text-xs font-semibold text-zinc-500">
-                {group === "Operations" ? "Daily sales and orders" : group === "Management" ? "Gym locations and account access" : "Occasional member and reception actions"}
+                {group === "Operations" ? "Daily sales and orders" : group === "Management" ? "Gym locations, staff and account access" : "Occasional member and reception actions"}
               </p>
             </div>
             <div className="grid gap-3 md:grid-cols-2">
@@ -165,7 +171,6 @@ export default function SuperAdminHome() {
             </div>
           </section>
         ))}
-        <p className="px-1 text-xs text-zinc-500">The Staff Portal layout is unchanged. Punch Clock will be added in a later phase.</p>
       </div>
     </main>
   );

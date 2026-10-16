@@ -118,3 +118,20 @@ export function maltaDayUtcRange(calendarDate: string): { start: string; end: st
 export function maltaMidnightUtc(calendarDate: string): string {
   return maltaDayUtcRange(calendarDate).start;
 }
+
+/** Adds whole calendar days to a YYYY-MM-DD key without applying local-time offsets. */
+export function addDaysToDateKey(calendarDate: string, days: number): string {
+  const parsed = parseCalendarDate(calendarDate);
+  const date = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day));
+  date.setUTCDate(date.getUTCDate() + Math.trunc(days));
+  return formatCalendarDate(date);
+}
+
+/** Signed whole-day distance between two YYYY-MM-DD calendar keys. */
+export function daysBetweenDateKeys(fromDate: string, toDate: string): number {
+  const from = parseCalendarDate(fromDate);
+  const to = parseCalendarDate(toDate);
+  const fromUtc = Date.UTC(from.year, from.month - 1, from.day);
+  const toUtc = Date.UTC(to.year, to.month - 1, to.day);
+  return Math.round((toUtc - fromUtc) / (24 * 60 * 60 * 1000));
+}
