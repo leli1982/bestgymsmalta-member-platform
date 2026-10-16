@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CalendarDays, Clock3, Fingerprint, Plus, Search, UserRound, UsersRound } from "lucide-react";
+import { ArrowLeft, Plus, Search, UsersRound } from "lucide-react";
 import StaffEmployeeDetail from "@/components/staff/StaffEmployeeDetail";
 import StaffPublicHolidaysAdmin from "@/components/staff/StaffPublicHolidaysAdmin";
 import StaffTerminalsAdmin from "@/components/staff/StaffTerminalsAdmin";
+import StaffTimesheetsAdmin from "@/components/staff/StaffTimesheetsAdmin";
 import { parseEuropeanDate } from "@/lib/europeanDate";
 
 type Gym = { id: string; name: string; status?: string };
@@ -117,7 +118,7 @@ export default function StaffEmployeesAdmin() {
       {message && <p className="rounded-2xl border border-green-200 bg-green-50 p-4 font-bold text-green-800">{message}</p>}
 
       {area === "Public Holidays" && <StaffPublicHolidaysAdmin/>}
-      {area === "Timesheets" && <Coming title="Timesheets" text="The employee records are ready. Attendance totals and payroll reports are connected in the next implementation plan." icon={<Clock3 className="h-10 w-10"/>}/>} 
+      {area === "Timesheets" && <StaffTimesheetsAdmin/>}
       {area === "Punch Clock Terminals" && <StaffTerminalsAdmin/>}
 
       {area === "Employees" && <>
@@ -157,4 +158,3 @@ export default function StaffEmployeesAdmin() {
 }
 
 function Field({label,children}:{label:string;children:React.ReactNode}) { return <label className="text-sm font-bold">{label}{children}</label>; }
-function Coming({title,text,icon}:{title:string;text:string;icon:React.ReactNode}) { return <section className="rounded-3xl border border-zinc-200 bg-white p-10 text-center shadow-sm"><div className="mx-auto w-fit text-orange-600">{icon}</div><h2 className="mt-3 text-2xl font-black">{title}</h2><p className="mx-auto mt-2 max-w-xl text-sm text-zinc-500">{text}</p></section>; }

@@ -4,10 +4,10 @@ import test from "node:test";
 
 async function source(path) { return readFile(path, "utf8").catch(() => ""); }
 
-test("Super Admin staff page exposes a Timesheets workflow", async () => {
-  const page = await source("app/staff/admin/staff/page.tsx");
+test("Super Admin staff area exposes the live Timesheets workflow", async () => {
+  const staff = await source("components/staff/StaffEmployeesAdmin.tsx");
   const component = await source("components/staff/StaffTimesheetsAdmin.tsx");
-  assert.match(page, /StaffTimesheetsAdmin/);
+  assert.match(staff, /StaffTimesheetsAdmin/);
   assert.match(component, /Timesheets/);
   assert.match(component, /This week/);
   assert.match(component, /This month/);
@@ -30,9 +30,11 @@ test("timesheet UI shows individual IN OUT rows and all required totals", async 
   assert.match(component, /Total calculated pay/);
 });
 
-test("employee detail Attendance and Payroll panels consume the canonical timesheet API", async () => {
+test("employee detail Attendance and Payroll panels consume the canonical timesheet component", async () => {
   const detail = await source("components/staff/StaffEmployeeDetail.tsx");
-  assert.match(detail, /staff-attendance\/timesheets/);
+  const component = await source("components/staff/StaffTimesheetsAdmin.tsx");
+  assert.match(detail, /StaffTimesheetsAdmin/);
+  assert.match(component, /staff-attendance\/timesheets/);
   assert.doesNotMatch(detail, /reserved for the next attendance\/payroll implementation stage/i);
 });
 

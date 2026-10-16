@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import ExcelJS from "exceljs";
 import test from "node:test";
 import { buildStaffTimesheetWorkbookBuffer } from "../lib/staffTimesheetWorkbook.ts";
 
@@ -11,15 +12,25 @@ const report = {
   selectedPeriod: { workedMinutes: 120, payCents: 3400, normalPayCents: 0, holidayPayCents: 3400 },
 };
 
+async function load(buffer) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  return workbook;
+}
+
+function headings(sheet) { return sheet.getRow(1).values.slice(1).map(String); }
+
 test("management workbook includes attendance, summary and needs-attention sheets", async () => {
   const buffer = await buildStaffTimesheetWorkbookBuffer({ reports: [report], includeSalary: true, fromDate: "2026-10-01", toDate: "2026-10-31" });
-  const text = buffer.toString("latin1");
+  const workbook = await load(buffer);
+  assert.deepEqual(workbook.worksheets.map(sheet=>sheet.name), ["Attendance","Summary","Needs Attention"]);
+  assert.ok(headings(workbook.getWorksheet("Attendance")).includes("Total Pay"));
   assert.ok(buffer.byteLength > 1000);
-  assert.match(text, /xl\/worksheets/);
 });
 
-test("salary-hidden workbook does not embed salary headings or payroll values in shared strings", async () => {
+test("salary-hidden workbook omits salary headings and payroll columns entirely", async () => {
   const buffer = await buildStaffTimesheetWorkbookBuffer({ reports: [report], includeSalary: false, fromDate: "2026-10-01", toDate: "2026-10-31" });
-  const text = buffer.toString("latin1");
-  assert.doesNotMatch(text, /Hourly Rate|Total Pay|Normal Pay|Holiday Pay/);
+  const workbook = await load(buffer);
+  const allHeaders = workbook.worksheets.flatMap(headings).join(" | ");
+  assert.doesNotMatch(allHeaders, /Hourly Rate|Total Pay|Normal Pay|Holiday Pay|Multiplier/);
 });

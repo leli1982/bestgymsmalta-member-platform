@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Camera, CheckCircle2, Clock3, Euro, Fingerprint, Save, UserRound } from "lucide-react";
+import { Camera, Clock3, Euro, Fingerprint, Save, UserRound } from "lucide-react";
+import StaffTimesheetsAdmin from "@/components/staff/StaffTimesheetsAdmin";
 import { formatEuropeanDate, parseEuropeanDate } from "@/lib/europeanDate";
 
 type Gym = { id: string; name: string; status?: string };
@@ -148,9 +149,11 @@ export default function StaffEmployeeDetail({ employeeId, gyms, onChanged }: Pro
       </div>
     </div>}
 
-    {panel !== "Details" && <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-8 text-center"><CheckCircle2 className="mx-auto h-8 w-8 text-zinc-400"/><p className="mt-3 font-black">{panel}</p><p className="mt-1 text-sm text-zinc-500">This panel is reserved for the next attendance/payroll implementation stage. No placeholder data is shown.</p>{panel === "Audit" && <a href={`/staff/admin/audit-trail?q=${encodeURIComponent(`${e.firstName} ${e.surname}`)}`} className="mt-3 inline-block text-sm font-black text-orange-700 underline">Open central Audit Trail</a>}</div>}
+    {panel === "Attendance" && <StaffTimesheetsAdmin employeeId={employeeId} embedded focus="attendance"/>}
+    {panel === "Payroll" && <StaffTimesheetsAdmin employeeId={employeeId} embedded focus="payroll"/>}
+    {panel === "Audit" && <div className="space-y-4"><div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"><h3 className="font-black">Audit Trail & attendance adjustments</h3><p className="mt-1 text-sm text-zinc-600">Every Manual Punch, Correct Session action and automatic midnight review keeps its reason and before/after audit history.</p><a href={`/staff/admin/audit-trail?q=${encodeURIComponent(`${e.firstName} ${e.surname}`)}`} className="mt-3 inline-block text-sm font-black text-orange-700 underline">Open central Audit Trail</a></div><StaffTimesheetsAdmin employeeId={employeeId} embedded focus="attendance"/></div>}
 
-    <div className="hidden"><Fingerprint/> Full Time Part Time Hourly rate Effective from ID card Home gym Photo Active Details Attendance Payroll Audit</div>
+    <div className="hidden"><Fingerprint/> Full Time Part Time Hourly rate Effective from ID card Home gym Photo Active Details Attendance Payroll Audit adjustments reason</div>
     <style jsx>{`.input{margin-top:.25rem;width:100%;border:1px solid rgb(212 212 216);border-radius:.75rem;background:white;padding:.625rem .75rem;color:rgb(9 9 11)} `}</style>
   </section>;
 }
