@@ -1,5 +1,5 @@
-import type { StaffTimesheetEmployeeReport } from "@/lib/staffTimesheetReport";
-import { formatEuropeanDate } from "@/lib/europeanDate";
+import type { StaffTimesheetEmployeeReport } from "./staffTimesheetReport.ts";
+import { formatEuropeanDate } from "./europeanDate.ts";
 
 export type StaffTimesheetEmailMessage = {
   to: string;
