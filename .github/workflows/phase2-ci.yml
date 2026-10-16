@@ -43,18 +43,7 @@ jobs:
         run: node --experimental-strip-types --test tests/*.test.mjs
 
       - name: Type check
-        shell: bash
-        run: |
-          set -o pipefail
-          npx tsc --noEmit 2>&1 | tee typecheck-output.txt
-
-      - name: Save TypeScript output
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: typecheck-output
-          path: typecheck-output.txt
-          if-no-files-found: error
+        run: npx tsc --noEmit
 
       - name: Build Next.js app
         run: npm run build
