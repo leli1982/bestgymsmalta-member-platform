@@ -216,7 +216,11 @@ export default function StaffDashboard({ user, onLogout }: Props) {
             href="/staff/bar"
             disabled={!can("orders.bar.submit")}
           />
-          <Tile label="Punch Clock" icon={Clock3} disabled />
+          <Tile
+            label="Punch Clock"
+            icon={Clock3}
+            href="/staff/punch-clock"
+          />
           {user.isSuperAdmin && (
             <Tile
               label="Super Admin"
