@@ -17,6 +17,14 @@ test("Super Admin staff area exposes the live Timesheets workflow", async () => 
   assert.match(component, /Needs Attention/i);
 });
 
+test("timesheet UI defaults to current month and offers searchable staff selection", async () => {
+  const component = await source("components/staff/StaffTimesheetsAdmin.tsx");
+  assert.match(component, /fromDate:\s*`\$\{today\.slice\(0,7\)\}-01`/);
+  assert.match(component, /Search staff/i);
+  assert.match(component, /staffSearch/);
+  assert.match(component, /filteredStaffOptions/);
+});
+
 test("timesheet UI shows individual IN OUT rows and all required totals", async () => {
   const component = await source("components/staff/StaffTimesheetsAdmin.tsx");
   assert.match(component, /IN/);
@@ -28,6 +36,14 @@ test("timesheet UI shows individual IN OUT rows and all required totals", async 
   assert.match(component, /Normal pay/);
   assert.match(component, /Public holiday pay/);
   assert.match(component, /Total calculated pay/);
+});
+
+test("timesheet UI exposes persisted holiday and employment snapshots", async () => {
+  const component = await source("components/staff/StaffTimesheetsAdmin.tsx");
+  assert.match(component, /holidayName/);
+  assert.match(component, /holidayMultiplierBps/);
+  assert.match(component, /employmentType/);
+  assert.match(component, /Holiday \/ rate snapshot|holiday snapshot/i);
 });
 
 test("employee detail Attendance and Payroll panels consume the canonical timesheet component", async () => {
