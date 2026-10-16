@@ -8,9 +8,9 @@ import { formatEuropeanDate, formatEuropeanDateTime } from "@/lib/europeanDate";
 import type { StaffTimesheetEmployeeReport } from "@/lib/staffTimesheetReport";
 
 type Adjustment = { id: string; employeeId: string; sessionId: string | null; action: string; actionTime: string; effectiveAt: string | null; reason: string | null; performedBy: string | null; beforeState: unknown; afterState: unknown };
+type StaffOption = { id: string; name: string };
 type ResponseData = { ok: boolean; reports: StaffTimesheetEmployeeReport[]; adjustments: Adjustment[]; gyms: Array<{id:string;name:string}>; summary: { employeeCount:number; workedMinutes:number; normalPayCents:number; holidayPayCents:number; payCents:number; needsAttention:number }; error?: string };
 type Props = { employeeId?: string; embedded?: boolean; focus?: "attendance" | "payroll" };
-
 type Filters = { fromDate:string; toDate:string; employeeId:string; homeGymId:string; workedGymId:string; status:string };
 
 function mondayOf(dateKey: string) {
@@ -33,7 +33,7 @@ export default function StaffTimesheetsAdmin({ employeeId = "", embedded = false
   const today = useMemo(() => todayMaltaDate(), []);
   const [filters, setFilters] = useState<Filters>({ fromDate:`${today.slice(0,7)}-01`, toDate:today, employeeId, homeGymId:"", workedGymId:"", status:"" });
   const [data, setData] = useState<ResponseData | null>(null);
-  const [staffOptions, setStaffOptions] = useState<Array<{id:string;name:string}>>([]);
+  const [staffOptions, setStaffOptions] = useState<StaffOption[]>([]);
   const [staffSearch, setStaffSearch] = useState("");
   const [includeSalary, setIncludeSalary] = useState(focus === "payroll");
   const [busy, setBusy] = useState(false);
@@ -74,11 +74,8 @@ export default function StaffTimesheetsAdmin({ employeeId = "", embedded = false
   const reports = data?.reports || [];
   const adjustments = data?.adjustments || [];
   const showSalary = includeSalary && focus !== "attendance";
-  const filteredStaffOptions = useMemo(() => {
-    const needle = staffSearch.trim().toLowerCase();
-    if (!needle) return staffOptions;
-    return staffOptions.filter((row)=>row.name.toLowerCase().includes(needle) || row.id.toLowerCase().includes(needle));
-  }, [staffOptions, staffSearch]);
+  const staffSearchTerm = staffSearch.trim().toLowerCase();
+  const filteredStaffOptions = staffOptions.filter((row: StaffOption) => !staffSearchTerm || row.name.toLowerCase().includes(staffSearchTerm) || row.id.toLowerCase().includes(staffSearchTerm));
 
   async function manualPunch() {
     const targetEmployee = employeeId || filters.employeeId;
