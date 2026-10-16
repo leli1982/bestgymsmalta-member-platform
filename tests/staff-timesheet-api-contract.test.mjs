@@ -31,3 +31,5 @@ test("timesheet query API reads persisted payroll segments and builds canonical 
   assert.match(route, /holiday_multiplier_bps/);
   assert.match(route, /pay_cents/);
 });
+
+// RED gate: this contract intentionally lands before the Phase-3 implementation.
