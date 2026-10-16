@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
-import type { StaffTimesheetEmployeeReport } from "@/lib/staffTimesheetReport";
-import { formatEuropeanDate, formatEuropeanDateTime } from "@/lib/europeanDate";
+import type { StaffTimesheetEmployeeReport } from "./staffTimesheetReport.ts";
+import { formatEuropeanDate, formatEuropeanDateTime } from "./europeanDate.ts";
 
 export type StaffTimesheetWorkbookInput = {
   reports: StaffTimesheetEmployeeReport[];
