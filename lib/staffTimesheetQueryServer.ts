@@ -79,8 +79,8 @@ export async function queryStaffTimesheets(filters: StaffTimesheetFilters): Prom
   const homeGymId = clean(filters.homeGymId);
   const workedGymId = clean(filters.workedGymId);
   const status = clean(filters.status);
-  const rangeStart = maltaDayUtcRange(fromDate).start.toISOString();
-  const rangeEnd = maltaDayUtcRange(toDate).end.toISOString();
+  const rangeStart = maltaDayUtcRange(fromDate).start;
+  const rangeEnd = maltaDayUtcRange(toDate).end;
 
   const gymsResult = await db.from("bgm_gyms").select("id, name").order("name");
   if (gymsResult.error) throw gymsResult.error;
