@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Clock3, Download, Mail, Printer, RefreshCw, Wrench } from "lucide-react";
 import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
-import { addDaysToDateKey, todayMaltaDate } from "@/lib/maltaDate";
+import { todayMaltaDate } from "@/lib/maltaDate";
 import { formatEuropeanDate, formatEuropeanDateTime } from "@/lib/europeanDate";
 import type { StaffTimesheetEmployeeReport } from "@/lib/staffTimesheetReport";
 
@@ -22,6 +22,7 @@ function mondayOf(dateKey: string) {
 }
 function duration(minutes: number | null) { return minutes === null ? "—" : `${Math.floor(minutes/60)}h ${String(minutes%60).padStart(2,"0")}m`; }
 function money(cents: number | null) { return cents === null ? "—" : new Intl.NumberFormat("en-MT", { style:"currency", currency:"EUR" }).format(cents/100); }
+function employmentLabel(value: string) { return value === "part_time" ? "Part Time" : "Full Time"; }
 function asQuery(filters: Filters, includeSalary: boolean) {
   const params = new URLSearchParams({ fromDate: filters.fromDate, toDate: filters.toDate, includeSalary: String(includeSalary) });
   for (const key of ["employeeId","homeGymId","workedGymId","status"] as const) if (filters[key]) params.set(key, filters[key]);
@@ -30,9 +31,10 @@ function asQuery(filters: Filters, includeSalary: boolean) {
 
 export default function StaffTimesheetsAdmin({ employeeId = "", embedded = false, focus = "payroll" }: Props) {
   const today = useMemo(() => todayMaltaDate(), []);
-  const [filters, setFilters] = useState<Filters>({ fromDate: mondayOf(today), toDate: today, employeeId, homeGymId:"", workedGymId:"", status:"" });
+  const [filters, setFilters] = useState<Filters>({ fromDate:`${today.slice(0,7)}-01`, toDate:today, employeeId, homeGymId:"", workedGymId:"", status:"" });
   const [data, setData] = useState<ResponseData | null>(null);
   const [staffOptions, setStaffOptions] = useState<Array<{id:string;name:string}>>([]);
+  const [staffSearch, setStaffSearch] = useState("");
   const [includeSalary, setIncludeSalary] = useState(focus === "payroll");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -69,7 +71,14 @@ export default function StaffTimesheetsAdmin({ employeeId = "", embedded = false
     else setFilters((current)=>({ ...current, fromDate:`${today.slice(0,7)}-01`, toDate:today }));
   }
 
-  const selectedReport = data?.reports.find((report)=>report.employee.id===filters.employeeId) || (employeeId ? data?.reports[0] : undefined);
+  const reports = data?.reports || [];
+  const adjustments = data?.adjustments || [];
+  const showSalary = includeSalary && focus !== "attendance";
+  const filteredStaffOptions = useMemo(() => {
+    const needle = staffSearch.trim().toLowerCase();
+    if (!needle) return staffOptions;
+    return staffOptions.filter((row)=>row.name.toLowerCase().includes(needle) || row.id.toLowerCase().includes(needle));
+  }, [staffOptions, staffSearch]);
 
   async function manualPunch() {
     const targetEmployee = employeeId || filters.employeeId;
@@ -112,6 +121,11 @@ export default function StaffTimesheetsAdmin({ employeeId = "", embedded = false
   async function emailReports(selectedOnly:boolean) {
     const selectedId = employeeId || filters.employeeId;
     if (selectedOnly && !selectedId) { setError("Choose a staff employee before using Email selected."); return; }
+    if (!selectedOnly) {
+      const missingEmailCount = reports.filter((report)=>!report.employee.email).length;
+      const confirmed = window.confirm(`Send ${reports.length} individual email${reports.length===1?"":"s"}? ${missingEmailCount} staff member${missingEmailCount===1?"":"s"} ${missingEmailCount===1?"is":"are"} missing email and will be skipped.`);
+      if (!confirmed) return;
+    }
     setBusy(true); setError(""); setMessage("");
     try {
       const response = await fetch("/api/system/staff-attendance/timesheets/email", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ ...filters, employeeId: selectedOnly ? selectedId : filters.employeeId || undefined, employeeIds:selectedOnly&&selectedId ? [selectedId] : undefined, includeSalary }) });
@@ -122,10 +136,6 @@ export default function StaffTimesheetsAdmin({ employeeId = "", embedded = false
     finally { setBusy(false); }
   }
 
-  const reports = data?.reports || [];
-  const adjustments = data?.adjustments || [];
-  const showSalary = includeSalary && focus !== "attendance";
-
   return <section className={embedded ? "space-y-4" : "rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm space-y-5"}>
     <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-widest text-orange-700">Attendance & payroll</p><h2 className="text-2xl font-black">Timesheets</h2><p className="mt-1 text-sm text-zinc-500">Persisted attendance segments, exact minutes and historical rates.</p></div><button onClick={()=>void load()} disabled={busy} className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-3 py-2 text-sm font-black"><RefreshCw className={`h-4 w-4 ${busy?"animate-spin":""}`}/>Refresh</button></div>
     {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-800">{error}</p>}
@@ -134,7 +144,8 @@ export default function StaffTimesheetsAdmin({ employeeId = "", embedded = false
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
       <label className="text-sm font-bold">From<EuropeanDateInput ariaLabel="From date" className="mt-1 w-full rounded-xl border border-zinc-300 p-2.5" value={filters.fromDate} max={filters.toDate || undefined} onValueChange={fromDate=>setFilters({...filters,fromDate})}/></label>
       <label className="text-sm font-bold">To<EuropeanDateInput ariaLabel="To date" className="mt-1 w-full rounded-xl border border-zinc-300 p-2.5" value={filters.toDate} min={filters.fromDate || undefined} max={today} onValueChange={toDate=>setFilters({...filters,toDate})}/></label>
-      {!employeeId && <label className="text-sm font-bold">Staff<select className="mt-1 w-full rounded-xl border border-zinc-300 p-2.5" value={filters.employeeId} onChange={e=>setFilters({...filters,employeeId:e.target.value})}><option value="">All staff</option>{staffOptions.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</select></label>}
+      {!employeeId && <label className="text-sm font-bold">Search staff<input type="search" className="mt-1 w-full rounded-xl border border-zinc-300 p-2.5" value={staffSearch} placeholder="Name or staff ID" onChange={e=>setStaffSearch(e.target.value)}/></label>}
+      {!employeeId && <label className="text-sm font-bold">Staff<select className="mt-1 w-full rounded-xl border border-zinc-300 p-2.5" value={filters.employeeId} onChange={e=>setFilters({...filters,employeeId:e.target.value})}><option value="">All staff</option>{filteredStaffOptions.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</select></label>}
       <label className="text-sm font-bold">Home gym<select className="mt-1 w-full rounded-xl border border-zinc-300 p-2.5" value={filters.homeGymId} onChange={e=>setFilters({...filters,homeGymId:e.target.value})}><option value="">All gyms</option>{(data?.gyms||[]).map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></label>
       <label className="text-sm font-bold">Worked gym<select className="mt-1 w-full rounded-xl border border-zinc-300 p-2.5" value={filters.workedGymId} onChange={e=>setFilters({...filters,workedGymId:e.target.value})}><option value="">All gyms</option>{(data?.gyms||[]).map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></label>
       <label className="text-sm font-bold">Status<select className="mt-1 w-full rounded-xl border border-zinc-300 p-2.5" value={filters.status} onChange={e=>setFilters({...filters,status:e.target.value})}><option value="">All statuses</option><option value="open">Open</option><option value="closed">Closed</option><option value="corrected">Corrected</option><option value="needs_attention">Needs Attention</option></select></label>
@@ -145,7 +156,7 @@ export default function StaffTimesheetsAdmin({ employeeId = "", embedded = false
 
     {data && <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><Stat label="Staff" value={String(data.summary.employeeCount)}/><Stat label="Selected Period" value={duration(data.summary.workedMinutes)}/><Stat label="Needs Attention" value={String(data.summary.needsAttention)}/>{showSalary && <Stat label="Normal pay" value={money(data.summary.normalPayCents)}/>} {showSalary && <Stat label="Public holiday pay" value={money(data.summary.holidayPayCents)}/>} {showSalary && <Stat label="Total calculated pay" value={money(data.summary.payCents)}/>}</div>}
 
-    <div className="space-y-5">{reports.map(report=><article key={report.employee.id} className="overflow-hidden rounded-2xl border border-zinc-200"><div className="flex flex-wrap justify-between gap-2 bg-zinc-50 px-4 py-3"><div><h3 className="font-black">{report.employee.name}</h3><p className="text-xs text-zinc-500">Home gym: {report.employee.homeGymName||"—"}{!report.employee.email && " · missing email"}</p></div><div className="text-right text-sm"><strong>{duration(report.selectedPeriod.workedMinutes)}</strong>{showSalary && <span className="ml-3 font-black text-orange-700">{money(report.selectedPeriod.payCents)}</span>}</div></div><div className="overflow-x-auto"><table className="w-full min-w-[960px] text-left text-sm"><thead className="bg-white text-xs uppercase text-zinc-500"><tr>{["Date","IN","IN gym","OUT","OUT gym","Status","Daily total",...(showSalary?["Normal pay","Public holiday pay","Total calculated pay"]:[]),""].map(h=><th key={h} className="px-3 py-2 font-black">{h}</th>)}</tr></thead><tbody>{report.days.flatMap(day=>day.allocations.map((allocation,index)=><tr key={allocation.id} className="border-t border-zinc-100"><td className="px-3 py-2">{formatEuropeanDate(day.date)}</td><td className="px-3 py-2">{formatEuropeanDateTime(allocation.clockInAt)}</td><td className="px-3 py-2">{allocation.clockInGymName||"—"}</td><td className="px-3 py-2">{allocation.clockOutAt?formatEuropeanDateTime(allocation.clockOutAt):"OPEN"}</td><td className="px-3 py-2">{allocation.clockOutGymName||"—"}</td><td className="px-3 py-2"><span className={allocation.attentionCode?"font-black text-red-700":"font-bold"}>{allocation.attentionCode||allocation.status}</span></td><td className="px-3 py-2 font-bold">{index===0?duration(day.workedMinutes):""}</td>{showSalary && <><td className="px-3 py-2">{index===0?money(day.normalPayCents):""}</td><td className="px-3 py-2">{index===0?money(day.holidayPayCents):""}</td><td className="px-3 py-2 font-black">{index===0?money(day.payCents):""}</td></>}<td className="px-3 py-2"><button onClick={()=>{const session=report.sessions.find(row=>row.id===allocation.sessionId);if(session)void correctSession(session);}} className="inline-flex items-center gap-1 font-black text-orange-700"><Wrench className="h-3.5 w-3.5"/>Correct Session</button></td></tr>))}</tbody></table></div><div className="grid gap-3 border-t border-zinc-200 bg-zinc-50 p-3 sm:grid-cols-3"><div><p className="text-xs font-black uppercase text-zinc-500">Daily total</p><p className="text-sm">Shown per day above</p></div><div><p className="text-xs font-black uppercase text-zinc-500">Weekly</p><p className="text-sm">{report.weeklyTotals.map(row=>`${formatEuropeanDate(row.key)}: ${duration(row.workedMinutes)}`).join(" · ")||"—"}</p></div><div><p className="text-xs font-black uppercase text-zinc-500">Monthly</p><p className="text-sm">{report.monthlyTotals.map(row=>`${row.key}: ${duration(row.workedMinutes)}`).join(" · ")||"—"}</p></div></div></article>)}{!busy && reports.length===0 && <p className="rounded-2xl border border-dashed border-zinc-300 p-8 text-center text-zinc-500">No attendance records match these filters.</p>}</div>
+    <div className="space-y-5">{reports.map(report=><article key={report.employee.id} className="overflow-hidden rounded-2xl border border-zinc-200"><div className="flex flex-wrap justify-between gap-2 bg-zinc-50 px-4 py-3"><div><h3 className="font-black">{report.employee.name}</h3><p className="text-xs text-zinc-500">Home gym: {report.employee.homeGymName||"—"}{!report.employee.email && " · missing email"}</p></div><div className="text-right text-sm"><strong>{duration(report.selectedPeriod.workedMinutes)}</strong>{showSalary && <span className="ml-3 font-black text-orange-700">{money(report.selectedPeriod.payCents)}</span>}</div></div><div className="overflow-x-auto"><table className="w-full min-w-[1120px] text-left text-sm"><thead className="bg-white text-xs uppercase text-zinc-500"><tr>{["Date","IN","IN gym","OUT","OUT gym","Status","Holiday / rate snapshot","Daily total",...(showSalary?["Normal pay","Public holiday pay","Total calculated pay"]:[]),""].map(h=><th key={h} className="px-3 py-2 font-black">{h}</th>)}</tr></thead><tbody>{report.days.flatMap(day=>day.allocations.map((allocation,index)=><tr key={allocation.id} className="border-t border-zinc-100"><td className="px-3 py-2">{formatEuropeanDate(day.date)}</td><td className="px-3 py-2">{formatEuropeanDateTime(allocation.clockInAt)}</td><td className="px-3 py-2">{allocation.clockInGymName||"—"}</td><td className="px-3 py-2">{allocation.clockOutAt?formatEuropeanDateTime(allocation.clockOutAt):"OPEN"}</td><td className="px-3 py-2">{allocation.clockOutGymName||"—"}</td><td className="px-3 py-2"><span className={allocation.attentionCode?"font-black text-red-700":allocation.status==="open"?"font-black text-amber-700":"font-bold"}>{allocation.attentionCode||allocation.status}</span></td><td className="px-3 py-2 text-xs"><strong>{allocation.holidayName || "Normal day"}</strong><br/>{(allocation.holidayMultiplierBps/10000).toFixed(2)}x · {employmentLabel(allocation.employmentType)}</td><td className="px-3 py-2 font-bold">{index===0?duration(day.workedMinutes):""}</td>{showSalary && <><td className="px-3 py-2">{index===0?money(day.normalPayCents):""}</td><td className="px-3 py-2">{index===0?money(day.holidayPayCents):""}</td><td className="px-3 py-2 font-black">{index===0?money(day.payCents):""}</td></>}<td className="px-3 py-2"><button onClick={()=>{const session=report.sessions.find(row=>row.id===allocation.sessionId);if(session)void correctSession(session);}} className="inline-flex items-center gap-1 font-black text-orange-700"><Wrench className="h-3.5 w-3.5"/>Correct Session</button></td></tr>))}</tbody></table></div><div className="grid gap-3 border-t border-zinc-200 bg-zinc-50 p-3 sm:grid-cols-3"><div><p className="text-xs font-black uppercase text-zinc-500">Daily total</p><p className="text-sm">Shown per day above</p></div><div><p className="text-xs font-black uppercase text-zinc-500">Weekly</p><p className="text-sm">{report.weeklyTotals.map(row=>`${formatEuropeanDate(row.key)}: ${duration(row.workedMinutes)}`).join(" · ")||"—"}</p></div><div><p className="text-xs font-black uppercase text-zinc-500">Monthly</p><p className="text-sm">{report.monthlyTotals.map(row=>`${row.key}: ${duration(row.workedMinutes)}`).join(" · ")||"—"}</p></div></div></article>)}{!busy && reports.length===0 && <p className="rounded-2xl border border-dashed border-zinc-300 p-8 text-center text-zinc-500">No attendance records match these filters.</p>}</div>
 
     {embedded && adjustments.length>0 && <section className="rounded-2xl border border-zinc-200 p-4"><h3 className="font-black">Attendance adjustments</h3><div className="mt-3 space-y-2">{adjustments.map(row=><div key={row.id} className="rounded-xl bg-zinc-50 p-3 text-sm"><div className="flex flex-wrap justify-between gap-2"><strong>{row.action.replaceAll("_"," ")}</strong><span>{formatEuropeanDateTime(row.actionTime)}</span></div><p className="mt-1 text-zinc-600">Reason: {row.reason||"—"}</p></div>)}</div></section>}
     <span className="hidden">IN OUT reason staff-attendance/timesheets manual-punch sessions/</span>
