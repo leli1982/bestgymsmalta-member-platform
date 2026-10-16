@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Clock3, Download, Mail, Printer, RefreshCw, Wrench } from "lucide-react";
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
 import { addDaysToDateKey, todayMaltaDate } from "@/lib/maltaDate";
 import { formatEuropeanDate, formatEuropeanDateTime } from "@/lib/europeanDate";
 import type { StaffTimesheetEmployeeReport } from "@/lib/staffTimesheetReport";
@@ -113,7 +114,7 @@ export default function StaffTimesheetsAdmin({ employeeId = "", embedded = false
     if (selectedOnly && !selectedId) { setError("Choose a staff employee before using Email selected."); return; }
     setBusy(true); setError(""); setMessage("");
     try {
-      const response = await fetch("/api/system/staff-attendance/timesheets/email", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ ...filters, employeeId: selectedOnly ? selectedId : filters.employeeId || undefined, employeeIds:selectedOnly && selectedId ? [selectedId] : undefined, includeSalary }) });
+      const response = await fetch("/api/system/staff-attendance/timesheets/email", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ ...filters, employeeId: selectedOnly ? selectedId : filters.employeeId || undefined, employeeIds:selectedOnly&&selectedId ? [selectedId] : undefined, includeSalary }) });
       const body = await response.json();
       if (!response.ok && response.status !== 207) throw new Error(body.error || "Could not email staff timesheets.");
       setMessage(`Email result: ${(body.sent||[]).length} sent, ${(body.skipped||[]).length} skipped (including missing email), ${(body.failed||[]).length} failed.`);
@@ -131,8 +132,8 @@ export default function StaffTimesheetsAdmin({ employeeId = "", embedded = false
     {message && <p className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-bold text-green-800">{message}</p>}
 
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-      <label className="text-sm font-bold">From<input type="date" className="mt-1 w-full rounded-xl border border-zinc-300 p-2.5" value={filters.fromDate} onChange={e=>setFilters({...filters,fromDate:e.target.value})}/></label>
-      <label className="text-sm font-bold">To<input type="date" className="mt-1 w-full rounded-xl border border-zinc-300 p-2.5" value={filters.toDate} onChange={e=>setFilters({...filters,toDate:e.target.value})}/></label>
+      <label className="text-sm font-bold">From<EuropeanDateInput ariaLabel="From date" className="mt-1 w-full rounded-xl border border-zinc-300 p-2.5" value={filters.fromDate} max={filters.toDate || undefined} onValueChange={fromDate=>setFilters({...filters,fromDate})}/></label>
+      <label className="text-sm font-bold">To<EuropeanDateInput ariaLabel="To date" className="mt-1 w-full rounded-xl border border-zinc-300 p-2.5" value={filters.toDate} min={filters.fromDate || undefined} max={today} onValueChange={toDate=>setFilters({...filters,toDate})}/></label>
       {!employeeId && <label className="text-sm font-bold">Staff<select className="mt-1 w-full rounded-xl border border-zinc-300 p-2.5" value={filters.employeeId} onChange={e=>setFilters({...filters,employeeId:e.target.value})}><option value="">All staff</option>{staffOptions.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</select></label>}
       <label className="text-sm font-bold">Home gym<select className="mt-1 w-full rounded-xl border border-zinc-300 p-2.5" value={filters.homeGymId} onChange={e=>setFilters({...filters,homeGymId:e.target.value})}><option value="">All gyms</option>{(data?.gyms||[]).map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></label>
       <label className="text-sm font-bold">Worked gym<select className="mt-1 w-full rounded-xl border border-zinc-300 p-2.5" value={filters.workedGymId} onChange={e=>setFilters({...filters,workedGymId:e.target.value})}><option value="">All gyms</option>{(data?.gyms||[]).map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></label>
