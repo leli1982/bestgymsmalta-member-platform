@@ -89,7 +89,7 @@ export async function queryStaffTimesheets(filters: StaffTimesheetFilters): Prom
 
   let employeeQuery = db
     .from("bgm_staff_employees")
-    .select("id, first_name, surname, email, home_gym_id, is_active")
+    .select("id, first_name, surname, email, home_gym_id, active")
     .order("surname")
     .order("first_name");
   if (employeeId) employeeQuery = employeeQuery.eq("id", employeeId);
@@ -112,8 +112,8 @@ export async function queryStaffTimesheets(filters: StaffTimesheetFilters): Prom
   }
 
   let sessionQuery = db
-    .from("bgm_staff_attendance_sessions")
-    .select("id, employee_id, clock_in_at, clock_out_at, clock_in_gym_id, clock_out_gym_id, status, attention_code, source_in, source_out, auto_clock_out_reason")
+    .from("bgm_staff_work_sessions")
+    .select("id, employee_id, clock_in_at, clock_out_at, clock_in_gym_id, clock_out_gym_id, status, attention_code")
     .in("employee_id", employeeIds)
     .lt("clock_in_at", rangeEnd)
     .or(`clock_out_at.gte.${rangeStart},clock_out_at.is.null`)
@@ -141,18 +141,14 @@ export async function queryStaffTimesheets(filters: StaffTimesheetFilters): Prom
   const holidayVersionIds = Array.from(new Set(segmentRows.map((row: any) => clean(row.holiday_version_id)).filter(Boolean)));
   const holidayNameByVersion = new Map<string, string>();
   if (holidayVersionIds.length > 0) {
-    const versions = await db.from("bgm_public_holiday_versions").select("id, holiday_id").in("id", holidayVersionIds);
+    const versions = await db
+      .from("bgm_staff_public_holiday_versions")
+      .select("id, name")
+      .in("id", holidayVersionIds);
     if (versions.error) throw versions.error;
-    const holidayIds = Array.from(new Set((versions.data || []).map((row: any) => clean(row.holiday_id)).filter(Boolean)));
-    const holidayNameById = new Map<string, string>();
-    if (holidayIds.length > 0) {
-      const holidays = await db.from("bgm_public_holidays").select("id, name").in("id", holidayIds);
-      if (holidays.error) throw holidays.error;
-      for (const row of holidays.data || []) holidayNameById.set(String((row as any).id), String((row as any).name || "Public holiday"));
-    }
     for (const row of versions.data || []) {
       const version = row as any;
-      holidayNameByVersion.set(String(version.id), holidayNameById.get(String(version.holiday_id)) || "Public holiday");
+      holidayNameByVersion.set(String(version.id), String(version.name || "Public holiday"));
     }
   }
 
@@ -203,21 +199,21 @@ export async function queryStaffTimesheets(filters: StaffTimesheetFilters): Prom
   if (sessionIds.length > 0) {
     const adjustmentResult = await db
       .from("bgm_staff_attendance_adjustments")
-      .select("id, employee_id, session_id, action, action_time, effective_at, reason, performed_by, before_state, after_state")
+      .select("id, employee_id, session_id, reason, actor_system_user_id, before_data, after_data, created_at")
       .in("session_id", sessionIds)
-      .order("action_time", { ascending: false });
+      .order("created_at", { ascending: false });
     if (adjustmentResult.error) throw adjustmentResult.error;
     adjustments = (adjustmentResult.data || []).map((row: any) => ({
       id: String(row.id),
       employeeId: String(row.employee_id),
       sessionId: row.session_id ? String(row.session_id) : null,
-      action: String(row.action || "adjustment"),
-      actionTime: String(row.action_time),
-      effectiveAt: row.effective_at ? String(row.effective_at) : null,
+      action: "adjustment",
+      actionTime: String(row.created_at),
+      effectiveAt: null,
       reason: row.reason ? String(row.reason) : null,
-      performedBy: row.performed_by ? String(row.performed_by) : null,
-      beforeState: row.before_state ?? null,
-      afterState: row.after_state ?? null,
+      performedBy: row.actor_system_user_id ? String(row.actor_system_user_id) : null,
+      beforeState: row.before_data ?? null,
+      afterState: row.after_data ?? null,
     }));
   }
 
