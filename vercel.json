@@ -22,7 +22,7 @@
     },
     {
       "path": "/api/cron/staff-midnight-auto-clock-out",
-      "schedule": "0 * * * *"
+      "schedule": "0 1 * * *"
     }
   ]
 }
