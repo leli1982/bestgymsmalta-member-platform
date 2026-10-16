@@ -34,3 +34,5 @@ test("timesheet query API reads persisted payroll segments and builds canonical 
   assert.match(code, /holiday_multiplier_bps/);
   assert.match(code, /pay_cents/);
 });
+
+// GREEN verification push for the complete Phase-3 workflow.
