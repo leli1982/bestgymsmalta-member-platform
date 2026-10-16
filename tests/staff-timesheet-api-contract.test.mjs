@@ -35,4 +35,19 @@ test("timesheet query API reads persisted payroll segments and builds canonical 
   assert.match(code, /pay_cents/);
 });
 
-// GREEN verification after Malta date API alignment.
+test("timesheet query uses the actual staff attendance schema created by migrations", async () => {
+  const code = await source();
+  assert.match(code, /bgm_staff_work_sessions/);
+  assert.match(code, /bgm_staff_public_holiday_versions/);
+  assert.match(code, /bgm_staff_attendance_adjustments/);
+  assert.match(code, /actor_system_user_id/);
+  assert.match(code, /before_data/);
+  assert.match(code, /after_data/);
+  assert.doesNotMatch(code, /bgm_staff_attendance_sessions/);
+  assert.doesNotMatch(code, /bgm_public_holiday_versions/);
+  assert.doesNotMatch(code, /bgm_public_holidays/);
+  assert.doesNotMatch(code, /\bis_active\b/);
+  assert.doesNotMatch(code, /\baction_time\b/);
+  assert.doesNotMatch(code, /\bbefore_state\b/);
+  assert.doesNotMatch(code, /\bafter_state\b/);
+});
