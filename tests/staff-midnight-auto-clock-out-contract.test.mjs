@@ -45,24 +45,27 @@ test("midnight close is retry safe", () => {
   assert.match(migration, /for update(?:\s+of\s+s)?\s+skip locked/i);
 });
 
-test("midnight auto-close persists the same historical payroll snapshot as a normal OUT punch", () => {
+test("midnight auto-close rebuilds and freezes the historical payroll snapshot", () => {
   assert.match(payrollSnapshotMigration, /create or replace function public\.bgm_staff_auto_close_midnight_sessions/i);
-  assert.match(payrollSnapshotMigration, /bgm_staff_session_payroll_segments/i);
-  assert.match(payrollSnapshotMigration, /bgm_staff_rate_history/i);
-  assert.match(payrollSnapshotMigration, /bgm_staff_employment_type_history/i);
-  assert.match(payrollSnapshotMigration, /bgm_staff_public_holiday_versions/i);
-  assert.match(payrollSnapshotMigration, /holiday_multiplier_bps/i);
-  assert.match(payrollSnapshotMigration, /hourly_rate_cents/i);
-  assert.match(payrollSnapshotMigration, /worked_minutes/i);
-  assert.match(payrollSnapshotMigration, /pay_cents/i);
-  assert.match(payrollSnapshotMigration, /on conflict\s*\(session_id,\s*work_date\)\s*do nothing/i);
+  assert.match(payrollSnapshotMigration, /Europe\/Malta/);
+  assert.match(payrollSnapshotMigration, /bgm_staff_rebuild_session_payroll\s*\(/i);
+  assert.match(payrollSnapshotMigration, /v_payroll_status\s*:=/i);
+  assert.match(payrollSnapshotMigration, /status\s*=\s*'needs_attention'/i);
+  assert.match(payrollSnapshotMigration, /attention_code\s*=\s*'midnight_auto_clock_out'/i);
 });
 
-test("midnight payroll snapshot fails visibly when historical rate or employment data is missing", () => {
-  assert.match(payrollSnapshotMigration, /missing_payroll_history/i);
+test("midnight payroll rebuild preserves the midnight review warning if history is missing", () => {
   assert.match(payrollSnapshotMigration, /missing_rate/i);
   assert.match(payrollSnapshotMigration, /missing_employment/i);
-  assert.match(payrollSnapshotMigration, /status\s*=\s*'needs_attention'/i);
+  assert.match(payrollSnapshotMigration, /missing_payroll_history/i);
+  assert.match(payrollSnapshotMigration, /bgm_staff_attendance_alerts/i);
+  assert.match(payrollSnapshotMigration, /PAYROLL SNAPSHOT UNAVAILABLE/i);
+});
+
+test("midnight payroll follow-up keeps the system event and session close retry-safe", () => {
+  assert.match(payrollSnapshotMigration, /staff-midnight-auto-clock-out:/);
+  assert.match(payrollSnapshotMigration, /on conflict\s*\(event_key\)\s*do nothing/i);
+  assert.match(payrollSnapshotMigration, /for update(?:\s+of\s+s)?\s+skip locked/i);
 });
 
 test("midnight cron is secret protected and invokes only the atomic database function", () => {
