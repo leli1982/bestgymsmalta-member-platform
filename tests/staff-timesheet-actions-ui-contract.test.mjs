@@ -15,6 +15,14 @@ test("timesheet UI exposes print, Excel and individualized email actions with sa
   assert.match(component, /sent|skipped|failed/i);
 });
 
+test("batch timesheet email requires an explicit filtered-recipient confirmation", async () => {
+  const component = await source("components/staff/StaffTimesheetsAdmin.tsx");
+  assert.match(component, /window\.confirm/);
+  assert.match(component, /individual email/i);
+  assert.match(component, /missing email/i);
+  assert.match(component, /reports\.length/);
+});
+
 test("employee Audit tab shows attendance adjustments and central audit data", async () => {
   const detail = await source("components/staff/StaffEmployeeDetail.tsx");
   assert.match(detail, /attendance adjustments|bgm_staff_attendance_adjustments|adjustments/i);
