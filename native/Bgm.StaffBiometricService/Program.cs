@@ -7,13 +7,41 @@ if (!OperatingSystem.IsWindows())
     return 2;
 }
 
-if (args.Length < 2)
+if (args.Length < 1)
 {
     PrintUsage();
     return 2;
 }
 
 var command = args[0].Trim().ToLowerInvariant();
+
+if (command == "processed-info")
+{
+    try
+    {
+        Console.WriteLine("Place a test finger on the FP100 reader. No fingerprint bytes will be saved.");
+        var metadata = WinBioProcessedCaptureProbe.Capture();
+        Console.WriteLine(JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = true }));
+        return 0;
+    }
+    catch (BiometricDeviceException ex)
+    {
+        Console.Error.WriteLine($"DEVICE_ERROR: {ex.Message}");
+        return 20;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"PROBE_ERROR: {ex.GetType().Name}: {ex.Message}");
+        return 40;
+    }
+}
+
+if (args.Length < 2)
+{
+    PrintUsage();
+    return 2;
+}
+
 var credentialFile = Path.GetFullPath(args[1]);
 var terminalId = Environment.MachineName;
 var passphrase = ReadSecret("Portable credential passphrase: ");
@@ -113,9 +141,11 @@ static void PrintUsage()
     Console.WriteLine("BGM FP100 cross-PC capability probe");
     Console.WriteLine("Run from an elevated Administrator Command Prompt or PowerShell.");
     Console.WriteLine();
+    Console.WriteLine("  Bgm.StaffBiometricService.exe processed-info");
     Console.WriteLine("  Bgm.StaffBiometricService.exe enroll   <credential-file> <test-employee-id>");
     Console.WriteLine("  Bgm.StaffBiometricService.exe identify <credential-file>");
     Console.WriteLine("  Bgm.StaffBiometricService.exe revoke   <credential-file> <credential-id>");
     Console.WriteLine();
+    Console.WriteLine("processed-info reports only WBF metadata and never persists fingerprint sample bytes.");
     Console.WriteLine("The credential file is encrypted and contains a portable fingerprint feature template, not a raw fingerprint image.");
 }
