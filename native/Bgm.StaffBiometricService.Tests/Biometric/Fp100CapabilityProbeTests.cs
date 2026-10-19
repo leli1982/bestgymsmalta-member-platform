@@ -1,4 +1,5 @@
 using Bgm.StaffBiometricService.Biometric;
+using Xunit;
 
 namespace Bgm.StaffBiometricService.Tests.Biometric;
 
