@@ -16,8 +16,7 @@ public sealed class WinBioFingerprintCaptureSource : IFingerprintCaptureSource
 
     public WinBioFingerprintCaptureSource(string terminalId)
     {
-        TerminalId = String(terminalId || Environment.MachineName).Trim();
-        if (TerminalId.Length == 0) TerminalId = Environment.MachineName;
+        TerminalId = string.IsNullOrWhiteSpace(terminalId) ? Environment.MachineName : terminalId.Trim();
     }
 
     public Task<FingerprintSample> CaptureAsync(CancellationToken ct)
@@ -37,7 +36,7 @@ public sealed class WinBioFingerprintCaptureSource : IFingerprintCaptureSource
                 WinBioPoolSystem,
                 WinBioFlagRaw,
                 IntPtr.Zero,
-                0,
+                UIntPtr.Zero,
                 WinBioDbDefault,
                 out session), "WinBioOpenSession");
 
@@ -78,8 +77,13 @@ public sealed class WinBioFingerprintCaptureSource : IFingerprintCaptureSource
         var bir = Marshal.PtrToStructure<WinBioBir>(birPointer);
         if (bir.StandardDataBlock.Size == 0)
             throw new BiometricDeviceException("The reader did not return an ANSI 381 standard data block.");
-        if (bir.StandardDataBlock.Offset + bir.StandardDataBlock.Size > totalSize)
+        if ((ulong)bir.StandardDataBlock.Offset + bir.StandardDataBlock.Size > (ulong)totalSize)
             throw new BiometricDeviceException("The fingerprint sample block is outside the returned buffer.");
+
+        var headerSize = Marshal.SizeOf<Ansi381Header>();
+        var recordHeaderSize = Marshal.SizeOf<Ansi381Record>();
+        if (bir.StandardDataBlock.Size < headerSize + recordHeaderSize)
+            throw new BiometricDeviceException("The ANSI 381 standard data block is too small.");
 
         var standard = IntPtr.Add(birPointer, checked((int)bir.StandardDataBlock.Offset));
         var header = Marshal.PtrToStructure<Ansi381Header>(standard);
@@ -90,9 +94,11 @@ public sealed class WinBioFingerprintCaptureSource : IFingerprintCaptureSource
         if (header.ImageCompressionAlg != 0)
             throw new BiometricDeviceException($"Unsupported ANSI 381 image compression code {header.ImageCompressionAlg}; the capability probe requires uncompressed raw capture.");
 
-        var recordPtr = IntPtr.Add(standard, Marshal.SizeOf<Ansi381Header>());
+        var recordPtr = IntPtr.Add(standard, headerSize);
         var record = Marshal.PtrToStructure<Ansi381Record>(recordPtr);
-        var recordHeaderSize = Marshal.SizeOf<Ansi381Record>();
+        if (record.BlockLength < recordHeaderSize || record.BlockLength > bir.StandardDataBlock.Size - headerSize)
+            throw new BiometricDeviceException("ANSI 381 fingerprint record length is invalid.");
+
         var imageBytes = checked((int)record.BlockLength - recordHeaderSize);
         var expected = checked((int)record.HorizontalLineLength * record.VerticalLineLength);
         if (imageBytes < expected || expected <= 0)
@@ -129,10 +135,10 @@ public sealed class WinBioFingerprintCaptureSource : IFingerprintCaptureSource
         public WinBioBirData SignatureBlock;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct RegisteredFormat { public ushort Owner; public ushort Type; }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct Ansi381Header
     {
         public ulong RecordLength;
@@ -152,7 +158,7 @@ public sealed class WinBioFingerprintCaptureSource : IFingerprintCaptureSource
         public ushort Reserved;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct Ansi381Record
     {
         public uint BlockLength;
