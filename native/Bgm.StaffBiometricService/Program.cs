@@ -36,6 +36,33 @@ if (command == "processed-info")
     }
 }
 
+if (command == "direct-selftest")
+{
+    try
+    {
+        Console.WriteLine("BGM CS9711 direct USB + ChipSailing vendor algorithm self-test.");
+        Console.WriteLine("No fingerprint image or template bytes are written to disk.");
+        var result = Cs9711DirectSelfTest.Run();
+        Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
+        return 0;
+    }
+    catch (DllNotFoundException ex)
+    {
+        Console.Error.WriteLine($"DIRECT_USB_SETUP_ERROR: {ex.Message}");
+        return 21;
+    }
+    catch (BiometricDeviceException ex)
+    {
+        Console.Error.WriteLine($"DEVICE_ERROR: {ex.Message}");
+        return 20;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"PROBE_ERROR: {ex.GetType().Name}: {ex.Message}");
+        return 40;
+    }
+}
+
 if (args.Length < 2)
 {
     PrintUsage();
@@ -142,10 +169,12 @@ static void PrintUsage()
     Console.WriteLine("Run from an elevated Administrator Command Prompt or PowerShell.");
     Console.WriteLine();
     Console.WriteLine("  Bgm.StaffBiometricService.exe processed-info");
+    Console.WriteLine("  Bgm.StaffBiometricService.exe direct-selftest");
     Console.WriteLine("  Bgm.StaffBiometricService.exe enroll   <credential-file> <test-employee-id>");
     Console.WriteLine("  Bgm.StaffBiometricService.exe identify <credential-file>");
     Console.WriteLine("  Bgm.StaffBiometricService.exe revoke   <credential-file> <credential-id>");
     Console.WriteLine();
     Console.WriteLine("processed-info reports only WBF metadata and never persists fingerprint sample bytes.");
+    Console.WriteLine("direct-selftest bypasses WBF, uses direct USB + CSAlgDll.dll, and keeps all biometric bytes in memory only.");
     Console.WriteLine("The credential file is encrypted and contains a portable fingerprint feature template, not a raw fingerprint image.");
 }
