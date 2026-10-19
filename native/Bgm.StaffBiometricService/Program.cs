@@ -1,0 +1,121 @@
+using System.Text.Json;
+using Bgm.StaffBiometricService.Biometric;
+
+if (!OperatingSystem.IsWindows())
+{
+    Console.Error.WriteLine("This capability probe only runs on Windows.");
+    return 2;
+}
+
+if (args.Length < 2)
+{
+    PrintUsage();
+    return 2;
+}
+
+var command = args[0].Trim().ToLowerInvariant();
+var credentialFile = Path.GetFullPath(args[1]);
+var terminalId = Environment.MachineName;
+var passphrase = ReadSecret("Portable credential passphrase: ");
+if (string.IsNullOrWhiteSpace(passphrase))
+{
+    Console.Error.WriteLine("A passphrase is required.");
+    return 2;
+}
+
+var store = new EncryptedCredentialFileStore(credentialFile, passphrase);
+var capture = new WinBioFingerprintCaptureSource(terminalId);
+var matcher = new SourceAfisFingerprintMatcher(40);
+var engine = new PortableBiometricEngine(capture, store, matcher);
+var probe = new Fp100CapabilityProbe(engine, terminalId);
+
+try
+{
+    Fp100CapabilityProbeResult result;
+    switch (command)
+    {
+        case "enroll":
+            if (args.Length < 3 || string.IsNullOrWhiteSpace(args[2]))
+            {
+                Console.Error.WriteLine("Enroll requires a test employee ID.");
+                return 2;
+            }
+            Console.WriteLine("Place the test finger on the FP100 reader when prompted by Windows.");
+            result = await probe.EnrollAsync(args[2].Trim(), CancellationToken.None);
+            break;
+
+        case "identify":
+            Console.WriteLine("Place a finger on the FP100 reader.");
+            result = await probe.IdentifyAsync(CancellationToken.None);
+            break;
+
+        case "revoke":
+            if (args.Length < 3 || string.IsNullOrWhiteSpace(args[2]))
+            {
+                Console.Error.WriteLine("Revoke requires the opaque credential ID printed during enrollment.");
+                return 2;
+            }
+            result = await probe.RevokeAsync(args[2].Trim(), CancellationToken.None);
+            break;
+
+        default:
+            PrintUsage();
+            return 2;
+    }
+
+    Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
+    return 0;
+}
+catch (BiometricNoMatchException ex)
+{
+    Console.Error.WriteLine($"NO_MATCH: {ex.Message}");
+    return 10;
+}
+catch (BiometricDeviceException ex)
+{
+    Console.Error.WriteLine($"DEVICE_ERROR: {ex.Message}");
+    return 20;
+}
+catch (InvalidDataException ex)
+{
+    Console.Error.WriteLine($"CREDENTIAL_FILE_ERROR: {ex.Message}");
+    return 30;
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine($"PROBE_ERROR: {ex.GetType().Name}: {ex.Message}");
+    return 40;
+}
+
+static string ReadSecret(string prompt)
+{
+    Console.Write(prompt);
+    var chars = new List<char>();
+    while (true)
+    {
+        var key = Console.ReadKey(intercept: true);
+        if (key.Key == ConsoleKey.Enter)
+        {
+            Console.WriteLine();
+            return new string(chars.ToArray());
+        }
+        if (key.Key == ConsoleKey.Backspace)
+        {
+            if (chars.Count > 0) chars.RemoveAt(chars.Count - 1);
+            continue;
+        }
+        if (!char.IsControl(key.KeyChar)) chars.Add(key.KeyChar);
+    }
+}
+
+static void PrintUsage()
+{
+    Console.WriteLine("BGM FP100 cross-PC capability probe");
+    Console.WriteLine("Run from an elevated Administrator Command Prompt or PowerShell.");
+    Console.WriteLine();
+    Console.WriteLine("  Bgm.StaffBiometricService.exe enroll   <credential-file> <test-employee-id>");
+    Console.WriteLine("  Bgm.StaffBiometricService.exe identify <credential-file>");
+    Console.WriteLine("  Bgm.StaffBiometricService.exe revoke   <credential-file> <credential-id>");
+    Console.WriteLine();
+    Console.WriteLine("The credential file is encrypted and contains a portable fingerprint feature template, not a raw fingerprint image.");
+}
