@@ -1,24 +1,24 @@
 # BestGymsMalta Staff Fingerprint Integration — Design
 
 Date: 2026-10-19
-Status: Written design for user review; product implementation must not begin until this spec is explicitly approved and an implementation plan is subsequently approved.
+Status: Approved product direction with implementation gated by the plan and the cross-terminal biometric capability proof below.
 Depends on: `2026-10-06-staff-attendance-payroll-design.md`, current Phase 3 attendance/payroll implementation, existing Staff Portal terminal authentication, existing Punch Clock API and attendance state engine.
 
 ## 1. Purpose
 
-Add the permanent FP100 fingerprint integration for BestGymsMalta staff attendance without changing the established attendance/payroll rules and without coupling staff biometrics to the member barcode/card system.
+Add permanent FP100 fingerprint identification for BGM staff attendance while preserving the existing payroll rules and keeping staff biometrics completely separate from the member barcode/card system.
 
-The fingerprint subsystem exists only to answer one question locally and securely:
+The user-facing requirement is global staff identity:
 
-> Which authorised BGM staff employee matched this fingerprint at this registered staff terminal?
+- a staff employee enrolls once for BGM, not separately per gym;
+- that active biometric identity is usable at any authorised BGM staff Punch Clock terminal;
+- each physical punch records the terminal and gym where that punch happened;
+- attendance state, worked hours and payroll are calculated from the employee's global IN/OUT sequence, never from a gym-specific state machine;
+- an employee may clock IN at one gym and clock OUT at another and this remains one valid work session.
 
-After a local match, the existing BGM server remains authoritative for whether the event becomes Clock In, Clock Out, Duplicate Ignored, Inactive Employee, Inactive Terminal, Needs Attention, or an error.
+Example: Staff1 clocks IN at Birkirkara at 08:03 and OUT at Marsa at 16:12. The system records Birkirkara as the IN location, Marsa as the OUT location, and one 8h09 employee work session.
 
-This design formalises the already-proven hardware path and the approved permanent architecture.
-
-## 2. Non-Negotiable Separation From Member Scanning
-
-The member and staff hardware pipelines remain completely separate.
+## 2. Absolute Separation From Member Scanning
 
 ### Member system
 
@@ -30,15 +30,15 @@ Purpose:
 - member access;
 - member gym check-in.
 
-Existing `StaffGlobalScanner` behaviour remains a member-only concern.
+Existing `StaffGlobalScanner` remains member-only despite its component name.
 
 Members must never:
 
-- enrol fingerprints;
-- use fingerprints for gym access;
-- receive biometric identities;
+- enroll fingerprints;
+- use fingerprints for access;
+- receive biometric credentials;
 - have biometric records created;
-- interact with the staff fingerprint service.
+- interact with the staff biometric service.
 
 ### Staff system
 
@@ -46,648 +46,555 @@ Hardware: FP100 USB fingerprint reader.
 
 Purpose:
 
-- staff identification for Punch Clock;
-- staff Clock In / Clock Out attendance only.
+- identify a staff employee for attendance;
+- create a request for the existing BGM attendance engine to record Clock In or Clock Out.
 
-Fingerprint events must never enter the member barcode scanner queue, parser, modal state, input handling, or access-check logic.
-
-The fingerprint implementation must not modify the member scanner into a dual-purpose scanner.
+Fingerprint events must never enter the member barcode input queue, parser, member modal state or member access-check logic.
 
 ## 3. Verified Hardware Baseline
 
-The physical device already tested is:
+The tested hardware is:
 
 - FP100 USB Fingerprint Reader;
 - ChipSailing driver family;
 - Windows device name `ChipSailing Fingerprint UsbDriver`;
 - VID/PID `USB\\VID_2541&PID_0236`;
 - Windows Biometric Framework compatible;
-- tested in BASIC sensor mode;
-- private WinBio session successfully opened;
-- temporary private biometric database successfully created;
-- temporary fingerprint enrollment successfully committed;
-- the same enrolled finger was subsequently identified to the same GUID;
-- the temporary template, private sensor configuration, registration and biometric database file were deleted after the test.
+- BASIC sensor mode verified;
+- private WinBio session verified;
+- temporary private biometric database verified;
+- enrollment and subsequent identification verified;
+- temporary enrollment/database/configuration removed after testing.
 
-Hardware feasibility is therefore complete and must not be repeated as part of normal implementation work.
+Hardware feasibility on one Windows installation is complete and must not be repeated as discovery work.
 
-The temporary hardware-test biometric GUID is not production data and must never be reused in application code, migrations, fixtures, staff records, or production documentation examples.
+The temporary hardware-test biometric GUID is throwaway test data and must never be used as a production identity, migration value or fixture.
 
-## 4. Chosen Architecture
+## 4. Critical Global-Enrollment Constraint
 
-The permanent architecture is:
+The earlier local-only private-WinBio model is superseded.
 
-`FP100 fingerprint reader`
+Standard Windows Biometric Framework enrollment commits a template to the biometric database associated with the biometric unit used for enrollment. That proves local enrollment/matching, but it does not by itself satisfy BGM's required enroll-once/use-any-gym behaviour.
 
-→ `local BGM Windows biometric service`
+Therefore the permanent design must provide a reusable global biometric identity or global matching authority. It must not require staff to enroll at every gym.
 
-→ `private Windows Biometric Framework database`
+### Mandatory capability gate
 
-→ `local biometric GUID / opaque match identity`
+Before permanent biometric implementation proceeds beyond the adapter/prototype boundary, prove on TEST hardware that:
 
-→ `authorised BGM employee mapping`
+1. one employee enrollment created on authorised machine/terminal A can be matched by a fresh fingerprint capture on authorised machine/terminal B;
+2. the portable representation or matching mechanism is supported by the actual FP100/ChipSailing stack used by BGM;
+3. raw fingerprint images are not persisted;
+4. enrollment and probe data can be handled without exposing biometric material to browser JavaScript;
+5. false/no-match/error behaviour can be distinguished reliably;
+6. revocation can prevent new accepted matches globally.
 
-→ `normalised biometric-match event`
+Preferred implementation direction is a vendor-supported portable biometric template/feature representation or vendor-supported central matching mechanism used by a native BGM biometric service.
 
-→ `existing BGM Punch Clock web/server flow`
+If this capability proof fails, implementation stops and the biometric architecture returns for review. It must not silently fall back to per-terminal/per-gym enrollment because that would violate the approved product requirement.
+
+## 5. Chosen System Boundary
+
+Permanent logical flow:
+
+`FP100 reader`
+
+→ `native BGM Windows biometric service`
+
+→ `supported capture/template/match engine`
+
+→ `global active BGM biometric credential`
+
+→ `short-lived authenticated match assertion`
+
+→ `BGM web Punch Clock integration`
 
 → `/api/staff-punch-clock/punch`
 
-→ `existing attendance state engine`
+→ `existing employee-global attendance engine`
 
-The browser does not read raw fingerprint frames and does not call WinBio directly.
+The browser never handles raw fingerprint frames, templates or biometric databases.
 
-The local Windows component is the only component that talks directly to `winbio.dll`.
+The native Windows service is the only local component allowed to talk directly to the scanner/WinBio/vendor biometric stack.
 
-The local Windows service performs biometric capture and matching. BGM web/Supabase stores only the metadata needed to map an authorised local biometric identity to a BGM employee and terminal context.
+## 6. Source of Truth
 
-## 5. Source of Truth
+The BGM staff employee ID is the permanent employee identity.
 
-The BGM staff employee ID remains the permanent authoritative employee identity.
-
-A WinBio GUID is not the employee's primary identity.
-
-The model must distinguish:
-
-- BGM staff employee identity;
-- fingerprint terminal/device identity;
-- local biometric enrollment identity.
+A WinBio GUID, vendor template identifier, template hash, service credential or terminal ID is never the employee primary key.
 
 Conceptually:
 
-`staff_employee_id` ↔ `biometric_terminal/device` ↔ `winbio_template_guid`
+`staff_employee_id` ↔ `global biometric credential` ↔ `active/revoked lifecycle`
 
-An employee may therefore have more than one local biometric enrollment over time or across terminals/gyms without receiving a different BGM employee identity.
+and independently:
 
-## 6. Local Windows Biometric Service
+`registered terminal` ↔ `gym/location`
 
-A small Windows-local BGM service/bridge is required because the existing Staff Portal is browser-based and should not attempt direct private WinBio operations.
+A biometric credential proves which employee matched. The authenticated terminal proves where the physical punch happened.
 
-The service responsibilities are limited to:
+## 7. Biometric Data and Privacy Boundary
 
-- open and maintain the private BGM WinBio database for the configured terminal;
+Never persist raw fingerprint images or raw sensor frames.
+
+Browser code, member-system code, attendance/payroll tables and ordinary application logs must never contain biometric templates or reconstructable biometric material.
+
+If the capability gate proves that a portable biometric template/feature representation must be stored centrally to meet global enrollment, it must be treated as sensitive biometric data and must be:
+
+- encrypted at rest;
+- encrypted in transit;
+- inaccessible to browser clients;
+- accessible only to the narrowly scoped biometric service/matcher;
+- excluded from normal logs, exports and analytics;
+- revocable/deletable through the Super Admin biometric lifecycle;
+- segregated from member data;
+- documented for BGM's data-protection/security review before Production.
+
+Central metadata may include:
+
+- employee ID;
+- biometric credential ID;
+- credential status;
+- enrollment timestamp;
+- enrollment actor;
+- engine/template format version;
+- revocation timestamp/reason;
+- non-sensitive device/service version metadata.
+
+The design deliberately does not claim that an encrypted biometric template is non-sensitive merely because it is not a raw image.
+
+## 8. Native Windows Biometric Service
+
+Responsibilities:
+
 - detect the configured FP100 reader;
-- enroll authorised staff fingerprints when instructed through an authenticated Super Admin enrollment flow;
-- identify fingerprints locally;
-- remove/revoke local biometric enrollment when instructed;
-- convert a successful match into a normalised opaque identity event;
-- communicate securely with the browser/BGM server integration layer;
-- expose service/device health required by the Staff Portal;
+- capture enrollment samples through a supported biometric API;
+- create the approved global biometric credential after the capability gate passes;
+- capture transient punch probes;
+- perform or request biometric matching without exposing biometric material to the browser;
+- issue/receive a cryptographically authenticated short-lived match assertion;
+- expose minimal reader/service health;
+- support authenticated enrollment and revocation commands;
 - record only non-biometric operational logs.
 
-The local service must not:
+It must not:
 
 - handle member barcodes;
 - access member records;
 - calculate wages;
-- decide Clock In vs Clock Out;
-- choose arbitrary gyms;
-- invent attendance while offline;
-- upload raw biometric material.
+- decide IN versus OUT;
+- choose an arbitrary gym;
+- invent punches while offline;
+- present a local biometric match as a successful attendance punch before BGM server acceptance.
 
-## 7. Biometric Privacy Model
+## 9. Global Multi-Gym Behaviour
 
-BGM web infrastructure and Supabase must not store:
+A valid active staff biometric credential is global across BGM authorised staff Punch Clock terminals.
 
-- raw fingerprint images;
-- raw sensor frames;
-- fingerprint templates;
-- WinBio database files;
-- exported biometric template blobs.
+Rules:
 
-The private Windows biometric layer stores and matches the biometric template locally.
+- employee enrollment is not scoped to a gym;
+- employee enrollment is not repeated merely because the employee works at a different gym;
+- employee home gym is profile/assignment metadata only;
+- any authorised active terminal may submit a valid match for any active enrolled employee;
+- every physical punch independently records that terminal's configured gym;
+- IN gym and OUT gym may differ;
+- device replacement must not change employee identity or historical attendance;
+- global revocation blocks future accepted punches at every gym.
 
-Supabase may store only the minimum mapping and lifecycle metadata needed for BGM to understand an enrollment, for example:
+## 10. Employee-Global Attendance State
 
-- employee ID;
-- BGM terminal ID;
-- terminal/device installation identifier;
-- opaque biometric enrollment reference / WinBio GUID where required for mapping;
-- enrollment status;
-- enrolled-at timestamp;
-- enrolled-by Super Admin identity;
-- revoked-at timestamp and revocation metadata where applicable;
-- non-sensitive service/device version metadata where operationally useful.
+Attendance state belongs to the employee, not the gym.
 
-Application, audit and local service logs must never contain fingerprint images, templates, WinBio database contents, or other reconstructable biometric material.
+When a punch is accepted, the attendance engine must determine whether the employee currently has an open work session globally.
 
-## 8. Multi-Gym / Multi-Terminal Strategy
+It must never ask, in effect, “does this employee have an open session at this gym?”
 
-The permanent design must work across multiple BGM gyms and must not assume one reception PC forever.
+Expected behaviour:
 
-Fingerprint templates remain local to each private biometric installation. They are not synchronised through Supabase merely to avoid re-enrollment.
+- no global open session → Clock In;
+- one global open session → Clock Out that session;
+- cross-gym Clock Out is valid;
+- duplicate/idempotent source event → duplicate ignored;
+- conflicting or corrupt state → fail/needs attention according to existing safeguards.
 
-Therefore:
+Payroll duration is derived from session time boundaries. Gym IDs are audit/reporting metadata and must not split, deny or alter salary calculations.
 
-- an employee can have multiple active local biometric enrollments, each associated with a specific registered terminal/device installation;
-- the same employee may need enrollment at more than one gym/terminal if they are expected to punch there;
-- replacement PCs/readers may require re-enrollment;
-- terminal/device replacement must not change the employee's BGM identity or historical attendance;
-- Super Admin must be able to see enrollment status by employee and terminal/device;
-- revoking or deactivating an employee must stop that employee from creating valid new punches even if stale local biometric material still exists temporarily.
+## 11. Terminal Identity and Location Authority
 
-Server-side employee/terminal validation remains the final safety boundary.
+A browser or biometric assertion cannot choose an arbitrary gym.
 
-## 9. Terminal Identity and Authority
+The existing authenticated registered terminal remains authoritative for:
 
-A browser or local biometric event must not be trusted to supply arbitrary:
+- terminal identity;
+- terminal active/inactive state;
+- physical gym/location attached to that terminal.
 
-- gym ID;
-- employee authority;
-- punch timestamp authority;
-- punch direction.
+A successful biometric assertion proves the matched staff credential/employee. The server derives the punch gym from the authenticated terminal.
 
-The existing registered Punch Clock terminal/session context remains authoritative for terminal identity and gym.
+Physical punch fields:
 
-The biometric layer proves only the matched staff identity plus a unique source event reference and local match time.
+- Clock In stores IN terminal + IN gym;
+- Clock Out stores OUT terminal + OUT gym;
+- these may differ within one session.
 
-The server then determines:
-
-- whether the terminal is valid and active;
-- the terminal's gym;
-- whether the mapped employee exists and is active;
-- whether the event is accepted;
-- Clock In vs Clock Out;
-- canonical/effective punch time under the existing attendance rules;
-- duplicate handling;
-- resulting attendance and payroll consequences.
-
-## 10. Reuse the Existing Punch Clock API
+## 12. Reuse Existing Punch Clock API and Attendance Engine
 
 Do not create a second attendance implementation.
 
-The current `/api/staff-punch-clock/punch` route already:
+The permanent fingerprint bridge must continue through `/api/staff-punch-clock/punch` and the existing `recordStaffPunch`/database state engine.
 
-- authenticates the staff terminal;
-- resolves a biometric match through the biometric adapter contract;
-- validates the normalised match;
-- generates an idempotent event key scoped to terminal and adapter event ID;
-- calls the existing attendance state engine;
-- handles inactive employee, inactive terminal, invalid request and duplicate outcomes;
-- returns employee confirmation data, gym, effective time and daily minutes.
+The endpoint remains responsible for:
 
-The permanent fingerprint bridge should satisfy this existing contract rather than bypass it.
+- terminal authentication;
+- match assertion verification;
+- employee/credential active-state verification;
+- replay/idempotency verification;
+- attendance state transition;
+- terminal-derived gym/location;
+- response data for UI confirmation.
 
-Any adapter changes must remain narrow and must not duplicate payroll logic inside the local Windows service or browser.
+Payroll decisions do not move into the native scanner service or browser.
 
-## 11. Normalised Biometric Match Contract
+## 13. Authenticated Match Assertion
 
-The web-facing biometric event should contain only the minimum required non-template identity data.
+A browser CustomEvent is an internal UI signal, never the security boundary.
 
-The existing server contract concept is preserved:
+The permanent biometric service/matcher must produce a short-lived authenticated assertion containing at minimum:
 
-- `employeeId`: the authoritative mapped BGM employee ID;
-- `adapterEventId`: a unique event ID generated for the local match;
-- `matchedAt`: the local match timestamp, subject to server validation and existing attendance rules.
+- `employeeId`;
+- global `biometricCredentialId`;
+- `terminalId`;
+- unique `adapterEventId` / nonce;
+- `matchedAt`;
+- issued-at;
+- expiry;
+- protocol/version identifier.
 
-No raw fingerprint data or template data is included.
+The punch API must verify:
 
-The browser-level event remains:
+- assertion authenticity;
+- assertion has not expired;
+- terminal ID matches the authenticated terminal session;
+- terminal is active;
+- credential exists, is active and belongs to the employee;
+- employee is active;
+- event ID/nonce has not already been accepted;
+- timestamps are within the permitted skew/window.
 
-`bgm:staff-biometric-match`
+Forging `bgm:staff-biometric-match` in DevTools with an employee ID must not be sufficient to create attendance.
 
-Its detail payload must be suitable for the existing biometric adapter and Punch Clock endpoint.
+## 14. Browser Integration and Event Ownership
 
-The implementation plan must define the exact authenticated transport from the local Windows service to the browser/event bridge, but that transport must preserve this minimal contract and security boundary.
-
-## 12. Browser Integration Components
-
-The staff fingerprint integration remains physically and logically separate from `StaffGlobalScanner`.
-
-The intended web architecture is:
+Keep these components separate:
 
 - existing `StaffGlobalScanner` — member barcode/card only;
-- new `StaffGlobalBiometricBridge` — staff biometric match integration only;
-- existing `StaffPunchClockKiosk` — dedicated Punch Clock route owner where applicable.
+- new `StaffGlobalBiometricBridge` — staff biometric integration on general staff pages;
+- existing `StaffPunchClockKiosk` — dedicated Punch Clock owner.
 
-`StaffGlobalBiometricBridge` may be mounted in the staff layout alongside `StaffGlobalScanner`, but never inside it.
+On `/staff/punch-clock`, `StaffPunchClockKiosk` is the sole biometric-event owner.
 
-The two components must not share scanner input queues, editable-field protections, member access modal state, or parsing rules.
+On other `/staff` pages, `StaffGlobalBiometricBridge` may own staff biometric events.
 
-## 13. Event Ownership and Double-Punch Prevention
+The global bridge must suppress its punch submission on `/staff/punch-clock` so one fingerprint cannot cause two browser POSTs.
 
-`StaffPunchClockKiosk` already listens for `bgm:staff-biometric-match` and submits it to the existing Punch Clock endpoint.
+Server idempotency remains a second safeguard.
 
-A future global biometric bridge must not process the same fingerprint simultaneously on `/staff/punch-clock`.
+## 15. Attendance UI and Member Modal Coexistence
 
-Chosen lowest-risk ownership rule:
+A successful staff punch may show:
 
-- on `/staff/punch-clock`, `StaffPunchClockKiosk` is the sole biometric event owner;
-- on other `/staff` pages, `StaffGlobalBiometricBridge` owns biometric-match events;
-- the global bridge must explicitly disable/suppress its punch submission on the dedicated Punch Clock route.
+- `CLOCKED IN` or `CLOCKED OUT`;
+- employee photo/name;
+- effective time;
+- physical punch gym/terminal;
+- daily accumulated time if already returned by the server.
 
-This rule must be covered by automated tests because duplicate browser handlers could otherwise generate two server requests for one scan.
+Other explicit states include duplicate ignored, no match, inactive employee, inactive terminal, service unavailable, revoked credential, network failure and needs attention.
 
-Server idempotency remains a second safety layer, not a substitute for correct event ownership.
+If a member access modal is open, a staff fingerprint result must not close, replace, mutate or feed data into that member modal. Staff attendance uses its own notification layer.
 
-## 14. Staff-Portal Attendance Notification
+## 16. Super Admin Global Enrollment Flow
 
-On staff pages other than the dedicated kiosk, a successful fingerprint punch should display a compact attendance notification independent of member access UI.
+Enrollment is controlled from Super Admin employee management only.
 
-Success states:
+Flow:
 
-- `CLOCKED IN`;
-- `CLOCKED OUT`.
-
-The notification should show where available:
-
-- employee photo;
-- employee name;
-- exact effective punch time;
-- gym/terminal identity;
-- daily accumulated worked time where already returned by the server.
-
-Other states include:
-
-- duplicate ignored;
-- fingerprint not recognised;
-- inactive employee;
-- inactive terminal;
-- service/device unavailable;
-- needs attention;
-- punch error.
-
-Success/duplicate notices may auto-dismiss after a short interval. Errors requiring action should remain visible long enough to be understood and retried appropriately.
-
-## 15. Coexistence With Member Access Modal
-
-A fingerprint scan must never close, replace, mutate, or feed data into an open member access modal.
-
-If a member access modal is open while a staff employee touches the FP100:
-
-- the member modal remains unchanged;
-- the staff attendance result appears in its own smaller notification layer;
-- no fingerprint-derived text/digits are injected into the member flow;
-- neither scanner blocks the other unless an actual hardware/OS limitation is proven later.
-
-The member access workflow remains authoritative for member interactions; the biometric notification remains a separate staff-attendance surface.
-
-## 16. Super Admin Enrollment Flow
-
-Fingerprint enrollment is controlled from Super Admin staff management only.
-
-Recommended flow:
-
-1. Super Admin opens an employee record.
+1. Super Admin selects an employee.
 2. Super Admin chooses `Enroll fingerprint`.
-3. BGM confirms the target employee and selected/connected registered biometric terminal/device.
-4. The authenticated local Windows service starts a private WinBio enrollment session.
-5. The service guides the required capture sequence.
-6. Enrollment is committed locally only after successful biometric capture.
-7. BGM stores only the approved mapping/reference metadata.
-8. The enrollment action is written to the central audit trail.
-9. UI shows the resulting enrollment status.
+3. BGM confirms the employee and an authorised enrollment-capable terminal/service.
+4. Native service performs the required capture sequence.
+5. The approved global biometric credential is created only after successful enrollment.
+6. Credential is associated with the employee globally, not with one gym as its scope.
+7. Audit entry records employee, actor, enrollment station, timestamp and credential lifecycle reference without logging biometric material.
+8. UI shows global enrollment state.
 
-Required states include:
+Required states:
 
-- Enrolled;
+- Enrolled — active globally;
 - Not enrolled;
+- Revoked;
 - Re-enrollment required;
-- Device/service unavailable;
+- Service/device unavailable;
 - Enrollment failed.
 
-Enrollment must fail closed: an incomplete or failed capture must not create an active BGM enrollment mapping.
+Failed or incomplete capture must not create an active credential.
 
-## 17. Remove / Revoke Enrollment
+## 17. Global Revocation and Employee Deactivation
 
-Super Admin must have `Remove fingerprint enrollment` for a selected employee/terminal mapping.
+Super Admin can remove/revoke an employee fingerprint enrollment globally.
 
 Revocation must:
 
-- remove the local biometric template where the target device/service is reachable;
-- mark/revoke the BGM mapping centrally;
-- write an audit entry identifying employee, terminal/device, actor, timestamp and reason/action context;
-- prevent new accepted punches through that enrollment.
+- mark the global credential revoked centrally;
+- make every terminal/server path reject future punches for it;
+- delete/retire encrypted template material where applicable;
+- invalidate any relevant matcher cache;
+- audit actor, employee, credential, time and action/reason;
+- preserve historical attendance.
 
-If the local device is unavailable during central revocation, BGM must still mark the mapping revoked so the server refuses new attendance from it. The UI should then show that local cleanup is pending and require device cleanup/re-enrollment before the terminal is considered fully healthy.
+Employee deactivation must independently block new attendance server-side even if a stale local or cached biometric representation remains.
 
-Historical attendance is never deleted by enrollment revocation.
+Employee reactivation must not silently reactivate a revoked credential.
 
-## 18. Employee Deactivation
+## 18. Device Replacement and Recovery
 
-Employee deactivation must immediately prevent new accepted attendance punches server-side.
+A replacement reader or Windows PC must not force creation of a new employee identity.
 
-Local template cleanup should also be attempted/queued operationally, but successful server deactivation cannot depend on local cleanup being online at that moment.
+Once the cross-terminal capability gate is proven, an authorised replacement terminal should be provisioned and then use the same global active credential set/matching authority according to the approved mechanism.
 
-Reactivating an employee must not silently reactivate an obsolete/revoked fingerprint mapping. Enrollment status must be explicitly valid before biometric punching resumes.
+Device credentials themselves must be separately revocable and rotated/replaced without changing historical attendance.
 
-## 19. Terminal / Device Replacement and Recovery
+If the capability gate proves this cannot be achieved safely with the hardware/SDK, stop for architecture review rather than reverting to hidden per-device staff enrollment.
 
-Replacement hardware or a rebuilt Windows installation may invalidate the local private biometric database.
+## 19. Online-Only Behaviour
 
-Recovery strategy:
+Version 1 is online-only.
 
-- register/provision the replacement installation as an authorised BGM biometric terminal/device;
-- mark previous local mappings as replaced/re-enrollment required where appropriate;
-- retain all historical punch/attendance records linked to the original terminal;
-- re-enroll required employees locally on the new installation;
-- never migrate raw templates through Supabase;
-- retire/revoke old device credentials;
-- make device replacement visible in audit history.
+If internet, BGM API, terminal authentication, biometric matcher or required native-service communication is unavailable:
 
-A failed local database does not justify guessing identities or attendance.
+- no attendance is guessed;
+- no offline punch is treated as final;
+- no queued punch is silently replayed later;
+- UI states that attendance was not recorded;
+- Super Admin manual punch fallback remains available with mandatory reason and audit.
 
-## 20. Local Service Authentication and Transport
+## 20. Automatic/System Clock-Out Contract
 
-Communication between the local Windows service and BGM must be authenticated and narrowly scoped.
+Every automatic logout/clock-out must be visibly flagged to Super Admin.
 
-The implementation plan must choose a concrete transport that supports the required browser/service integration safely on Windows. Regardless of transport choice, the following requirements are fixed:
+This applies to midnight auto-close and to any future automatic clock-out reason.
 
-- only an authorised BGM local service/device can emit accepted biometric-match events;
-- credentials/secrets are not embedded in browser-visible source where avoidable;
-- terminal credentials remain scoped to their registered terminal;
-- replayed match events are rejected through unique event IDs/idempotency;
-- the browser cannot forge arbitrary employee IDs and obtain a valid punch merely by dispatching a JavaScript event;
-- the server independently validates terminal, employee and mapping state;
-- device/service health can be surfaced without exposing biometric material.
+An automatic clock-out must:
 
-The browser CustomEvent is an internal UI integration mechanism, not the security boundary.
+- use source `system`/automatic, never impersonate a physical staff punch;
+- preserve the employee's original Clock In time and physical IN gym/terminal;
+- set the effective automatic Clock Out time according to the applicable rule;
+- not invent a physical OUT terminal;
+- not invent a physical OUT gym;
+- mark the session `needs_attention` or equivalent review-required state;
+- create/open a Super Admin attendance alert/exception;
+- store a machine-readable reason/attention code;
+- show employee, original Clock In time/location, automatic Clock Out time, reason and review status;
+- remain correctable by Super Admin with mandatory correction reason;
+- preserve the automatic event and subsequent correction in the audit trail;
+- preserve/rebuild the historical payroll snapshot according to the established Phase 3 payroll rules.
 
-## 21. Offline Behaviour
+The current Malta-midnight rule remains a system Clock Out at 00:00. The event may retain the original IN gym as contextual metadata, but `clock_out_gym_id` and `clock_out_terminal_id` remain null because no physical OUT happened there.
 
-Version 1 remains online-only.
+No automatic logout may appear indistinguishable from a normal employee fingerprint Clock Out.
 
-If internet, BGM API, terminal authentication or required service communication is unavailable:
+## 21. Manual Fallback
 
-- no attendance record is guessed;
-- no local punch is silently treated as final;
-- no queued offline attendance is later replayed automatically;
-- the UI clearly reports that the punch was not recorded;
-- Super Admin manual punch fallback remains the recovery mechanism with mandatory reason and audit trail.
+Super Admin manual IN/OUT/correction remains the recovery route for hardware/network/service problems.
 
-Biometric identification may technically occur locally while offline, but it must not be presented as a successful BGM Clock In/Out unless the BGM server has accepted the punch.
+Manual attendance requires:
+
+- authorised Super Admin actor;
+- explicit employee;
+- explicit time/action;
+- mandatory reason;
+- audit linkage;
+- normal employee-global state/payroll rules.
+
+A manual action must not be mislabeled as a physical fingerprint terminal event.
 
 ## 22. Failure Behaviour
 
-Failures must be explicit and fail closed.
-
-Examples:
+All failures are explicit and fail closed.
 
 ### Fingerprint not recognised
-
 - no attendance event;
 - show `Fingerprint not recognised`;
-- allow a fresh attempt.
+- permit a fresh attempt.
 
-### Reader/service unavailable
-
+### Reader/service/matcher unavailable
 - no attendance event;
-- show hardware/service unavailable;
-- do not fall back to member barcode logic.
+- show unavailable state;
+- never fall back to member barcode logic.
 
-### Inactive employee
+### Inactive/revoked credential or employee
+- reject server-side;
+- no new valid attendance transition.
 
-- server rejects punch;
-- no new valid work session/punch;
-- show attendance unavailable / contact manager.
-
-### Inactive terminal
-
-- server rejects punch;
-- no attendance record;
-- terminal requires Super Admin intervention.
-
-### Invalid/revoked mapping
-
-- server rejects event;
-- no attendance record;
-- show re-enrollment/attention state where appropriate.
+### Inactive/unregistered terminal
+- reject server-side;
+- no attendance event.
 
 ### Network/API failure
+- do not claim `CLOCKED IN`/`CLOCKED OUT`;
+- Super Admin manual fallback remains available.
 
-- do not claim `CLOCKED IN` or `CLOCKED OUT`;
-- show connection failure;
-- manual fallback is available to Super Admin.
-
-### Duplicate event
-
-- rely on the existing idempotent event key / duplicate handling;
-- display `Punch already recorded` / duplicate ignored;
-- do not reverse the employee's attendance state.
+### Duplicate/replayed event
+- reject/ignore idempotently;
+- do not reverse attendance state.
 
 ## 23. Audit Requirements
 
-Central audit must cover at least:
+Audit must cover at least:
 
 - biometric enrollment created;
-- biometric enrollment removed/revoked;
-- re-enrollment required;
-- device/terminal registration relevant to biometrics;
-- device/terminal replacement or retirement;
-- mapping changes;
-- Super Admin actor;
-- employee;
-- terminal/device;
-- timestamp;
-- outcome and non-sensitive reason/context.
+- enrollment revoked/removed;
+- re-enrollment;
+- credential/service/device lifecycle changes;
+- physical biometric punch accepted/rejected where operationally appropriate;
+- manual punch/correction;
+- every automatic clock-out creation;
+- automatic clock-out review/correction/resolution;
+- terminal replacement/revocation;
+- relevant actor and timestamps.
 
-Audit records must never include raw biometric data or templates.
+Never audit raw fingerprint content or template blobs.
 
-Normal attendance audit remains governed by the existing attendance subsystem and immutable source-event design.
+## 24. Existing Payroll Rules Remain Authoritative
 
-## 24. Logging Requirements
+This fingerprint work does not redesign Phase 3 payroll.
 
-Local service logs may include:
+Existing agreed rules remain:
 
-- service start/stop;
-- reader detected/not detected;
-- private database opened/unavailable;
-- enrollment started/completed/failed using BGM employee/mapping references where safe;
-- match success/failure using opaque identifiers;
-- communication/authentication failure;
-- software/device version.
+- exact-minute attendance;
+- flat hourly rate unless a configured public-holiday multiplier applies;
+- no overtime premium;
+- separate Full Time / Part Time holiday multipliers;
+- historical rate/employment-type/holiday multiplier snapshots preserved;
+- Super Admin correction audit;
+- staff receives only their own timesheet email;
+- Super Admin reporting/export permissions.
 
-Logs must not include:
+The additional explicit rule is that payroll session boundaries are employee-global and are never split by gym.
 
-- fingerprint images;
-- sensor frames;
-- fingerprint templates;
-- WinBio database exports;
-- secrets/credentials;
-- unnecessary personally identifying staff details.
+## 25. Database Direction
 
-Retention should be operationally limited and not treated as an alternate biometric store.
+Implementation may require new TEST-only migrations for concepts such as:
 
-## 25. Existing Payroll and Attendance Rules Remain Unchanged
+- global biometric credentials;
+- credential lifecycle/audit metadata;
+- authorised biometric service/device registrations;
+- assertion/replay bookkeeping if not already covered by punch-event idempotency;
+- generic automatic-clock-out alert/review metadata where current schema is midnight-specific.
 
-This integration does not redesign Phase 3 payroll.
+Biometric templates, if capability testing proves central encrypted storage is required, must be stored behind a dedicated service-only boundary rather than ordinary browser-readable staff tables.
 
-The following existing rules remain authoritative:
+Production remains untouched until TEST verification and an explicit rollout checkpoint.
 
-- exact-minute attendance calculations;
-- no special overtime premium;
-- effective-dated hourly rates;
-- Full Time / Part Time employment history;
-- public-holiday multipliers by employment type;
-- historical payroll preservation;
-- manual Super Admin fallback with mandatory reason;
-- audit-preserving corrections;
-- midnight Malta auto-clock-out and warning behaviour already implemented;
-- existing reporting/timesheet requirements.
+## 26. Reporting Location Semantics
 
-The local biometric service must never calculate or snapshot payroll.
+Reports may show/analyse:
 
-## 26. Database / Mapping Design Direction
+- Clock In gym;
+- Clock Out gym;
+- Clock In terminal;
+- Clock Out terminal;
+- cross-gym sessions;
+- automatic/system Clock Outs;
+- unresolved automatic-clock-out alerts.
 
-The implementation plan should add a dedicated biometric enrollment/mapping entity rather than placing a single fingerprint GUID directly on `bgm_staff_employees`.
+But worked minutes and salary totals remain employee/time based.
 
-The mapping must support multiple enrollments per employee and lifecycle history.
+A cross-gym session is not an error merely because IN and OUT locations differ.
 
-Required concepts include:
+## 27. Required Test Strategy
 
-- unique mapping ID;
-- employee ID;
-- terminal/device installation ID;
-- local biometric identity reference;
-- active/revoked/re-enrollment-required status;
-- enrollment timestamps;
-- created/enrolled-by audit identity;
-- revocation/replacement metadata;
-- uniqueness rules preventing accidental duplicate active mapping for the same local biometric identity;
-- indexes needed for secure lookup and Super Admin status views.
+At minimum cover:
 
-The exact table/column names belong in the implementation plan, but the model must preserve the one-employee-to-many-device-enrollments relationship.
+### Capability gate
+- enroll on terminal A, match on terminal B;
+- same employee positive match;
+- wrong finger/no-match;
+- revoked credential fails globally;
+- no raw image/template leaks to browser/logs.
 
-## 27. Service-to-Employee Mapping Validation
+### Security
+- forged browser CustomEvent cannot create a punch;
+- assertion terminal mismatch rejected;
+- expired assertion rejected;
+- replayed assertion/event rejected;
+- inactive credential/employee/terminal rejected.
 
-A local match must not be accepted solely because the local service claims an employee ID.
+### Attendance
+- normal same-gym IN/OUT;
+- Birkirkara IN → Marsa OUT closes one global session;
+- Marsa IN next day works without re-enrollment;
+- employee does not get simultaneous open sessions merely by moving gyms;
+- duplicate event does not invert state;
+- gym metadata does not alter worked-minute calculation.
 
-Server-side validation should be able to verify that:
+### Automatic logout
+- midnight automatic OUT leaves physical OUT gym/terminal null;
+- alert is created/open;
+- session visibly requires Super Admin review;
+- every supported automatic logout reason creates an alert using the same contract;
+- correction/resolution is audited;
+- payroll snapshot/history remains correct after review/correction.
 
-- the biometric mapping exists;
-- it is active;
-- it belongs to the authenticated terminal/device context;
-- it maps to the stated employee;
-- the employee is active;
-- the terminal is active.
+### UI separation
+- member barcode still works unchanged;
+- fingerprint does not feed member scanner;
+- member modal remains open while staff attendance notification appears separately;
+- dedicated kiosk has one biometric event owner only.
 
-If the implementation uses a local opaque enrollment reference rather than directly sending `employeeId`, the server should resolve that reference to the employee. If the existing adapter contract continues to expose `employeeId`, the adapter/server must still validate the corresponding authorised mapping before attendance is recorded.
+### Existing payroll regression
+- normal day;
+- Full Time public holiday;
+- Part Time public holiday;
+- historical rate change;
+- historical employment-type change;
+- manual correction;
+- missing payroll history warning;
+- PDF/Excel/email/reporting regression as applicable.
 
-This prevents an arbitrary browser-generated CustomEvent from being treated as biometric proof.
+## 28. Production Rollout Gate
 
-## 28. Test Strategy
+Before Production:
 
-All fingerprint integration work is TEST-first and must not touch Production until explicitly approved.
+- cross-terminal global enrollment/matching capability proven on TEST hardware;
+- threat/security review completed for biometric credential storage and assertion signing;
+- data-protection handling documented;
+- TEST migrations applied and verified;
+- automated tests/CI green;
+- physical test across at least two registered gym terminal contexts;
+- global revocation tested;
+- cross-gym IN/OUT tested;
+- automatic logout alert/review tested;
+- scheduler for automatic attendance jobs confirmed at the required frequency;
+- rollback/recovery procedure documented;
+- explicit Production approval obtained.
 
-TEST Supabase project:
+Vercel Preview's weaker scheduler configuration must never be silently treated as the Production scheduler if the feature requires a higher frequency.
 
-`vlvyqdjhzdcxatilbdiv`
+## 29. Out of Scope
 
-Production project remains untouched during design and implementation verification.
-
-Required tests include at minimum:
-
-### Local service / hardware adapter
-
-- configured FP100 reader detected;
-- private WinBio database opens;
-- enrollment succeeds through authorised flow;
-- enrollment failure leaves no active mapping;
-- enrolled finger identifies to expected local mapping;
-- unknown finger returns no match;
-- revocation removes/invalidates enrollment;
-- reader unavailable returns explicit failure;
-- no biometric material appears in logs or web payloads.
-
-### Server mapping/security
-
-- valid terminal + valid active mapping + active employee accepted;
-- mapping from a different terminal/device rejected;
-- revoked mapping rejected;
-- inactive employee rejected;
-- inactive terminal rejected;
-- forged employee ID / browser event without valid mapping rejected;
-- repeated adapter event ID remains idempotent;
-- stale/replayed event is safely rejected/ignored under defined validation rules.
-
-### Browser ownership
-
-- `/staff/punch-clock` is handled only by `StaffPunchClockKiosk`;
-- other `/staff` pages are handled by `StaffGlobalBiometricBridge`;
-- one biometric scan causes at most one punch request per browser flow;
-- member `StaffGlobalScanner` remains untouched by biometric events;
-- an open member modal remains open when a staff biometric result appears.
-
-### Attendance integration
-
-- valid first punch clocks in;
-- next valid punch clocks out;
-- duplicate scan does not immediately reverse attendance state;
-- cross-gym attendance remains governed by server terminal context;
-- returned employee photo/name/gym/time/daily minutes display correctly;
-- network/service failure creates no false success state.
-
-### Enrollment lifecycle
-
-- Super Admin-only enrollment;
-- Super Admin-only removal/revocation;
-- enrollment audit written;
-- revocation audit written;
-- employee deactivation prevents new punches;
-- device replacement marks affected enrollment status correctly;
-- historical attendance remains unchanged after re-enrollment/device replacement.
-
-## 29. Production Rollout Strategy
-
-Production rollout must be staged.
-
-1. Complete implementation and automated tests on `feature/staff-attendance-payroll`.
-2. Apply schema changes to TEST only.
-3. Install/configure the local Windows biometric service on a controlled TEST/reception PC.
-4. Provision a TEST Punch Clock terminal/device identity.
-5. Enroll test staff only.
-6. Verify end-to-end fingerprint → local match → authenticated mapping → existing Punch Clock API → attendance result.
-7. Verify member barcode scanning simultaneously remains unaffected.
-8. Verify enrollment removal and device/service recovery.
-9. Complete Phase 3 CI and preview verification.
-10. Obtain explicit Production approval before applying Production schema/configuration or enrolling real staff.
-
-Production biometric enrollment must not begin implicitly as part of deployment.
-
-## 30. Recovery and Support
-
-Operational support states must be visible enough for Super Admin to distinguish:
-
-- fingerprint not enrolled;
-- enrolled and healthy;
-- re-enrollment required;
-- local service unavailable;
-- reader unavailable;
-- terminal inactive;
-- mapping revoked;
-- server/network unavailable.
-
-Recovery actions should direct Super Admin to the appropriate remedy rather than encouraging repeated blind scans.
-
-No recovery action may silently bypass biometric identity validation and create a punch under an assumed employee.
-
-## 31. Out of Scope
-
-Unless separately approved, this fingerprint integration does not include:
+Unless separately approved, this phase does not add:
 
 - member fingerprint access;
-- biometric member enrollment;
-- raw biometric storage in Supabase;
-- central synchronisation of fingerprint templates;
-- offline attendance queues/synchronisation;
-- facial recognition;
-- fingerprint-based Staff Portal login/authentication;
-- replacing member barcode/card scanners;
-- payroll calculation inside the local Windows service;
-- redesign of existing attendance/payroll rules;
-- Production rollout during the design/TEST stage.
+- face recognition;
+- offline attendance queues;
+- automatic payroll payment;
+- gym-scoped employee attendance states;
+- hidden per-terminal enrollment presented as global enrollment.
 
-## 32. Implementation Gate
+## 30. Implementation Gate
 
-This design document is the architectural gate for the permanent staff fingerprint subsystem.
+Implementation must follow the approved implementation plan task-by-task.
 
-After this spec is committed:
-
-1. self-review the spec for placeholders, contradictions, ambiguity, unnecessary scope, accidental member biometric functionality and privacy issues;
-2. present the written spec to the user for explicit review/approval;
-3. only after written-spec approval, invoke the Superpowers `writing-plans` skill;
-4. create the detailed implementation plan;
-5. obtain user approval of that plan and execution method;
-6. only then begin product implementation.
-
-No product code is authorised by the existence of this document alone.
+The first implementation task is the cross-terminal biometric capability proof. Failure of that proof is a stop condition, not permission to weaken the global-enrollment requirement.
