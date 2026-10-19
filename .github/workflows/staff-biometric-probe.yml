@@ -13,10 +13,20 @@ on:
 jobs:
   test:
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - run: dotnet test native/Bgm.StaffBiometricService.Tests/Bgm.StaffBiometricService.Tests.csproj --configuration Release
+      - name: Test probe contracts
+        run: dotnet test native/Bgm.StaffBiometricService.Tests/Bgm.StaffBiometricService.Tests.csproj --configuration Release
+      - name: Publish self-contained Windows probe
+        run: dotnet publish native/Bgm.StaffBiometricService/Bgm.StaffBiometricService.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -p:DebugType=None -p:DebugSymbols=false --output test-artifacts/bgm-fp100-probe
+      - name: Upload Windows probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: bgm-fp100-capability-probe
+          path: test-artifacts/bgm-fp100-probe
+          if-no-files-found: error
+          retention-days: 7
