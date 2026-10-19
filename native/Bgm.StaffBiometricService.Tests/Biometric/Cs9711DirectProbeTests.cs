@@ -15,13 +15,15 @@ public sealed class Cs9711DirectProbeTests
     }
 
     [Fact]
-    public void Accepts_only_complete_cs9711_frame()
+    public void Accepts_only_complete_non_empty_cs9711_frame()
     {
         var frame = new byte[Cs9711Protocol.FrameBytes];
+        frame[^1] = 1;
 
         Cs9711Protocol.ValidateFrame(frame);
 
         Assert.Throws<InvalidDataException>(() => Cs9711Protocol.ValidateFrame(new byte[Cs9711Protocol.FrameBytes - 1]));
+        Assert.Throws<InvalidDataException>(() => Cs9711Protocol.ValidateFrame(new byte[Cs9711Protocol.FrameBytes]));
     }
 
     [Fact]
