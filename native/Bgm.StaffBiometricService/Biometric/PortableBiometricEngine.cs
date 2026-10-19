@@ -7,7 +7,7 @@ public sealed class PortableBiometricEngine(
 {
     public async Task<EnrolledBiometricCredential> EnrollAsync(EmployeeBiometricSubject subject, CancellationToken ct)
     {
-        var employeeId = String(subject.EmployeeId || "").Trim();
+        var employeeId = (subject.EmployeeId ?? string.Empty).Trim();
         if (employeeId.Length == 0) throw new ArgumentException("Employee ID is required.", nameof(subject));
 
         var sample = await capture.CaptureAsync(ct);
