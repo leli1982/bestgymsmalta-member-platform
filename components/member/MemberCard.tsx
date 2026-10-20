@@ -18,6 +18,29 @@ type MemberCardProps = {
   variant?: "full" | "home";
 };
 
+function premiumCardOverlay(themeColor: string) {
+  return `linear-gradient(135deg, ${themeColor}F2 0%, ${themeColor}D9 32%, rgba(8,8,10,.82) 70%, rgba(0,0,0,.95) 100%)`;
+}
+
+function PremiumArtwork({ themeColor }: { themeColor: string }) {
+  return (
+    <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+      <Image
+        src="/wallet/bgm-wallet-master-bg.jpg"
+        alt=""
+        fill
+        priority
+        sizes="(max-width: 768px) 100vw, 620px"
+        className="object-cover object-center"
+      />
+      <div className="absolute inset-0" style={{ background: premiumCardOverlay(themeColor) }} />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/15" />
+      <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full border border-white/10" />
+      <div className="absolute -right-8 -top-10 h-36 w-36 rounded-full border border-white/10" />
+    </div>
+  );
+}
+
 export default function MemberCard({ variant = "full" }: MemberCardProps) {
   const [state, setState] = useState<MemberCardState>({ kind: "loading" });
   const [flipped, setFlipped] = useState(false);
@@ -145,57 +168,62 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
         aria-label="Flip membership card"
       >
         <div
-          className="relative min-h-[142px] transition-transform duration-700"
+          className="relative min-h-[160px] transition-transform duration-700"
           style={{
             transformStyle: "preserve-3d",
             transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
           }}
         >
           <section
-            className="absolute inset-0 overflow-hidden rounded-[1.45rem] border bg-white p-3 text-zinc-950 shadow-[0_7px_24px_rgba(15,23,42,0.07)]"
-            style={{ backfaceVisibility: "hidden", borderColor: theme.border }}
+            className="absolute inset-0 overflow-hidden rounded-[1.55rem] border p-4 text-white shadow-[0_16px_36px_rgba(0,0,0,0.24)]"
+            style={{ backfaceVisibility: "hidden", borderColor: theme.border, backgroundColor: theme.background }}
           >
-            <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: theme.background }} />
-            <div className="grid h-full grid-cols-[72px_minmax(0,.9fr)_minmax(108px,1.2fr)] items-center gap-3">
-              <div className="flex h-[72px] w-[72px] items-center justify-center rounded-[1rem] p-2.5" style={{ backgroundColor: theme.background }}>
-                <img src="/bgm-logo.png" alt="BestGymsMalta" className="h-full w-full object-contain" />
-              </div>
-
-              <div className="min-w-0 border-r border-slate-200 pr-2">
-                <p className="text-[10px] font-bold text-slate-500">{theme.label} Membership</p>
-                <p className={`mt-1 flex items-center gap-1.5 text-[13px] font-black capitalize ${active ? "text-emerald-700" : "text-amber-700"}`}>
-                  <span className={`h-2 w-2 rounded-full ${active ? "bg-emerald-500" : "bg-amber-500"}`} />
-                  {member.status || "Active"}
-                </p>
-                <p className="mt-2 text-[9px] font-semibold text-slate-400">Valid until</p>
-                <p className="truncate text-[10px] font-black text-zinc-900">{expiryText}</p>
-              </div>
-
-              <div className="min-w-0 text-center">
-                <div className="[&>div]:p-0 [&_p]:mt-0 [&_p]:text-[8px] [&_p]:tracking-[.08em] [&_svg]:max-h-[48px]">
-                  {assignedCardNumber ? <MemberBarcode memberNumber={assignedCardNumber} /> : <p className="py-4 text-[10px] font-bold text-amber-700">Card not assigned</p>}
+            <PremiumArtwork themeColor={theme.background} />
+            <div className="relative z-10 grid h-full grid-cols-[minmax(0,1fr)_minmax(112px,.9fr)] gap-4">
+              <div className="flex min-w-0 flex-col justify-between border-r border-white/20 pr-3">
+                <div>
+                  <div className="relative h-7 w-28">
+                    <Image src="/wallet/bgm-logo-white.png" alt="BestGymsMalta" fill className="object-contain object-left" />
+                  </div>
+                  <p className="mt-2 text-[9px] font-black uppercase tracking-[.18em] text-white/70">{theme.label} membership</p>
+                  <h2 className="mt-1 truncate text-[15px] font-black leading-tight">{member.fullName || member.username}</h2>
                 </div>
-                <p className="mt-1 truncate font-mono text-[10px] font-black text-zinc-950">{member.memberNumber}</p>
-                <p className="mt-1 text-[8px] font-semibold text-slate-500">{assignedCardNumber ? "Current card: " + assignedCardNumber : "BGM member number · tap for details"}</p>
+                <div className="mt-2 flex items-end justify-between gap-2">
+                  <div>
+                    <p className="text-[8px] font-semibold uppercase tracking-[.12em] text-white/55">Valid until</p>
+                    <p className="mt-0.5 text-[10px] font-black">{expiryText}</p>
+                  </div>
+                  <p className={`rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-[.08em] ${active ? "border-emerald-300/40 bg-emerald-300/15 text-emerald-50" : "border-amber-300/40 bg-amber-300/15 text-amber-50"}`}>
+                    {active ? "Active" : "Inactive"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex min-w-0 flex-col justify-center text-center">
+                <div className="rounded-xl bg-white px-2 py-1.5 text-zinc-950 shadow-sm [&>div]:p-0 [&_p]:mt-0 [&_p]:text-[7px] [&_p]:tracking-[.08em] [&_svg]:max-h-[48px]">
+                  {assignedCardNumber ? <MemberBarcode memberNumber={assignedCardNumber} /> : <p className="py-4 text-[9px] font-bold text-amber-700">Card not assigned</p>}
+                </div>
+                <p className="mt-2 truncate font-mono text-[10px] font-black text-white">{member.memberNumber}</p>
+                <p className="mt-1 text-[7px] font-bold uppercase tracking-[.12em] text-white/55">Tap for details</p>
               </div>
             </div>
           </section>
 
           <section
-            className="absolute inset-0 overflow-hidden rounded-[1.45rem] border bg-white p-4 text-zinc-950 shadow-[0_7px_24px_rgba(15,23,42,0.07)]"
-            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", borderColor: theme.border }}
+            className="absolute inset-0 overflow-hidden rounded-[1.55rem] border p-4 text-white shadow-[0_16px_36px_rgba(0,0,0,0.24)]"
+            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", borderColor: theme.border, backgroundColor: theme.background }}
           >
-            <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: theme.background }} />
-            <div className="flex h-full items-center justify-between gap-4">
+            <PremiumArtwork themeColor={theme.background} />
+            <div className="relative z-10 flex h-full items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: theme.background }}>{theme.label} Member Details</p>
+                <p className="text-[9px] font-black uppercase tracking-[.16em] text-white/65">{theme.label} Member Details</p>
                 <h2 className="mt-1 truncate text-base font-black">{member.fullName || member.username}</h2>
-                <p className="mt-2 text-[9px] font-semibold text-slate-400">BGM member number</p>
+                <p className="mt-2 text-[8px] font-semibold uppercase tracking-[.12em] text-white/50">BGM member number</p>
                 <p className="truncate text-xs font-black">{member.memberNumber}</p>
-                <p className="mt-1 text-[9px] font-semibold text-slate-500">Current card: {assignedCardNumber || "Not assigned"}</p>
-                <p className="mt-1 text-[9px] font-semibold text-slate-400">Valid until {expiryText}</p>
+                <p className="mt-1 text-[9px] font-semibold text-white/65">Current card: {assignedCardNumber || "Not assigned"}</p>
+                <p className="mt-1 text-[9px] font-semibold text-white/65">Valid until {expiryText}</p>
               </div>
-              <ShieldCheck className="shrink-0" style={{ color: theme.background }} size={29} strokeWidth={3} />
+              <ShieldCheck className="shrink-0 text-white" size={29} strokeWidth={3} />
             </div>
           </section>
         </div>
@@ -206,76 +234,94 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
   return (
     <>
       <button type="button" onClick={() => setFlipped((value) => !value)}
-        className="block w-full text-left text-zinc-950" style={{ perspective: "1200px" }}
+        className="block w-full text-left" style={{ perspective: "1200px" }}
         aria-label={flipped ? "Show membership barcode" : "Show membership details"}>
         <div className="grid transition-transform duration-700 motion-reduce:transition-none"
           style={{ transformStyle: "preserve-3d", transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)" }}>
           <section
-            className="relative col-start-1 row-start-1 flex min-h-[420px] flex-col justify-between overflow-hidden rounded-[2rem] border bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,0.07)]"
-            style={{ backfaceVisibility: "hidden", borderColor: theme.border }} aria-hidden={flipped}>
-            <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: theme.background }} />
-            <div>
+            className="relative col-start-1 row-start-1 flex min-h-[500px] flex-col justify-between overflow-hidden rounded-[2rem] border p-6 text-white shadow-[0_22px_55px_rgba(0,0,0,0.30)]"
+            style={{ backfaceVisibility: "hidden", borderColor: theme.border, backgroundColor: theme.background }} aria-hidden={flipped}>
+            <PremiumArtwork themeColor={theme.background} />
+            <div className="relative z-10">
               <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: theme.background }}>BestGymsMalta · {theme.label}</p>
-                  <h2 className="mt-3 break-words text-2xl font-black leading-tight">{member.fullName || member.username}</h2>
-                  <p className="mt-2 text-xs font-bold text-slate-500">Digital membership card</p>
-                  <p className="mt-2 font-mono text-lg font-black" style={{ color: theme.background }}>{member.memberNumber}</p>
+                <div className="min-w-0 flex-1">
+                  <div className="relative h-10 w-40 max-w-full">
+                    <Image src="/wallet/bgm-logo-white.png" alt="BestGymsMalta" fill priority className="object-contain object-left" />
+                  </div>
+                  <p className="mt-3 text-[10px] font-black uppercase tracking-[.2em] text-white/65">{theme.label} membership</p>
+                  <h2 className="mt-2 break-words text-[1.8rem] font-black leading-[1.06] tracking-[-.025em]">{member.fullName || member.username}</h2>
+                  <p className="mt-3 font-mono text-base font-black tracking-[.04em] text-white/90">{member.memberNumber}</p>
                 </div>
-                <div className="relative h-16 w-16 shrink-0 rounded-full p-2" style={{ backgroundColor: theme.background }}>
-                  <Image src="/bgm-logo.png" alt="BestGymsMalta" fill priority className="object-contain p-2" />
+                <div className="rounded-full border border-white/20 bg-black/25 px-3 py-1.5 text-[9px] font-black uppercase tracking-[.14em] text-white/85 backdrop-blur-sm">
+                  {active ? "Active" : "Inactive"}
                 </div>
               </div>
-              <div className="mt-7 rounded-2xl border border-zinc-200 bg-white p-2">
+
+              <p className="mt-5 max-w-[16rem] text-lg font-medium leading-tight tracking-[-.02em] text-white/85">Be the best, beat the rest</p>
+
+              <div className="mt-6 rounded-[1.35rem] border border-white/20 bg-white p-3 text-zinc-950 shadow-[0_10px_30px_rgba(0,0,0,.22)]">
                 {assignedCardNumber ? <MemberBarcode memberNumber={assignedCardNumber} /> : <p className="py-9 text-center text-sm font-bold text-amber-700">Card not assigned. Staff can still find you using your BGM membership number.</p>}
               </div>
-              <p className="mt-3 text-center text-xs text-slate-500">
+              <p className="mt-2.5 text-center text-[10px] font-semibold text-white/60">
                 {assignedCardNumber ? "Present this current card barcode at reception." : "Ask staff to assign a card at reception."}
               </p>
             </div>
-            <div className="mt-6">
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-zinc-50 p-4">
-                <div className={`flex items-center gap-2 ${active ? "text-emerald-700" : "text-amber-700"}`}>
-                  <BadgeCheck size={21} />
-                  <p className="text-xs font-black capitalize">{active ? "Active member" : "Inactive / expired"}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-semibold text-slate-500">Valid until</p>
-                  <p className="mt-1 text-xs font-black">{expiryText}</p>
-                </div>
+
+            <div className="relative z-10 mt-6 grid grid-cols-3 gap-2 border-t border-white/15 pt-4">
+              <div>
+                <p className="text-[8px] font-bold uppercase tracking-[.13em] text-white/50">Membership type</p>
+                <p className="mt-1 text-xs font-black">{theme.label}</p>
               </div>
-              <p className="mt-5 text-center text-[10px] font-bold text-slate-500">Tap card to view details</p>
+              <div>
+                <p className="text-[8px] font-bold uppercase tracking-[.13em] text-white/50">Status</p>
+                <p className="mt-1 flex items-center gap-1.5 text-xs font-black">
+                  <BadgeCheck size={15} /> {active ? "Active" : "Inactive"}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-[8px] font-bold uppercase tracking-[.13em] text-white/50">Valid until</p>
+                <p className="mt-1 text-xs font-black">{expiryText}</p>
+              </div>
             </div>
+            <p className="relative z-10 mt-4 text-center text-[9px] font-bold uppercase tracking-[.12em] text-white/45">Tap card to view details</p>
           </section>
+
           <section
-            className="col-start-1 row-start-1 flex min-h-[420px] flex-col justify-between rounded-[2rem] border bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,0.07)]"
-            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", borderColor: theme.border }} aria-hidden={!flipped}>
-            <div>
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: theme.background }}>{theme.label} Member details</p>
-                <ShieldCheck style={{ color: theme.background }} size={25} />
+            className="relative col-start-1 row-start-1 flex min-h-[500px] flex-col justify-between overflow-hidden rounded-[2rem] border p-6 text-white shadow-[0_22px_55px_rgba(0,0,0,0.30)]"
+            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", borderColor: theme.border, backgroundColor: theme.background }} aria-hidden={!flipped}>
+            <PremiumArtwork themeColor={theme.background} />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between gap-4">
+                <div className="relative h-9 w-36">
+                  <Image src="/wallet/bgm-logo-white.png" alt="BestGymsMalta" fill className="object-contain object-left" />
+                </div>
+                <ShieldCheck className="text-white" size={25} />
               </div>
-              <dl className="mt-5 space-y-4">
-                <div className="rounded-2xl bg-zinc-50 p-4">
-                  <dt className="text-xs font-semibold text-slate-500">Name</dt>
+              <p className="mt-4 text-[9px] font-black uppercase tracking-[.18em] text-white/60">{theme.label} Member details</p>
+              <dl className="mt-4 space-y-3">
+                <div className="rounded-2xl border border-white/15 bg-black/25 p-4 backdrop-blur-sm">
+                  <dt className="text-[10px] font-semibold text-white/55">Name</dt>
                   <dd className="mt-1 break-words text-lg font-black">{member.fullName || member.username}</dd>
                 </div>
-                <div className="rounded-2xl bg-zinc-50 p-4">
-                  <dt className="text-xs font-semibold text-slate-500">BGM member number</dt>
-                  <dd className="mt-1 break-all font-mono text-lg font-black" style={{ color: theme.background }}>{member.memberNumber}</dd>
+                <div className="rounded-2xl border border-white/15 bg-black/25 p-4 backdrop-blur-sm">
+                  <dt className="text-[10px] font-semibold text-white/55">BGM member number</dt>
+                  <dd className="mt-1 break-all font-mono text-base font-black">{member.memberNumber}</dd>
                 </div>
-                <div className="rounded-2xl bg-zinc-50 p-4">
-                  <dt className="text-xs font-semibold text-slate-500">Current card number</dt>
+                <div className="rounded-2xl border border-white/15 bg-black/25 p-4 backdrop-blur-sm">
+                  <dt className="text-[10px] font-semibold text-white/55">Current card number</dt>
                   <dd className="mt-1 break-all font-mono text-sm font-black">{assignedCardNumber || "Not assigned"}</dd>
-                  {!cardLinked && <p className="mt-2 text-xs text-slate-500">Physical card not linked</p>}
+                  {!cardLinked && <p className="mt-2 text-xs text-white/55">Physical card not linked</p>}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><dt className="text-xs text-slate-500">Valid until</dt><dd className="mt-1 text-sm font-bold">{expiryText}</dd></div>
-                  <div className="min-w-0"><dt className="text-xs text-slate-500">Email</dt><dd className="mt-1 break-all text-xs font-bold">{member.email || "Not set"}</dd></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-white/15 bg-black/25 p-4 backdrop-blur-sm"><dt className="text-[10px] text-white/55">Valid until</dt><dd className="mt-1 text-sm font-bold">{expiryText}</dd></div>
+                  <div className="min-w-0 rounded-2xl border border-white/15 bg-black/25 p-4 backdrop-blur-sm"><dt className="text-[10px] text-white/55">Email</dt><dd className="mt-1 break-all text-xs font-bold">{member.email || "Not set"}</dd></div>
                 </div>
               </dl>
             </div>
-            <p className="mt-5 text-center text-[10px] font-bold text-slate-500">Tap card to return to your barcode</p>
+            <div className="relative z-10 mt-5">
+              <p className="text-base font-medium text-white/80">Be the best, beat the rest</p>
+              <p className="mt-3 text-center text-[9px] font-bold uppercase tracking-[.12em] text-white/45">Tap card to return to your barcode</p>
+            </div>
           </section>
         </div>
       </button>
