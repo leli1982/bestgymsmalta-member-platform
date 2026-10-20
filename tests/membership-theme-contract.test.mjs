@@ -16,15 +16,21 @@ test("membership theme has one shared Regular Student Couples colour mapping", (
   assert.match(source, /fallback/i);
 });
 
+test("current membership type comes from active membership contracts", () => {
+  const source = requiredSource("lib/currentMembershipType.ts");
+  assert.match(source, /bgm_membership_members/);
+  assert.match(source, /bgm_memberships/);
+  assert.match(source, /membership_type/);
+  assert.match(source, /status.*active/s);
+});
+
 test("member card profile exposes current membership type and renders shared theme", () => {
   const session = requiredSource("lib/memberSession.ts");
   const route = requiredSource("app/api/member/card/route.ts");
   const card = requiredSource("components/member/MemberCard.tsx");
 
   assert.match(session, /membershipType\?:\s*"single"\s*\|\s*"student"\s*\|\s*"couples"\s*\|\s*null/);
-  assert.match(route, /bgm_membership_members/);
-  assert.match(route, /bgm_memberships/);
-  assert.match(route, /membership_type/);
+  assert.match(route, /loadCurrentMembershipType/);
   assert.match(card, /resolveMembershipTheme/);
   assert.match(card, /member\.membershipType/);
 });
@@ -36,7 +42,5 @@ test("Google Wallet projection carries membership type for later visual theming"
   assert.match(core, /membershipType:\s*"single"\s*\|\s*"student"\s*\|\s*"couples"\s*\|\s*null/);
   assert.match(core, /theme:/);
   assert.match(core, /resolveMembershipTheme/);
-  assert.match(sync, /bgm_membership_members/);
-  assert.match(sync, /bgm_memberships/);
-  assert.match(sync, /membership_type/);
+  assert.match(sync, /loadCurrentMembershipType/);
 });
