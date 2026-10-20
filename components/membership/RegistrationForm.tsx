@@ -296,13 +296,23 @@ export default function RegistrationForm({
             </button>
           ))}
         </div>
-        <label className="mt-5 block text-sm font-bold text-zinc-800">
-          Membership duration
-          <select value={durationKey} onChange={(event) => setDurationKey(event.target.value as MembershipDurationKey | "")} disabled={!membershipType} className={inputClass()}>
-            <option value="">Choose duration</option>
-            {DURATION_OPTIONS.filter((option) => config.pricing.entries.some((entry) => entry.membershipType === membershipType && entry.durationKey === option.value && entry.isActive !== false)).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-        </label>
+        <div className="mt-5">
+          <p className="text-sm font-bold text-zinc-800">Membership duration</p>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {DURATION_OPTIONS.filter((option) => config.pricing.entries.some((entry) => entry.membershipType === membershipType && entry.durationKey === option.value && entry.isActive !== false)).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setDurationKey(option.value)}
+                disabled={!membershipType}
+                aria-pressed={durationKey === option.value}
+                className={`rounded-2xl border px-4 py-4 text-left font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${durationKey === option.value ? "border-zinc-950 bg-zinc-950 text-white shadow-sm" : "border-zinc-200 bg-zinc-50 text-zinc-950 hover:border-zinc-400"}`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
         {selectedPrice ? <div className="mt-4 flex items-center justify-between rounded-2xl bg-emerald-50 px-4 py-3"><span className="text-sm font-bold text-emerald-800">Current membership price</span><span className="text-xl font-black text-emerald-950">{formatEur(selectedPrice.amountCents)}</span></div> : null}
       </section>
 
