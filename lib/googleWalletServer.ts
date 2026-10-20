@@ -13,7 +13,7 @@ import { todayMaltaDate } from "./maltaDate.ts";
 
 const WALLET_SCOPE = "https://www.googleapis.com/auth/wallet_object.issuer";
 const WALLET_API = "https://walletobjects.googleapis.com/walletobjects/v1";
-const WALLET_ART_VERSION = "4";
+const WALLET_ART_VERSION = "5";
 
 export type GoogleWalletConfig = {
   issuerId: string;
