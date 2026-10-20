@@ -5,6 +5,7 @@ import { MEMBER_PROFILE_COLUMNS, publicMemberProfile } from "@/lib/memberPublicP
 import { isCancellationEffective } from "@/lib/memberCancellationCore";
 import { todayMaltaDate } from "@/lib/maltaDate";
 import { parseMembershipNumber } from "@/lib/memberNumberCore";
+import { loadCurrentMembershipType } from "@/lib/currentMembershipType";
 
 export const dynamic = "force-dynamic";
 
@@ -35,11 +36,14 @@ export async function GET(request: NextRequest) {
         { status: 403, headers: { "Cache-Control": "private, no-store, max-age=0" } });
     }
 
-    const credentialsResult = await supabase
-      .from("bgm_member_card_credentials")
-      .select("barcode_value, status, activated_at, updated_at")
-      .eq("member_id", session.memberId)
-      .order("updated_at", { ascending: false });
+    const [credentialsResult, membershipType] = await Promise.all([
+      supabase
+        .from("bgm_member_card_credentials")
+        .select("barcode_value, status, activated_at, updated_at")
+        .eq("member_id", session.memberId)
+        .order("updated_at", { ascending: false }),
+      loadCurrentMembershipType(supabase, session.memberId),
+    ]);
 
     if (credentialsResult.error) throw credentialsResult.error;
 
@@ -54,7 +58,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       {
-        member: publicMemberProfile(memberResult.data),
+        member: {
+          ...publicMemberProfile(memberResult.data),
+          membershipType,
+        },
         // The app barcode encodes the CURRENT active physical card, not the lifetime BGM number.
         // Staff reception can still look up the permanent member number separately.
         cardBarcode: activeCredential?.barcode_value || null,
