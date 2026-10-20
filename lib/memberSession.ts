@@ -7,6 +7,7 @@ export type AppMember = {
   phone?: string;
   status: string;
   membershipExpiry?: string | null;
+  membershipType?: "single" | "student" | "couples" | null;
   tempPasswordMustChange?: boolean;
 };
 
