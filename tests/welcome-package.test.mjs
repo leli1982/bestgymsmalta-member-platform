@@ -4,6 +4,8 @@ import { buildWelcomeEmail } from "../lib/welcomeEmailCore.ts";
 import { readFileSync } from "node:fs";
 
 const enrollRoute = readFileSync(new URL("../app/api/system/members/enroll/route.ts", import.meta.url), "utf8");
+const walletSync = readFileSync(new URL("../lib/googleWalletSync.ts", import.meta.url), "utf8");
+const welcomePackage = readFileSync(new URL("../lib/welcomePackage.ts", import.meta.url), "utf8");
 
 test("welcome email contains app link and accepted declaration text", () => {
   const email = buildWelcomeEmail({
@@ -39,11 +41,17 @@ test("welcome email omits guardian section when no guardian declaration was acce
   assert.doesNotMatch(email.text, /Guardian Declaration/);
 });
 
-test("activation sends welcome package only after successful activation and never makes activation depend on mail success", () => {
-  assert.match(enrollRoute, /application_kind/);
-  assert.match(enrollRoute, /declaration_snapshot/);
-  assert.match(enrollRoute, /sendWelcomePackagesBestEffort/);
-  assert.match(enrollRoute, /bestEffortSyncGoogleWalletMembers/);
-  assert.match(enrollRoute, /return NextResponse\.json\(\{/);
-  assert.doesNotMatch(enrollRoute, /await sendWelcomePackagesBestEffort\([^)]*\)(?!\.catch)/s);
+test("successful activation flows through the existing post-activation hook", () => {
+  assert.match(enrollRoute, /bestEffortSyncGoogleWalletMembers\(walletMemberIds\)/);
+  assert.match(walletSync, /sendWelcomePackagesForRecentlyActivatedMembersBestEffort/);
+  assert.match(walletSync, /Welcome email failure must never undo or fail the membership mutation/);
+});
+
+test("welcome delivery is new-membership-only, recent-activation-only and audited per recipient", () => {
+  assert.match(welcomePackage, /application_kind[^\n]*"new"|application_kind[^\n]*new/);
+  assert.match(welcomePackage, /RECENT_ACTIVATION_WINDOW_MS/);
+  assert.match(welcomePackage, /membership\.welcome_email\.sent/);
+  assert.match(welcomePackage, /alreadySent/);
+  assert.match(welcomePackage, /bgm_membership_declaration_versions/);
+  assert.match(welcomePackage, /status[^\n]*"published"/);
 });
