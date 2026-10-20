@@ -11,11 +11,12 @@ test("shared European date input auto-inserts DD/MM/YYYY separators while typing
   assert.match(helper, /replace\(\/\\D\/g, \"\"\)/);
   assert.match(input, /formatEuropeanDateEntry/);
   assert.match(input, /placeholder = \"DD\/MM\/YYYY\"/);
+  assert.match(input, /maxLength=\{10\}/);
 });
 
-test("live membership review date entry uses EuropeanDateInput instead of native date fields", () => {
-  assert.doesNotMatch(review, /Field label=\"Date of birth\" type=\"date\"/);
-  assert.doesNotMatch(review, /Field label=\"Start date\" type=\"date\"/);
-  assert.doesNotMatch(review, /Field label=\"Expiry date\" type=\"date\"/);
-  assert.match(review, /EuropeanDateInput/);
+test("membership review date fields delegate to the shared European date input", () => {
+  assert.match(review, /type === \"date\"[\s\S]*?<EuropeanDateInput/);
+  assert.match(review, /Field label=\"Date of birth\" type=\"date\"/);
+  assert.match(review, /Field label=\"Start date\" type=\"date\"/);
+  assert.match(review, /Field label=\"Expiry date\" type=\"date\"/);
 });
