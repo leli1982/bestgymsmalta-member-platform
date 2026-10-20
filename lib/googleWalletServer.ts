@@ -32,13 +32,35 @@ type WalletResponse = {
   data: unknown;
 };
 
+function providerErrorDetail(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const error = (data as { error?: Record<string, unknown> }).error;
+  if (!error || typeof error !== "object") return null;
+
+  const parts: string[] = [];
+  if (typeof error.code === "number" || typeof error.code === "string") {
+    parts.push(`code=${String(error.code).slice(0, 40)}`);
+  }
+  if (typeof error.status === "string") {
+    parts.push(`status=${error.status.slice(0, 80)}`);
+  }
+  if (typeof error.message === "string") {
+    const message = error.message.replace(/[\r\n\t]+/g, " ").trim().slice(0, 300);
+    if (message) parts.push(`message=${message}`);
+  }
+
+  return parts.length ? parts.join("; ").slice(0, 300) : null;
+}
+
 class GoogleWalletProviderError extends Error {
   status: number | null;
+  detail: string | null;
 
-  constructor(status: number | null) {
+  constructor(status: number | null, data: unknown = null) {
     super("Google Wallet provider request failed.");
     this.name = "GoogleWalletProviderError";
     this.status = status;
+    this.detail = providerErrorDetail(data);
   }
 }
 
@@ -253,9 +275,9 @@ export async function ensureGoogleWalletClass(
       config,
     );
     if (created.ok) return config.classId;
-    throw new GoogleWalletProviderError(created.status);
+    throw new GoogleWalletProviderError(created.status, created.data);
   }
-  throw new GoogleWalletProviderError(existing.status);
+  throw new GoogleWalletProviderError(existing.status, existing.data);
 }
 
 export async function upsertGoogleWalletObject(
@@ -281,11 +303,11 @@ export async function upsertGoogleWalletObject(
       },
       config,
     );
-    if (!created.ok) throw new GoogleWalletProviderError(created.status);
+    if (!created.ok) throw new GoogleWalletProviderError(created.status, created.data);
     return { objectId, classId: config.classId };
   }
 
-  if (!existing.ok) throw new GoogleWalletProviderError(existing.status);
+  if (!existing.ok) throw new GoogleWalletProviderError(existing.status, existing.data);
 
   const patched = await walletRequest(
     resource,
@@ -295,7 +317,7 @@ export async function upsertGoogleWalletObject(
     },
     config,
   );
-  if (!patched.ok) throw new GoogleWalletProviderError(patched.status);
+  if (!patched.ok) throw new GoogleWalletProviderError(patched.status, patched.data);
   return { objectId, classId: config.classId };
 }
 
@@ -308,10 +330,15 @@ export function buildGoogleWalletSaveUrl(
 
 export function safeGoogleWalletError(error: unknown): string {
   if (error instanceof GoogleWalletProviderError) {
+    const detail = error.detail ? ` ${error.detail}` : "";
     if (error.status === 401 || error.status === 403) {
-      return "Google Wallet authorization failed.";
+      return `Google Wallet authorization failed.${detail}`.slice(0, 420);
     }
-    if (error.status === 404) return "Google Wallet resource was not found.";
+    if (error.status === 404) {
+      return `Google Wallet resource was not found.${detail}`.slice(0, 420);
+    }
+    const status = error.status ? ` HTTP ${error.status}.` : "";
+    return `Google Wallet request failed.${status}${detail}`.slice(0, 420);
   }
   return "Google Wallet request failed.";
 }
