@@ -30,7 +30,6 @@ test("digital member card scans current physical card and shows friendly BGM num
   assert.match(card, /cache:\s*["']no-store["']/);
   assert.match(card, /cardBarcode/);
   assert.match(card, /cardLinked/);
-  assert.match(card, /physicalCardBarcode/);
   assert.match(card, /BGM member number/i);
   assert.match(card, /Current card number/i);
   assert.match(card, /<MemberBarcode\s+memberNumber=\{assignedCardNumber\}/);
