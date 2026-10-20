@@ -106,3 +106,13 @@ test("safe Google errors never echo tokens keys or raw provider bodies", () => {
   assert.doesNotMatch(source, /throw new Error\([^\n]*responseText/);
   assert.doesNotMatch(source, /console\.(log|error)\([^\n]*privateKey/);
 });
+
+test("provider failures preserve only bounded safe Google error diagnostics", () => {
+  assert.match(source, /providerErrorDetail/);
+  assert.match(source, /error\.code/);
+  assert.match(source, /error\.status/);
+  assert.match(source, /error\.message/);
+  assert.match(source, /slice\(0,\s*300\)/);
+  assert.match(source, /new GoogleWalletProviderError\([^\n]*\.data/);
+  assert.doesNotMatch(source, /this\.data\s*=/);
+});
