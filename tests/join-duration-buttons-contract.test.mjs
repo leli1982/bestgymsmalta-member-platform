@@ -10,6 +10,7 @@ test("join registration shows duration choices as buttons instead of a dropdown"
   assert.match(source, /type="button"/);
   assert.match(source, /setDurationKey\(option\.value\)/);
   assert.match(source, /durationKey === option\.value/);
+  assert.match(source, /aria-pressed=\{durationKey === option\.value\}/);
 });
 
 test("duration buttons still come only from active configured prices for the selected membership type", () => {
