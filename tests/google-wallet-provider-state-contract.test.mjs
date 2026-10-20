@@ -3,21 +3,25 @@ import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-const serverPath = fileURLToPath(new URL("../lib/googleWalletServer.ts", import.meta.url));
+const helperPath = fileURLToPath(
+  new URL("../lib/googleWalletProviderState.ts", import.meta.url),
+);
 const diagnosticRoutePath = fileURLToPath(
   new URL("../app/api/wallet-debug/provider-state/route.ts", import.meta.url),
 );
-const source = readFileSync(serverPath, "utf8");
 
 test("TEST-only Wallet diagnostics can inspect Google's stored class and object without exposing credentials", () => {
-  assert.match(source, /export async function getGoogleWalletProviderState/);
-  assert.match(source, /genericObject\//);
-  assert.match(source, /genericClass\//);
-  assert.match(source, /heroImage/);
-  assert.match(source, /wideLogo/);
-  assert.match(source, /logo/);
-  assert.ok(existsSync(diagnosticRoutePath), "TEST provider-state diagnostic route must exist");
+  assert.ok(existsSync(helperPath), "provider-state diagnostic helper must exist");
+  const helper = readFileSync(helperPath, "utf8");
+  assert.match(helper, /export async function getGoogleWalletProviderState/);
+  assert.match(helper, /genericObject\//);
+  assert.match(helper, /genericClass\//);
+  assert.match(helper, /heroImage/);
+  assert.match(helper, /wideLogo/);
+  assert.match(helper, /logo/);
+  assert.doesNotMatch(helper, /console\.(log|error)/);
 
+  assert.ok(existsSync(diagnosticRoutePath), "TEST provider-state diagnostic route must exist");
   const route = readFileSync(diagnosticRoutePath, "utf8");
   assert.match(route, /VERCEL_ENV/);
   assert.match(route, /production/);
