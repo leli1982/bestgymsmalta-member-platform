@@ -39,15 +39,7 @@ jobs:
           node /tmp/bgm-ci-playwright/node_modules/playwright/cli.js install --with-deps chromium
 
       - name: Run tests
-        run: node --experimental-strip-types --test tests/*.test.mjs 2>&1 | tee bgm-node-test-output.log
-
-      - name: Save node test diagnostic
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pr45-node-test-output
-          path: bgm-node-test-output.log
-          if-no-files-found: error
+        run: node --experimental-strip-types --test tests/*.test.mjs
 
       - name: Type check
         run: npx tsc --noEmit
