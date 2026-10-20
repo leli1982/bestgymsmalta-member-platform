@@ -302,7 +302,7 @@ export default function StaffGlobalScanner() {
   }, [result, photoLoadFailed, closeResult]);
 
   useEffect(() => {
-    if (!canScan || pathname.startsWith("/staff/reception") || manualScanOpen) return;
+    if (!canScan || manualScanOpen) return;
 
     const clearTimer = () => {
       if (burstTimeout.current) clearTimeout(burstTimeout.current);
@@ -444,7 +444,7 @@ export default function StaffGlobalScanner() {
     if (!result && !networkError && !checking) processNextRef.current();
   }, [result, networkError, checking]);
 
-  if (!canScan || pathname.startsWith("/staff/reception")) return null;
+  if (!canScan) return null;
   const granted = Boolean(result?.granted);
   const problem = Boolean(networkError);
   const color = problem ? "bg-amber-600" : granted ? "bg-emerald-600" : "bg-red-600";
