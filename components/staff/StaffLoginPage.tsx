@@ -9,6 +9,7 @@ type SystemUser = {
   username: string;
   displayName: string;
   isSuperAdmin: boolean;
+  role?: "gym_staff" | "gym_manager" | "super_admin";
   permissions: string[];
 };
 
@@ -32,6 +33,10 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
       const response = await fetch("/api/system/auth", { cache: "no-store" });
       const data = await response.json();
       const sessionUser = data.authenticated ? data.user : null;
+      if (!expectedGym && sessionUser?.role === "gym_manager") {
+        window.location.replace("/manager");
+        return;
+      }
       if (
         expectedGym &&
         sessionUser &&
@@ -71,6 +76,10 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
       const data = await response.json();
       if (!response.ok) {
         setError(data.error || "Login failed.");
+        return;
+      }
+      if (!expectedGym && data.user?.role === "gym_manager") {
+        window.location.replace("/manager");
         return;
       }
       if (
