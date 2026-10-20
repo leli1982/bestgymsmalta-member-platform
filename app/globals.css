@@ -306,3 +306,45 @@ svg {
     letter-spacing: -0.04em;
   }
 }
+
+/* BGM enrollment membership theme
+   Mirrors the approved membership card palette: Regular black, Student green, Couples red. */
+form > section:first-child > div.mt-5.grid > button:nth-child(1) {
+  background: #111111;
+  color: #ffffff;
+  border-color: #27272a;
+}
+
+form > section:first-child > div.mt-5.grid > button:nth-child(2) {
+  background: #166534;
+  color: #ffffff;
+  border-color: #15803d;
+}
+
+form > section:first-child > div.mt-5.grid > button:nth-child(3) {
+  background: #B91C1C;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+form > section:first-child > div.mt-5.grid > button {
+  opacity: 0.9;
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+form > section:first-child > div.mt-5.grid > button:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+form > section:first-child > div.mt-5.grid > button[class*="bg-zinc-950"] {
+  opacity: 1;
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.95), 0 8px 22px rgba(0,0,0,0.18);
+}
+
+/* Contract marker for the selected membership-type state. */
+.membership-type-selected {
+  --bgm-membership-selected: 1;
+}
