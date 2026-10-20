@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { GYM_STAFF_PERMISSIONS } from "@/lib/systemPermissions";
+import { GYM_MANAGER_PERMISSIONS, GYM_STAFF_PERMISSIONS } from "@/lib/systemPermissions";
 import {
   createSystemSessionToken,
   getClearedSystemSessionCookieOptions,
@@ -10,12 +10,15 @@ import {
   verifySystemSessionToken,
   type SystemSessionIdentity,
 } from "@/lib/systemAuthCore";
+import type { SystemUserRole } from "@/lib/systemUserCore";
 
 const SYSTEM_COOKIE_NAME = "bgm_system_session";
 const SYSTEM_SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 
 export type SystemContext = SystemSessionIdentity & {
+  role: SystemUserRole;
   permissions: string[];
+  managedGymIds: string[];
 };
 
 function getSystemSecret() {
@@ -69,7 +72,7 @@ export async function getSystemContext(
   const supabase = getSupabaseAdmin();
   const accountResult = await supabase
     .from("bgm_system_users")
-    .select("id, gym_id, username, display_name, is_super_admin, active")
+    .select("id, gym_id, username, display_name, is_super_admin, active, role")
     .eq("id", session.systemUserId)
     .maybeSingle();
 
@@ -77,18 +80,40 @@ export async function getSystemContext(
   const account = accountResult.data;
   if (!account || !account.active) return null;
 
-  // Gym Staff is a fixed operational role. Do not trust historical per-user
-  // permission rows: old rows may contain management permissions that are no
-  // longer part of the approved role. Super Admin continues to bypass checks.
-  const permissions = account.is_super_admin ? [] : [...GYM_STAFF_PERMISSIONS];
+  const role: SystemUserRole = account.is_super_admin || account.role === "super_admin"
+    ? "super_admin"
+    : account.role === "gym_manager"
+      ? "gym_manager"
+      : "gym_staff";
+
+  let managedGymIds: string[] = [];
+  if (role === "gym_manager") {
+    const assignmentResult = await supabase
+      .from("bgm_manager_gym_assignments")
+      .select("gym_id")
+      .eq("manager_user_id", account.id)
+      .order("gym_id", { ascending: true });
+    if (assignmentResult.error) throw assignmentResult.error;
+    managedGymIds = (assignmentResult.data || []).map((row) => String(row.gym_id));
+  }
+
+  // Operational Staff and Gym Manager are fixed roles. Do not trust historical
+  // per-user permission rows. Super Admin continues to bypass permission checks.
+  const permissions = role === "super_admin"
+    ? []
+    : role === "gym_manager"
+      ? [...GYM_MANAGER_PERMISSIONS]
+      : [...GYM_STAFF_PERMISSIONS];
 
   return {
     systemUserId: account.id,
-    gymId: account.gym_id || null,
+    gymId: role === "gym_staff" ? account.gym_id || null : null,
     username: account.username,
     displayName: account.display_name,
-    isSuperAdmin: Boolean(account.is_super_admin),
+    isSuperAdmin: role === "super_admin",
+    role,
     permissions,
+    managedGymIds,
   };
 }
 
@@ -115,6 +140,23 @@ export async function requireSystemPermission(
     };
   }
 
+  return { context, error: null };
+}
+
+export async function requireGymManager(request: NextRequest) {
+  const context = await getSystemContext(request);
+  if (!context) {
+    return {
+      context: null,
+      error: NextResponse.json({ error: "System login required." }, { status: 401 }),
+    };
+  }
+  if (context.role !== "gym_manager") {
+    return {
+      context: null,
+      error: NextResponse.json({ error: "Gym Manager access required." }, { status: 403 }),
+    };
+  }
   return { context, error: null };
 }
 
