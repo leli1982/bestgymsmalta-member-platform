@@ -87,6 +87,49 @@ function localized(value: string) {
   };
 }
 
+function templateItem(fieldPath: string) {
+  return {
+    firstValue: {
+      fields: [{ fieldPath }],
+    },
+  };
+}
+
+function barcodeDetail(fieldPath: string) {
+  return {
+    fieldSelector: {
+      fields: [{ fieldPath }],
+    },
+  };
+}
+
+function googleClassBody(config: GoogleWalletConfig): Record<string, unknown> {
+  return {
+    id: config.classId,
+    classTemplateInfo: {
+      cardTemplateOverride: {
+        cardRowTemplateInfos: [
+          {
+            threeItems: {
+              startItem: templateItem("object.textModulesData['membership_type']"),
+              middleItem: templateItem("object.textModulesData['membership_status']"),
+              endItem: templateItem("object.textModulesData['membership_expiry']"),
+            },
+          },
+          {
+            oneItem: {
+              item: templateItem("object.textModulesData['brand_tagline']"),
+            },
+          },
+        ],
+      },
+      cardBarcodeSectionDetails: {
+        firstTopDetail: barcodeDetail("object.textModulesData['member_number']"),
+      },
+    },
+  };
+}
+
 function googleObjectBody(
   snapshot: GoogleWalletMemberSnapshot,
   config: GoogleWalletConfig,
@@ -266,13 +309,26 @@ export async function ensureGoogleWalletClass(
 ): Promise<string> {
   const resource = `genericClass/${encodeURIComponent(config.classId)}`;
   const existing = await walletRequest(resource, { method: "GET" }, config);
-  if (existing.ok) return config.classId;
+
+  if (existing.ok) {
+    const patched = await walletRequest(
+      resource,
+      {
+        method: "PATCH",
+        body: JSON.stringify(googleClassBody(config)),
+      },
+      config,
+    );
+    if (patched.ok) return config.classId;
+    throw new GoogleWalletProviderError(patched.status, patched.data);
+  }
+
   if (existing.status === 404) {
     const created = await walletRequest(
       "genericClass",
       {
         method: "POST",
-        body: JSON.stringify({ id: config.classId }),
+        body: JSON.stringify(googleClassBody(config)),
       },
       config,
     );
