@@ -81,6 +81,7 @@ function harness({ credentials = [credential], databaseError = false } = {}) {
     "@/lib/memberNumberCore": memberNumbers,
     "@/lib/maltaDate": { todayMaltaDate },
     "@/lib/memberCancellationCore": { isCancellationEffective },
+    "@/lib/currentMembershipType": { loadCurrentMembershipType: async () => "single" },
     "@/lib/memberAppAccess": {
       resolveMemberAppAccess: async () => ({
         state: "active",
