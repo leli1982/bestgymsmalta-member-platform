@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CalendarDays } from "lucide-react";
-import { europeanDateFromIso, parseEuropeanDate } from "@/lib/europeanDate";
+import {
+  europeanDateFromIso,
+  formatEuropeanDateEntry,
+  parseEuropeanDate,
+} from "@/lib/europeanDate";
 
 type Props = {
   value: string;
@@ -49,14 +53,15 @@ export default function EuropeanDateInput({
   }
 
   function applyText(next: string) {
-    setText(next);
-    const parsed = parseEuropeanDate(next);
+    const formatted = formatEuropeanDateEntry(next);
+    setText(formatted);
+    const parsed = parseEuropeanDate(formatted);
     if (parsed && inRange(parsed)) {
       setInvalid(false);
       onValueChange(parsed);
       return;
     }
-    if (!next.trim()) {
+    if (!formatted.trim()) {
       setInvalid(false);
       onValueChange("");
       return;
@@ -86,6 +91,7 @@ export default function EuropeanDateInput({
         readOnly={readOnly}
         value={text}
         placeholder={placeholder}
+        maxLength={10}
         onChange={(event) => { if (!readOnly) applyText(event.target.value); }}
         onBlur={() => {
           if (!text.trim() && !required) return;
