@@ -25,7 +25,17 @@ type ManagerStats = {
   }>;
 };
 
+type QuickRange = "today" | "week" | "month";
+
 const inputClass = "mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-950";
+
+function startOfMaltaWeek(today: string) {
+  const date = new Date(`${today}T12:00:00Z`);
+  const day = date.getUTCDay();
+  const daysSinceMonday = day === 0 ? 6 : day - 1;
+  date.setUTCDate(date.getUTCDate() - daysSinceMonday);
+  return date.toISOString().slice(0, 10);
+}
 
 export default function GymManagerPortal() {
   const today = useMemo(() => todayMaltaDate(), []);
@@ -35,6 +45,7 @@ export default function GymManagerPortal() {
   const [gymId, setGymId] = useState("");
   const [from, setFrom] = useState(() => today.slice(0, 8) + "01");
   const [to, setTo] = useState(today);
+  const [activeQuickRange, setActiveQuickRange] = useState<QuickRange | null>("month");
   const [stats, setStats] = useState<ManagerStats | null>(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [loadingStats, setLoadingStats] = useState(false);
@@ -86,6 +97,18 @@ export default function GymManagerPortal() {
   }, [from, gymId, to, user]);
 
   useEffect(() => { if (user) void loadStats(); }, [user, loadStats]);
+
+  const applyQuickRange = useCallback((range: QuickRange) => {
+    const nextFrom = range === "today"
+      ? today
+      : range === "week"
+        ? startOfMaltaWeek(today)
+        : today.slice(0, 8) + "01";
+
+    setFrom(nextFrom);
+    setTo(today);
+    setActiveQuickRange(range);
+  }, [today]);
 
   async function login(event: React.FormEvent) {
     event.preventDefault();
@@ -144,6 +167,12 @@ export default function GymManagerPortal() {
     );
   }
 
+  const quickButtonClass = (range: QuickRange) => `rounded-xl border px-4 py-2 text-sm font-black transition ${
+    activeQuickRange === range
+      ? "border-zinc-950 bg-zinc-950 text-white"
+      : "border-zinc-300 bg-white text-zinc-800 hover:border-zinc-500"
+  }`;
+
   return (
     <main className="min-h-screen bg-zinc-100 px-4 py-6 text-zinc-950 sm:px-8">
       <div className="mx-auto max-w-6xl space-y-5">
@@ -157,6 +186,12 @@ export default function GymManagerPortal() {
         </header>
 
         <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex flex-wrap gap-2" aria-label="Quick date filters">
+            <button type="button" onClick={() => applyQuickRange("today")} className={quickButtonClass("today")}>Today</button>
+            <button type="button" onClick={() => applyQuickRange("week")} className={quickButtonClass("week")}>This Week</button>
+            <button type="button" onClick={() => applyQuickRange("month")} className={quickButtonClass("month")}>This Month</button>
+          </div>
+
           <div className="grid gap-4 md:grid-cols-3">
             <label className="text-sm font-black">Gym
               <select value={gymId} onChange={(event) => setGymId(event.target.value)} className={inputClass}>
@@ -165,10 +200,20 @@ export default function GymManagerPortal() {
               </select>
             </label>
             <label className="text-sm font-black">From
-              <EuropeanDateInput value={from} onValueChange={setFrom} className={inputClass} ariaLabel="Manager report from date" />
+              <EuropeanDateInput
+                value={from}
+                onValueChange={(value) => { setFrom(value); setActiveQuickRange(null); }}
+                className={inputClass}
+                ariaLabel="Manager report from date"
+              />
             </label>
             <label className="text-sm font-black">To
-              <EuropeanDateInput value={to} onValueChange={setTo} className={inputClass} ariaLabel="Manager report to date" />
+              <EuropeanDateInput
+                value={to}
+                onValueChange={(value) => { setTo(value); setActiveQuickRange(null); }}
+                className={inputClass}
+                ariaLabel="Manager report to date"
+              />
             </label>
           </div>
           <button type="button" onClick={() => void loadStats()} disabled={loadingStats} className="mt-4 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-black text-white disabled:opacity-50">{loadingStats ? "Loading…" : "Refresh figures"}</button>
