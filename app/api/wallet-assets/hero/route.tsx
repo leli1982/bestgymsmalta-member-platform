@@ -10,9 +10,9 @@ const MASTER_PATH = fileURLToPath(
 );
 
 const OVERLAYS = {
-  single: { color: "#111111", opacity: 0.42 },
-  student: { color: "#166534", opacity: 0.5 },
-  couples: { color: "#B91C1C", opacity: 0.5 },
+  single: { color: "#111111", opacity: 0.18 },
+  student: { color: "#166534", opacity: 0.28 },
+  couples: { color: "#B91C1C", opacity: 0.28 },
 } as const;
 
 type MembershipType = keyof typeof OVERLAYS;
