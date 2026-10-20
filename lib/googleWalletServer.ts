@@ -87,15 +87,25 @@ function googleObjectBody(
     genericType: projection.genericType,
     state: projection.state,
     cardTitle: localized("BestGymsMalta"),
-    subheader: localized("Gym membership"),
+    subheader: localized(`${projection.theme.label} membership`),
     header: localized(snapshot.fullName || "BGM Member"),
-    hexBackgroundColor: "#ff5a0a",
+    hexBackgroundColor: projection.theme.background,
     logo: {
       sourceUri: { uri: config.logoUrl },
-      contentDescription: localized("BestGymsMalta logo"),
+      contentDescription: localized("BestGymsMalta official logo"),
     },
     barcode,
     textModulesData: [
+      {
+        id: "membership_type",
+        header: "Membership type",
+        body: projection.theme.label,
+      },
+      {
+        id: "brand_tagline",
+        header: "BestGymsMalta",
+        body: "Be the best, beat the rest",
+      },
       {
         id: "member_number",
         header: "Member number",
