@@ -22,6 +22,8 @@ export type GoogleWalletConfig = {
   objectPrefix: string;
   origin: string;
   logoUrl?: string;
+  wideLogoUrl?: string;
+  heroImageUrl?: string;
   appUrl: string;
   classId: string;
 };
@@ -116,11 +118,6 @@ function googleClassBody(config: GoogleWalletConfig): Record<string, unknown> {
               endItem: templateItem("object.textModulesData['membership_expiry']"),
             },
           },
-          {
-            oneItem: {
-              item: templateItem("object.textModulesData['brand_tagline']"),
-            },
-          },
         ],
       },
       cardBarcodeSectionDetails: {
@@ -163,11 +160,6 @@ function googleObjectBody(
         body: projection.theme.label,
       },
       {
-        id: "brand_tagline",
-        header: "BestGymsMalta",
-        body: "Be the best, beat the rest",
-      },
-      {
         id: "member_number",
         header: "Member number",
         body: snapshot.memberNumber,
@@ -201,7 +193,21 @@ function googleObjectBody(
   if (config.logoUrl) {
     body.logo = {
       sourceUri: { uri: config.logoUrl },
+      contentDescription: localized("BestGymsMalta member pass icon"),
+    };
+  }
+
+  if (config.wideLogoUrl) {
+    body.wideLogo = {
+      sourceUri: { uri: config.wideLogoUrl },
       contentDescription: localized("BestGymsMalta official logo"),
+    };
+  }
+
+  if (config.heroImageUrl) {
+    body.heroImage = {
+      sourceUri: { uri: config.heroImageUrl },
+      contentDescription: localized("BestGymsMalta — Be the best, beat the rest"),
     };
   }
 
@@ -225,6 +231,8 @@ export function getGoogleWalletConfig(): GoogleWalletConfig | null {
   const objectPrefix = env("GOOGLE_WALLET_OBJECT_PREFIX");
   const origin = env("GOOGLE_WALLET_ORIGIN");
   const logoUrl = env("GOOGLE_WALLET_LOGO_URL");
+  const wideLogoUrl = env("GOOGLE_WALLET_WIDE_LOGO_URL");
+  const heroImageUrl = env("GOOGLE_WALLET_HERO_IMAGE_URL");
   const appUrl = env("GOOGLE_WALLET_APP_URL");
 
   if (
@@ -245,6 +253,8 @@ export function getGoogleWalletConfig(): GoogleWalletConfig | null {
 
   const trustedOrigin = httpsUrl("origin", origin);
   const trustedLogoUrl = logoUrl ? httpsUrl("logo URL", logoUrl) : undefined;
+  const trustedWideLogoUrl = wideLogoUrl ? httpsUrl("wide logo URL", wideLogoUrl) : undefined;
+  const trustedHeroImageUrl = heroImageUrl ? httpsUrl("hero image URL", heroImageUrl) : undefined;
   const trustedAppUrl = httpsUrl("app URL", appUrl);
 
   return {
@@ -255,6 +265,8 @@ export function getGoogleWalletConfig(): GoogleWalletConfig | null {
     objectPrefix,
     origin: trustedOrigin,
     logoUrl: trustedLogoUrl,
+    wideLogoUrl: trustedWideLogoUrl,
+    heroImageUrl: trustedHeroImageUrl,
     appUrl: trustedAppUrl,
     classId: googleWalletClassId(issuerId, classSuffix),
   };
