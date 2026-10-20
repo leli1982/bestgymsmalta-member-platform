@@ -19,24 +19,22 @@ type MemberCardProps = {
 };
 
 function premiumCardOverlay(themeColor: string) {
-  return `linear-gradient(135deg, ${themeColor}F2 0%, ${themeColor}D9 32%, rgba(8,8,10,.82) 70%, rgba(0,0,0,.95) 100%)`;
+  return `linear-gradient(180deg, ${themeColor}33 0%, ${themeColor}4D 52%, rgba(0,0,0,.68) 100%)`;
 }
 
 function PremiumArtwork({ themeColor }: { themeColor: string }) {
   return (
-    <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+    <div className="pointer-events-none absolute inset-0 overflow-hidden bg-black" aria-hidden="true">
       <Image
         src="/wallet/bgm-wallet-master-bg.jpg"
         alt=""
         fill
         priority
         sizes="(max-width: 768px) 100vw, 620px"
-        className="object-cover object-center"
+        className="object-contain object-top"
       />
       <div className="absolute inset-0" style={{ background: premiumCardOverlay(themeColor) }} />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/15" />
-      <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full border border-white/10" />
-      <div className="absolute -right-8 -top-10 h-36 w-36 rounded-full border border-white/10" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/5" />
     </div>
   );
 }
