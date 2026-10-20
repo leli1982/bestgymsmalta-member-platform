@@ -21,7 +21,7 @@ export type GoogleWalletConfig = {
   classSuffix: string;
   objectPrefix: string;
   origin: string;
-  logoUrl: string;
+  logoUrl?: string;
   appUrl: string;
   classId: string;
 };
@@ -112,10 +112,6 @@ function googleObjectBody(
     subheader: localized(`${projection.theme.label} membership`),
     header: localized(snapshot.fullName || "BGM Member"),
     hexBackgroundColor: projection.theme.background,
-    logo: {
-      sourceUri: { uri: config.logoUrl },
-      contentDescription: localized("BestGymsMalta official logo"),
-    },
     barcode,
     textModulesData: [
       {
@@ -159,6 +155,13 @@ function googleObjectBody(
     },
   };
 
+  if (config.logoUrl) {
+    body.logo = {
+      sourceUri: { uri: config.logoUrl },
+      contentDescription: localized("BestGymsMalta official logo"),
+    };
+  }
+
   if (projection.validTimeIntervalEnd) {
     body.validTimeInterval = {
       end: { date: projection.validTimeIntervalEnd },
@@ -188,7 +191,6 @@ export function getGoogleWalletConfig(): GoogleWalletConfig | null {
     !classSuffix ||
     !objectPrefix ||
     !origin ||
-    !logoUrl ||
     !appUrl
   ) {
     throw new Error("Google Wallet is not fully configured.");
@@ -199,7 +201,7 @@ export function getGoogleWalletConfig(): GoogleWalletConfig | null {
   if (!privateKey.includes("BEGIN PRIVATE KEY")) throw new Error("Google Wallet private key is invalid.");
 
   const trustedOrigin = httpsUrl("origin", origin);
-  const trustedLogoUrl = httpsUrl("logo URL", logoUrl);
+  const trustedLogoUrl = logoUrl ? httpsUrl("logo URL", logoUrl) : undefined;
   const trustedAppUrl = httpsUrl("app URL", appUrl);
 
   return {
