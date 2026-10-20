@@ -105,6 +105,13 @@ function barcodeDetail(fieldPath: string) {
   };
 }
 
+function membershipHeroImageUrl(baseUrl: string, membershipType: string): string {
+  const parsed = new URL(baseUrl);
+  parsed.searchParams.set("membership", membershipType);
+  parsed.searchParams.set("v", "3");
+  return parsed.toString();
+}
+
 function googleClassBody(config: GoogleWalletConfig): Record<string, unknown> {
   return {
     id: config.classId,
@@ -205,9 +212,13 @@ function googleObjectBody(
   }
 
   if (config.heroImageUrl) {
+    const heroImageUrl = membershipHeroImageUrl(
+      config.heroImageUrl,
+      projection.theme.type,
+    );
     body.heroImage = {
-      sourceUri: { uri: config.heroImageUrl },
-      contentDescription: localized("BestGymsMalta — Be the best, beat the rest"),
+      sourceUri: { uri: heroImageUrl },
+      contentDescription: localized("BestGymsMalta fitness membership artwork"),
     };
   }
 
