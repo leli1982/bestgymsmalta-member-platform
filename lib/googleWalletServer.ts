@@ -13,6 +13,7 @@ import { todayMaltaDate } from "./maltaDate.ts";
 
 const WALLET_SCOPE = "https://www.googleapis.com/auth/wallet_object.issuer";
 const WALLET_API = "https://walletobjects.googleapis.com/walletobjects/v1";
+const WALLET_ART_VERSION = "4";
 
 export type GoogleWalletConfig = {
   issuerId: string;
@@ -105,10 +106,10 @@ function barcodeDetail(fieldPath: string) {
   };
 }
 
-function membershipHeroImageUrl(baseUrl: string, membershipType: string): string {
+function walletArtworkUrl(baseUrl: string, membershipType?: string): string {
   const parsed = new URL(baseUrl);
-  parsed.searchParams.set("membership", membershipType);
-  parsed.searchParams.set("v", "3");
+  if (membershipType) parsed.searchParams.set("membership", membershipType);
+  parsed.searchParams.set("v", WALLET_ART_VERSION);
   return parsed.toString();
 }
 
@@ -199,25 +200,23 @@ function googleObjectBody(
 
   if (config.logoUrl) {
     body.logo = {
-      sourceUri: { uri: config.logoUrl },
+      sourceUri: { uri: walletArtworkUrl(config.logoUrl) },
       contentDescription: localized("BestGymsMalta member pass icon"),
     };
   }
 
   if (config.wideLogoUrl) {
     body.wideLogo = {
-      sourceUri: { uri: config.wideLogoUrl },
+      sourceUri: { uri: walletArtworkUrl(config.wideLogoUrl) },
       contentDescription: localized("BestGymsMalta official logo"),
     };
   }
 
   if (config.heroImageUrl) {
-    const heroImageUrl = membershipHeroImageUrl(
-      config.heroImageUrl,
-      projection.theme.type,
-    );
     body.heroImage = {
-      sourceUri: { uri: heroImageUrl },
+      sourceUri: {
+        uri: walletArtworkUrl(config.heroImageUrl, projection.theme.type),
+      },
       contentDescription: localized("BestGymsMalta fitness membership artwork"),
     };
   }
