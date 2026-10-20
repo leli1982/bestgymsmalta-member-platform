@@ -37,8 +37,12 @@ test("configuration stays server-only and requires all enabled Wallet settings",
   assert.doesNotMatch(source, /NEXT_PUBLIC_GOOGLE_WALLET/);
 });
 
-test("Wallet object uses the approved BGM orange exactly", () => {
-  assert.match(source, /hexBackgroundColor:\s*"#ff5a0a"/);
+test("Wallet object uses the shared membership theme and approved BGM copy", () => {
+  assert.match(source, /hexBackgroundColor:\s*projection\.theme\.background/);
+  assert.match(source, /header:\s*"Membership type"[\s\S]*projection\.theme\.label/);
+  assert.match(source, /Be the best, beat the rest/);
+  assert.doesNotMatch(source, /#ff5a0a/);
+  assert.doesNotMatch(source, /testing/i);
 });
 
 test("save link is an RS256 service-account JWT referencing an existing GenericObject", () => {
