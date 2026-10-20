@@ -45,6 +45,12 @@ test("Wallet object uses the shared membership theme and approved BGM copy", () 
   assert.doesNotMatch(source, /testing/i);
 });
 
+test("Wallet object can omit logo when no public image URL is configured", () => {
+  assert.match(source, /logoUrl\?:\s*string/);
+  assert.doesNotMatch(source, /!logoUrl/);
+  assert.match(source, /if\s*\(config\.logoUrl\)[\s\S]*body\.logo/);
+});
+
 test("save link is an RS256 service-account JWT referencing an existing GenericObject", () => {
   assert.ok(existsSync(saveLinkPath), "googleWalletSaveLink.ts must isolate pure save-link signing");
   const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
