@@ -1,4 +1,5 @@
 import { maltaDayUtcRange, maltaMidnightUtc } from "./maltaDate.ts";
+import { resolveMembershipTheme } from "./membershipTheme.ts";
 
 export type GoogleWalletEligibilityReason =
   | "archived"
@@ -14,6 +15,7 @@ export type GoogleWalletMemberSnapshot = {
   memberNumber: string;
   status: string;
   membershipExpiry: string | null;
+  membershipType: "single" | "student" | "couples" | null;
   cancellationEffectiveDate: string | null;
   archivedAt: string | null;
   activeCardBarcode: string | null;
@@ -31,6 +33,8 @@ export type GoogleWalletProjection = {
   memberId: string;
   fullName: string;
   memberNumber: string;
+  membershipType: "single" | "student" | "couples" | null;
+  theme: ReturnType<typeof resolveMembershipTheme>;
   expiryDate: string | null;
   expiryDisplay: string | null;
   validTimeIntervalEnd: string | null;
@@ -92,6 +96,8 @@ export function projectGoogleWalletMember(
     memberId: snapshot.memberId,
     fullName: snapshot.fullName,
     memberNumber: snapshot.memberNumber,
+    membershipType: snapshot.membershipType,
+    theme: resolveMembershipTheme(snapshot.membershipType),
     expiryDate: snapshot.membershipExpiry,
     expiryDisplay: displayDate(snapshot.membershipExpiry),
     validTimeIntervalEnd: googleWalletValidityEnd(
