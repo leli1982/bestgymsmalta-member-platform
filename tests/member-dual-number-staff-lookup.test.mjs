@@ -9,7 +9,8 @@ const staffSearch = fs.readFileSync(new URL("../app/api/system/members/search/ro
 test("member app encodes only current active physical card and keeps the friendly BGM number separate", () => {
   assert.match(memberCard, /credential\.status === "active"/);
   assert.match(memberCard, /cardBarcode: activeCredential\?\.barcode_value \|\| null/);
-  assert.match(memberCard, /member: publicMemberProfile/);
+  assert.match(memberCard, /\.\.\.publicMemberProfile\(memberResult\.data\)/);
+  assert.match(memberCard, /membershipType/);
   assert.doesNotMatch(memberCard, /cardBarcode: memberNumber/);
 });
 
