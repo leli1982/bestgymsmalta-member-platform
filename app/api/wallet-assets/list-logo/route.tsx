@@ -40,7 +40,7 @@ export async function GET() {
             alt=""
             width="2182"
             height="450"
-            style={{ width: 2182, height: 450, maxWidth: "none", flexShrink: 0 }}
+            style={{ width: 2182, height: 450, flexShrink: 0 }}
           />
         </div>
       </div>
