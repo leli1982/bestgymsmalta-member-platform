@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-static";
 
 const LOGO_PATH = fileURLToPath(
-  new URL("../../../../../public/wallet/bgm-logo-white.png", import.meta.url),
+  new URL("../../../../public/wallet/bgm-logo-white.png", import.meta.url),
 );
 
 export async function GET() {
