@@ -12,6 +12,9 @@ const source = readFileSync(serverPath, "utf8");
 const saveLinkUrl = new URL("../lib/googleWalletSaveLink.ts", import.meta.url);
 const saveLinkPath = fileURLToPath(saveLinkUrl);
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+const listLogoAssetPath = fileURLToPath(new URL("../app/api/wallet-assets/list-logo/route.tsx", import.meta.url));
+const wideLogoAssetPath = fileURLToPath(new URL("../app/api/wallet-assets/wide-logo/route.tsx", import.meta.url));
+const heroAssetPath = fileURLToPath(new URL("../app/api/wallet-assets/hero/route.tsx", import.meta.url));
 
 test("Google auth dependency and server-only boundary are explicit", () => {
   assert.match(String(pkg.dependencies?.["google-auth-library"] || ""), /^\^?11\./);
@@ -32,6 +35,8 @@ test("configuration stays server-only and requires all enabled Wallet settings",
     "GOOGLE_WALLET_OBJECT_PREFIX",
     "GOOGLE_WALLET_ORIGIN",
     "GOOGLE_WALLET_LOGO_URL",
+    "GOOGLE_WALLET_WIDE_LOGO_URL",
+    "GOOGLE_WALLET_HERO_IMAGE_URL",
     "GOOGLE_WALLET_APP_URL",
   ]) assert.ok(source.includes(name), `missing ${name}`);
   assert.doesNotMatch(source, /NEXT_PUBLIC_GOOGLE_WALLET/);
@@ -49,6 +54,18 @@ test("Wallet object can omit logo when no public image URL is configured", () =>
   assert.match(source, /logoUrl\?:\s*string/);
   assert.doesNotMatch(source, /!logoUrl/);
   assert.match(source, /if\s*\(config\.logoUrl\)[\s\S]*body\.logo/);
+});
+
+test("premium Wallet branding uses separate list, wide and hero artwork with a cleaner card", () => {
+  assert.match(source, /wideLogoUrl\?:\s*string/);
+  assert.match(source, /heroImageUrl\?:\s*string/);
+  assert.match(source, /if\s*\(config\.wideLogoUrl\)[\s\S]*body\.wideLogo/);
+  assert.match(source, /if\s*\(config\.heroImageUrl\)[\s\S]*body\.heroImage/);
+  assert.match(source, /firstTopDetail:\s*barcodeDetail\("object\.textModulesData\['member_number'\]"\)/);
+  assert.doesNotMatch(source, /oneItem:[\s\S]{0,300}brand_tagline/);
+  assert.ok(existsSync(listLogoAssetPath), "Wallet list-logo PNG route must exist");
+  assert.ok(existsSync(wideLogoAssetPath), "Wallet wide-logo PNG route must exist");
+  assert.ok(existsSync(heroAssetPath), "Wallet hero PNG route must exist");
 });
 
 test("save link is an RS256 service-account JWT referencing an existing GenericObject", () => {
