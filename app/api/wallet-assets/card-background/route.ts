@@ -1,16 +1,13 @@
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const BUCKET = "wallet-assets";
-const ARTWORK = "bgm-wallet-hero-v8.jpg";
+const ARTWORK_URL =
+  "https://jsuolemirhivqhjbjetv.supabase.co/storage/v1/object/public/wallet-assets/bgm-wallet-hero-v8.jpg";
 
 async function loadArtwork() {
-  const supabase = getSupabaseAdmin();
-  const result = await supabase.storage.from(BUCKET).download(ARTWORK);
-  if (result.error || !result.data) throw new Error("Membership artwork is unavailable.");
-  return result.data;
+  const response = await fetch(ARTWORK_URL, { cache: "force-cache" });
+  if (!response.ok) throw new Error("Membership artwork is unavailable.");
+  return new Uint8Array(await response.arrayBuffer());
 }
 
 export async function GET() {
