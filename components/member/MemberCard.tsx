@@ -25,13 +25,10 @@ function premiumCardOverlay(themeColor: string) {
 function PremiumArtwork({ themeColor }: { themeColor: string }) {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden bg-black" aria-hidden="true">
-      <Image
-        src="/wallet/bgm-wallet-master-bg.jpg"
+      <img
+        src="/api/wallet-assets/card-background?v=2"
         alt=""
-        fill
-        priority
-        sizes="(max-width: 768px) 100vw, 620px"
-        className="object-contain object-top"
+        className="absolute inset-0 h-full w-full object-contain object-top"
       />
       <div className="absolute inset-0" style={{ background: premiumCardOverlay(themeColor) }} />
       <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/5" />
@@ -180,7 +177,7 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
             <div className="relative z-10 grid h-full grid-cols-[minmax(0,1fr)_minmax(112px,.9fr)] gap-4">
               <div className="flex min-w-0 flex-col justify-between border-r border-white/20 pr-3">
                 <div>
-                  <div className="relative h-7 w-28">
+                  <div className="relative h-7 w-36">
                     <Image src="/wallet/bgm-logo-white.png" alt="BestGymsMalta" fill className="object-contain object-left" />
                   </div>
                   <p className="mt-2 text-[9px] font-black uppercase tracking-[.18em] text-white/70">{theme.label} membership</p>
@@ -243,7 +240,7 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
             <div className="relative z-10">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
-                  <div className="relative h-10 w-40 max-w-full">
+                  <div className="relative h-10 w-64 max-w-full">
                     <Image src="/wallet/bgm-logo-white.png" alt="BestGymsMalta" fill priority className="object-contain object-left" />
                   </div>
                   <p className="mt-3 text-[10px] font-black uppercase tracking-[.2em] text-white/65">{theme.label} membership</p>
