@@ -22,7 +22,7 @@ test("Google auth dependency and server-only boundary are explicit", () => {
   assert.match(source, /https:\/\/walletobjects\.googleapis\.com\/walletobjects\/v1/);
 });
 
-test("configuration stays server-only and requires all enabled Wallet settings", () => {
+test("configuration stays server-only and supports premium Wallet artwork", () => {
   for (const name of [
     "GOOGLE_WALLET_ENABLED",
     "GOOGLE_WALLET_ISSUER_ID",
@@ -32,13 +32,17 @@ test("configuration stays server-only and requires all enabled Wallet settings",
     "GOOGLE_WALLET_OBJECT_PREFIX",
     "GOOGLE_WALLET_ORIGIN",
     "GOOGLE_WALLET_LOGO_URL",
+    "GOOGLE_WALLET_WIDE_LOGO_URL",
+    "GOOGLE_WALLET_HERO_IMAGE_URL",
     "GOOGLE_WALLET_APP_URL",
   ]) assert.ok(source.includes(name), `missing ${name}`);
   assert.doesNotMatch(source, /NEXT_PUBLIC_GOOGLE_WALLET/);
 });
 
-test("Wallet object uses the approved BGM orange exactly", () => {
-  assert.match(source, /hexBackgroundColor:\s*"#ff5a0a"/);
+test("Wallet object uses the shared membership theme", () => {
+  assert.match(source, /hexBackgroundColor:\s*projection\.theme\.background/);
+  assert.match(source, /subheader:\s*localized\(`\$\{projection\.theme\.label\} membership`\)/);
+  assert.doesNotMatch(source, /hexBackgroundColor:\s*"#ff5a0a"/);
 });
 
 test("save link is an RS256 service-account JWT referencing an existing GenericObject", () => {
