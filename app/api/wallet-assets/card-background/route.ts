@@ -1,13 +1,15 @@
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ARTWORK_URL =
-  "https://jsuolemirhivqhjbjetv.supabase.co/storage/v1/object/public/wallet-assets/bgm-wallet-hero-v8.jpg";
+const ARTWORK_PATH = fileURLToPath(
+  new URL("../../../../public/wallet/bgm-wallet-hero-v8.jpg", import.meta.url),
+);
 
 async function loadArtwork() {
-  const response = await fetch(ARTWORK_URL, { cache: "force-cache" });
-  if (!response.ok) throw new Error("Membership artwork is unavailable.");
-  return new Uint8Array(await response.arrayBuffer());
+  return new Uint8Array(await readFile(ARTWORK_PATH));
 }
 
 export async function GET() {
