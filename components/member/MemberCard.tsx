@@ -268,7 +268,7 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
                 <p className="mt-1 text-xs font-black">{theme.label}</p>
               </div>
               <div>
-                <p className="text-[8px] font-semibold uppercase tracking-[.13em] text-white/50">Status</p>
+                <p className="text-[8px] font-bold uppercase tracking-[.13em] text-white/50">Status</p>
                 <p className="mt-1 flex items-center gap-1.5 text-xs font-black">
                   <BadgeCheck size={15} /> {active ? "Active" : "Inactive"}
                 </p>
