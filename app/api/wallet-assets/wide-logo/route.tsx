@@ -6,12 +6,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-static";
 
 const LOGO_PATH = fileURLToPath(
-  new URL("../../../../public/wallet/bgm-logo-white.png", import.meta.url),
+  new URL("../../../../public/wallet/bgm-logo-horizontal-white.svg", import.meta.url),
 );
 
 export async function GET() {
   const logoData = await readFile(LOGO_PATH, "base64");
-  const logoSrc = `data:image/png;base64,${logoData}`;
+  const logoSrc = `data:image/svg+xml;base64,${logoData}`;
 
   return new ImageResponse(
     (
