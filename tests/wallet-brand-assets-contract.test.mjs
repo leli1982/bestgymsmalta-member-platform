@@ -23,6 +23,8 @@ test("BGM logo artwork is rendered at higher pixel density", () => {
   assert.match(wideLogoRoute, /width:\s*2000/);
   assert.match(wideLogoRoute, /height:\s*440/);
   assert.match(memberCard, /w-64/);
+  assert.match(memberCard, /\/wallet\/bgm-logo-horizontal-white\.svg/);
+  assert.doesNotMatch(memberCard, /\/wallet\/bgm-logo-white\.png/);
 });
 
 test("approved membership artwork is rendered at higher pixel density", () => {
