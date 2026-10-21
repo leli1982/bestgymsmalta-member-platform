@@ -1,13 +1,7 @@
-import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
 import { ImageResponse } from "next/og";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const ARTWORK_PATH = fileURLToPath(
-  new URL("../../../../public/wallet/bgm-wallet-hero-v8.jpg", import.meta.url),
-);
 
 const THEMES = {
   single: { color: "#111111", opacity: 0.58 },
@@ -24,14 +18,10 @@ function membershipType(request: Request): MembershipType {
     : "single";
 }
 
-async function artworkDataUri() {
-  const bytes = (await readFile(ARTWORK_PATH)).toString("base64");
-  return `data:image/jpeg;base64,${bytes}`;
-}
-
 export async function GET(request: Request) {
   try {
-    const imageSrc = await artworkDataUri();
+    const requestUrl = new URL(request.url);
+    const imageSrc = new URL("/wallet/bgm-wallet-hero-v8.jpg", requestUrl.origin).toString();
     const theme = THEMES[membershipType(request)];
 
     return new ImageResponse(
@@ -79,10 +69,13 @@ export async function GET(request: Request) {
         height: 812,
         headers: {
           "Cache-Control": "public, max-age=86400, s-maxage=604800, immutable",
+          "Access-Control-Allow-Origin": "*",
+          "X-Robots-Tag": "noindex",
         },
       },
     );
-  } catch {
+  } catch (error) {
+    console.error("[wallet-assets] unable to render membership hero", error);
     return new Response("Membership artwork is unavailable.", {
       status: 503,
       headers: { "Cache-Control": "no-store" },
