@@ -8,9 +8,9 @@ const ARTWORK_URL =
   "https://jsuolemirhivqhjbjetv.supabase.co/storage/v1/object/public/wallet-assets/bgm-wallet-hero-v8.jpg";
 
 const THEMES = {
-  single: { color: "#111111", opacity: 0.42, grayscale: true },
-  student: { color: "#166534", opacity: 0.18, grayscale: false },
-  couples: { color: "#B91C1C", opacity: 0.38, grayscale: true },
+  single: { color: "#111111", opacity: 0.58 },
+  student: { color: "#166534", opacity: 0.24 },
+  couples: { color: "#B91C1C", opacity: 0.46 },
 } as const;
 
 type MembershipType = keyof typeof THEMES;
@@ -59,7 +59,6 @@ export async function GET(request: Request) {
               height: "100%",
               objectFit: "cover",
               objectPosition: "center",
-              filter: theme.grayscale ? "grayscale(1)" : undefined,
             }}
           />
           <div
