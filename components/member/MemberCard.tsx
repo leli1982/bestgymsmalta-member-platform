@@ -178,7 +178,7 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
               <div className="flex min-w-0 flex-col justify-between border-r border-white/20 pr-3">
                 <div>
                   <div className="relative h-7 w-36">
-                    <Image src="/wallet/bgm-logo-white.png" alt="BestGymsMalta" fill className="object-contain object-left" />
+                    <Image src="/wallet/bgm-logo-horizontal-white.svg" alt="BestGymsMalta" fill className="object-contain object-left" />
                   </div>
                   <p className="mt-2 text-[9px] font-black uppercase tracking-[.18em] text-white/70">{theme.label} membership</p>
                   <h2 className="mt-1 truncate text-[15px] font-black leading-tight">{member.fullName || member.username}</h2>
@@ -241,7 +241,7 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   <div className="relative h-10 w-64 max-w-full">
-                    <Image src="/wallet/bgm-logo-white.png" alt="BestGymsMalta" fill priority className="object-contain object-left" />
+                    <Image src="/wallet/bgm-logo-horizontal-white.svg" alt="BestGymsMalta" fill priority className="object-contain object-left" />
                   </div>
                   <p className="mt-3 text-[10px] font-black uppercase tracking-[.2em] text-white/65">{theme.label} membership</p>
                   <h2 className="mt-2 break-words text-[1.8rem] font-black leading-[1.06] tracking-[-.025em]">{member.fullName || member.username}</h2>
@@ -268,7 +268,7 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
                 <p className="mt-1 text-xs font-black">{theme.label}</p>
               </div>
               <div>
-                <p className="text-[8px] font-bold uppercase tracking-[.13em] text-white/50">Status</p>
+                <p className="text-[8px] font-semibold uppercase tracking-[.13em] text-white/50">Status</p>
                 <p className="mt-1 flex items-center gap-1.5 text-xs font-black">
                   <BadgeCheck size={15} /> {active ? "Active" : "Inactive"}
                 </p>
@@ -288,7 +288,7 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
             <div className="relative z-10">
               <div className="flex items-center justify-between gap-4">
                 <div className="relative h-9 w-36">
-                  <Image src="/wallet/bgm-logo-white.png" alt="BestGymsMalta" fill className="object-contain object-left" />
+                  <Image src="/wallet/bgm-logo-horizontal-white.svg" alt="BestGymsMalta" fill className="object-contain object-left" />
                 </div>
                 <ShieldCheck className="text-white" size={25} />
               </div>
