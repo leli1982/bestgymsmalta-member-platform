@@ -28,15 +28,15 @@ export async function GET() {
         <img
           src={logoSrc}
           alt=""
-          width="1180"
-          height="244"
-          style={{ width: 1180, height: 244 }}
+          width="1900"
+          height="210"
+          style={{ width: 1900, height: 210, objectFit: "contain" }}
         />
       </div>
     ),
     {
-      width: 1280,
-      height: 400,
+      width: 2000,
+      height: 440,
       headers: {
         "Cache-Control": "public, max-age=86400, s-maxage=604800, immutable",
       },
