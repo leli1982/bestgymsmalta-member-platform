@@ -9,19 +9,20 @@ const wideLogoRoute = await readFile(new URL("../app/api/wallet-assets/wide-logo
 const heroRoute = await readFile(new URL("../app/api/wallet-assets/hero/route.tsx", import.meta.url), "utf8");
 const cardBackgroundRoute = await readFile(new URL("../app/api/wallet-assets/card-background/route.tsx", import.meta.url), "utf8");
 
-test("Google Wallet list artwork is membership-specific and uses the supplied BGM icons", () => {
+test("Google Wallet list artwork follows the membership colour", () => {
   assert.match(walletServer, /walletArtworkUrl\(config\.logoUrl, projection\.theme\.type\)/);
   assert.match(listLogoRoute, /searchParams\.get\("membership"\)/);
-  assert.match(listLogoRoute, /logo-regular\.svg/);
-  assert.match(listLogoRoute, /logo-student\.svg/);
-  assert.match(listLogoRoute, /logo-couples\.svg/);
+  assert.match(listLogoRoute, /#111111/);
+  assert.match(listLogoRoute, /#166534/);
+  assert.match(listLogoRoute, /#B91C1C/);
   assert.match(listLogoRoute, /width:\s*1024/);
   assert.match(listLogoRoute, /height:\s*1024/);
 });
 
-test("the supplied horizontal vector logo is used for crisp BGM branding", () => {
-  assert.match(wideLogoRoute, /bgm-logo-horizontal-white\.svg/);
-  assert.match(memberCard, /bgm-logo-horizontal-white\.svg/);
+test("BGM logo artwork is rendered at higher pixel density", () => {
+  assert.match(wideLogoRoute, /width:\s*2000/);
+  assert.match(wideLogoRoute, /height:\s*440/);
+  assert.match(memberCard, /w-64/);
 });
 
 test("approved membership artwork is rendered at higher pixel density", () => {
