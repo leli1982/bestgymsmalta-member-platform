@@ -10,6 +10,7 @@ import {
   safeGoogleWalletError,
   upsertGoogleWalletObject,
 } from "./googleWalletServer";
+import { loadCurrentMembershipType } from "./currentMembershipType";
 
 export type GoogleWalletSyncResult =
   | "not_provisioned"
@@ -72,15 +73,19 @@ export async function loadGoogleWalletMemberSnapshot(
 
   if (memberError || !member) return null;
 
-  const { data: card, error: cardError } = await admin
-    .from("bgm_member_card_credentials")
-    .select("barcode_value,status,updated_at")
-    .eq("member_id", memberId)
-    .eq("status", "active")
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle<CardRow>();
+  const [cardResult, membershipType] = await Promise.all([
+    admin
+      .from("bgm_member_card_credentials")
+      .select("barcode_value,status,updated_at")
+      .eq("member_id", memberId)
+      .eq("status", "active")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle<CardRow>(),
+    loadCurrentMembershipType(admin, memberId),
+  ]);
 
+  const { data: card, error: cardError } = cardResult;
   if (cardError) return null;
 
   return {
@@ -89,6 +94,7 @@ export async function loadGoogleWalletMemberSnapshot(
     memberNumber: String(member.member_number || "").trim(),
     status: String(member.status || "").trim(),
     membershipExpiry: member.membership_expiry,
+    membershipType,
     cancellationEffectiveDate: member.cancellation_effective_date,
     archivedAt: member.archived_at,
     activeCardBarcode: card?.barcode_value

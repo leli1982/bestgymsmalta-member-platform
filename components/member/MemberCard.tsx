@@ -1,6 +1,7 @@
 "use client";
 
 import { formatEuropeanDate } from "@/lib/europeanDate";
+import { resolveMembershipTheme } from "@/lib/membershipTheme";
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -33,7 +34,6 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
         cache: "no-store",
         credentials: "same-origin",
       });
-      // Treat authentication failures correctly even if an error body is empty.
       const data = await response.json().catch(() => null);
       if (version !== requestVersion.current) return;
       const nextState = resolveMemberCardResponse(response.status, data);
@@ -48,7 +48,6 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
 
   useEffect(() => {
     function onMemberChanged(event: Event) {
-      // Local state can revoke the displayed card, but can never authorise it.
       if ((event as CustomEvent<{ signedOut?: boolean }>).detail?.signedOut) {
         requestVersion.current += 1;
         setFlipped(false);
@@ -67,7 +66,6 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
     }
     function refreshOnFocus() { void loadCardCredential(); }
 
-    // A valid cookie works even if localStorage has been cleared.
     void loadCardCredential();
     window.addEventListener("bgmMemberChanged", onMemberChanged);
     window.addEventListener("storage", onStorage);
@@ -127,13 +125,14 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
     );
   }
 
-  const { member, cardLinked, cardBarcode, physicalCardBarcode } = state;
+  const { member, cardLinked, cardBarcode } = state;
   const assignedCardNumber = cardLinked ? cardBarcode || "" : "";
   const active = member.status === "active"
     && (!member.membershipExpiry || member.membershipExpiry.slice(0, 10) >= new Date().toISOString().slice(0, 10));
   const expiryText = member.membershipExpiry
     ? formatEuropeanDate(member.membershipExpiry)
     : "Not set";
+  const theme = resolveMembershipTheme(member.membershipType);
 
   if (variant === "home") {
     return (
@@ -153,16 +152,17 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
           }}
         >
           <section
-            className="absolute inset-0 overflow-hidden rounded-[1.45rem] border border-zinc-200/80 bg-white p-3 text-zinc-950 shadow-[0_7px_24px_rgba(15,23,42,0.07)]"
-            style={{ backfaceVisibility: "hidden" }}
+            className="absolute inset-0 overflow-hidden rounded-[1.45rem] border bg-white p-3 text-zinc-950 shadow-[0_7px_24px_rgba(15,23,42,0.07)]"
+            style={{ backfaceVisibility: "hidden", borderColor: theme.border }}
           >
+            <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: theme.background }} />
             <div className="grid h-full grid-cols-[72px_minmax(0,.9fr)_minmax(108px,1.2fr)] items-center gap-3">
-              <div className="flex h-[72px] w-[72px] items-center justify-center rounded-[1rem] bg-zinc-950 p-2.5">
+              <div className="flex h-[72px] w-[72px] items-center justify-center rounded-[1rem] p-2.5" style={{ backgroundColor: theme.background }}>
                 <img src="/bgm-logo.png" alt="BestGymsMalta" className="h-full w-full object-contain" />
               </div>
 
               <div className="min-w-0 border-r border-slate-200 pr-2">
-                <p className="text-[10px] font-bold text-slate-500">Membership</p>
+                <p className="text-[10px] font-bold text-slate-500">{theme.label} Membership</p>
                 <p className={`mt-1 flex items-center gap-1.5 text-[13px] font-black capitalize ${active ? "text-emerald-700" : "text-amber-700"}`}>
                   <span className={`h-2 w-2 rounded-full ${active ? "bg-emerald-500" : "bg-amber-500"}`} />
                   {member.status || "Active"}
@@ -182,19 +182,20 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
           </section>
 
           <section
-            className="absolute inset-0 overflow-hidden rounded-[1.45rem] border border-zinc-200/80 bg-white p-4 text-zinc-950 shadow-[0_7px_24px_rgba(15,23,42,0.07)]"
-            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+            className="absolute inset-0 overflow-hidden rounded-[1.45rem] border bg-white p-4 text-zinc-950 shadow-[0_7px_24px_rgba(15,23,42,0.07)]"
+            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", borderColor: theme.border }}
           >
+            <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: theme.background }} />
             <div className="flex h-full items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-[9px] font-black uppercase tracking-[.16em] text-[#ff5a0a]">Member Details</p>
+                <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: theme.background }}>{theme.label} Member Details</p>
                 <h2 className="mt-1 truncate text-base font-black">{member.fullName || member.username}</h2>
                 <p className="mt-2 text-[9px] font-semibold text-slate-400">BGM member number</p>
                 <p className="truncate text-xs font-black">{member.memberNumber}</p>
                 <p className="mt-1 text-[9px] font-semibold text-slate-500">Current card: {assignedCardNumber || "Not assigned"}</p>
                 <p className="mt-1 text-[9px] font-semibold text-slate-400">Valid until {expiryText}</p>
               </div>
-              <ShieldCheck className="shrink-0 text-[#ff5a0a]" size={29} strokeWidth={3} />
+              <ShieldCheck className="shrink-0" style={{ color: theme.background }} size={29} strokeWidth={3} />
             </div>
           </section>
         </div>
@@ -210,18 +211,18 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
         <div className="grid transition-transform duration-700 motion-reduce:transition-none"
           style={{ transformStyle: "preserve-3d", transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)" }}>
           <section
-            className="relative col-start-1 row-start-1 flex min-h-[420px] flex-col justify-between overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,0.07)]"
-            style={{ backfaceVisibility: "hidden" }} aria-hidden={flipped}>
-            <div className="absolute inset-x-0 top-0 h-1.5 bg-[#ff5a0a]" />
+            className="relative col-start-1 row-start-1 flex min-h-[420px] flex-col justify-between overflow-hidden rounded-[2rem] border bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,0.07)]"
+            style={{ backfaceVisibility: "hidden", borderColor: theme.border }} aria-hidden={flipped}>
+            <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: theme.background }} />
             <div>
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#c2410c]">BestGymsMalta</p>
+                  <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: theme.background }}>BestGymsMalta · {theme.label}</p>
                   <h2 className="mt-3 break-words text-2xl font-black leading-tight">{member.fullName || member.username}</h2>
                   <p className="mt-2 text-xs font-bold text-slate-500">Digital membership card</p>
-                  <p className="mt-2 font-mono text-lg font-black text-[#c2410c]">{member.memberNumber}</p>
+                  <p className="mt-2 font-mono text-lg font-black" style={{ color: theme.background }}>{member.memberNumber}</p>
                 </div>
-                <div className="relative h-16 w-16 shrink-0 rounded-full bg-zinc-950 p-2">
+                <div className="relative h-16 w-16 shrink-0 rounded-full p-2" style={{ backgroundColor: theme.background }}>
                   <Image src="/bgm-logo.png" alt="BestGymsMalta" fill priority className="object-contain p-2" />
                 </div>
               </div>
@@ -247,21 +248,21 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
             </div>
           </section>
           <section
-            className="col-start-1 row-start-1 flex min-h-[420px] flex-col justify-between rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,0.07)]"
-            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }} aria-hidden={!flipped}>
+            className="col-start-1 row-start-1 flex min-h-[420px] flex-col justify-between rounded-[2rem] border bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,0.07)]"
+            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", borderColor: theme.border }} aria-hidden={!flipped}>
             <div>
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#c2410c]">Member details</p>
-                <ShieldCheck className="text-[#ff5a0a]" size={25} />
+                <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: theme.background }}>{theme.label} Member details</p>
+                <ShieldCheck style={{ color: theme.background }} size={25} />
               </div>
               <dl className="mt-5 space-y-4">
                 <div className="rounded-2xl bg-zinc-50 p-4">
                   <dt className="text-xs font-semibold text-slate-500">Name</dt>
                   <dd className="mt-1 break-words text-lg font-black">{member.fullName || member.username}</dd>
                 </div>
-                <div className="rounded-2xl bg-orange-50 p-4">
+                <div className="rounded-2xl bg-zinc-50 p-4">
                   <dt className="text-xs font-semibold text-slate-500">BGM member number</dt>
-                  <dd className="mt-1 break-all font-mono text-lg font-black text-[#c2410c]">{member.memberNumber}</dd>
+                  <dd className="mt-1 break-all font-mono text-lg font-black" style={{ color: theme.background }}>{member.memberNumber}</dd>
                 </div>
                 <div className="rounded-2xl bg-zinc-50 p-4">
                   <dt className="text-xs font-semibold text-slate-500">Current card number</dt>
