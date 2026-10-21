@@ -44,8 +44,8 @@ export async function GET(request: Request) {
         <img
           src={imageSrc}
           alt=""
-          width="1032"
-          height="812"
+          width="2064"
+          height="1624"
           style={{
             position: "absolute",
             left: 0,
@@ -70,8 +70,8 @@ export async function GET(request: Request) {
       </div>
     ),
     {
-      width: 1032,
-      height: 812,
+      width: 2064,
+      height: 1624,
       headers: {
         "Cache-Control": "public, max-age=86400, s-maxage=604800, immutable",
       },
