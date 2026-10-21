@@ -1,11 +1,13 @@
-import { Buffer } from "node:buffer";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { ImageResponse } from "next/og";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ARTWORK_URL =
-  "https://jsuolemirhivqhjbjetv.supabase.co/storage/v1/object/public/wallet-assets/bgm-wallet-hero-v8.jpg";
+const ARTWORK_PATH = fileURLToPath(
+  new URL("../../../../public/wallet/bgm-wallet-hero-v8.jpg", import.meta.url),
+);
 
 const THEMES = {
   single: { color: "#111111", opacity: 0.58 },
@@ -23,9 +25,7 @@ function membershipType(request: Request): MembershipType {
 }
 
 async function artworkDataUri() {
-  const response = await fetch(ARTWORK_URL, { cache: "force-cache" });
-  if (!response.ok) throw new Error("Membership artwork is unavailable.");
-  const bytes = Buffer.from(await response.arrayBuffer()).toString("base64");
+  const bytes = (await readFile(ARTWORK_PATH)).toString("base64");
   return `data:image/jpeg;base64,${bytes}`;
 }
 
