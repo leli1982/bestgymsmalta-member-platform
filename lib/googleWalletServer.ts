@@ -13,7 +13,7 @@ import { todayMaltaDate } from "./maltaDate.ts";
 
 const WALLET_SCOPE = "https://www.googleapis.com/auth/wallet_object.issuer";
 const WALLET_API = "https://walletobjects.googleapis.com/walletobjects/v1";
-const WALLET_ART_VERSION = "5";
+const WALLET_ART_VERSION = "6";
 
 export type GoogleWalletConfig = {
   issuerId: string;
@@ -200,7 +200,7 @@ function googleObjectBody(
 
   if (config.logoUrl) {
     body.logo = {
-      sourceUri: { uri: walletArtworkUrl(config.logoUrl) },
+      sourceUri: { uri: walletArtworkUrl(config.logoUrl, projection.theme.type) },
       contentDescription: localized("BestGymsMalta member pass icon"),
     };
   }
