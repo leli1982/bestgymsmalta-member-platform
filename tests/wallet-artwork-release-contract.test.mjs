@@ -14,8 +14,10 @@ test("production Wallet artwork is bundled and high resolution", () => {
 });
 
 test("Wallet artwork routes use the bundled v8 asset rather than Supabase storage", () => {
+  assert.match(cardRoute, /public\/wallet\/bgm-wallet-hero-v8\.jpg/);
+  assert.match(heroRoute, /\/wallet\/bgm-wallet-hero-v8\.jpg/);
+
   for (const source of [cardRoute, heroRoute]) {
-    assert.match(source, /public\/wallet\/bgm-wallet-hero-v8\.jpg/);
     assert.doesNotMatch(source, /supabase\.co\/storage/);
   }
 });
