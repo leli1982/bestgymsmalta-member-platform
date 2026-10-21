@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const LOGO_PATH = fileURLToPath(
-  new URL("../../../../public/wallet/bgm-logo-white.png", import.meta.url),
+  new URL("../../../../public/wallet/bgm-mark-white.svg", import.meta.url),
 );
 
 const BACKGROUNDS = {
@@ -26,7 +26,7 @@ function membershipType(request: Request): MembershipType {
 
 export async function GET(request: Request) {
   const logoData = await readFile(LOGO_PATH, "base64");
-  const logoSrc = `data:image/png;base64,${logoData}`;
+  const logoSrc = `data:image/svg+xml;base64,${logoData}`;
   const background = BACKGROUNDS[membershipType(request)];
 
   return new ImageResponse(
@@ -41,24 +41,13 @@ export async function GET(request: Request) {
           background,
         }}
       >
-        <div
-          style={{
-            width: 900,
-            height: 900,
-            display: "flex",
-            overflow: "hidden",
-            alignItems: "center",
-            justifyContent: "flex-start",
-          }}
-        >
-          <img
-            src={logoSrc}
-            alt=""
-            width="4364"
-            height="900"
-            style={{ width: 4364, height: 900, flexShrink: 0 }}
-          />
-        </div>
+        <img
+          src={logoSrc}
+          alt=""
+          width="900"
+          height="900"
+          style={{ width: 900, height: 900, objectFit: "contain" }}
+        />
       </div>
     ),
     {
