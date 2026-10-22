@@ -1,7 +1,13 @@
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { ImageResponse } from "next/og";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const HERO_PATH = fileURLToPath(
+  new URL("../../../../public/wallet/bgm-wallet-hero-v8.jpg", import.meta.url),
+);
 
 const THEMES = {
   single: { color: "#111111", opacity: 0.58 },
@@ -20,8 +26,8 @@ function membershipType(request: Request): MembershipType {
 
 export async function GET(request: Request) {
   try {
-    const requestUrl = new URL(request.url);
-    const imageSrc = new URL("/wallet/bgm-wallet-hero-v8.jpg", requestUrl.origin).toString();
+    const imageData = await readFile(HERO_PATH, "base64");
+    const imageSrc = `data:image/jpeg;base64,${imageData}`;
     const theme = THEMES[membershipType(request)];
 
     return new ImageResponse(
