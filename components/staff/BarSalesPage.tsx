@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ClipboardList, Minus, Package, Plus, RefreshCcw, Send, ShoppingBasket, Trash2 } from "lucide-react";
-import { formatBarEuro, parseEuroCents, sortBarCatalog, type BarCatalogItem } from "@/lib/barSalesCore";
+import { filterBarProducts, formatBarEuro, parseEuroCents, sortBarCatalog, type BarCatalogItem } from "@/lib/barSalesCore";
 
 type User = { gymId: string | null; displayName: string; isSuperAdmin: boolean; permissions: string[] };
 type Gym = { id: string; name: string; status?: string };
@@ -42,6 +42,7 @@ export default function BarSalesPage() {
   const [gymId, setGymId] = useState("");
   const [catalog, setCatalog] = useState<BarCatalogItem[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [productFilter, setProductFilter] = useState("");
   const [extras, setExtras] = useState<Extra[]>([]);
   const [staffName, setStaffName] = useState("");
   const [notes, setNotes] = useState("");
@@ -59,6 +60,7 @@ export default function BarSalesPage() {
   const canSubmit = Boolean(user && (user.isSuperAdmin || user.permissions.includes("orders.bar.submit")));
   const gymName = gyms.find((gym) => gym.id === gymId)?.name || gymId || "Select a gym";
   const activeProducts = useMemo(() => sortBarCatalog(catalog.filter((item) => item.active && !item.isOther)), [catalog]);
+  const visibleProducts = useMemo(() => filterBarProducts(activeProducts, productFilter), [activeProducts, productFilter]);
   const othersItem = catalog.find((item) => item.active && item.isOther);
 
   const loadCatalog = useCallback(async () => {
@@ -273,13 +275,26 @@ export default function BarSalesPage() {
               <h2 className="text-xl font-black">Products & quantities</h2>
               <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-black text-orange-800">{activeProducts.length} active items</span>
             </div>
+            {activeProducts.length > 0 && (
+              <label className="mt-4 block max-w-md text-sm font-black">Find product
+                <input aria-label="Filter Bar products" type="search" value={productFilter}
+                  onChange={(event) => setProductFilter(event.target.value)}
+                  placeholder="Start typing a product name…"
+                  className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950"/>
+              </label>
+            )}
             {activeProducts.length === 0 && (
               <p className="mt-4 rounded-2xl bg-zinc-50 p-5 text-sm font-bold text-zinc-600">
                 No Bar products have been published. Super Admin can add products and prices in the Bar catalogue.
               </p>
             )}
+            {activeProducts.length > 0 && visibleProducts.length === 0 && (
+              <p className="mt-4 rounded-2xl bg-zinc-50 p-5 text-sm font-bold text-zinc-600">
+                No products match your search.
+              </p>
+            )}
             <div className="mt-4 space-y-2">
-              {activeProducts.map((item) => {
+              {visibleProducts.map((item) => {
                 const quantity = quantities[item.id] || 0;
                 return (
                   <div key={item.id} className={quantity > 0

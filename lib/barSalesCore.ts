@@ -38,6 +38,13 @@ export function sortBarCatalog<T extends Pick<BarCatalogItem, "name" | "isOther"
   );
 }
 
+/** Filter the published Bar products live by a partial, case-insensitive product name. */
+export function filterBarProducts<T extends Pick<BarCatalogItem, "name">>(items: T[], query: string): T[] {
+  const term = query.trim().toLocaleLowerCase("en");
+  if (!term) return items;
+  return items.filter((item) => item.name.toLocaleLowerCase("en").includes(term));
+}
+
 export function parseEuroCents(value: unknown): number | null {
   if (typeof value !== "string" || !/^(?:0|[1-9]\d{0,5})(?:\.\d{1,2})?$/.test(value.trim())) return null;
   const [euros, cents = ""] = value.trim().split(".");
