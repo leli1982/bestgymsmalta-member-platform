@@ -10,6 +10,7 @@ const managerStats = readFileSync(new URL("../app/api/manager/membership-stats/r
 const managerPortal = readFileSync(new URL("../components/manager/GymManagerPortal.tsx", import.meta.url), "utf8");
 const staffLogin = readFileSync(new URL("../components/staff/StaffLoginPage.tsx", import.meta.url), "utf8");
 const adminUsers = readFileSync(new URL("../components/admin/SystemUsersAdmin.tsx", import.meta.url), "utf8");
+const superAdminHome = readFileSync(new URL("../components/staff/SuperAdminHome.tsx", import.meta.url), "utf8");
 const systemUsersRoute = readFileSync(new URL("../app/api/admin/system-users/route.ts", import.meta.url), "utf8");
 const migration = readFileSync(new URL("../supabase/migrations/20261020092005_gym_manager_role_foundation.sql", import.meta.url), "utf8");
 
@@ -67,6 +68,10 @@ test("Super Admin can create and edit multi-gym manager assignments while manage
   assert.match(adminUsers, /Gym Manager/);
   assert.match(adminUsers, /managerGymIds/);
   assert.match(adminUsers, /Save assigned gyms/);
+  assert.match(adminUsers, /scope === "gym_manager"/);
+  assert.match(adminUsers, /Gym Manager accounts/);
+  assert.match(superAdminHome, /\/staff\/admin\/gym-managers/);
+  assert.match(superAdminHome, /Gym Manager accounts/);
   assert.match(managerPortal, /Gym Manager Dashboard/);
   assert.match(managerPortal, /New memberships/);
   assert.match(managerPortal, /Renewals/);
