@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+import { formatEuropeanDate } from "@/lib/europeanDate";
 import { isValidCalendarDate, todayMaltaDate } from "@/lib/maltaDate";
 
 type ManagerUser = {
@@ -15,6 +16,7 @@ type ManagerUser = {
 type ManagerStats = {
   range: { from: string; to: string; gymId: string | null };
   assignedGyms: Array<{ id: string; name: string }>;
+  reportWhatsappNumber: string | null;
   totals: { newMemberships: number; renewals: number; grandTotal: number };
   byGym: Array<{
     gymId: string;
@@ -41,6 +43,28 @@ function startOfMaltaWeek(today: string) {
   const daysSinceMonday = day === 0 ? 6 : day - 1;
   date.setUTCDate(date.getUTCDate() - daysSinceMonday);
   return date.toISOString().slice(0, 10);
+}
+
+function buildWhatsappReport(stats: ManagerStats) {
+  const selectedGymName = stats.range.gymId
+    ? stats.byGym.find((gym) => gym.gymId === stats.range.gymId)?.gymName || stats.range.gymId
+    : "All assigned gyms combined";
+  return [
+    "BestGymsMalta Gym Manager Report",
+    `Period: ${formatEuropeanDate(stats.range.from)} - ${formatEuropeanDate(stats.range.to)}`,
+    `Gym: ${selectedGymName}`,
+    "",
+    `New memberships: ${stats.totals.newMemberships}`,
+    `Renewals: ${stats.totals.renewals}`,
+    `Grand total: ${stats.totals.grandTotal}`,
+    "",
+    "Gym breakdown:",
+    ...stats.byGym.map((gym) => `${gym.gymName}: New ${gym.newMemberships} | Renewals ${gym.renewals} | Total ${gym.total}`),
+    "",
+    "Current active memberships:",
+    ...stats.activeMembershipsByGym.map((gym) => `${gym.gymName}: ${gym.activeMemberships}`),
+    `Combined Total: ${stats.totalActiveMemberships}`,
+  ].join("\n");
 }
 
 export default function GymManagerPortal() {
@@ -186,6 +210,23 @@ export default function GymManagerPortal() {
               <Summary title="New memberships" value={stats.totals.newMemberships} />
               <Summary title="Renewals" value={stats.totals.renewals} />
               <Summary title="Grand total" value={stats.totals.grandTotal} emphasis />
+            </section>
+
+            <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm" aria-label="WhatsApp manager report">
+              <h2 className="text-xl font-black text-emerald-950">WhatsApp Report</h2>
+              {stats.reportWhatsappNumber ? (
+                <>
+                  <p className="mt-1 text-sm text-emerald-800">Send the figures currently shown on this dashboard to +{stats.reportWhatsappNumber}. The recipient is controlled by Super Admin.</p>
+                  <a
+                    href={`https://wa.me/${stats.reportWhatsappNumber}?text=${encodeURIComponent(buildWhatsappReport(stats))}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-4 inline-block rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white"
+                  >Send report to WhatsApp</a>
+                </>
+              ) : (
+                <p className="mt-1 text-sm font-semibold text-emerald-800">No WhatsApp report recipient is configured. Super Admin can set one in the Gym Manager account.</p>
+              )}
             </section>
 
             <section className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
