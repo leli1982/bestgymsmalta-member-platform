@@ -14,7 +14,7 @@ test("authorization resolves normal gym accounts to the fixed Gym Staff bundle",
 test("system-user API ignores arbitrary gym permission arrays", () => {
   const source = read("app/api/admin/system-users/route.ts");
   assert.match(source, /resolveSystemUserPermissions/);
-  assert.match(source, /replaceGymStaffPermissions/);
+  assert.match(source, /replaceFixedRolePermissions/);
   assert.doesNotMatch(source, /sanitizeSystemPermissions\(body\.permissions\)/);
 });
 
