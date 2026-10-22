@@ -9,6 +9,7 @@ type SystemUser = {
   username: string;
   displayName: string;
   isSuperAdmin: boolean;
+  role?: "gym_staff" | "gym_manager" | "super_admin";
   permissions: string[];
 };
 
@@ -32,6 +33,10 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
       const response = await fetch("/api/system/auth", { cache: "no-store" });
       const data = await response.json();
       const sessionUser = data.authenticated ? data.user : null;
+      if (!expectedGym && sessionUser?.role === "gym_manager") {
+        window.location.replace("/manager");
+        return;
+      }
       if (
         expectedGym &&
         sessionUser &&
@@ -71,6 +76,10 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
       const data = await response.json();
       if (!response.ok) {
         setError(data.error || "Login failed.");
+        return;
+      }
+      if (!expectedGym && data.user?.role === "gym_manager") {
+        window.location.replace("/manager");
         return;
       }
       if (
@@ -115,7 +124,7 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
             <p className="mt-2 text-sm leading-6 text-zinc-600">
               {expectedGym
                 ? `Staff & Reception · ${expectedGym.name}`
-                : "Sign in with the shared Gym Staff account for your location."}
+                : "Sign in with your Staff or Gym Manager credentials."}
             </p>
           </div>
           {error && <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}

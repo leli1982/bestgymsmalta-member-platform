@@ -7,6 +7,7 @@ import { normalizeSystemUsername } from "@/lib/systemPermissions";
 import {
   resolveSystemUserPermissions,
   validateSystemUserDraft,
+  type SystemUserRole,
 } from "@/lib/systemUserCore";
 
 export const dynamic = "force-dynamic";
@@ -34,11 +35,12 @@ async function requireBootstrapAdminOrSuperAdmin(request: NextRequest) {
   return { bootstrapAdmin: false, context, error: null };
 }
 
-async function replaceGymStaffPermissions(
+async function replaceFixedRolePermissions(
   supabase: ReturnType<typeof getSupabaseAdmin>,
-  systemUserId: string
+  systemUserId: string,
+  role: SystemUserRole
 ) {
-  const permissions = resolveSystemUserPermissions(false);
+  const permissions = resolveSystemUserPermissions(role);
   const deleteResult = await supabase.from("bgm_user_permissions").delete().eq("system_user_id", systemUserId);
   if (deleteResult.error) throw deleteResult.error;
 
@@ -56,35 +58,105 @@ async function replaceGymStaffPermissions(
   return permissions;
 }
 
+async function validateManagerGymIds(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  gymIds: string[],
+  allowInactiveGymIds: string[] = []
+) {
+  if (gymIds.length === 0) return [];
+  const result = await supabase.from("bgm_gyms").select("id,name,status").in("id", gymIds);
+  if (result.error) throw result.error;
+  if ((result.data || []).length !== gymIds.length) {
+    throw new Error("One or more assigned gyms do not exist.");
+  }
+
+  const allowedInactive = new Set(allowInactiveGymIds);
+  const blockedGym = (result.data || []).find(
+    (gym) => gym.status === "inactive" && !allowedInactive.has(String(gym.id))
+  );
+  if (blockedGym) {
+    throw new Error(`${blockedGym.name || blockedGym.id} is inactive and not available for new Gym Manager assignments.`);
+  }
+
+  return result.data || [];
+}
+
+async function replaceManagerAssignments(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  managerUserId: string,
+  gymIds: string[],
+  actorSystemUserId: string | null,
+  allowInactiveGymIds: string[] = []
+) {
+  await validateManagerGymIds(supabase, gymIds, allowInactiveGymIds);
+  const deleteResult = await supabase
+    .from("bgm_manager_gym_assignments")
+    .delete()
+    .eq("manager_user_id", managerUserId);
+  if (deleteResult.error) throw deleteResult.error;
+
+  if (gymIds.length > 0) {
+    const insertResult = await supabase.from("bgm_manager_gym_assignments").insert(
+      gymIds.map((gymId) => ({
+        manager_user_id: managerUserId,
+        gym_id: gymId,
+        assigned_by_system_user_id: actorSystemUserId,
+      }))
+    );
+    if (insertResult.error) throw insertResult.error;
+  }
+}
+
 async function loadUsers() {
   const supabase = getSupabaseAdmin();
-  const [usersResult, gymsResult] = await Promise.all([
+  const [usersResult, gymsResult, assignmentsResult] = await Promise.all([
     supabase
       .from("bgm_system_users")
-      .select("id, gym_id, username, display_name, is_super_admin, active, last_login_at, created_at, updated_at")
+      .select("id, gym_id, username, display_name, is_super_admin, active, role, last_login_at, created_at, updated_at")
       .order("is_super_admin", { ascending: false })
       .order("display_name", { ascending: true }),
     supabase.from("bgm_gyms").select("id, name"),
+    supabase.from("bgm_manager_gym_assignments").select("manager_user_id,gym_id"),
   ]);
 
   if (usersResult.error) throw usersResult.error;
   if (gymsResult.error) throw gymsResult.error;
+  if (assignmentsResult.error) throw assignmentsResult.error;
 
   const gymMap = new Map((gymsResult.data || []).map((gym) => [gym.id as string, gym.name as string]));
+  const assignmentsByManager = new Map<string, string[]>();
+  for (const assignment of assignmentsResult.data || []) {
+    const current = assignmentsByManager.get(String(assignment.manager_user_id)) || [];
+    current.push(String(assignment.gym_id));
+    assignmentsByManager.set(String(assignment.manager_user_id), current);
+  }
 
-  return (usersResult.data || []).map((user) => ({
-    id: user.id,
-    gymId: user.gym_id || null,
-    gymName: user.gym_id ? gymMap.get(user.gym_id) || user.gym_id : null,
-    username: user.username,
-    displayName: user.display_name,
-    isSuperAdmin: Boolean(user.is_super_admin),
-    active: Boolean(user.active),
-    permissions: resolveSystemUserPermissions(Boolean(user.is_super_admin)),
-    lastLoginAt: user.last_login_at,
-    createdAt: user.created_at,
-    updatedAt: user.updated_at,
-  }));
+  return (usersResult.data || []).map((user) => {
+    const role: SystemUserRole = user.is_super_admin || user.role === "super_admin"
+      ? "super_admin"
+      : user.role === "gym_manager"
+        ? "gym_manager"
+        : "gym_staff";
+    const managerGymIds = role === "gym_manager"
+      ? (assignmentsByManager.get(String(user.id)) || []).sort()
+      : [];
+    return {
+      id: user.id,
+      gymId: role === "gym_staff" ? user.gym_id || null : null,
+      gymName: role === "gym_staff" && user.gym_id ? gymMap.get(user.gym_id) || user.gym_id : null,
+      managerGymIds,
+      managerGymNames: managerGymIds.map((gymId) => gymMap.get(gymId) || gymId),
+      username: user.username,
+      displayName: user.display_name,
+      isSuperAdmin: role === "super_admin",
+      role,
+      active: Boolean(user.active),
+      permissions: resolveSystemUserPermissions(role),
+      lastLoginAt: user.last_login_at,
+      createdAt: user.created_at,
+      updatedAt: user.updated_at,
+    };
+  });
 }
 
 async function writeAudit(
@@ -126,10 +198,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validation = validateSystemUserDraft({
       gymId: body.gymId,
+      managerGymIds: body.managerGymIds,
       username: body.username,
       displayName: body.displayName,
       password: body.password,
       isSuperAdmin: body.isSuperAdmin,
+      role: body.role,
     });
     if (!validation.ok) return NextResponse.json({ error: validation.error }, { status: 400 });
 
@@ -139,12 +213,20 @@ export async function POST(request: NextRequest) {
       if (gymResult.error) throw gymResult.error;
       if (!gymResult.data) return NextResponse.json({ error: "Gym not found." }, { status: 404 });
     }
+    if (validation.role === "gym_manager") {
+      try {
+        await validateManagerGymIds(supabase, validation.managerGymIds);
+      } catch (error) {
+        return NextResponse.json({
+          error: error instanceof Error ? error.message : "Could not validate assigned gyms.",
+        }, { status: 400 });
+      }
+    }
 
     const existingResult = await supabase.from("bgm_system_users").select("id").eq("username", validation.username).maybeSingle();
     if (existingResult.error) throw existingResult.error;
     if (existingResult.data) return NextResponse.json({ error: "That system username is already in use." }, { status: 409 });
 
-    const isSuperAdmin = Boolean(body.isSuperAdmin);
     const passwordHash = await bcrypt.hash(String(body.password), 12);
     const insertResult = await supabase
       .from("bgm_system_users")
@@ -153,10 +235,11 @@ export async function POST(request: NextRequest) {
         username: validation.username,
         password_hash: passwordHash,
         display_name: validation.displayName,
-        is_super_admin: isSuperAdmin,
+        is_super_admin: validation.role === "super_admin",
+        role: validation.role,
         active: true,
       })
-      .select("id, gym_id, username, display_name, is_super_admin, active")
+      .select("id, gym_id, username, display_name, is_super_admin, active, role")
       .single();
 
     if (insertResult.error) {
@@ -166,32 +249,43 @@ export async function POST(request: NextRequest) {
       throw insertResult.error;
     }
 
-    const permissions = resolveSystemUserPermissions(isSuperAdmin, body.permissions);
-    if (!isSuperAdmin) {
-      try {
-        await replaceGymStaffPermissions(supabase, insertResult.data.id);
-      } catch (error) {
-        await supabase.from("bgm_system_users").delete().eq("id", insertResult.data.id);
-        throw error;
+    try {
+      if (validation.role !== "super_admin") {
+        await replaceFixedRolePermissions(supabase, insertResult.data.id, validation.role);
       }
+      if (validation.role === "gym_manager") {
+        await replaceManagerAssignments(
+          supabase,
+          insertResult.data.id,
+          validation.managerGymIds,
+          auth.context?.systemUserId || null
+        );
+      }
+    } catch (error) {
+      await supabase.from("bgm_system_users").delete().eq("id", insertResult.data.id);
+      throw error;
     }
 
+    const permissions = resolveSystemUserPermissions(validation.role);
     await writeAudit(auth.context, "system_user.created", insertResult.data.id, {
-      gymId: insertResult.data.gym_id,
+      gymId: validation.gymId,
+      managerGymIds: validation.managerGymIds,
       username: insertResult.data.username,
       displayName: insertResult.data.display_name,
-      isSuperAdmin,
-      role: isSuperAdmin ? "super_admin" : "gym_staff",
+      isSuperAdmin: validation.role === "super_admin",
+      role: validation.role,
       permissions,
     });
 
     return NextResponse.json({
       user: {
         id: insertResult.data.id,
-        gymId: insertResult.data.gym_id || null,
+        gymId: validation.gymId,
+        managerGymIds: validation.managerGymIds,
         username: insertResult.data.username,
         displayName: insertResult.data.display_name,
-        isSuperAdmin,
+        isSuperAdmin: validation.role === "super_admin",
+        role: validation.role,
         active: Boolean(insertResult.data.active),
         permissions,
       },
@@ -214,15 +308,29 @@ export async function PATCH(request: NextRequest) {
     const supabase = getSupabaseAdmin();
     const currentResult = await supabase
       .from("bgm_system_users")
-      .select("id, gym_id, username, display_name, is_super_admin, active")
+      .select("id, gym_id, username, display_name, is_super_admin, active, role")
       .eq("id", id)
       .maybeSingle();
     if (currentResult.error) throw currentResult.error;
     if (!currentResult.data) return NextResponse.json({ error: "System user not found." }, { status: 404 });
 
+    const currentRole: SystemUserRole = currentResult.data.is_super_admin || currentResult.data.role === "super_admin"
+      ? "super_admin"
+      : currentResult.data.role === "gym_manager"
+        ? "gym_manager"
+        : "gym_staff";
+
+    let currentManagerGymIds: string[] = [];
+    if (currentRole === "gym_manager") {
+      const currentAssignments = await supabase.from("bgm_manager_gym_assignments")
+        .select("gym_id").eq("manager_user_id", id);
+      if (currentAssignments.error) throw currentAssignments.error;
+      currentManagerGymIds = (currentAssignments.data || []).map((row) => String(row.gym_id));
+    }
+
     // Prevent accidental lockout: keep at least one active Super Admin and
     // do not allow a logged-in administrator to disable their own account.
-    if (body.active === false && currentResult.data.is_super_admin && currentResult.data.active) {
+    if (body.active === false && currentRole === "super_admin" && currentResult.data.active) {
       if (auth.context?.systemUserId === id) {
         return NextResponse.json({ error: "You cannot disable your own Super Admin account." }, { status: 400 });
       }
@@ -253,11 +361,33 @@ export async function PATCH(request: NextRequest) {
       updates.password_hash = await bcrypt.hash(password, 12);
     }
 
+    let nextManagerGymIds: string[] | null = null;
+    if (body.managerGymIds !== undefined) {
+      if (currentRole !== "gym_manager") {
+        return NextResponse.json({ error: "Gym assignments can only be changed for Gym Manager accounts." }, { status: 400 });
+      }
+      nextManagerGymIds = Array.from(new Set(
+        (Array.isArray(body.managerGymIds) ? body.managerGymIds : [])
+          .map((value: unknown) => String(value || "").trim())
+          .filter(Boolean)
+      ));
+      if (nextManagerGymIds.length === 0) {
+        return NextResponse.json({ error: "At least one gym must remain assigned to a Gym Manager." }, { status: 400 });
+      }
+      try {
+        await validateManagerGymIds(supabase, nextManagerGymIds, currentManagerGymIds);
+      } catch (error) {
+        return NextResponse.json({
+          error: error instanceof Error ? error.message : "Could not validate assigned gyms.",
+        }, { status: 400 });
+      }
+    }
+
     const updateResult = await supabase
       .from("bgm_system_users")
       .update(updates)
       .eq("id", id)
-      .select("id, gym_id, username, display_name, is_super_admin, active")
+      .select("id, gym_id, username, display_name, is_super_admin, active, role")
       .single();
 
     if (updateResult.error) {
@@ -265,25 +395,44 @@ export async function PATCH(request: NextRequest) {
       throw updateResult.error;
     }
 
-    const isSuperAdmin = Boolean(updateResult.data.is_super_admin);
-    const permissions = resolveSystemUserPermissions(isSuperAdmin, body.permissions);
-    if (!isSuperAdmin) await replaceGymStaffPermissions(supabase, id);
+    if (currentRole !== "super_admin") await replaceFixedRolePermissions(supabase, id, currentRole);
+    if (currentRole === "gym_manager" && nextManagerGymIds) {
+      await replaceManagerAssignments(
+        supabase,
+        id,
+        nextManagerGymIds,
+        auth.context?.systemUserId || null,
+        currentManagerGymIds
+      );
+    }
 
+    let managerGymIds: string[] = [];
+    if (currentRole === "gym_manager") {
+      const assignmentResult = await supabase.from("bgm_manager_gym_assignments")
+        .select("gym_id").eq("manager_user_id", id).order("gym_id", { ascending: true });
+      if (assignmentResult.error) throw assignmentResult.error;
+      managerGymIds = (assignmentResult.data || []).map((row) => String(row.gym_id));
+    }
+
+    const permissions = resolveSystemUserPermissions(currentRole);
     await writeAudit(auth.context, "system_user.updated", id, {
       username: updateResult.data.username,
       displayName: updateResult.data.display_name,
       active: Boolean(updateResult.data.active),
-      role: isSuperAdmin ? "super_admin" : "gym_staff",
+      role: currentRole,
+      managerGymIds,
       permissions,
     });
 
     return NextResponse.json({
       user: {
         id: updateResult.data.id,
-        gymId: updateResult.data.gym_id || null,
+        gymId: currentRole === "gym_staff" ? updateResult.data.gym_id || null : null,
+        managerGymIds,
         username: updateResult.data.username,
         displayName: updateResult.data.display_name,
-        isSuperAdmin,
+        isSuperAdmin: currentRole === "super_admin",
+        role: currentRole,
         active: Boolean(updateResult.data.active),
         permissions,
       },

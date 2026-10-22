@@ -7,7 +7,12 @@ import {
   setSystemSessionCookie,
 } from "@/lib/systemAuth";
 import { classifySystemLoginError } from "@/lib/systemLoginError";
-import { normalizeSystemUsername } from "@/lib/systemPermissions";
+import {
+  GYM_MANAGER_PERMISSIONS,
+  GYM_STAFF_PERMISSIONS,
+  normalizeSystemUsername,
+} from "@/lib/systemPermissions";
+import type { SystemUserRole } from "@/lib/systemUserCore";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +29,8 @@ function publicContext(context: Awaited<ReturnType<typeof getSystemContext>>) {
     username: context.username,
     displayName: context.displayName,
     isSuperAdmin: context.isSuperAdmin,
+    role: context.role,
+    managedGymIds: context.managedGymIds,
     permissions: context.permissions,
   };
 }
@@ -81,14 +88,14 @@ export async function POST(request: NextRequest) {
 
       accountResult = await supabase
         .from("bgm_system_users")
-        .select("id, gym_id, username, password_hash, display_name, is_super_admin, active")
+        .select("id, gym_id, username, password_hash, display_name, is_super_admin, active, role")
         .eq("gym_id", gymResult.data.id)
-        .eq("is_super_admin", false)
+        .eq("role", "gym_staff")
         .maybeSingle();
     } else {
       accountResult = await supabase
         .from("bgm_system_users")
-        .select("id, gym_id, username, password_hash, display_name, is_super_admin, active")
+        .select("id, gym_id, username, password_hash, display_name, is_super_admin, active, role")
         .eq("username", username)
         .maybeSingle();
     }
@@ -119,20 +126,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let permissions: string[] = [];
+    const role: SystemUserRole = account.is_super_admin || account.role === "super_admin"
+      ? "super_admin"
+      : account.role === "gym_manager"
+        ? "gym_manager"
+        : "gym_staff";
 
-    if (!account.is_super_admin) {
-      const permissionResult = await supabase
-        .from("bgm_user_permissions")
-        .select("permission_key")
-        .eq("system_user_id", account.id)
-        .eq("allowed", true);
-
-      if (permissionResult.error) throw permissionResult.error;
-      permissions = (permissionResult.data || []).map(
-        (row) => row.permission_key as string
-      );
+    let managedGymIds: string[] = [];
+    if (role === "gym_manager") {
+      const assignmentResult = await supabase
+        .from("bgm_manager_gym_assignments")
+        .select("gym_id")
+        .eq("manager_user_id", account.id)
+        .order("gym_id", { ascending: true });
+      if (assignmentResult.error) throw assignmentResult.error;
+      managedGymIds = (assignmentResult.data || []).map((row) => String(row.gym_id));
+      if (managedGymIds.length === 0) {
+        return NextResponse.json({ error: "This Gym Manager has no assigned gyms." }, { status: 403 });
+      }
     }
+
+    const permissions = role === "super_admin"
+      ? []
+      : role === "gym_manager"
+        ? [...GYM_MANAGER_PERMISSIONS]
+        : [...GYM_STAFF_PERMISSIONS];
 
     const now = new Date().toISOString();
     const updateResult = await supabase
@@ -146,20 +164,22 @@ export async function POST(request: NextRequest) {
       authenticated: true,
       user: {
         id: account.id,
-        gymId: account.gym_id || null,
+        gymId: role === "gym_staff" ? account.gym_id || null : null,
         username: account.username,
         displayName: account.display_name,
-        isSuperAdmin: Boolean(account.is_super_admin),
+        isSuperAdmin: role === "super_admin",
+        role,
+        managedGymIds,
         permissions,
       },
     });
 
     return setSystemSessionCookie(response, {
       systemUserId: account.id,
-      gymId: account.gym_id || null,
+      gymId: role === "gym_staff" ? account.gym_id || null : null,
       username: account.username,
       displayName: account.display_name,
-      isSuperAdmin: Boolean(account.is_super_admin),
+      isSuperAdmin: role === "super_admin",
     });
   } catch (error) {
     console.error(error);

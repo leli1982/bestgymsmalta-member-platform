@@ -61,6 +61,11 @@ const sections: Section[] = [
     icon: ShieldCheck, group: "Management",
   },
   {
+    href: "/staff/admin/gym-managers", label: "Gym Manager accounts",
+    description: "Create Manager usernames and passwords, then assign one or more Active or Coming Soon gyms.",
+    icon: UsersRound, group: "Management",
+  },
+  {
     href: "/staff/admin/staff-logins", label: "Staff Portal logins",
     description: "Manage each gym's staff username, password and active status.",
     icon: KeyRound, group: "Management",

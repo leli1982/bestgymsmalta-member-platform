@@ -21,7 +21,7 @@ test("Super Admin does not need stored per-permission grants", () => {
 });
 
 test("gym accounts require gym, username, display name and a strong-enough password", () => {
-  assert.deepEqual(validateSystemUserDraft({ gymId: "birkirkara", username: "Birkirkara Fitness", displayName: "Birkirkara Fitness", password: "12345678", isSuperAdmin: false }), { ok: true, gymId: "birkirkara", username: "birkirkarafitness", displayName: "Birkirkara Fitness" });
+  assert.deepEqual(validateSystemUserDraft({ gymId: "birkirkara", username: "Birkirkara Fitness", displayName: "Birkirkara Fitness", password: "12345678", isSuperAdmin: false }), { ok: true, role: "gym_staff", gymId: "birkirkara", managerGymIds: [], username: "birkirkarafitness", displayName: "Birkirkara Fitness" });
   assert.equal(validateSystemUserDraft({ gymId: "", username: "test", displayName: "Test", password: "12345678", isSuperAdmin: false }).ok, false);
   assert.equal(validateSystemUserDraft({ gymId: "birkirkara", username: "test", displayName: "Test", password: "short", isSuperAdmin: false }).ok, false);
 });

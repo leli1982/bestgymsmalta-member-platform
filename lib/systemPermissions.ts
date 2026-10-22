@@ -44,6 +44,10 @@ export const GYM_STAFF_PERMISSIONS = [
   "orders.bar.submit",
 ] as const satisfies readonly SystemPermissionKey[];
 
+export const GYM_MANAGER_PERMISSIONS = [
+  "analytics.view",
+] as const satisfies readonly SystemPermissionKey[];
+
 export function isSystemPermissionKey(value: string): value is SystemPermissionKey {
   return (SYSTEM_PERMISSION_KEYS as readonly string[]).includes(value);
 }
