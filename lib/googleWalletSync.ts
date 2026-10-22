@@ -11,6 +11,7 @@ import {
   upsertGoogleWalletObject,
 } from "./googleWalletServer";
 import { loadCurrentMembershipType } from "./currentMembershipType";
+import { sendWelcomePackagesForRecentlyActivatedMembersBestEffort } from "./welcomePackage";
 
 export type GoogleWalletSyncResult =
   | "not_provisioned"
@@ -219,5 +220,11 @@ export async function bestEffortSyncGoogleWalletMembers(
     } catch {
       // Wallet recovery must never break the BGM mutation that triggered it.
     }
+  }
+
+  try {
+    await sendWelcomePackagesForRecentlyActivatedMembersBestEffort(uniqueMemberIds);
+  } catch {
+    // Welcome email failure must never undo or fail the membership mutation.
   }
 }
