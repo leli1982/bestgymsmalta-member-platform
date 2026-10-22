@@ -58,16 +58,26 @@ async function replaceFixedRolePermissions(
   return permissions;
 }
 
-async function validateGymIds(
+async function validateManagerGymIds(
   supabase: ReturnType<typeof getSupabaseAdmin>,
-  gymIds: string[]
+  gymIds: string[],
+  allowInactiveGymIds: string[] = []
 ) {
   if (gymIds.length === 0) return [];
-  const result = await supabase.from("bgm_gyms").select("id,name").in("id", gymIds);
+  const result = await supabase.from("bgm_gyms").select("id,name,status").in("id", gymIds);
   if (result.error) throw result.error;
   if ((result.data || []).length !== gymIds.length) {
     throw new Error("One or more assigned gyms do not exist.");
   }
+
+  const allowedInactive = new Set(allowInactiveGymIds);
+  const blockedGym = (result.data || []).find(
+    (gym) => gym.status === "inactive" && !allowedInactive.has(String(gym.id))
+  );
+  if (blockedGym) {
+    throw new Error(`${blockedGym.name || blockedGym.id} is inactive and not available for new Gym Manager assignments.`);
+  }
+
   return result.data || [];
 }
 
@@ -75,9 +85,10 @@ async function replaceManagerAssignments(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   managerUserId: string,
   gymIds: string[],
-  actorSystemUserId: string | null
+  actorSystemUserId: string | null,
+  allowInactiveGymIds: string[] = []
 ) {
-  await validateGymIds(supabase, gymIds);
+  await validateManagerGymIds(supabase, gymIds, allowInactiveGymIds);
   const deleteResult = await supabase
     .from("bgm_manager_gym_assignments")
     .delete()
@@ -204,9 +215,11 @@ export async function POST(request: NextRequest) {
     }
     if (validation.role === "gym_manager") {
       try {
-        await validateGymIds(supabase, validation.managerGymIds);
-      } catch {
-        return NextResponse.json({ error: "One or more assigned gyms do not exist." }, { status: 400 });
+        await validateManagerGymIds(supabase, validation.managerGymIds);
+      } catch (error) {
+        return NextResponse.json({
+          error: error instanceof Error ? error.message : "Could not validate assigned gyms.",
+        }, { status: 400 });
       }
     }
 
@@ -307,6 +320,14 @@ export async function PATCH(request: NextRequest) {
         ? "gym_manager"
         : "gym_staff";
 
+    let currentManagerGymIds: string[] = [];
+    if (currentRole === "gym_manager") {
+      const currentAssignments = await supabase.from("bgm_manager_gym_assignments")
+        .select("gym_id").eq("manager_user_id", id);
+      if (currentAssignments.error) throw currentAssignments.error;
+      currentManagerGymIds = (currentAssignments.data || []).map((row) => String(row.gym_id));
+    }
+
     // Prevent accidental lockout: keep at least one active Super Admin and
     // do not allow a logged-in administrator to disable their own account.
     if (body.active === false && currentRole === "super_admin" && currentResult.data.active) {
@@ -354,9 +375,11 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: "At least one gym must remain assigned to a Gym Manager." }, { status: 400 });
       }
       try {
-        await validateGymIds(supabase, nextManagerGymIds);
-      } catch {
-        return NextResponse.json({ error: "One or more assigned gyms do not exist." }, { status: 400 });
+        await validateManagerGymIds(supabase, nextManagerGymIds, currentManagerGymIds);
+      } catch (error) {
+        return NextResponse.json({
+          error: error instanceof Error ? error.message : "Could not validate assigned gyms.",
+        }, { status: 400 });
       }
     }
 
@@ -374,7 +397,13 @@ export async function PATCH(request: NextRequest) {
 
     if (currentRole !== "super_admin") await replaceFixedRolePermissions(supabase, id, currentRole);
     if (currentRole === "gym_manager" && nextManagerGymIds) {
-      await replaceManagerAssignments(supabase, id, nextManagerGymIds, auth.context?.systemUserId || null);
+      await replaceManagerAssignments(
+        supabase,
+        id,
+        nextManagerGymIds,
+        auth.context?.systemUserId || null,
+        currentManagerGymIds
+      );
     }
 
     let managerGymIds: string[] = [];
