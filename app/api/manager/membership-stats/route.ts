@@ -6,6 +6,19 @@ import { isValidCalendarDate, maltaDayUtcRange, todayMaltaDate } from "@/lib/mal
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 const pageSize = 500;
+const activePageSize = 1000;
+
+const LEGACY_TO_GYM_ID: Record<string, string> = {
+  "Tal-Qroqq": "bgm-talqroqq",
+  Birkirkara: "bgm-birkirkara",
+  Kirkop: "bgm-kirkop",
+  Marsa: "bgm-marsa",
+  Neptunes: "bgm-neptunes",
+  Pembroke: "bgm-pembroke",
+  Build: "bgm-build",
+  Sliema: "bgm-sliema",
+  "Birżebbuġa": "bgm-birzebbuga",
+};
 
 type MembershipKind = "new" | "renewal";
 type StatsRow = {
@@ -13,6 +26,12 @@ type StatsRow = {
   enrollment_gym_id: string;
   application_kind: MembershipKind;
   activated_at: string;
+};
+
+type ActiveMemberRow = {
+  id: string;
+  enrollment_gym_id: string | null;
+  legacy_gym: string | null;
 };
 
 export async function GET(request: NextRequest) {
@@ -82,6 +101,41 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    const activeCounts = new Map<string, number>(assignedGymIds.map((gymId) => [gymId, 0]));
+    for (let offset = 0; ; offset += activePageSize) {
+      const result = await supabase
+        .from("bgm_members")
+        .select("id,enrollment_gym_id,legacy_gym")
+        .eq("status", "active")
+        .is("archived_at", null)
+        .or(`membership_expiry.is.null,membership_expiry.gte.${now}`)
+        .or(`cancellation_effective_date.is.null,cancellation_effective_date.gt.${now}`)
+        .range(offset, offset + activePageSize - 1);
+      if (result.error) throw result.error;
+
+      const batch = (result.data || []) as ActiveMemberRow[];
+      for (const member of batch) {
+        const resolvedGymId =
+          member.enrollment_gym_id ||
+          LEGACY_TO_GYM_ID[String(member.legacy_gym || "").trim()] ||
+          null;
+        if (!resolvedGymId || !assignedGymIds.includes(resolvedGymId)) continue;
+        activeCounts.set(resolvedGymId, (activeCounts.get(resolvedGymId) || 0) + 1);
+      }
+
+      if (batch.length < activePageSize) break;
+    }
+
+    const activeMembershipsByGym = assignedGymIds.map((gymId) => ({
+      gymId,
+      gymName: gymNames.get(gymId) || gymId,
+      activeMemberships: activeCounts.get(gymId) || 0,
+    }));
+    const totalActiveMemberships = activeMembershipsByGym.reduce(
+      (sum, gym) => sum + gym.activeMemberships,
+      0
+    );
+
     const newMemberships = byGym.reduce((sum, gym) => sum + gym.newMemberships, 0);
     const renewals = byGym.reduce((sum, gym) => sum + gym.renewals, 0);
 
@@ -94,6 +148,8 @@ export async function GET(request: NextRequest) {
         grandTotal: newMemberships + renewals,
       },
       byGym,
+      activeMembershipsByGym,
+      totalActiveMemberships,
     }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     console.error("Could not load Gym Manager membership statistics:", error);
