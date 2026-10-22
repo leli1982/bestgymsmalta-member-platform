@@ -47,9 +47,9 @@ export default function GymManagerPortal() {
   const today = useMemo(() => todayMaltaDate(), []);
   const [user, setUser] = useState<ManagerUser | null>(null);
   const [gymId, setGymId] = useState("");
-  const [from, setFrom] = useState(() => today.slice(0, 8) + "01");
+  const [from, setFrom] = useState(today);
   const [to, setTo] = useState(today);
-  const [activeQuickRange, setActiveQuickRange] = useState<QuickRange | null>("month");
+  const [activeQuickRange, setActiveQuickRange] = useState<QuickRange | null>("today");
   const [stats, setStats] = useState<ManagerStats | null>(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [loadingStats, setLoadingStats] = useState(false);
