@@ -94,7 +94,7 @@ try {
   assert.equal(lastSelectedGym, "gym-one", "Changing the selection reloads the intended gym");
 
   await page.getByRole("button", { name: "Regular", exact: true }).click();
-  await page.locator("label").filter({ hasText: "Membership duration" }).locator("select").selectOption("1_month");
+  await page.getByRole("button", { name: "1 month", exact: true }).click();
   await page.getByLabel("I have checked and verified these reception requirements.", { exact: true }).check();
   await page.getByLabel("First name", { exact: true }).fill("Browser");
   await page.getByLabel("Last name", { exact: true }).fill("Applicant");
