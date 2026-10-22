@@ -10,6 +10,7 @@ const managerStats = readFileSync(new URL("../app/api/manager/membership-stats/r
 const managerPortal = readFileSync(new URL("../components/manager/GymManagerPortal.tsx", import.meta.url), "utf8");
 const staffLogin = readFileSync(new URL("../components/staff/StaffLoginPage.tsx", import.meta.url), "utf8");
 const adminUsers = readFileSync(new URL("../components/admin/SystemUsersAdmin.tsx", import.meta.url), "utf8");
+const systemUsersRoute = readFileSync(new URL("../app/api/admin/system-users/route.ts", import.meta.url), "utf8");
 const migration = readFileSync(new URL("../supabase/migrations/20261020092005_gym_manager_role_foundation.sql", import.meta.url), "utf8");
 
 test("gym manager is an explicit role with analytics-only permission foundation", () => {
@@ -71,6 +72,18 @@ test("Super Admin can create and edit multi-gym manager assignments while manage
   assert.match(managerPortal, /Renewals/);
   assert.match(managerPortal, /Grand total/);
   assert.doesNotMatch(managerPortal, /members\.edit|cards\.assign|membership\.activate/);
+});
+
+test("Gym Manager assignment choices follow the live gym list and status rules", () => {
+  assert.match(adminUsers, /assignableManagerGyms/);
+  assert.match(adminUsers, /gym\.status !== "inactive"/);
+  assert.match(adminUsers, /Coming soon/);
+  assert.match(adminUsers, /Inactive/);
+  assert.match(adminUsers, /user\.managerGymIds\.includes\(gym\.id\)/);
+  assert.match(systemUsersRoute, /select\("id,name,status"\)/);
+  assert.match(systemUsersRoute, /allowInactiveGymIds/);
+  assert.match(systemUsersRoute, /gym\.status === "inactive"/);
+  assert.match(systemUsersRoute, /not available for new Gym Manager assignments/);
 });
 
 test("Gym Managers sign in through the normal staff login and the manager route has no dedicated login form", () => {
