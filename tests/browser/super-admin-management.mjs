@@ -39,6 +39,7 @@ try {
     gym("bgm-birkirkara", "Birkirkara Fitness", "birkirkara", "active"),
     gym("bgm-marsa", "Marsa Fitness", "marsa", "active"),
     gym("bgm-gozo", "Gozo", "gozo", "coming_soon", false),
+    gym("bgm-closed", "Closed Gym", "closed", "inactive", false),
   ];
   let users = [
     { id: "admin-root", gymId: null, username: "rootadmin", displayName: "Root Admin",
@@ -46,6 +47,10 @@ try {
       active: true, permissions: [], lastLoginAt: null },
     { id: "admin-second", gymId: null, username: "secondadmin", displayName: "Second Admin",
       gymName: null, isSuperAdmin: true, role: "super_admin", managerGymIds: [], managerGymNames: [],
+      active: true, permissions: [], lastLoginAt: null },
+    { id: "manager-legacy", gymId: null, username: "legacymanager", displayName: "Legacy Manager",
+      gymName: null, isSuperAdmin: false, role: "gym_manager",
+      managerGymIds: ["bgm-birkirkara", "bgm-closed"], managerGymNames: ["Birkirkara Fitness", "Closed Gym"],
       active: true, permissions: [], lastLoginAt: null },
     { id: "staff-birkirkara", gymId: "bgm-birkirkara", username: "birkirkarafitness",
       gymName: "Birkirkara Fitness", displayName: "Birkirkara Staff",
@@ -92,19 +97,26 @@ try {
     const body = route.request().postDataJSON();
     if (route.request().method() === "POST") {
       credentials.push({ kind: "create", ...body });
-      const created = { id: "admin-third", gymId: body.gymId, gymName: null,
+      const createdId = body.role === "gym_manager" ? "manager-new" : "admin-third";
+      const managerGymNames = (body.managerGymIds || []).map((id) => gyms.find((entry) => entry.id === id)?.name || id);
+      const created = { id: createdId, gymId: body.gymId, gymName: null,
         username: body.username, displayName: body.displayName,
         isSuperAdmin: body.isSuperAdmin, role: body.role,
-        managerGymIds: body.managerGymIds || [], managerGymNames: [],
+        managerGymIds: body.managerGymIds || [], managerGymNames,
         active: true, permissions: [], lastLoginAt: null };
       users = [...users, created];
       return route.fulfill({ status: 201, json: { user: created } });
     }
     assert.equal(route.request().method(), "PATCH");
     credentials.push({ kind: "update", ...body });
-    users = users.map((user) => user.id === body.id ? { ...user,
-      username: body.username || user.username, displayName: body.displayName || user.displayName,
-      active: body.active ?? user.active } : user);
+    users = users.map((user) => {
+      if (user.id !== body.id) return user;
+      const nextManagerGymIds = body.managerGymIds ?? user.managerGymIds;
+      return { ...user,
+        username: body.username || user.username, displayName: body.displayName || user.displayName,
+        active: body.active ?? user.active, managerGymIds: nextManagerGymIds,
+        managerGymNames: nextManagerGymIds.map((id) => gyms.find((entry) => entry.id === id)?.name || id) };
+    });
     return route.fulfill({ json: { user: users.find((user) => user.id === body.id) } });
   });
   await context.route("**/api/system/members/search?**", (route) =>
@@ -118,7 +130,7 @@ try {
   assert.deepEqual(headings, ["Operations", "Management", "Membership Tools"],
     "Occasional membership tasks must appear after daily operations and management");
   for (const label of [
-    "Gym locations", "Super Admin accounts", "Staff Portal logins",
+    "Gym locations", "Super Admin accounts", "Gym Manager accounts", "Staff Portal logins",
     "Members", "New membership", "Renew", "Waiting", "Reception tools",
   ]) {
     await page.getByRole("link", { name: new RegExp(label) }).first().waitFor({ state: "visible" });
@@ -148,6 +160,39 @@ try {
   assert.equal(await page.getByRole("combobox", { name: "Gym status" }).inputValue(), "active");
   await page.locator('input[aria-label="Gym Staff password"]').waitFor({ state: "visible" });
 
+  await page.goto(origin + "/staff/admin/gym-managers");
+  await page.getByRole("heading", { name: "Gym Manager accounts", exact: true }).waitFor({ state: "visible" });
+  const managerForm = page.locator("form").first();
+  await managerForm.getByLabel(/^Naxxar/).waitFor({ state: "visible" });
+  await managerForm.getByLabel(/^Gozo/).waitFor({ state: "visible" });
+  await managerForm.getByText("Coming soon", { exact: true }).waitFor({ state: "visible" });
+  assert.equal(await managerForm.getByLabel(/^Closed Gym/).count(), 0,
+    "Inactive gyms must not be available for new Gym Manager assignments");
+  await managerForm.getByLabel("New login display name").fill("North Manager");
+  await managerForm.getByLabel("New login username").fill("northmanager");
+  await managerForm.getByLabel("New login password").fill("browser-manager-pass");
+  await managerForm.getByLabel(/^Naxxar/).check();
+  await managerForm.getByLabel(/^Gozo/).check();
+  await managerForm.getByRole("button", { name: "Create login" }).click();
+  await page.getByRole("status").filter({ hasText: "login created" }).waitFor({ state: "visible" });
+  const managerCreate = credentials.find((entry) => entry.kind === "create" && entry.role === "gym_manager");
+  assert.deepEqual([...managerCreate.managerGymIds].sort(), ["bgm-gozo", "bgm-naxxar"],
+    "Newly created and Coming Soon gyms must be assignable to a Gym Manager");
+
+  const legacyManager = page.getByRole("article").filter({ hasText: "Legacy Manager" });
+  await legacyManager.getByText("Closed Gym", { exact: true }).first().waitFor({ state: "visible" });
+  await legacyManager.getByText("Inactive", { exact: true }).first().waitFor({ state: "visible" });
+  const inactiveAssignment = legacyManager.getByLabel(/^Closed Gym/);
+  assert.equal(await inactiveAssignment.isChecked(), true,
+    "An already-assigned inactive gym must remain visible until Super Admin removes it");
+  await inactiveAssignment.uncheck();
+  await legacyManager.getByRole("button", { name: "Save assigned gyms" }).click();
+  await page.getByRole("status").filter({ hasText: "login updated" }).waitFor({ state: "visible" });
+  assert.equal(credentials.some((entry) => entry.kind === "update" && entry.id === "manager-legacy" &&
+    Array.isArray(entry.managerGymIds) && entry.managerGymIds.length === 1 && entry.managerGymIds[0] === "bgm-birkirkara"), true,
+  "Super Admin must be able to explicitly remove an inactive Manager assignment");
+  await page.screenshot({ path: artifactDir + "/gym-manager-account-management.png", fullPage: true });
+
   await page.goto(origin + "/staff/admin/super-admins");
   await page.getByRole("heading", { name: "Super Admin accounts", exact: true }).waitFor({ state: "visible" });
   await page.getByRole("article").filter({ hasText: "Root Admin" }).waitFor({ state: "visible" });
@@ -158,7 +203,7 @@ try {
   await page.getByLabel("New login password").fill("browser-admin-pass");
   await page.getByRole("button", { name: "Create login" }).click();
   await page.getByRole("status").filter({ hasText: "login created" }).waitFor({ state: "visible" });
-  assert.equal(credentials.find((entry) => entry.kind === "create")?.isSuperAdmin, true);
+  assert.equal(credentials.some((entry) => entry.kind === "create" && entry.isSuperAdmin === true), true);
   const root = page.getByRole("article").filter({ hasText: "Root Admin" });
   await root.getByLabel("rootadmin new password").fill("browser-admin-reset");
   await root.getByRole("button", { name: "Change password" }).click();
@@ -191,7 +236,7 @@ try {
   await page.goto(origin + "/staff/admin/membership-tools?tool=waiting");
   await page.getByRole("heading", { name: "Membership Tools" }).waitFor({ state: "visible" });
   assert.deepEqual(errors, [], "Super Admin management must not cause browser errors");
-  console.log("PASS Super Admin navigation, isolated membership tools, gym addresses, activation passwords and management of super/staff logins");
+  console.log("PASS Super Admin navigation, gym/manager account assignment, isolated membership tools and staff login management");
 } finally {
   if (browser) await browser.close();
   server.kill("SIGTERM");
