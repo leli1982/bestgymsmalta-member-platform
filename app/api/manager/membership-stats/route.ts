@@ -6,7 +6,6 @@ import { isValidCalendarDate, maltaDayUtcRange, todayMaltaDate } from "@/lib/mal
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 const pageSize = 500;
-const activePageSize = 1000;
 
 const LEGACY_TO_GYM_ID: Record<string, string> = {
   "Tal-Qroqq": "bgm-talqroqq",
@@ -26,12 +25,6 @@ type StatsRow = {
   enrollment_gym_id: string;
   application_kind: MembershipKind;
   activated_at: string;
-};
-
-type ActiveMemberRow = {
-  id: string;
-  enrollment_gym_id: string | null;
-  legacy_gym: string | null;
 };
 
 export async function GET(request: NextRequest) {
@@ -101,41 +94,61 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    const activeCounts = new Map<string, number>(assignedGymIds.map((gymId) => [gymId, 0]));
-    for (let offset = 0; ; offset += activePageSize) {
-      const result = await supabase
-        .from("bgm_members")
-        .select("id,enrollment_gym_id,legacy_gym")
-        .eq("status", "active")
-        .is("archived_at", null)
-        .or(`membership_expiry.is.null,membership_expiry.gte.${now}`)
-        .or(`cancellation_effective_date.is.null,cancellation_effective_date.gt.${now}`)
-        .range(offset, offset + activePageSize - 1);
-      if (result.error) throw result.error;
+    const activeMembershipsByGym = await Promise.all(
+      assignedGymIds.map(async (gymId) => {
+        const legacyNames = Object.entries(LEGACY_TO_GYM_ID)
+          .filter(([, mappedGymId]) => mappedGymId === gymId)
+          .map(([legacyName]) => legacyName);
 
-      const batch = (result.data || []) as ActiveMemberRow[];
-      for (const member of batch) {
-        const resolvedGymId =
-          member.enrollment_gym_id ||
-          LEGACY_TO_GYM_ID[String(member.legacy_gym || "").trim()] ||
-          null;
-        if (!resolvedGymId || !assignedGymIds.includes(resolvedGymId)) continue;
-        activeCounts.set(resolvedGymId, (activeCounts.get(resolvedGymId) || 0) + 1);
-      }
+        const directResult = await supabase
+          .from("bgm_members")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "active")
+          .is("archived_at", null)
+          .eq("enrollment_gym_id", gymId)
+          .or(`membership_expiry.is.null,membership_expiry.gte.${now}`)
+          .or(`cancellation_effective_date.is.null,cancellation_effective_date.gt.${now}`);
+        if (directResult.error) throw directResult.error;
 
-      if (batch.length < activePageSize) break;
-    }
+        let legacyFallbackCount = 0;
+        if (legacyNames.length > 0) {
+          const [legacyNullResult, legacyEmptyResult] = await Promise.all([
+            supabase
+              .from("bgm_members")
+              .select("id", { count: "exact", head: true })
+              .eq("status", "active")
+              .is("archived_at", null)
+              .is("enrollment_gym_id", null)
+              .in("legacy_gym", legacyNames)
+              .or(`membership_expiry.is.null,membership_expiry.gte.${now}`)
+              .or(`cancellation_effective_date.is.null,cancellation_effective_date.gt.${now}`),
+            supabase
+              .from("bgm_members")
+              .select("id", { count: "exact", head: true })
+              .eq("status", "active")
+              .is("archived_at", null)
+              .eq("enrollment_gym_id", "")
+              .in("legacy_gym", legacyNames)
+              .or(`membership_expiry.is.null,membership_expiry.gte.${now}`)
+              .or(`cancellation_effective_date.is.null,cancellation_effective_date.gt.${now}`),
+          ]);
+          if (legacyNullResult.error) throw legacyNullResult.error;
+          if (legacyEmptyResult.error) throw legacyEmptyResult.error;
+          legacyFallbackCount = (legacyNullResult.count || 0) + (legacyEmptyResult.count || 0);
+        }
 
-    const activeMembershipsByGym = assignedGymIds.map((gymId) => ({
-      gymId,
-      gymName: gymNames.get(gymId) || gymId,
-      activeMemberships: activeCounts.get(gymId) || 0,
-    }));
+        return {
+          gymId,
+          gymName: gymNames.get(gymId) || gymId,
+          activeMemberships: (directResult.count || 0) + legacyFallbackCount,
+        };
+      })
+    );
+
     const totalActiveMemberships = activeMembershipsByGym.reduce(
       (sum, gym) => sum + gym.activeMemberships,
       0
     );
-
     const newMemberships = byGym.reduce((sum, gym) => sum + gym.newMemberships, 0);
     const renewals = byGym.reduce((sum, gym) => sum + gym.renewals, 0);
 
