@@ -64,6 +64,14 @@ test("manager dashboard reports current active memberships for every assigned gy
   assert.match(managerPortal, /activeMembershipsByGym/);
 });
 
+test("Gym Manager dashboard defaults to Today while retaining other date filters", () => {
+  assert.match(managerPortal, /useState\(today\)/);
+  assert.match(managerPortal, /useState<QuickRange \| null>\("today"\)/);
+  assert.match(managerPortal, />Today<\/button>/);
+  assert.match(managerPortal, />This Week<\/button>/);
+  assert.match(managerPortal, />This Month<\/button>/);
+});
+
 test("Super Admin can create and edit multi-gym manager assignments while manager UI remains reporting-only", () => {
   assert.match(adminUsers, /Gym Manager/);
   assert.match(adminUsers, /managerGymIds/);
