@@ -7,6 +7,14 @@ const origin = "http://127.0.0.1:3102";
 const artifacts = "test-artifacts/tablet-enrollment";
 
 const durations = ["1_week", "2_weeks", "1_month", "3_months", "6_months", "1_year"];
+const durationLabels = {
+  "1_week": "1 week",
+  "2_weeks": "2 weeks",
+  "1_month": "1 month",
+  "3_months": "3 months",
+  "6_months": "6 months",
+  "1_year": "1 year",
+};
 const types = ["single", "student", "couples"];
 const pricingEntries = types.flatMap((membershipType, typeIndex) =>
   durations.map((durationKey, durationIndex) => ({
@@ -69,11 +77,9 @@ async function waitVisible(locator) {
 async function chooseMembership(typeLabel, duration = "1_month") {
   await page.getByRole("button", { name: typeLabel, exact: true }).click();
   await waitVisible(page.getByRole("heading", { name: "You will need at reception", exact: true }));
-  await page
-    .locator("label")
-    .filter({ hasText: "Membership duration" })
-    .locator("select")
-    .selectOption(duration);
+  const durationLabel = durationLabels[duration];
+  assert.ok(durationLabel, `Unknown membership duration: ${duration}`);
+  await page.getByRole("button", { name: durationLabel, exact: true }).click();
 }
 
 async function continuePastDocumentWarning() {
