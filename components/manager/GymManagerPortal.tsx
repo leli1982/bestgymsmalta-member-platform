@@ -40,8 +40,6 @@ function startOfMaltaWeek(today: string) {
 export default function GymManagerPortal() {
   const today = useMemo(() => todayMaltaDate(), []);
   const [user, setUser] = useState<ManagerUser | null>(null);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [gymId, setGymId] = useState("");
   const [from, setFrom] = useState(() => today.slice(0, 8) + "01");
   const [to, setTo] = useState(today);
@@ -49,7 +47,6 @@ export default function GymManagerPortal() {
   const [stats, setStats] = useState<ManagerStats | null>(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [loadingStats, setLoadingStats] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   const checkSession = useCallback(async () => {
@@ -61,10 +58,12 @@ export default function GymManagerPortal() {
         setUser(sessionUser as ManagerUser);
         setError("");
       } else {
-        setUser(null);
+        window.location.replace("/staff");
+        return;
       }
     } catch {
-      setUser(null);
+      window.location.replace("/staff");
+      return;
     } finally {
       setLoadingSession(false);
     }
@@ -110,61 +109,15 @@ export default function GymManagerPortal() {
     setActiveQuickRange(range);
   }, [today]);
 
-  async function login(event: React.FormEvent) {
-    event.preventDefault();
-    setSubmitting(true);
-    setError("");
-    try {
-      const response = await fetch("/api/system/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "Login failed.");
-      if (data.user?.role !== "gym_manager") {
-        await fetch("/api/system/auth", { method: "DELETE" });
-        throw new Error("This login is not a Gym Manager account.");
-      }
-      setUser(data.user as ManagerUser);
-      setPassword("");
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Login failed.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   async function logout() {
     await fetch("/api/system/auth", { method: "DELETE" });
     setUser(null);
     setStats(null);
-    setUsername("");
-    setPassword("");
+    window.location.replace("/staff");
   }
 
-  if (loadingSession) {
+  if (loadingSession || !user) {
     return <main className="flex min-h-screen items-center justify-center bg-zinc-100 text-zinc-600">Loading…</main>;
-  }
-
-  if (!user) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-zinc-100 px-4 py-10 text-zinc-950">
-        <form onSubmit={login} className="w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm">
-          <p className="text-sm font-black uppercase tracking-[0.18em] text-orange-600">BestGymsMalta</p>
-          <h1 className="mt-2 text-3xl font-black">Gym Manager</h1>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">Sign in to view membership performance for your assigned gyms.</p>
-          {error && <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p>}
-          <label className="mt-5 block text-sm font-bold">Username
-            <input required autoCapitalize="none" autoCorrect="off" value={username} onChange={(event) => setUsername(event.target.value)} className={inputClass} />
-          </label>
-          <label className="mt-4 block text-sm font-bold">Password
-            <input required type="password" value={password} onChange={(event) => setPassword(event.target.value)} className={inputClass} />
-          </label>
-          <button disabled={submitting} className="mt-5 w-full rounded-xl bg-zinc-950 px-4 py-3 font-black text-white disabled:opacity-50">{submitting ? "Signing in…" : "Sign in"}</button>
-        </form>
-      </main>
-    );
   }
 
   const quickButtonClass = (range: QuickRange) => `rounded-xl border px-4 py-2 text-sm font-black transition ${
