@@ -10,8 +10,10 @@ const managerStats = readFileSync(new URL("../app/api/manager/membership-stats/r
 const managerPortal = readFileSync(new URL("../components/manager/GymManagerPortal.tsx", import.meta.url), "utf8");
 const staffLogin = readFileSync(new URL("../components/staff/StaffLoginPage.tsx", import.meta.url), "utf8");
 const adminUsers = readFileSync(new URL("../components/admin/SystemUsersAdmin.tsx", import.meta.url), "utf8");
+const managerWhatsappSetting = readFileSync(new URL("../components/admin/ManagerWhatsappReportSetting.tsx", import.meta.url), "utf8");
 const superAdminHome = readFileSync(new URL("../components/staff/SuperAdminHome.tsx", import.meta.url), "utf8");
 const systemUsersRoute = readFileSync(new URL("../app/api/admin/system-users/route.ts", import.meta.url), "utf8");
+const managerReportSettingsRoute = readFileSync(new URL("../app/api/admin/manager-report-settings/route.ts", import.meta.url), "utf8");
 const migration = readFileSync(new URL("../supabase/migrations/20261020092005_gym_manager_role_foundation.sql", import.meta.url), "utf8");
 const whatsappMigration = readFileSync(new URL("../supabase/migrations/20261022102000_gym_manager_whatsapp_reporting.sql", import.meta.url), "utf8");
 
@@ -111,9 +113,11 @@ test("Gym Managers sign in through the normal staff login and the manager route 
 
 test("Super Admin controls each manager WhatsApp report recipient and the dashboard sends the visible report to that recipient", () => {
   assert.match(whatsappMigration, /report_whatsapp_number/);
-  assert.match(systemUsersRoute, /report_whatsapp_number/);
-  assert.match(adminUsers, /Send reports to/);
-  assert.match(adminUsers, /reportWhatsappNumber/);
+  assert.match(managerReportSettingsRoute, /Super Admin access is required/);
+  assert.match(managerReportSettingsRoute, /report_whatsapp_number/);
+  assert.match(adminUsers, /ManagerWhatsappReportSetting/);
+  assert.match(managerWhatsappSetting, /Send reports to/);
+  assert.match(managerWhatsappSetting, /reportWhatsappNumber/);
   assert.match(managerStats, /reportWhatsappNumber/);
   assert.match(managerStats, /report_whatsapp_number/);
   assert.match(managerPortal, /Send report to WhatsApp/);
