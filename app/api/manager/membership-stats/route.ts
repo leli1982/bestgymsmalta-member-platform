@@ -54,13 +54,22 @@ export async function GET(request: NextRequest) {
     const end = maltaDayUtcRange(to).end;
     const supabase = getSupabaseAdmin();
 
-    const gymResult = await supabase
-      .from("bgm_gyms")
-      .select("id,name")
-      .in("id", assignedGymIds)
-      .order("name", { ascending: true });
+    const [gymResult, managerSettingsResult] = await Promise.all([
+      supabase
+        .from("bgm_gyms")
+        .select("id,name")
+        .in("id", assignedGymIds)
+        .order("name", { ascending: true }),
+      supabase
+        .from("bgm_system_users")
+        .select("report_whatsapp_number")
+        .eq("id", auth.context.systemUserId)
+        .maybeSingle(),
+    ]);
     if (gymResult.error) throw gymResult.error;
+    if (managerSettingsResult.error) throw managerSettingsResult.error;
 
+    const reportWhatsappNumber = managerSettingsResult.data?.report_whatsapp_number || null;
     const gymNames = new Map((gymResult.data || []).map((gym) => [String(gym.id), String(gym.name || gym.id)]));
     const rows: StatsRow[] = [];
     for (let offset = 0; ; offset += pageSize) {
@@ -155,6 +164,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       range: { from, to, gymId: requestedGymId || null },
       assignedGyms: assignedGymIds.map((gymId) => ({ id: gymId, name: gymNames.get(gymId) || gymId })),
+      reportWhatsappNumber,
       totals: {
         newMemberships,
         renewals,
