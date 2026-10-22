@@ -18,30 +18,37 @@ function readJpegDimensions(path) {
     0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf,
   ]);
 
-  let offset = 2;
-  while (offset < data.length) {
-    if (data[offset] !== 0xff) {
-      offset += 1;
-      continue;
+  // Scan for the JPEG Start Of Frame marker directly instead of walking
+  // preceding metadata by declared segment lengths. Some valid JPEG encoders
+  // emit metadata layouts that make that style of parser unnecessarily brittle.
+  for (let offset = 2; offset + 9 < data.length; offset += 1) {
+    if (data[offset] !== 0xff) continue;
+
+    let markerOffset = offset + 1;
+    while (markerOffset < data.length && data[markerOffset] === 0xff) markerOffset += 1;
+    if (markerOffset >= data.length) break;
+
+    const marker = data[markerOffset];
+    if (marker === 0xda) break; // Start Of Scan: do not inspect compressed image bytes.
+    if (!sofMarkers.has(marker)) continue;
+
+    const lengthOffset = markerOffset + 1;
+    if (lengthOffset + 7 >= data.length) continue;
+
+    const segmentLength = data.readUInt16BE(lengthOffset);
+    const precision = data[lengthOffset + 2];
+    const height = data.readUInt16BE(lengthOffset + 3);
+    const width = data.readUInt16BE(lengthOffset + 5);
+    const components = data[lengthOffset + 7];
+
+    if (
+      segmentLength === 8 + (3 * components)
+      && (precision === 8 || precision === 12)
+      && width > 0
+      && height > 0
+    ) {
+      return { width, height };
     }
-
-    while (data[offset] === 0xff) offset += 1;
-    const marker = data[offset];
-    offset += 1;
-
-    if (marker === 0xd8 || marker === 0xd9) continue;
-    if (marker >= 0xd0 && marker <= 0xd7) continue;
-    if (offset + 1 >= data.length) break;
-
-    const segmentLength = data.readUInt16BE(offset);
-    if (sofMarkers.has(marker)) {
-      return {
-        height: data.readUInt16BE(offset + 3),
-        width: data.readUInt16BE(offset + 5),
-      };
-    }
-
-    offset += segmentLength;
   }
 
   throw new Error("Could not read Wallet v8 JPEG dimensions");
