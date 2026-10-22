@@ -1,7 +1,7 @@
 "use client";
 
 import { formatEuropeanDateTime } from "@/lib/europeanDate";
-
+import ManagerWhatsappReportSetting from "@/components/admin/ManagerWhatsappReportSetting";
 import { useEffect, useMemo, useState } from "react";
 
 type Scope = "all" | "super_admin" | "gym_staff" | "gym_manager";
@@ -269,6 +269,7 @@ function SystemUserCard({
         </div>
         <button type="button" disabled={!managerGymsChanged || editManagerGyms.length === 0 || disabled} onClick={() => { void onUpdate(user, { managerGymIds: editManagerGyms }); }} className="mt-3 rounded-xl bg-blue-700 px-4 py-3 text-sm font-black text-white disabled:opacity-40">Save assigned gyms</button>
       </div>}
+      {user.role === "gym_manager" && <ManagerWhatsappReportSetting managerUserId={user.id} managerUsername={user.username} disabled={disabled}/>} 
       <div className="mt-4 flex flex-wrap items-end gap-3 rounded-xl bg-zinc-50 p-4">
         <label className="min-w-48 flex-1 text-sm font-bold">Reset password
           <input aria-label={user.username + " new password"} type="password" autoComplete="new-password" minLength={8} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="New password (optional)" className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-3 py-3"/>
