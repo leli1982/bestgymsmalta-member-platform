@@ -23,6 +23,12 @@ type ManagerStats = {
     renewals: number;
     total: number;
   }>;
+  activeMembershipsByGym: Array<{
+    gymId: string;
+    gymName: string;
+    activeMemberships: number;
+  }>;
+  totalActiveMemberships: number;
 };
 
 type QuickRange = "today" | "week" | "month";
@@ -203,6 +209,25 @@ export default function GymManagerPortal() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm" aria-label="Active memberships by assigned gym">
+              <div>
+                <h2 className="text-xl font-black">Active Memberships</h2>
+                <p className="mt-1 text-sm text-zinc-600">Current active membership totals for all gyms assigned to this Manager. These totals are independent of the date filters above.</p>
+              </div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {stats.activeMembershipsByGym.map((gym) => (
+                  <div key={gym.gymId} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                    <p className="text-sm font-black text-zinc-600">{gym.gymName}</p>
+                    <p className="mt-2 text-3xl font-black tabular-nums">{gym.activeMemberships}</p>
+                  </div>
+                ))}
+                <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
+                  <p className="text-sm font-black text-orange-800">Combined Total</p>
+                  <p className="mt-2 text-3xl font-black tabular-nums">{stats.totalActiveMemberships}</p>
+                </div>
               </div>
             </section>
           </>
