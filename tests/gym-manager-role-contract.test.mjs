@@ -107,3 +107,18 @@ test("Gym Managers sign in through the normal staff login and the manager route 
   assert.doesNotMatch(managerPortal, /async function login/);
   assert.doesNotMatch(managerPortal, /<form onSubmit=\{login\}/);
 });
+
+test("Super Admin controls each manager WhatsApp report recipient and the dashboard sends the visible report to that recipient", () => {
+  assert.match(migration, /report_whatsapp_number/);
+  assert.match(systemUsersRoute, /report_whatsapp_number/);
+  assert.match(adminUsers, /Send reports to/);
+  assert.match(adminUsers, /reportWhatsappNumber/);
+  assert.match(managerStats, /reportWhatsappNumber/);
+  assert.match(managerStats, /report_whatsapp_number/);
+  assert.match(managerPortal, /Send report to WhatsApp/);
+  assert.match(managerPortal, /wa\.me/);
+  assert.match(managerPortal, /stats\.range\.from/);
+  assert.match(managerPortal, /stats\.range\.to/);
+  assert.match(managerPortal, /stats\.byGym/);
+  assert.match(managerPortal, /stats\.activeMembershipsByGym/);
+});
