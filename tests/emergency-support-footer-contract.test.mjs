@@ -15,3 +15,7 @@ test("emergency contact appears on Staff and Manager layouts with the approved w
 test("Super Admin staff/admin routes are explicitly excluded", () => {
   assert.match(footer, /pathname\.startsWith\("\/staff\/admin"\)/);
 });
+
+test("emergency contact is excluded from printed membership documents", () => {
+  assert.match(footer, /print:hidden/);
+});
