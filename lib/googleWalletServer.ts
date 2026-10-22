@@ -13,6 +13,7 @@ import { todayMaltaDate } from "./maltaDate.ts";
 
 const WALLET_SCOPE = "https://www.googleapis.com/auth/wallet_object.issuer";
 const WALLET_API = "https://walletobjects.googleapis.com/walletobjects/v1";
+const WALLET_ART_VERSION = "6";
 
 export type GoogleWalletConfig = {
   issuerId: string;
@@ -21,7 +22,9 @@ export type GoogleWalletConfig = {
   classSuffix: string;
   objectPrefix: string;
   origin: string;
-  logoUrl: string;
+  logoUrl?: string;
+  wideLogoUrl?: string;
+  heroImageUrl?: string;
   appUrl: string;
   classId: string;
 };
@@ -32,13 +35,35 @@ type WalletResponse = {
   data: unknown;
 };
 
+function providerErrorDetail(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const error = (data as { error?: Record<string, unknown> }).error;
+  if (!error || typeof error !== "object") return null;
+
+  const parts: string[] = [];
+  if (typeof error.code === "number" || typeof error.code === "string") {
+    parts.push(`code=${String(error.code).slice(0, 40)}`);
+  }
+  if (typeof error.status === "string") {
+    parts.push(`status=${error.status.slice(0, 80)}`);
+  }
+  if (typeof error.message === "string") {
+    const message = error.message.replace(/[\r\n\t]+/g, " ").trim().slice(0, 300);
+    if (message) parts.push(`message=${message}`);
+  }
+
+  return parts.length ? parts.join("; ").slice(0, 300) : null;
+}
+
 class GoogleWalletProviderError extends Error {
   status: number | null;
+  detail: string | null;
 
-  constructor(status: number | null) {
+  constructor(status: number | null, data: unknown = null) {
     super("Google Wallet provider request failed.");
     this.name = "GoogleWalletProviderError";
     this.status = status;
+    this.detail = providerErrorDetail(data);
   }
 }
 
@@ -65,6 +90,51 @@ function localized(value: string) {
   };
 }
 
+function templateItem(fieldPath: string) {
+  return {
+    firstValue: {
+      fields: [{ fieldPath }],
+    },
+  };
+}
+
+function barcodeDetail(fieldPath: string) {
+  return {
+    fieldSelector: {
+      fields: [{ fieldPath }],
+    },
+  };
+}
+
+function walletArtworkUrl(baseUrl: string, membershipType?: string): string {
+  const parsed = new URL(baseUrl);
+  if (membershipType) parsed.searchParams.set("membership", membershipType);
+  parsed.searchParams.set("v", WALLET_ART_VERSION);
+  return parsed.toString();
+}
+
+function googleClassBody(config: GoogleWalletConfig): Record<string, unknown> {
+  return {
+    id: config.classId,
+    classTemplateInfo: {
+      cardTemplateOverride: {
+        cardRowTemplateInfos: [
+          {
+            threeItems: {
+              startItem: templateItem("object.textModulesData['membership_type']"),
+              middleItem: templateItem("object.textModulesData['membership_status']"),
+              endItem: templateItem("object.textModulesData['membership_expiry']"),
+            },
+          },
+        ],
+      },
+      cardBarcodeSectionDetails: {
+        firstTopDetail: barcodeDetail("object.textModulesData['member_number']"),
+      },
+    },
+  };
+}
+
 function googleObjectBody(
   snapshot: GoogleWalletMemberSnapshot,
   config: GoogleWalletConfig,
@@ -87,15 +157,16 @@ function googleObjectBody(
     genericType: projection.genericType,
     state: projection.state,
     cardTitle: localized("BestGymsMalta"),
-    subheader: localized("Gym membership"),
+    subheader: localized(`${projection.theme.label} membership`),
     header: localized(snapshot.fullName || "BGM Member"),
-    hexBackgroundColor: "#ff5a0a",
-    logo: {
-      sourceUri: { uri: config.logoUrl },
-      contentDescription: localized("BestGymsMalta logo"),
-    },
+    hexBackgroundColor: projection.theme.background,
     barcode,
     textModulesData: [
+      {
+        id: "membership_type",
+        header: "Membership type",
+        body: projection.theme.label,
+      },
       {
         id: "member_number",
         header: "Member number",
@@ -127,6 +198,29 @@ function googleObjectBody(
     },
   };
 
+  if (config.logoUrl) {
+    body.logo = {
+      sourceUri: { uri: walletArtworkUrl(config.logoUrl, projection.theme.type) },
+      contentDescription: localized("BestGymsMalta member pass icon"),
+    };
+  }
+
+  if (config.wideLogoUrl) {
+    body.wideLogo = {
+      sourceUri: { uri: walletArtworkUrl(config.wideLogoUrl) },
+      contentDescription: localized("BestGymsMalta official logo"),
+    };
+  }
+
+  if (config.heroImageUrl) {
+    body.heroImage = {
+      sourceUri: {
+        uri: walletArtworkUrl(config.heroImageUrl, projection.theme.type),
+      },
+      contentDescription: localized("BestGymsMalta fitness membership artwork"),
+    };
+  }
+
   if (projection.validTimeIntervalEnd) {
     body.validTimeInterval = {
       end: { date: projection.validTimeIntervalEnd },
@@ -147,6 +241,8 @@ export function getGoogleWalletConfig(): GoogleWalletConfig | null {
   const objectPrefix = env("GOOGLE_WALLET_OBJECT_PREFIX");
   const origin = env("GOOGLE_WALLET_ORIGIN");
   const logoUrl = env("GOOGLE_WALLET_LOGO_URL");
+  const wideLogoUrl = env("GOOGLE_WALLET_WIDE_LOGO_URL");
+  const heroImageUrl = env("GOOGLE_WALLET_HERO_IMAGE_URL");
   const appUrl = env("GOOGLE_WALLET_APP_URL");
 
   if (
@@ -156,7 +252,6 @@ export function getGoogleWalletConfig(): GoogleWalletConfig | null {
     !classSuffix ||
     !objectPrefix ||
     !origin ||
-    !logoUrl ||
     !appUrl
   ) {
     throw new Error("Google Wallet is not fully configured.");
@@ -167,7 +262,9 @@ export function getGoogleWalletConfig(): GoogleWalletConfig | null {
   if (!privateKey.includes("BEGIN PRIVATE KEY")) throw new Error("Google Wallet private key is invalid.");
 
   const trustedOrigin = httpsUrl("origin", origin);
-  const trustedLogoUrl = httpsUrl("logo URL", logoUrl);
+  const trustedLogoUrl = logoUrl ? httpsUrl("logo URL", logoUrl) : undefined;
+  const trustedWideLogoUrl = wideLogoUrl ? httpsUrl("wide logo URL", wideLogoUrl) : undefined;
+  const trustedHeroImageUrl = heroImageUrl ? httpsUrl("hero image URL", heroImageUrl) : undefined;
   const trustedAppUrl = httpsUrl("app URL", appUrl);
 
   return {
@@ -178,6 +275,8 @@ export function getGoogleWalletConfig(): GoogleWalletConfig | null {
     objectPrefix,
     origin: trustedOrigin,
     logoUrl: trustedLogoUrl,
+    wideLogoUrl: trustedWideLogoUrl,
+    heroImageUrl: trustedHeroImageUrl,
     appUrl: trustedAppUrl,
     classId: googleWalletClassId(issuerId, classSuffix),
   };
@@ -232,20 +331,33 @@ export async function ensureGoogleWalletClass(
 ): Promise<string> {
   const resource = `genericClass/${encodeURIComponent(config.classId)}`;
   const existing = await walletRequest(resource, { method: "GET" }, config);
-  if (existing.ok) return config.classId;
+
+  if (existing.ok) {
+    const patched = await walletRequest(
+      resource,
+      {
+        method: "PATCH",
+        body: JSON.stringify(googleClassBody(config)),
+      },
+      config,
+    );
+    if (patched.ok) return config.classId;
+    throw new GoogleWalletProviderError(patched.status, patched.data);
+  }
+
   if (existing.status === 404) {
     const created = await walletRequest(
       "genericClass",
       {
         method: "POST",
-        body: JSON.stringify({ id: config.classId }),
+        body: JSON.stringify(googleClassBody(config)),
       },
       config,
     );
     if (created.ok) return config.classId;
-    throw new GoogleWalletProviderError(created.status);
+    throw new GoogleWalletProviderError(created.status, created.data);
   }
-  throw new GoogleWalletProviderError(existing.status);
+  throw new GoogleWalletProviderError(existing.status, existing.data);
 }
 
 export async function upsertGoogleWalletObject(
@@ -271,11 +383,11 @@ export async function upsertGoogleWalletObject(
       },
       config,
     );
-    if (!created.ok) throw new GoogleWalletProviderError(created.status);
+    if (!created.ok) throw new GoogleWalletProviderError(created.status, created.data);
     return { objectId, classId: config.classId };
   }
 
-  if (!existing.ok) throw new GoogleWalletProviderError(existing.status);
+  if (!existing.ok) throw new GoogleWalletProviderError(existing.status, existing.data);
 
   const patched = await walletRequest(
     resource,
@@ -285,7 +397,7 @@ export async function upsertGoogleWalletObject(
     },
     config,
   );
-  if (!patched.ok) throw new GoogleWalletProviderError(patched.status);
+  if (!patched.ok) throw new GoogleWalletProviderError(patched.status, patched.data);
   return { objectId, classId: config.classId };
 }
 
@@ -298,10 +410,15 @@ export function buildGoogleWalletSaveUrl(
 
 export function safeGoogleWalletError(error: unknown): string {
   if (error instanceof GoogleWalletProviderError) {
+    const detail = error.detail ? ` ${error.detail}` : "";
     if (error.status === 401 || error.status === 403) {
-      return "Google Wallet authorization failed.";
+      return `Google Wallet authorization failed.${detail}`.slice(0, 420);
     }
-    if (error.status === 404) return "Google Wallet resource was not found.";
+    if (error.status === 404) {
+      return `Google Wallet resource was not found.${detail}`.slice(0, 420);
+    }
+    const status = error.status ? ` HTTP ${error.status}.` : "";
+    return `Google Wallet request failed.${status}${detail}`.slice(0, 420);
   }
   return "Google Wallet request failed.";
 }
