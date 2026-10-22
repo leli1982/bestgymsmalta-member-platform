@@ -52,7 +52,9 @@ test("manager dashboard reports current active memberships for every assigned gy
   assert.match(managerStats, /membership_expiry\.is\.null,membership_expiry\.gte/);
   assert.match(managerStats, /cancellation_effective_date\.is\.null,cancellation_effective_date\.gt/);
   assert.match(managerStats, /LEGACY_TO_GYM_ID/);
-  assert.match(managerStats, /assignedGymIds\.includes\(resolvedGymId\)/);
+  assert.match(managerStats, /\.eq\("enrollment_gym_id", gymId\)/);
+  assert.match(managerStats, /\.is\("enrollment_gym_id", null\)/);
+  assert.match(managerStats, /select\("id", \{ count: "exact", head: true \}\)/);
   assert.match(managerStats, /activeMembershipsByGym/);
   assert.match(managerStats, /totalActiveMemberships/);
   assert.match(managerPortal, /Active Memberships/);
