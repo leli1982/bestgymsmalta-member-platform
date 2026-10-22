@@ -13,6 +13,7 @@ const adminUsers = readFileSync(new URL("../components/admin/SystemUsersAdmin.ts
 const superAdminHome = readFileSync(new URL("../components/staff/SuperAdminHome.tsx", import.meta.url), "utf8");
 const systemUsersRoute = readFileSync(new URL("../app/api/admin/system-users/route.ts", import.meta.url), "utf8");
 const migration = readFileSync(new URL("../supabase/migrations/20261020092005_gym_manager_role_foundation.sql", import.meta.url), "utf8");
+const whatsappMigration = readFileSync(new URL("../supabase/migrations/20261022102000_gym_manager_whatsapp_reporting.sql", import.meta.url), "utf8");
 
 test("gym manager is an explicit role with analytics-only permission foundation", () => {
   assert.match(permissions, /GYM_MANAGER_PERMISSIONS/);
@@ -109,7 +110,7 @@ test("Gym Managers sign in through the normal staff login and the manager route 
 });
 
 test("Super Admin controls each manager WhatsApp report recipient and the dashboard sends the visible report to that recipient", () => {
-  assert.match(migration, /report_whatsapp_number/);
+  assert.match(whatsappMigration, /report_whatsapp_number/);
   assert.match(systemUsersRoute, /report_whatsapp_number/);
   assert.match(adminUsers, /Send reports to/);
   assert.match(adminUsers, /reportWhatsappNumber/);
