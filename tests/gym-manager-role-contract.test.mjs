@@ -45,6 +45,21 @@ test("manager reporting is limited to assigned gyms and counts new, renewals and
   assert.match(managerStats, /grandTotal/);
 });
 
+test("manager dashboard reports current active memberships for every assigned gym using the canonical active definition", () => {
+  assert.match(managerStats, /\.from\("bgm_members"\)/);
+  assert.match(managerStats, /\.eq\("status", "active"\)/);
+  assert.match(managerStats, /\.is\("archived_at", null\)/);
+  assert.match(managerStats, /membership_expiry\.is\.null,membership_expiry\.gte/);
+  assert.match(managerStats, /cancellation_effective_date\.is\.null,cancellation_effective_date\.gt/);
+  assert.match(managerStats, /LEGACY_TO_GYM_ID/);
+  assert.match(managerStats, /assignedGymIds\.includes\(resolvedGymId\)/);
+  assert.match(managerStats, /activeMembershipsByGym/);
+  assert.match(managerStats, /totalActiveMemberships/);
+  assert.match(managerPortal, /Active Memberships/);
+  assert.match(managerPortal, /Combined Total/);
+  assert.match(managerPortal, /activeMembershipsByGym/);
+});
+
 test("Super Admin can create and edit multi-gym manager assignments while manager UI remains reporting-only", () => {
   assert.match(adminUsers, /Gym Manager/);
   assert.match(adminUsers, /managerGymIds/);
