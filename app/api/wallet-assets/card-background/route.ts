@@ -1,30 +1,10 @@
-import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ARTWORK_PATH = fileURLToPath(
-  new URL("../../../../public/wallet/bgm-wallet-hero-v8.jpg", import.meta.url),
-);
+const BUNDLED_ARTWORK = "/wallet/bgm-wallet-hero-v8.jpg?v=11";
 
-async function loadArtwork() {
-  return new Uint8Array(await readFile(ARTWORK_PATH));
-}
-
-export async function GET() {
-  try {
-    const artwork = await loadArtwork();
-    return new Response(artwork, {
-      headers: {
-        "Content-Type": "image/jpeg",
-        "Cache-Control": "public, max-age=86400, s-maxage=604800, immutable",
-      },
-    });
-  } catch {
-    return new Response("Membership artwork is unavailable.", {
-      status: 503,
-      headers: { "Cache-Control": "no-store" },
-    });
-  }
+export function GET(request: Request) {
+  // Serve the approved bundled photograph through Vercel's static asset path.
+  // The previous serverless fs read could leave the Member App with only its
+  // dark fallback/overlay when the public file was not present in the function bundle.
+  return Response.redirect(new URL(BUNDLED_ARTWORK, request.url), 307);
 }
