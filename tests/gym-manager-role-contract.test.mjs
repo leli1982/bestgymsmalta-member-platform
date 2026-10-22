@@ -8,6 +8,7 @@ const auth = readFileSync(new URL("../lib/systemAuth.ts", import.meta.url), "utf
 const authRoute = readFileSync(new URL("../app/api/system/auth/route.ts", import.meta.url), "utf8");
 const managerStats = readFileSync(new URL("../app/api/manager/membership-stats/route.ts", import.meta.url), "utf8");
 const managerPortal = readFileSync(new URL("../components/manager/GymManagerPortal.tsx", import.meta.url), "utf8");
+const staffLogin = readFileSync(new URL("../components/staff/StaffLoginPage.tsx", import.meta.url), "utf8");
 const adminUsers = readFileSync(new URL("../components/admin/SystemUsersAdmin.tsx", import.meta.url), "utf8");
 const migration = readFileSync(new URL("../supabase/migrations/20261020092005_gym_manager_role_foundation.sql", import.meta.url), "utf8");
 
@@ -53,4 +54,13 @@ test("Super Admin can create and edit multi-gym manager assignments while manage
   assert.match(managerPortal, /Renewals/);
   assert.match(managerPortal, /Grand total/);
   assert.doesNotMatch(managerPortal, /members\.edit|cards\.assign|membership\.activate/);
+});
+
+test("Gym Managers sign in through the normal staff login and the manager route has no dedicated login form", () => {
+  assert.match(staffLogin, /sessionUser\?\.role === "gym_manager"/);
+  assert.match(staffLogin, /data\.user\?\.role === "gym_manager"/);
+  assert.match(staffLogin, /window\.location\.replace\("\/manager"\)/);
+  assert.match(managerPortal, /window\.location\.replace\("\/staff"\)/);
+  assert.doesNotMatch(managerPortal, /async function login/);
+  assert.doesNotMatch(managerPortal, /<form onSubmit=\{login\}/);
 });
