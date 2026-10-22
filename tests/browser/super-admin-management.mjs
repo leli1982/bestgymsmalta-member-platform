@@ -154,7 +154,8 @@ try {
   await page.screenshot({ path: artifactDir + "/gyms-and-generated-addresses.png", fullPage: true });
 
   // An unprovisioned coming-soon gym must request a password instead of attempting a broken activation.
-  await page.getByRole("button", { name: "Activate" }).click();
+  const gozoGymCard = page.locator('section[aria-label="Gym locations list"] > div').filter({ hasText: "Gozo" });
+  await gozoGymCard.getByRole("button", { name: "Activate", exact: true }).click();
   await page.getByRole("status").filter({ hasText: "Set a Staff Portal password" }).waitFor({ state: "visible" });
   assert.equal(await page.getByRole("textbox", { name: "Gym name" }).inputValue(), "Gozo");
   assert.equal(await page.getByRole("combobox", { name: "Gym status" }).inputValue(), "active");
