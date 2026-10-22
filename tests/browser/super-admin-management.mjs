@@ -42,21 +42,25 @@ try {
   ];
   let users = [
     { id: "admin-root", gymId: null, username: "rootadmin", displayName: "Root Admin",
-      gymName: null, isSuperAdmin: true, active: true, permissions: [], lastLoginAt: null },
+      gymName: null, isSuperAdmin: true, role: "super_admin", managerGymIds: [], managerGymNames: [],
+      active: true, permissions: [], lastLoginAt: null },
     { id: "admin-second", gymId: null, username: "secondadmin", displayName: "Second Admin",
-      gymName: null, isSuperAdmin: true, active: true, permissions: [], lastLoginAt: null },
+      gymName: null, isSuperAdmin: true, role: "super_admin", managerGymIds: [], managerGymNames: [],
+      active: true, permissions: [], lastLoginAt: null },
     { id: "staff-birkirkara", gymId: "bgm-birkirkara", username: "birkirkarafitness",
       gymName: "Birkirkara Fitness", displayName: "Birkirkara Staff",
-      isSuperAdmin: false, active: true, permissions: [], lastLoginAt: null },
+      isSuperAdmin: false, role: "gym_staff", managerGymIds: [], managerGymNames: [],
+      active: true, permissions: [], lastLoginAt: null },
     { id: "staff-marsa", gymId: "bgm-marsa", username: "marsafitness",
       gymName: "Marsa Fitness", displayName: "Marsa Staff",
-      isSuperAdmin: false, active: true, permissions: [], lastLoginAt: null },
+      isSuperAdmin: false, role: "gym_staff", managerGymIds: [], managerGymNames: [],
+      active: true, permissions: [], lastLoginAt: null },
   ];
   const credentials = [];
   const provisioned = [];
   await context.route("**/api/system/auth", (route) => route.fulfill({
     json: { authenticated: true, user: { id: "admin-root", gymId: null,
-      displayName: "Root Admin", isSuperAdmin: true, permissions: [] } },
+      displayName: "Root Admin", isSuperAdmin: true, role: "super_admin", permissions: [] } },
   }));
   await context.route("**/api/admin/gyms", (route) => {
     if (route.request().method() === "GET") return route.fulfill({ json: { gyms } });
@@ -71,8 +75,8 @@ try {
         shortName: "NX", staffSystemUserId: "staff-naxxar", staffUsername: "naxxarfitness" };
       gyms = [...gyms, created];
       users = [...users, { id: "staff-naxxar", gymId: created.id, username: "naxxarfitness",
-        gymName: "Naxxar", displayName: "NX Staff", isSuperAdmin: false,
-        active: true, permissions: [], lastLoginAt: null }];
+        gymName: "Naxxar", displayName: "NX Staff", isSuperAdmin: false, role: "gym_staff",
+        managerGymIds: [], managerGymNames: [], active: true, permissions: [], lastLoginAt: null }];
       return route.fulfill({ status: 201, json: { gym: created,
         joinPath: "/join/naxxar", staffPath: "/staff/naxxar" } });
     }
@@ -90,7 +94,9 @@ try {
       credentials.push({ kind: "create", ...body });
       const created = { id: "admin-third", gymId: body.gymId, gymName: null,
         username: body.username, displayName: body.displayName,
-        isSuperAdmin: body.isSuperAdmin, active: true, permissions: [], lastLoginAt: null };
+        isSuperAdmin: body.isSuperAdmin, role: body.role,
+        managerGymIds: body.managerGymIds || [], managerGymNames: [],
+        active: true, permissions: [], lastLoginAt: null };
       users = [...users, created];
       return route.fulfill({ status: 201, json: { user: created } });
     }
