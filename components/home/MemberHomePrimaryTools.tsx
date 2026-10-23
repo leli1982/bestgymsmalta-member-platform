@@ -34,7 +34,7 @@ const secondaryTools = [
   { label: "Passport", description: "Access more gyms", href: "/passport", icon: Stamp },
   { label: "Story Creator", description: "Share your workout", href: "/story", icon: Camera },
   { label: "Gyms", description: "Find and explore gyms", href: "/gyms", icon: MapPinned },
-  { label: "Announcements", description: "Stay updated with the latest", href: "#announcements", icon: Megaphone },
+  { label: "News", description: "Stay updated with the latest", href: "#announcements", icon: Megaphone },
 ];
 
 export default function MemberHomePrimaryTools() {
