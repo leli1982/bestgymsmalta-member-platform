@@ -1,81 +1,37 @@
-import { ImageResponse } from "next/og";
-
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const THEMES = {
-  single: { color: "#111111", opacity: 0.58 },
-  student: { color: "#166534", opacity: 0.24 },
-  couples: { color: "#B91C1C", opacity: 0.46 },
-} as const;
+type MembershipType = "single" | "student" | "couples";
 
-type MembershipType = keyof typeof THEMES;
+const ARTWORK: Record<MembershipType, string> = {
+  single: "/wallet/bgm-wallet-hero-regular-v11.jpg?v=12",
+  student: "/wallet/bgm-wallet-hero-student-v11.jpg?v=12",
+  couples: "/wallet/bgm-wallet-hero-couples-v11.jpg?v=12",
+};
 
 function membershipType(request: Request): MembershipType {
-  const value = new URL(request.url).searchParams.get("membership");
-  return value === "student" || value === "couples" || value === "single"
-    ? value
-    : "single";
+  const value = new URL(request.url).searchParams.get("membership")?.toLowerCase() ?? "";
+  if (value.includes("student")) return "student";
+  if (value.includes("couple")) return "couples";
+  return "single";
 }
 
 export async function GET(request: Request) {
   try {
-    const requestUrl = new URL(request.url);
-    const imageSrc = new URL("/wallet/bgm-wallet-hero-v8.jpg", requestUrl.origin).toString();
-    const theme = THEMES[membershipType(request)];
+    const upstream = await fetch(new URL(ARTWORK[membershipType(request)], request.url), {
+      cache: "force-cache",
+    });
+    if (!upstream.ok) throw new Error(`Artwork fetch failed: ${upstream.status}`);
 
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            position: "relative",
-            overflow: "hidden",
-            background: theme.color,
-          }}
-        >
-          <img
-            src={imageSrc}
-            alt=""
-            width="1032"
-            height="812"
-            style={{
-              position: "absolute",
-              left: 0,
-              top: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              objectPosition: "center",
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              top: 0,
-              width: "100%",
-              height: "100%",
-              background: theme.color,
-              opacity: theme.opacity,
-            }}
-          />
-        </div>
-      ),
-      {
-        width: 1032,
-        height: 812,
-        headers: {
-          "Cache-Control": "public, max-age=86400, s-maxage=604800, immutable",
-          "Access-Control-Allow-Origin": "*",
-          "X-Robots-Tag": "noindex",
-        },
+    return new Response(await upstream.arrayBuffer(), {
+      headers: {
+        "Content-Type": "image/jpeg",
+        "Cache-Control": "public, max-age=86400, s-maxage=604800, immutable",
+        "Access-Control-Allow-Origin": "*",
+        "X-Robots-Tag": "noindex",
       },
-    );
+    });
   } catch (error) {
-    console.error("[wallet-assets] unable to render membership hero", error);
+    console.error("[wallet-assets] unable to serve membership hero", error);
     return new Response("Membership artwork is unavailable.", {
       status: 503,
       headers: { "Cache-Control": "no-store" },

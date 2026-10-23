@@ -45,6 +45,14 @@ test("Wallet object uses the shared membership theme", () => {
   assert.doesNotMatch(source, /hexBackgroundColor:\s*"#ff5a0a"/);
 });
 
+test("Wallet hero uses direct membership-specific V11 JPEGs from the public origin", () => {
+  assert.match(source, /bgm-wallet-hero-regular-v11\.jpg/);
+  assert.match(source, /bgm-wallet-hero-student-v11\.jpg/);
+  assert.match(source, /bgm-wallet-hero-couples-v11\.jpg/);
+  assert.match(source, /walletHeroUrl\(config\.origin,\s*projection\.theme\.type\)/);
+  assert.doesNotMatch(source, /walletArtworkUrl\(config\.heroImageUrl/);
+});
+
 test("save link is an RS256 service-account JWT referencing an existing GenericObject", () => {
   assert.ok(existsSync(saveLinkPath), "googleWalletSaveLink.ts must isolate pure save-link signing");
   const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });

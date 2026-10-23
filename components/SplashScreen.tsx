@@ -48,7 +48,7 @@ export default function SplashScreen() {
         <div className={styles.orbitDot} />
 
         <Image
-          src="/bgm-logo.png"
+          src="/bgm-logo-round.png"
           alt="BestGymsMalta"
           width={260}
           height={260}
