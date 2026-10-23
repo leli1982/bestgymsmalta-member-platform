@@ -131,7 +131,7 @@ export function buildGymRulesPdf(declaration: GymRulesDeclaration) {
     objects.set(contentId, `<< /Length ${streamLength} >>\nstream\n${stream}\nendstream`);
   });
 
-  const maxId = Math.max(...objects.keys());
+  const maxId = Math.max(...Array.from(objects.keys()));
   let pdf = "%PDF-1.4\n%âãÏÓ\n";
   pdf += `% BGM-Gym-Rules-Version: ${version || "accepted"}\n`;
   pdf += `% BGM-Gym-Rules-UTF8-Base64: ${Buffer.from(body, "utf8").toString("base64")}\n`;
