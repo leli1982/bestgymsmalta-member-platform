@@ -7,7 +7,9 @@
       "feature/legacy-member-voucher-corrections": false,
       "feature/super-admin-audit-trail": false,
       "fix/audit-trail-input-contrast": false,
-      "feature/launch-member-reconciliation": false
+      "feature/launch-member-reconciliation": false,
+      "feature/staff-attendance-payroll": false,
+      "spec/staff-attendance-payroll": false
     }
   },
   "regions": [
@@ -17,6 +19,10 @@
     {
       "path": "/api/cron/membership-expiry-reminders",
       "schedule": "15 7 * * *"
+    },
+    {
+      "path": "/api/cron/staff-midnight-auto-clock-out",
+      "schedule": "0 * * * *"
     }
   ]
 }

@@ -8,6 +8,7 @@ on:
     branches:
       - phase-2-operations-nfc-redesign
       - feature/tablet-enrollment-membership-settings
+      - feature/staff-attendance-payroll
       - main
   workflow_dispatch:
 
