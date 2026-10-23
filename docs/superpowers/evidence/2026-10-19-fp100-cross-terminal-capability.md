@@ -1,6 +1,7 @@
 # FP100 Cross-Terminal Capability Evidence
 
 Date: 2026-10-19
+Updated: 2026-10-23
 Status: PENDING PHYSICAL GATE
 Branch: `feature/staff-attendance-payroll`
 
@@ -12,12 +13,12 @@ This document records only non-biometric capability metadata. It must never cont
 
 ## Probe mechanism
 
-- Capture: Windows Biometric Framework raw fingerprint capture through the FP100/ChipSailing Windows driver.
-- Standard data: ANSI 381 uncompressed 8-bit grayscale image held transiently in process memory only.
+- Capture: direct FP100/CS9711 USB capture through WinUSB + `libusb-1.0.dll`.
+- Sensor frame: 8,024-byte 68×118 grayscale frame held transiently in process memory only.
 - Portable matching probe: SourceAFIS 3.14.0 feature template.
 - Test template storage: AES-GCM encrypted credential file; PBKDF2-SHA256 passphrase derivation.
 - Match threshold for this capability probe: 40.
-- Raw fingerprint image persistence: prohibited.
+- Raw fingerprint image/frame persistence: prohibited.
 - Browser/Supabase/Vercel involvement: none.
 - Production systems: untouched.
 
@@ -26,9 +27,26 @@ The SourceAFIS representation is being used to prove cross-machine capture/match
 ## Known scanner baseline
 
 - Reader: FP100 USB Fingerprint Reader
-- Driver family: ChipSailing
 - Hardware ID: `USB\\VID_2541&PID_0236`
-- Windows Biometric Framework: previously verified locally
+- Original Windows driver: `ChipSailing Fingerprint UsbDriver`, ChipSailing Inc, version `18.28.18.814`, `oem3.inf`
+- Direct capability-test binding: WinUSB
+- Direct USB runtime: 64-bit `libusb-1.0.dll`
+- Vendor algorithm DLL observed: `C:\Windows\System32\CSAlgDll.dll`
+
+## Local direct-capture preflight — 2026-10-23
+
+Physical `direct-selftest` on the actual FP100 passed the three-scan capture/match stage:
+
+- algorithm version: `CSAlg_C_V04.07.17S10`
+- capture return codes: `1 / 1 / 1`
+- sample qualities: `71 / 82 / 59`
+- same-finger score: `331`
+- different-finger score: `0`
+- vendor template allocation: `15,600` bytes
+- sensor frame: `8,024` bytes
+- raw biometric material retained on disk: NO
+
+This proves the actual reader can be captured directly through WinUSB and can distinguish a repeated finger from a different finger locally. It does **not** satisfy the cross-PC gate by itself.
 
 ## Terminal A — enrollment
 
@@ -38,7 +56,7 @@ Record after test:
 
 - Computer name / environment:
 - Windows version:
-- ChipSailing driver version:
+- WinUSB binding confirmed: YES / NO
 - Probe build/commit:
 - Opaque test credential ID:
 - Enrollment result: PASS / FAIL
@@ -52,7 +70,7 @@ Record after test:
 
 - Computer name / environment:
 - Windows version:
-- ChipSailing driver version:
+- WinUSB binding confirmed: YES / NO
 - Same physical FP100 moved from A: YES
 - Re-enrollment performed on B: NO
 - Same opaque credential identified: PASS / FAIL

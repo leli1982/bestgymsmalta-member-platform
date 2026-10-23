@@ -79,7 +79,7 @@ if (string.IsNullOrWhiteSpace(passphrase))
 }
 
 var store = new EncryptedCredentialFileStore(credentialFile, passphrase);
-var capture = new WinBioFingerprintCaptureSource(terminalId);
+var capture = new Cs9711DirectFingerprintCaptureSource(terminalId);
 var matcher = new SourceAfisFingerprintMatcher(40);
 var engine = new PortableBiometricEngine(capture, store, matcher);
 var probe = new Fp100CapabilityProbe(engine, terminalId);
@@ -95,7 +95,7 @@ try
                 Console.Error.WriteLine("Enroll requires a test employee ID.");
                 return 2;
             }
-            Console.WriteLine("Place the test finger on the FP100 reader when prompted by Windows.");
+            Console.WriteLine("Place the test finger on the FP100 reader.");
             result = await probe.EnrollAsync(args[2].Trim(), CancellationToken.None);
             break;
 
@@ -125,6 +125,11 @@ catch (BiometricNoMatchException ex)
 {
     Console.Error.WriteLine($"NO_MATCH: {ex.Message}");
     return 10;
+}
+catch (DllNotFoundException ex)
+{
+    Console.Error.WriteLine($"DIRECT_USB_SETUP_ERROR: {ex.Message}");
+    return 21;
 }
 catch (BiometricDeviceException ex)
 {
@@ -176,5 +181,6 @@ static void PrintUsage()
     Console.WriteLine();
     Console.WriteLine("processed-info reports only WBF metadata and never persists fingerprint sample bytes.");
     Console.WriteLine("direct-selftest bypasses WBF, uses direct USB + CSAlgDll.dll, and keeps all biometric bytes in memory only.");
+    Console.WriteLine("enroll/identify use direct WinUSB capture plus SourceAFIS portable matching; raw frames are never written to disk.");
     Console.WriteLine("The credential file is encrypted and contains a portable fingerprint feature template, not a raw fingerprint image.");
 }
