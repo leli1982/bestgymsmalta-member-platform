@@ -38,11 +38,13 @@ public sealed class Cs9711DirectProbeTests
     }
 
     [Fact]
-    public async Task Direct_capture_maps_cs9711_frame_to_portable_fingerprint_sample()
+    public async Task Direct_capture_deinterleaves_cs9711_sensor_rows_for_portable_matcher()
     {
         var frame = new byte[Cs9711Protocol.FrameBytes];
-        frame[0] = 17;
-        frame[^1] = 29;
+        frame[0] = 17;       // raw (x=0,y=0) -> image (0,0)
+        frame[34] = 23;      // raw (x=0,y=1) -> image (1,0)
+        frame[69] = 31;      // raw (x=1,y=2) -> image (2,1)
+        frame[^1] = 41;      // keep final sensor byte non-zero too
         var source = new Cs9711DirectFingerprintCaptureSource("terminal-a", () => frame);
 
         var sample = await source.CaptureAsync(CancellationToken.None);
@@ -51,6 +53,9 @@ public sealed class Cs9711DirectProbeTests
         Assert.Equal(500, sample.Dpi);
         Assert.Equal(Cs9711Protocol.ImageWidth, sample.Width);
         Assert.Equal(Cs9711Protocol.ImageHeight, sample.Height);
-        Assert.Equal(frame, sample.Pixels);
+        Assert.Equal(17, sample.Pixels[0]);
+        Assert.Equal(23, sample.Pixels[1]);
+        Assert.Equal(31, sample.Pixels[Cs9711Protocol.ImageWidth + 2]);
+        Assert.NotEqual(frame, sample.Pixels);
     }
 }
