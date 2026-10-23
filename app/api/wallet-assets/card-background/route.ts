@@ -1,10 +1,24 @@
 export const dynamic = "force-dynamic";
 
-const BUNDLED_ARTWORK = "/wallet/bgm-wallet-hero-v8.jpg?v=11";
+const BUNDLED_ARTWORK = "/wallet/bgm-wallet-hero-regular-v11.jpg?v=12";
 
-export function GET(request: Request) {
-  // Serve the approved bundled photograph through Vercel's static asset path.
-  // The previous serverless fs read could leave the Member App with only its
-  // dark fallback/overlay when the public file was not present in the function bundle.
-  return Response.redirect(new URL(BUNDLED_ARTWORK, request.url), 307);
+export async function GET(request: Request) {
+  try {
+    const upstream = await fetch(new URL(BUNDLED_ARTWORK, request.url), {
+      cache: "force-cache",
+    });
+    if (!upstream.ok) throw new Error(`Artwork fetch failed: ${upstream.status}`);
+
+    return new Response(await upstream.arrayBuffer(), {
+      headers: {
+        "Content-Type": "image/jpeg",
+        "Cache-Control": "public, max-age=86400, s-maxage=604800, immutable",
+      },
+    });
+  } catch {
+    return new Response("Membership artwork is unavailable.", {
+      status: 503,
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
 }

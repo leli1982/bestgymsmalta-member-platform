@@ -18,23 +18,21 @@ type MemberCardProps = {
   variant?: "full" | "home";
 };
 
-function premiumCardOverlay(themeColor: string) {
-  return `linear-gradient(180deg, ${themeColor}33 0%, ${themeColor}4D 52%, rgba(0,0,0,.68) 100%)`;
+function membershipArtwork(themeColor: string) {
+  if (themeColor === "#166534") return "/wallet/bgm-wallet-hero-student-v11.jpg?v=12";
+  if (themeColor === "#B91C1C") return "/wallet/bgm-wallet-hero-couples-v11.jpg?v=12";
+  return "/wallet/bgm-wallet-hero-regular-v11.jpg?v=12";
 }
 
-const MEMBER_CARD_ARTWORK = "/api/wallet-assets/card-background?v=10";
-
-function PremiumArtwork({ themeColor, compact = false }: { themeColor: string; compact?: boolean }) {
+function PremiumArtwork({ themeColor }: { themeColor: string; compact?: boolean }) {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden bg-black" aria-hidden="true">
       <img
-        src={MEMBER_CARD_ARTWORK}
+        src={membershipArtwork(themeColor)}
         alt=""
-        className={`absolute inset-0 h-full w-full ${compact ? "object-cover object-center" : "object-contain object-top"}`}
-        style={{ filter: themeColor === "#166534" ? undefined : "grayscale(1)" }}
+        className="absolute inset-0 h-full w-full object-cover object-center"
       />
-      <div className="absolute inset-0" style={{ background: premiumCardOverlay(themeColor) }} />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/5" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-black/5" />
     </div>
   );
 }
