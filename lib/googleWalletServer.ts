@@ -106,11 +106,24 @@ function barcodeDetail(fieldPath: string) {
   };
 }
 
+const WALLET_HERO_PATHS = {
+  single: "/wallet/bgm-wallet-hero-regular-v11.jpg",
+  student: "/wallet/bgm-wallet-hero-student-v11.jpg",
+  couples: "/wallet/bgm-wallet-hero-couples-v11.jpg",
+} as const;
+
 function walletArtworkUrl(baseUrl: string, membershipType?: string): string {
   const parsed = new URL(baseUrl);
   if (membershipType) parsed.searchParams.set("membership", membershipType);
   parsed.searchParams.set("v", WALLET_ART_VERSION);
   return parsed.toString();
+}
+
+function walletHeroUrl(
+  origin: string,
+  membershipType: keyof typeof WALLET_HERO_PATHS,
+): string {
+  return new URL(WALLET_HERO_PATHS[membershipType], `${origin}/`).toString();
 }
 
 function googleClassBody(config: GoogleWalletConfig): Record<string, unknown> {
@@ -212,14 +225,12 @@ function googleObjectBody(
     };
   }
 
-  if (config.heroImageUrl) {
-    body.heroImage = {
-      sourceUri: {
-        uri: walletArtworkUrl(config.heroImageUrl, projection.theme.type),
-      },
-      contentDescription: localized("BestGymsMalta fitness membership artwork"),
-    };
-  }
+  body.heroImage = {
+    sourceUri: {
+      uri: walletHeroUrl(config.origin, projection.theme.type),
+    },
+    contentDescription: localized("BestGymsMalta fitness membership artwork"),
+  };
 
   if (projection.validTimeIntervalEnd) {
     body.validTimeInterval = {
