@@ -36,4 +36,21 @@ public sealed class Cs9711DirectProbeTests
         Assert.Equal(40, ChipSailingAlgorithm.TemplateInfoBytes);
         Assert.Equal(3, ChipSailingAlgorithm.AlgorithmMode);
     }
+
+    [Fact]
+    public async Task Direct_capture_maps_cs9711_frame_to_portable_fingerprint_sample()
+    {
+        var frame = new byte[Cs9711Protocol.FrameBytes];
+        frame[0] = 17;
+        frame[^1] = 29;
+        var source = new Cs9711DirectFingerprintCaptureSource("terminal-a", () => frame);
+
+        var sample = await source.CaptureAsync(CancellationToken.None);
+
+        Assert.Equal("terminal-a", source.TerminalId);
+        Assert.Equal(500, sample.Dpi);
+        Assert.Equal(Cs9711Protocol.ImageWidth, sample.Width);
+        Assert.Equal(Cs9711Protocol.ImageHeight, sample.Height);
+        Assert.Equal(frame, sample.Pixels);
+    }
 }
