@@ -13,9 +13,14 @@ if (args.Length < 1)
     return 2;
 }
 
-var command = args[0].Trim().ToLowerInvariant();
+var command = ProbeCommandCatalog.Parse(args[0]);
+if (command == ProbeCommandKind.Unknown)
+{
+    PrintUsage();
+    return 2;
+}
 
-if (command == "processed-info")
+if (command == ProbeCommandKind.ProcessedInfo)
 {
     try
     {
@@ -36,7 +41,7 @@ if (command == "processed-info")
     }
 }
 
-if (command == "direct-selftest")
+if (command == ProbeCommandKind.DirectSelfTest)
 {
     try
     {
@@ -79,17 +84,52 @@ if (string.IsNullOrWhiteSpace(passphrase))
 }
 
 var store = new EncryptedCredentialFileStore(credentialFile, passphrase);
-var capture = new Cs9711DirectFingerprintCaptureSource(terminalId);
-var matcher = new SourceAfisFingerprintMatcher(40);
-var engine = new PortableBiometricEngine(capture, store, matcher);
-var probe = new Fp100CapabilityProbe(engine, terminalId);
 
 try
 {
+    if (ProbeCommandCatalog.UsesVendorAlgorithm(command))
+    {
+        using var algorithm = new ChipSailingAlgorithm();
+        var vendorProbe = new VendorPortableBiometricProbe(
+            terminalId,
+            store,
+            captureFrame: () =>
+            {
+                using var directCapture = new Cs9711LibUsbCapture();
+                return directCapture.CaptureFrame();
+            },
+            createTemplate: algorithm.CreateTemplate,
+            matchScore: algorithm.MatchScore);
+
+        if (command == ProbeCommandKind.VendorEnroll)
+        {
+            if (args.Length < 3 || string.IsNullOrWhiteSpace(args[2]))
+            {
+                Console.Error.WriteLine("Vendor enroll requires a test employee ID.");
+                return 2;
+            }
+
+            Console.WriteLine("Place the test finger on the FP100 reader.");
+            var result = await vendorProbe.EnrollAsync(args[2].Trim(), CancellationToken.None);
+            Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
+            return 0;
+        }
+
+        Console.WriteLine("Place a finger on the FP100 reader.");
+        var scoreResult = await vendorProbe.ScoreAsync(CancellationToken.None);
+        Console.WriteLine(JsonSerializer.Serialize(scoreResult, new JsonSerializerOptions { WriteIndented = true }));
+        return scoreResult.Success ? 0 : 11;
+    }
+
+    var capture = new Cs9711DirectFingerprintCaptureSource(terminalId);
+    var matcher = new SourceAfisFingerprintMatcher(40);
+    var engine = new PortableBiometricEngine(capture, store, matcher);
+    var probe = new Fp100CapabilityProbe(engine, terminalId);
+
     Fp100CapabilityProbeResult result;
     switch (command)
     {
-        case "enroll":
+        case ProbeCommandKind.SourceAfisEnroll:
             if (args.Length < 3 || string.IsNullOrWhiteSpace(args[2]))
             {
                 Console.Error.WriteLine("Enroll requires a test employee ID.");
@@ -99,12 +139,12 @@ try
             result = await probe.EnrollAsync(args[2].Trim(), CancellationToken.None);
             break;
 
-        case "identify":
+        case ProbeCommandKind.SourceAfisIdentify:
             Console.WriteLine("Place a finger on the FP100 reader.");
             result = await probe.IdentifyAsync(CancellationToken.None);
             break;
 
-        case "revoke":
+        case ProbeCommandKind.Revoke:
             if (args.Length < 3 || string.IsNullOrWhiteSpace(args[2]))
             {
                 Console.Error.WriteLine("Revoke requires the opaque credential ID printed during enrollment.");
@@ -173,14 +213,13 @@ static void PrintUsage()
     Console.WriteLine("BGM FP100 cross-PC capability probe");
     Console.WriteLine("Run from an elevated Administrator Command Prompt or PowerShell.");
     Console.WriteLine();
-    Console.WriteLine("  Bgm.StaffBiometricService.exe processed-info");
-    Console.WriteLine("  Bgm.StaffBiometricService.exe direct-selftest");
-    Console.WriteLine("  Bgm.StaffBiometricService.exe enroll   <credential-file> <test-employee-id>");
-    Console.WriteLine("  Bgm.StaffBiometricService.exe identify <credential-file>");
-    Console.WriteLine("  Bgm.StaffBiometricService.exe revoke   <credential-file> <credential-id>");
+    foreach (var line in ProbeCommandCatalog.UsageLines)
+        Console.WriteLine($"  {line}");
     Console.WriteLine();
     Console.WriteLine("processed-info reports only WBF metadata and never persists fingerprint sample bytes.");
-    Console.WriteLine("direct-selftest bypasses WBF, uses direct USB + CSAlgDll.dll, and keeps all biometric bytes in memory only.");
-    Console.WriteLine("enroll/identify use direct WinUSB capture plus SourceAFIS portable matching; raw frames are never written to disk.");
-    Console.WriteLine("The credential file is encrypted and contains a portable fingerprint feature template, not a raw fingerprint image.");
+    Console.WriteLine("direct-selftest bypasses WBF and uses direct USB + CSAlgDll.dll with all biometric bytes kept in memory only.");
+    Console.WriteLine("enroll/identify are the earlier SourceAFIS diagnostic path.");
+    Console.WriteLine("vendor-enroll/vendor-score use direct WinUSB capture plus the ChipSailing vendor template/matcher and never persist raw frames.");
+    Console.WriteLine("vendor-score reports the raw vendor score only; this capability gate deliberately applies no acceptance threshold.");
+    Console.WriteLine("The portable credential file is encrypted and contains a derived biometric template, not a raw fingerprint image.");
 }
