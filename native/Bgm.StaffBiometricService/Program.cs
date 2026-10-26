@@ -101,7 +101,7 @@ try
             createTemplate: algorithm.CreateTemplate,
             matchScore: algorithm.MatchScore);
 
-        if (command == ProbeCommandKind.VendorEnroll)
+        if (command is ProbeCommandKind.VendorEnroll or ProbeCommandKind.VendorEnrollMultiView)
         {
             if (args.Length < 3 || string.IsNullOrWhiteSpace(args[2]))
             {
@@ -109,10 +109,34 @@ try
                 return 2;
             }
 
+            if (command == ProbeCommandKind.VendorEnrollMultiView)
+            {
+                Console.WriteLine("Five-view FP100 vendor enrollment. Use ONE finger for all five captures.");
+                Console.WriteLine("No raw fingerprint image will be written to disk.");
+                var multiViewEnrollment = await vendorProbe.EnrollMultiViewAsync(
+                    args[2].Trim(),
+                    WaitForMultiViewCapture,
+                    CancellationToken.None);
+                Console.WriteLine(JsonSerializer.Serialize(
+                    multiViewEnrollment,
+                    new JsonSerializerOptions { WriteIndented = true }));
+                return 0;
+            }
+
             Console.WriteLine("Place the test finger on the FP100 reader.");
             var enrollmentResult = await vendorProbe.EnrollAsync(args[2].Trim(), CancellationToken.None);
             Console.WriteLine(JsonSerializer.Serialize(enrollmentResult, new JsonSerializerOptions { WriteIndented = true }));
             return 0;
+        }
+
+        if (command == ProbeCommandKind.VendorScoreMultiView)
+        {
+            Console.WriteLine("Place the enrolled finger on the FP100 reader once.");
+            var multiViewScore = await vendorProbe.ScoreMultiViewAsync(CancellationToken.None);
+            Console.WriteLine(JsonSerializer.Serialize(
+                multiViewScore,
+                new JsonSerializerOptions { WriteIndented = true }));
+            return multiViewScore.Success ? 0 : 11;
         }
 
         Console.WriteLine("Place a finger on the FP100 reader.");
@@ -187,6 +211,15 @@ catch (Exception ex)
     return 40;
 }
 
+static void WaitForMultiViewCapture(string prompt)
+{
+    Console.WriteLine();
+    Console.WriteLine(prompt);
+    Console.WriteLine("Keep the finger OFF the reader while you reposition it.");
+    Console.Write("Press ENTER when ready, then place the finger on the FP100 reader: ");
+    Console.ReadLine();
+}
+
 static string ReadSecret(string prompt)
 {
     Console.Write(prompt);
@@ -219,7 +252,9 @@ static void PrintUsage()
     Console.WriteLine("processed-info reports only WBF metadata and never persists fingerprint sample bytes.");
     Console.WriteLine("direct-selftest bypasses WBF and uses direct USB + CSAlgDll.dll with all biometric bytes kept in memory only.");
     Console.WriteLine("enroll/identify are the earlier SourceAFIS diagnostic path.");
-    Console.WriteLine("vendor-enroll/vendor-score use direct WinUSB capture plus the ChipSailing vendor template/matcher and never persist raw frames.");
-    Console.WriteLine("vendor-score reports the raw vendor score only; this capability gate deliberately applies no acceptance threshold.");
-    Console.WriteLine("The portable credential file is encrypted and contains a derived biometric template, not a raw fingerprint image.");
+    Console.WriteLine("vendor-enroll/vendor-score keep the earlier single-view ChipSailing diagnostic path.");
+    Console.WriteLine("vendor-enroll-multiview captures five guided views of ONE finger into one encrypted credential bundle.");
+    Console.WriteLine("vendor-score-multiview captures ONE live touch and reports the raw score against every enrolled view plus the best view.");
+    Console.WriteLine("Vendor scoring reports raw scores only; this capability gate deliberately applies no acceptance threshold.");
+    Console.WriteLine("Raw fingerprint frames are never persisted. The encrypted credential contains derived vendor templates only.");
 }

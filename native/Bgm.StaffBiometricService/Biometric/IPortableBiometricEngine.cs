@@ -4,13 +4,16 @@ public sealed record EmployeeBiometricSubject(string EmployeeId);
 public sealed record FingerprintSample(byte[] Pixels, int Dpi, int Width = 0, int Height = 0);
 public sealed record EnrolledBiometricCredential(string CredentialId, string EmployeeId);
 public sealed record BiometricIdentificationResult(string CredentialId, string EmployeeId, string TerminalId, double Score);
+public sealed record PortableVendorTemplateView(string Label, byte[] Template);
 public sealed record PortableBiometricCredential(
     string CredentialId,
     string EmployeeId,
     byte[] Template,
     bool Active,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset? RevokedAtUtc = null);
+    DateTimeOffset? RevokedAtUtc = null,
+    int VendorBundleVersion = 0,
+    PortableVendorTemplateView[]? VendorTemplateViews = null);
 
 public interface IPortableBiometricEngine
 {

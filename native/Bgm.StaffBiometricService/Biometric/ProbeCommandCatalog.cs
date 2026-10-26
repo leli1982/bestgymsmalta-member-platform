@@ -9,6 +9,8 @@ public enum ProbeCommandKind
     SourceAfisIdentify,
     VendorEnroll,
     VendorScore,
+    VendorEnrollMultiView,
+    VendorScoreMultiView,
     Revoke,
 }
 
@@ -18,11 +20,13 @@ public static class ProbeCommandCatalog
     {
         "Bgm.StaffBiometricService.exe processed-info",
         "Bgm.StaffBiometricService.exe direct-selftest",
-        "Bgm.StaffBiometricService.exe enroll        <credential-file> <test-employee-id>",
-        "Bgm.StaffBiometricService.exe identify      <credential-file>",
-        "Bgm.StaffBiometricService.exe vendor-enroll <credential-file> <test-employee-id>",
-        "Bgm.StaffBiometricService.exe vendor-score  <credential-file>",
-        "Bgm.StaffBiometricService.exe revoke        <credential-file> <credential-id>",
+        "Bgm.StaffBiometricService.exe enroll                  <credential-file> <test-employee-id>",
+        "Bgm.StaffBiometricService.exe identify                <credential-file>",
+        "Bgm.StaffBiometricService.exe vendor-enroll           <credential-file> <test-employee-id>",
+        "Bgm.StaffBiometricService.exe vendor-score            <credential-file>",
+        "Bgm.StaffBiometricService.exe vendor-enroll-multiview <credential-file> <test-employee-id>",
+        "Bgm.StaffBiometricService.exe vendor-score-multiview  <credential-file>",
+        "Bgm.StaffBiometricService.exe revoke                  <credential-file> <credential-id>",
     };
 
     public static ProbeCommandKind Parse(string? command) =>
@@ -34,10 +38,15 @@ public static class ProbeCommandCatalog
             "identify" => ProbeCommandKind.SourceAfisIdentify,
             "vendor-enroll" => ProbeCommandKind.VendorEnroll,
             "vendor-score" => ProbeCommandKind.VendorScore,
+            "vendor-enroll-multiview" => ProbeCommandKind.VendorEnrollMultiView,
+            "vendor-score-multiview" => ProbeCommandKind.VendorScoreMultiView,
             "revoke" => ProbeCommandKind.Revoke,
             _ => ProbeCommandKind.Unknown,
         };
 
     public static bool UsesVendorAlgorithm(ProbeCommandKind command) =>
-        command is ProbeCommandKind.VendorEnroll or ProbeCommandKind.VendorScore;
+        command is ProbeCommandKind.VendorEnroll
+            or ProbeCommandKind.VendorScore
+            or ProbeCommandKind.VendorEnrollMultiView
+            or ProbeCommandKind.VendorScoreMultiView;
 }
