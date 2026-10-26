@@ -58,4 +58,15 @@ public sealed class Cs9711DirectProbeTests
         Assert.Equal(31, sample.Pixels[Cs9711Protocol.ImageWidth + 2]);
         Assert.NotEqual(frame, sample.Pixels);
     }
+
+    [Fact]
+    public void SourceAfis_diagnostic_inverts_grayscale_without_mutating_source()
+    {
+        var source = new byte[] { 0, 64, 128, 255 };
+
+        var inverted = SourceAfisDiagnosticSelfTest.InvertPixels(source);
+
+        Assert.Equal(new byte[] { 255, 191, 127, 0 }, inverted);
+        Assert.Equal(new byte[] { 0, 64, 128, 255 }, source);
+    }
 }
