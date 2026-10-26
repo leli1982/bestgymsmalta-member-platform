@@ -10,6 +10,15 @@ public sealed record VendorEnrollmentResult(
     bool Success,
     string Message);
 
+public sealed record VendorScoreResult(
+    string? CredentialId,
+    string? EmployeeId,
+    string TerminalId,
+    short? Score,
+    string? AlgorithmVersion,
+    bool Success,
+    string Message);
+
 public sealed class VendorPortableBiometricProbe
 {
     private readonly string _terminalId;
@@ -74,6 +83,63 @@ public sealed class VendorPortableBiometricProbe
         {
             if (frame is not null) CryptographicOperations.ZeroMemory(frame);
             if (transientTemplate is not null) CryptographicOperations.ZeroMemory(transientTemplate);
+        }
+    }
+
+    public async Task<VendorScoreResult> ScoreAsync(CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var activeCredentials = (await _store.GetAllAsync(ct)).Where(c => c.Active).ToList();
+        if (activeCredentials.Count == 0)
+        {
+            return new VendorScoreResult(
+                CredentialId: null,
+                EmployeeId: null,
+                TerminalId: _terminalId,
+                Score: null,
+                AlgorithmVersion: null,
+                Success: false,
+                Message: "No active vendor credential found.");
+        }
+
+        byte[]? frame = null;
+        byte[]? liveTemplate = null;
+        try
+        {
+            frame = _captureFrame();
+            Cs9711Protocol.ValidateFrame(frame);
+            var created = _createTemplate(frame);
+            liveTemplate = created.Template;
+
+            if (liveTemplate.Length != ChipSailingAlgorithm.TemplateBytes)
+                throw new BiometricDeviceException(
+                    $"ChipSailing template must be exactly {ChipSailingAlgorithm.TemplateBytes} bytes.");
+
+            PortableBiometricCredential? best = null;
+            short? bestScore = null;
+            foreach (var credential in activeCredentials)
+            {
+                var score = _matchScore(liveTemplate, credential.Template);
+                if (bestScore is null || score > bestScore.Value)
+                {
+                    best = credential;
+                    bestScore = score;
+                }
+            }
+
+            return new VendorScoreResult(
+                CredentialId: best!.CredentialId,
+                EmployeeId: best.EmployeeId,
+                TerminalId: _terminalId,
+                Score: bestScore,
+                AlgorithmVersion: created.AlgorithmVersion,
+                Success: true,
+                Message: "Vendor score captured.");
+        }
+        finally
+        {
+            if (frame is not null) CryptographicOperations.ZeroMemory(frame);
+            if (liveTemplate is not null) CryptographicOperations.ZeroMemory(liveTemplate);
         }
     }
 }
