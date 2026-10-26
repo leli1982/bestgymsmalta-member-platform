@@ -30,7 +30,8 @@ test("normal staff home exposes only daily operational tiles", () => {
   for (const label of ["Members", "New Member", "Renew", "Waiting", "Reception Tools", "Sundries", "Bar", "Punch Clock"]) {
     assert.match(source, new RegExp(`label=["']${label.replace("/", "\\/")}["']`));
   }
-  assert.match(source, /Punch Clock[\s\S]*disabled/);
+  assert.match(source, /label=["']Punch Clock["'][\s\S]*href=["']\/staff\/punch-clock["']/);
+  assert.doesNotMatch(source, /label=["']Punch Clock["'][^>]*disabled/);
   assert.doesNotMatch(source, /label=["']Offline Roster["']/);
   assert.doesNotMatch(source, /label=["']Analytics["']/);
   assert.doesNotMatch(source, /label=["']System Users["']/);
