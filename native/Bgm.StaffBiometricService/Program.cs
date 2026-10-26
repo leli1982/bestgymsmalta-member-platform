@@ -110,8 +110,8 @@ try
             }
 
             Console.WriteLine("Place the test finger on the FP100 reader.");
-            var result = await vendorProbe.EnrollAsync(args[2].Trim(), CancellationToken.None);
-            Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
+            var enrollmentResult = await vendorProbe.EnrollAsync(args[2].Trim(), CancellationToken.None);
+            Console.WriteLine(JsonSerializer.Serialize(enrollmentResult, new JsonSerializerOptions { WriteIndented = true }));
             return 0;
         }
 
