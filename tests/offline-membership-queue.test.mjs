@@ -11,7 +11,8 @@ function source() {
 
 test("offline membership queue uses IndexedDB without putting applicant PII in localStorage", () => {
   const text = source();
-  assert.match(text, /indexedDB\.open/);
+  assert.match(text, /typeof indexedDB/);
+  assert.match(text, /requireIndexedDb\(\)\.open/);
   assert.match(text, /bgm-staff-offline-memberships/);
   assert.match(text, /membership-sales/);
   assert.match(text, /enrollment-contexts/);
