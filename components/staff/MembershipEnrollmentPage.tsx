@@ -3,8 +3,14 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import RegistrationForm from "@/components/membership/RegistrationForm";
+import OfflineMembershipCheckout from "@/components/staff/OfflineMembershipCheckout";
 import StaffRenewalEnrollmentPage from "@/components/staff/StaffRenewalEnrollmentPage";
 import StaffMembershipReviewModal from "@/components/staff/StaffMembershipReviewModal";
+import {
+  cacheOfflineEnrollmentContext,
+  loadLatestOfflineEnrollmentContext,
+  type OfflineEnrollmentContext,
+} from "@/lib/offlineMembershipQueue";
 import type { PublicEnrollmentConfig, RegistrationDraft } from "@/lib/membershipRegistrationTypes";
 
 function participantFileName(
@@ -32,11 +38,16 @@ export default function MembershipEnrollmentPage() {
 function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }) {
   const [config, setConfig] = useState<PublicEnrollmentConfig | null>(null);
   const [staffName, setStaffName] = useState("");
+  const [systemUserId, setSystemUserId] = useState("");
+  const [systemUserGymId, setSystemUserGymId] = useState<string | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [gyms, setGyms] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedGymId, setSelectedGymId] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadingGym, setLoadingGym] = useState(false);
+  const [online, setOnline] = useState(true);
+  const [offlineContext, setOfflineContext] = useState<OfflineEnrollmentContext | null>(null);
+  const [offlineDraft, setOfflineDraft] = useState<RegistrationDraft | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState<{
     applicationId: string;
@@ -44,13 +55,88 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
     photoWarnings: string[];
   } | null>(null);
 
+  async function rememberOfflineContext(
+    nextConfig: PublicEnrollmentConfig,
+    systemUser: {
+      id?: unknown;
+      gymId?: unknown;
+      displayName?: unknown;
+      isSuperAdmin?: unknown;
+    },
+  ) {
+    const context: OfflineEnrollmentContext = {
+      gymId: nextConfig.gym.id,
+      cachedAt: new Date().toISOString(),
+      config: nextConfig,
+      systemUser: {
+        id: String(systemUser.id || systemUserId || ""),
+        gymId:
+          typeof systemUser.gymId === "string"
+            ? systemUser.gymId
+            : systemUserGymId,
+        displayName: String(systemUser.displayName || staffName || ""),
+        isSuperAdmin:
+          typeof systemUser.isSuperAdmin === "boolean"
+            ? systemUser.isSuperAdmin
+            : isSuperAdmin,
+      },
+    };
+    await cacheOfflineEnrollmentContext(context);
+    setOfflineContext(context);
+  }
+
+  useEffect(() => {
+    const wentOnline = () => setOnline(true);
+    const wentOffline = () => setOnline(false);
+    setOnline(navigator.onLine);
+    window.addEventListener("online", wentOnline);
+    window.addEventListener("offline", wentOffline);
+    return () => {
+      window.removeEventListener("online", wentOnline);
+      window.removeEventListener("offline", wentOffline);
+    };
+  }, []);
+
   useEffect(() => {
     let active = true;
 
-    async function load() {
+    async function loadCachedFallback(originalError?: unknown) {
       try {
-        setLoading(true);
+        const cached = await loadLatestOfflineEnrollmentContext();
+        if (!active || !cached) return false;
+        setConfig(cached.config);
+        setStaffName(cached.systemUser.displayName);
+        setSystemUserId(cached.systemUser.id);
+        setSystemUserGymId(cached.systemUser.gymId);
+        setIsSuperAdmin(cached.systemUser.isSuperAdmin);
+        setSelectedGymId(cached.gymId);
+        setOfflineContext(cached);
+        setOnline(false);
         setError("");
+        return true;
+      } catch (cacheError) {
+        if (!active) return false;
+        const fallback = originalError instanceof Error
+          ? originalError.message
+          : cacheError instanceof Error
+            ? cacheError.message
+            : "Offline enrollment is not prepared on this terminal.";
+        setError(fallback);
+        return false;
+      }
+    }
+
+    async function load() {
+      setLoading(true);
+      setError("");
+
+      if (!navigator.onLine) {
+        await loadCachedFallback();
+        if (active) setLoading(false);
+        return;
+      }
+
+      try {
         const response = await fetch("/api/system/members/registration", {
           method: "GET",
           cache: "no-store",
@@ -62,12 +148,43 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
           );
         }
         if (!active) return;
-        setConfig(payload.config || null);
-        setStaffName(String(payload.systemUser?.displayName || ""));
-        setIsSuperAdmin(payload.systemUser?.isSuperAdmin === true);
+        const nextConfig = (payload.config || null) as PublicEnrollmentConfig | null;
+        const nextStaffName = String(payload.systemUser?.displayName || "");
+        const nextSystemUserId = String(payload.systemUser?.id || "");
+        const nextGymId = typeof payload.systemUser?.gymId === "string" ? payload.systemUser.gymId : null;
+        const nextIsSuperAdmin = payload.systemUser?.isSuperAdmin === true;
+        setConfig(nextConfig);
+        setStaffName(nextStaffName);
+        setSystemUserId(nextSystemUserId);
+        setSystemUserGymId(nextGymId);
+        setIsSuperAdmin(nextIsSuperAdmin);
         setGyms(Array.isArray(payload.gyms) ? payload.gyms : []);
+        setOnline(true);
+        if (nextConfig) {
+          const context: OfflineEnrollmentContext = {
+            gymId: nextConfig.gym.id,
+            cachedAt: new Date().toISOString(),
+            config: nextConfig,
+            systemUser: {
+              id: nextSystemUserId,
+              gymId: nextGymId,
+              displayName: nextStaffName,
+              isSuperAdmin: nextIsSuperAdmin,
+            },
+          };
+          try {
+            await cacheOfflineEnrollmentContext(context);
+            if (active) setOfflineContext(context);
+          } catch (cacheError) {
+            console.warn("Could not prepare offline membership enrollment on this terminal.", cacheError);
+          }
+        }
       } catch (loadError) {
         if (!active) return;
+        if (!navigator.onLine || loadError instanceof TypeError) {
+          const restored = await loadCachedFallback(loadError);
+          if (restored) return;
+        }
         setError(
           loadError instanceof Error
             ? loadError.message
@@ -85,7 +202,7 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
   }, []);
 
   useEffect(() => {
-    if (!isSuperAdmin || !selectedGymId) return;
+    if (!isSuperAdmin || !selectedGymId || !navigator.onLine) return;
     let active = true;
     async function loadSelectedGym() {
       setLoadingGym(true);
@@ -100,9 +217,30 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
         if (!response.ok || !payload.config) {
           throw new Error(payload.error || "Could not load this gym's enrollment settings.");
         }
-        if (active) setConfig(payload.config);
+        if (!active) return;
+        const nextConfig = payload.config as PublicEnrollmentConfig;
+        setConfig(nextConfig);
+        setOnline(true);
+        const context: OfflineEnrollmentContext = {
+          gymId: nextConfig.gym.id,
+          cachedAt: new Date().toISOString(),
+          config: nextConfig,
+          systemUser: {
+            id: String(payload.systemUser?.id || systemUserId),
+            gymId: typeof payload.systemUser?.gymId === "string" ? payload.systemUser.gymId : systemUserGymId,
+            displayName: String(payload.systemUser?.displayName || staffName),
+            isSuperAdmin: true,
+          },
+        };
+        try {
+          await cacheOfflineEnrollmentContext(context);
+          if (active) setOfflineContext(context);
+        } catch (cacheError) {
+          console.warn("Could not prepare offline membership enrollment on this terminal.", cacheError);
+        }
       } catch (loadError) {
         if (active) {
+          if (!navigator.onLine || loadError instanceof TypeError) setOnline(false);
           setError(loadError instanceof Error ? loadError.message : "Could not load enrollment settings.");
         }
       } finally {
@@ -111,7 +249,7 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
     }
     void loadSelectedGym();
     return () => { active = false; };
-  }, [isSuperAdmin, selectedGymId]);
+  }, [isSuperAdmin, selectedGymId, staffName, systemUserGymId, systemUserId]);
 
   async function uploadParticipantPhoto(
     applicationMemberId: string,
@@ -194,14 +332,34 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
     setError("");
     setSuccess(null);
 
-    const response = await fetch("/api/system/members/registration", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        enrollmentGymId: isSuperAdmin ? selectedGymId : config.gym.id,
-        draft: { ...draft, photos: undefined },
-      }),
-    });
+    if (!navigator.onLine) {
+      setOnline(false);
+      if (!offlineContext || offlineContext.gymId !== config.gym.id) {
+        throw new Error("Offline enrollment is not prepared for this gym. Reconnect once and reopen New Membership.");
+      }
+      setOfflineDraft(draft);
+      return;
+    }
+
+    let response: Response;
+    try {
+      response = await fetch("/api/system/members/registration", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          enrollmentGymId: isSuperAdmin ? selectedGymId : config.gym.id,
+          draft: { ...draft, photos: undefined },
+        }),
+      });
+    } catch (networkError) {
+      setOnline(false);
+      if (!offlineContext || offlineContext.gymId !== config.gym.id) {
+        throw new Error("The network is unavailable and this terminal is not prepared for offline enrollment.");
+      }
+      setOfflineDraft(draft);
+      return;
+    }
+
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       const message =
@@ -276,7 +434,7 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
             id="super-admin-enrollment-gym"
             value={selectedGymId}
             onChange={(event) => setSelectedGymId(event.target.value)}
-            disabled={loadingGym}
+            disabled={loadingGym || !online}
             className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 focus:border-orange-500 focus:outline-2 focus:outline-orange-200 disabled:opacity-60"
           >
             <option value="">Select gym</option>
@@ -284,6 +442,7 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
           </select>
           {loadingGym ? <p role="status" className="mt-4 text-sm text-zinc-600">Loading selected gym…</p> : null}
           {!gyms.length && !loadingGym ? <p className="mt-4 text-sm text-amber-800">No active gyms are available. Check the gym locations in Super Admin.</p> : null}
+          {!online ? <p className="mt-4 text-sm font-bold text-amber-800">OFFLINE MODE — reconnect before changing the Super Admin enrollment gym.</p> : null}
           {error ? <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p> : null}
         </div>
       </main>
@@ -295,7 +454,7 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
       <div className="mx-auto max-w-5xl p-6 text-white">
         <h1 className="text-2xl font-semibold">New Membership</h1>
         <p role="alert" className="mt-3 rounded-2xl border border-red-400/25 bg-red-500/10 p-4 text-sm text-red-100">
-          {error || "Membership registration settings are not available."}
+          {error || "Membership registration settings are not available. If the internet is down, this terminal must first have opened New Membership successfully while online."}
         </p>
       </div>
     );
@@ -303,6 +462,13 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 p-4 pb-28 text-white sm:p-6">
+      {!online ? (
+        <div role="status" className="rounded-2xl border border-amber-300/30 bg-amber-400/10 p-4 text-sm text-amber-100">
+          <p className="font-black uppercase tracking-[0.16em] text-amber-300">OFFLINE MODE</p>
+          <p className="mt-1 font-semibold">New memberships can still be recorded on this terminal. They will synchronize automatically when the connection returns.</p>
+        </div>
+      ) : null}
+
       <div className="rounded-3xl border border-white/10 bg-white/[0.055] p-5 shadow-2xl backdrop-blur-xl">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-300">
           {isSuperAdmin ? "New membership · Step 2" : "Staff Registration"}
@@ -312,11 +478,13 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
           {config.gym.name} · Complete the same registration details used on the
           member tablet. Photos can be taken, uploaded, or added later.
         </p>
-        {isSuperAdmin ? (
+        {isSuperAdmin && online ? (
           <button type="button" onClick={() => {
             if (window.confirm("Change the enrollment gym? Any unsaved applicant details will be cleared.")) {
               setSelectedGymId("");
               setConfig(null);
+              setOfflineContext(null);
+              setOfflineDraft(null);
               setError("");
             }
           }} className="mt-4 rounded-xl border border-orange-300/40 px-4 py-2 text-sm font-bold text-orange-100 hover:bg-orange-400/10">
@@ -352,7 +520,13 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
         </div>
       ) : null}
 
-      {!success ? (
+      {offlineDraft && offlineContext ? (
+        <OfflineMembershipCheckout
+          draft={offlineDraft}
+          context={offlineContext}
+          onCancel={() => setOfflineDraft(null)}
+        />
+      ) : !success ? (
         <RegistrationForm
           key={config.gym.id}
           mode="staff"
