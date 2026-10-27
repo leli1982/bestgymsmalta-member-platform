@@ -5,9 +5,10 @@ import type {
 } from "@/lib/membershipRegistrationTypes";
 
 const DB_NAME = "bgm-staff-offline-memberships";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const SALE_STORE = "membership-sales";
 const CONTEXT_STORE = "enrollment-contexts";
+const RECEIPT_STORE = "sync-receipts";
 
 export type OfflineEnrollmentContext = {
   gymId: string;
@@ -29,7 +30,13 @@ export type OfflineMembershipPayment = {
   staffName: string;
 };
 
-export type OfflineMembershipState = "queued" | "syncing" | "needs_login" | "error";
+export type OfflineMembershipState =
+  | "queued"
+  | "syncing"
+  | "needs_login"
+  | "needs_attention"
+  | "error"
+  | "synced";
 
 export type OfflineMembershipRecord = {
   clientSubmissionId: string;
@@ -45,6 +52,24 @@ export type OfflineMembershipRecord = {
   state: OfflineMembershipState;
   lastError?: string;
 };
+
+export type OfflineMembershipSyncReceipt = {
+  clientSubmissionId: string;
+  offlineReference: string;
+  gymId: string;
+  soldAt: string;
+  syncedAt: string;
+  result: "activated" | "review_required" | "rejected";
+  applicationId: string | null;
+  memberNumbers: string[];
+  reason?: string;
+};
+
+function notifyQueueChanged() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("bgm:offline-membership-queue-changed"));
+  }
+}
 
 function requireIndexedDb() {
   if (typeof indexedDB === "undefined") {
@@ -70,6 +95,12 @@ function openDatabase(): Promise<IDBDatabase> {
           keyPath: "gymId",
         });
         contexts.createIndex("cachedAt", "cachedAt", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(RECEIPT_STORE)) {
+        const receipts = db.createObjectStore(RECEIPT_STORE, {
+          keyPath: "clientSubmissionId",
+        });
+        receipts.createIndex("syncedAt", "syncedAt", { unique: false });
       }
     };
 
@@ -108,6 +139,21 @@ async function getAllRecords<T>(storeName: string): Promise<T[]> {
   }
 }
 
+async function deleteRecord(storeName: string, id: string): Promise<void> {
+  const db = await openDatabase();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction(storeName, "readwrite");
+      transaction.objectStore(storeName).delete(id);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error || new Error("Offline storage delete failed."));
+      transaction.onabort = () => reject(transaction.error || new Error("Offline storage delete was aborted."));
+    });
+  } finally {
+    db.close();
+  }
+}
+
 export function buildOfflineReference(clientSubmissionId: string) {
   const compact = String(clientSubmissionId || "")
     .replace(/[^a-z0-9]/gi, "")
@@ -132,6 +178,7 @@ export async function enqueueOfflineMembership(
   record: OfflineMembershipRecord,
 ): Promise<void> {
   await putRecord(SALE_STORE, record);
+  notifyQueueChanged();
 }
 
 export async function listOfflineMemberships(): Promise<OfflineMembershipRecord[]> {
@@ -152,19 +199,27 @@ export async function updateOfflineMembershipState(
     state,
     ...(lastError ? { lastError } : { lastError: undefined }),
   });
+  notifyQueueChanged();
 }
 
 export async function removeOfflineMembership(id: string): Promise<void> {
-  const db = await openDatabase();
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const transaction = db.transaction(SALE_STORE, "readwrite");
-      transaction.objectStore(SALE_STORE).delete(id);
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error || new Error("Offline storage delete failed."));
-      transaction.onabort = () => reject(transaction.error || new Error("Offline storage delete was aborted."));
-    });
-  } finally {
-    db.close();
-  }
+  await deleteRecord(SALE_STORE, id);
+  notifyQueueChanged();
+}
+
+export async function saveOfflineMembershipSyncReceipt(
+  receipt: OfflineMembershipSyncReceipt,
+): Promise<void> {
+  await putRecord(RECEIPT_STORE, receipt);
+  notifyQueueChanged();
+}
+
+export async function listOfflineMembershipSyncReceipts(): Promise<OfflineMembershipSyncReceipt[]> {
+  const receipts = await getAllRecords<OfflineMembershipSyncReceipt>(RECEIPT_STORE);
+  return receipts.sort((a, b) => String(b.syncedAt).localeCompare(String(a.syncedAt)));
+}
+
+export async function removeOfflineMembershipSyncReceipt(id: string): Promise<void> {
+  await deleteRecord(RECEIPT_STORE, id);
+  notifyQueueChanged();
 }
