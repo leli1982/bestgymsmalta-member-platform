@@ -1,5 +1,11 @@
-const CACHE_NAME = "bgm-staff-shell-v2";
-const STAFF_ROUTES = ["/staff", "/staff/offline", "/manifest.json", "/bgm-logo.png"];
+const CACHE_NAME = "bgm-staff-shell-v3";
+const STAFF_ROUTES = [
+  "/staff",
+  "/staff/offline",
+  "/staff/members/enroll",
+  "/manifest.json",
+  "/bgm-logo.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
