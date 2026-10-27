@@ -45,6 +45,14 @@ test("tablet join surface loads public config and uses the shared RegistrationFo
   assert.match(source, /unavailable|not found|not available/i);
 });
 
+test("tablet immediately blocks registration when offline and directs the customer to reception", () => {
+  const source = readRequired(joinPagePath, "JoinEnrollmentPage");
+  assert.match(source, /SYSTEM OFFLINE/);
+  assert.match(source, /front desk/i);
+  assert.match(source, /staff.*enroll|enroll.*staff/i);
+  assert.match(source, /online\s*&&\s*!loading\s*&&\s*config\s*&&\s*!success/);
+});
+
 test("tablet submission uses multipart photos and only clears applicant state after confirmed server success", () => {
   const source = readRequired(joinPagePath, "JoinEnrollmentPage");
   assert.match(source, /new FormData\(\)/);
