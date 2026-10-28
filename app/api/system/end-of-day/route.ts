@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { calculateEndOfDayTotals, type EndOfDayBarItem, type EndOfDayExpense, type EndOfDayPaymentRow } from "@/lib/endOfDayCore";
-import { todayMaltaDate } from "@/lib/maltaDate";
+import { isValidCalendarDate, todayMaltaDate } from "@/lib/maltaDate";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSuperAdmin, requireSystemPermission } from "@/lib/systemAuth";
 
@@ -175,12 +175,16 @@ async function adminGet(request: NextRequest) {
   }
 
   const gymId = clean(request.nextUrl.searchParams.get("gymId"));
+  const businessDate = clean(request.nextUrl.searchParams.get("businessDate"));
+  if (businessDate && !isValidCalendarDate(businessDate)) return jsonError("Enter a valid End of Day date.", 400);
+
   let query = supabase.from("bgm_end_of_day_reports")
     .select("id,gym_id,business_date,staff_name,daily_total_cents,submitted_at")
     .order("business_date", { ascending: false })
     .order("submitted_at", { ascending: false })
     .limit(500);
   if (gymId) query = query.eq("gym_id", gymId);
+  if (businessDate) query = query.eq("business_date", businessDate);
   const reportsResult = await query;
   if (reportsResult.error) throw reportsResult.error;
 
