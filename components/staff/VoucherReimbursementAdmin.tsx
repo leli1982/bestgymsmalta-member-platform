@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { formatBarEuro, parseEuroCents } from "@/lib/barSalesCore";
 
 type Voucher = {
@@ -18,6 +19,7 @@ export default function VoucherReimbursementAdmin() {
   const [savingId, setSavingId] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -37,6 +39,34 @@ export default function VoucherReimbursementAdmin() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    let host: HTMLDivElement | null = null;
+    const attach = () => {
+      if (host?.isConnected) return true;
+      const declarations = document.getElementById("rules-declarations");
+      const parent = declarations?.parentElement;
+      if (!declarations || !parent) return false;
+      host = document.createElement("div");
+      host.dataset.bgmVoucherValueSlot = "true";
+      parent.insertBefore(host, declarations);
+      setPortalHost(host);
+      return true;
+    };
+
+    if (attach()) {
+      return () => { host?.remove(); };
+    }
+
+    const observer = new MutationObserver(() => {
+      if (attach()) observer.disconnect();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+      host?.remove();
+    };
+  }, []);
 
   async function save(voucher: Voucher) {
     const raw = inputs[voucher.id] || "";
@@ -65,9 +95,9 @@ export default function VoucherReimbursementAdmin() {
     }
   }
 
-  return (
-    <section className="bgm-admin-light bg-[#f6f6f6] px-4 pb-8 text-zinc-950 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
+  const content = (
+    <section className="bgm-admin-light text-zinc-950">
+      <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff5a0a]">Voucher accounting</p>
           <h2 className="mt-1 text-xl font-black tracking-tight">Voucher Value €</h2>
@@ -95,4 +125,6 @@ export default function VoucherReimbursementAdmin() {
       </div>
     </section>
   );
+
+  return portalHost ? createPortal(content, portalHost) : null;
 }
