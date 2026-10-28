@@ -24,7 +24,7 @@ const user = {
   isSuperAdmin: false,
   permissions: [
     "barcode.scan", "members.view", "members.create", "members.renew",
-    "orders.sundries.submit", "orders.bar.submit",
+    "orders.sundries.submit", "orders.bar.submit", "end_of_day.submit",
   ],
 };
 
@@ -53,6 +53,12 @@ try {
   await context.route("**/api/system/orders?*", (route) =>
     route.fulfill({ json: { orders: [] } })
   );
+  await context.route("**/api/gyms", (route) =>
+    route.fulfill({ json: { gyms: [
+      { id: user.gymId, name: "Birkirkara", status: "active" },
+    ] } })
+  );
+
   let scans = 0;
   await context.route("**/api/system/barcode/scan", (route) => {
     assert.equal(route.request().method(), "POST");
@@ -86,6 +92,7 @@ try {
     await page.keyboard.press("Enter");
   }
 
+  // Keep the original live scanner checks on Sundries intact.
   await page.goto(origin + "/staff/sundries");
   const name = page.getByPlaceholder("e.g. Maria Borg");
   await name.waitFor({ state: "visible", timeout: 15000 });
@@ -107,9 +114,9 @@ try {
   assert.equal(await name.evaluate((input) => document.activeElement === input), true,
     "Normal granted access must auto-close and restore Staff input focus");
 
-  const item = page.getByRole("spinbutton", { name: "Toilet paper quantity" });
-  await item.fill("4");
-  await item.focus();
+  const sundriesQuantity = page.getByRole("spinbutton", { name: "Toilet paper quantity" });
+  await sundriesQuantity.fill("4");
+  await sundriesQuantity.focus();
   await sendConfiguredScan("BGM0000999");
   const denied = page.getByRole("dialog", { name: "MEMBERSHIP EXPIRED" });
   await denied.waitFor({ state: "visible", timeout: 15000 });
@@ -118,130 +125,135 @@ try {
   const deniedPhotoBox = await denied.getByTestId("scan-member-photo").boundingBox();
   assert.ok(deniedPhotoBox && deniedPhotoBox.width >= 300,
     "Declined scan must keep the large identity photo panel");
-  assert.equal(await item.inputValue(), "4");
+  assert.equal(await sundriesQuantity.inputValue(), "4");
   await page.screenshot({ path: artifacts + "/sundries-declined.png" });
   await page.waitForTimeout(4000);
   assert.equal(await denied.isVisible(), true,
     "Expired/declined warnings must remain open until Staff dismiss them");
   await denied.getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
-  assert.equal(await item.inputValue(), "4");
+  assert.equal(await sundriesQuantity.inputValue(), "4");
   assert.equal(await name.inputValue(), "Maria Borg");
 
+  // The TEST Bar page is now the live daily sheet. There is intentionally no
+  // legacy "Bar Staff name" / manual-submit field, so protect the controls that
+  // actually exist: product search and quantities.
   await context.route("**/api/system/bar/catalog", (route) =>
     route.fulfill({ json: { items: [
       { id: "bar-water", name: "Water 500 ml", priceCents: 150,
         isOther: false, active: true, sortOrder: 0, updatedAt: "2026-09-21T00:00:00Z" },
     ] } })
   );
-  await context.route("**/api/system/bar/today?**", (route) =>
-    route.fulfill({ json: {
-      gymId: user.gymId, businessDate: "2026-09-21",
-      totalCents: 0, submittedCount: 0, unpricedCount: 0,
-    } })
-  );
+  await context.route("**/api/system/bar/today**", (route) => {
+    if (route.request().method() === "GET") {
+      return route.fulfill({ json: {
+        gymId: user.gymId,
+        businessDate: "2026-09-21",
+        orderId: null,
+        totalCents: 0,
+        locked: false,
+        lockedAt: null,
+        updatedAt: null,
+        items: [],
+      } });
+    }
+    assert.equal(route.request().method(), "PUT");
+    return route.fulfill({ json: { ok: true } });
+  });
+
   await page.goto(origin + "/staff/bar");
-  const barName = page.getByRole("textbox", { name: "Bar Staff name" });
-  await barName.waitFor({ state: "visible", timeout: 15000 });
-  await barName.fill("Bar Staff");
-  await barName.focus();
+  const productSearch = page.getByRole("textbox", { name: "Find Bar product" });
+  await productSearch.waitFor({ state: "visible", timeout: 15000 });
+  await productSearch.fill("Water");
+  await productSearch.focus();
   await sendConfiguredScan("BGM0000777");
-  await page.getByRole("dialog", { name: "ACCESS GRANTED" }).waitFor({ state: "visible" });
-  assert.equal(await barName.inputValue(), "Bar Staff");
+  let granted = page.getByRole("dialog", { name: "ACCESS GRANTED" });
+  await granted.waitFor({ state: "visible", timeout: 15000 });
+  assert.equal(await productSearch.inputValue(), "Water",
+    "Configured scanner must not corrupt Bar product search");
   await page.screenshot({ path: artifacts + "/bar-granted.png" });
-  await page.getByRole("dialog", { name: "ACCESS GRANTED" })
-    .getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
-  // Ordinary unprogrammed keyboard-wedge: no F9 prefix, scanner sends code + Enter.
-  // The Staff name must remain byte-for-byte unchanged, including React state.
-  await barName.fill("Bar Staff");
-  await barName.focus();
+  await granted.getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
+
+  // Ordinary unprogrammed keyboard-wedge: scanner sends code + Enter.
+  await productSearch.fill("Water");
+  await productSearch.focus();
   await page.keyboard.type("BGM0000777", { delay: 4 });
   await page.keyboard.press("Enter");
-  const unprogrammed = page.getByRole("dialog", { name: "ACCESS GRANTED" });
-  await unprogrammed.waitFor({ state: "visible" });
-  assert.equal(await barName.inputValue(), "Bar Staff",
-    "Unprogrammed scanner must not append a barcode to Staff name");
-  await unprogrammed.getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
-  assert.equal(await barName.inputValue(), "Bar Staff",
-    "Controlled Staff name must still be intact after closing result");
-  assert.equal(await barName.evaluate(input => document.activeElement === input), true,
-    "Scanner must restore focus to the Staff name field");
+  granted = page.getByRole("dialog", { name: "ACCESS GRANTED" });
+  await granted.waitFor({ state: "visible" });
+  assert.equal(await productSearch.inputValue(), "Water",
+    "Unprogrammed scanner must not append a barcode to Bar product search");
+  await granted.getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
+  assert.equal(await productSearch.inputValue(), "Water");
+  assert.equal(await productSearch.evaluate((input) => document.activeElement === input), true,
+    "Scanner must restore focus to the Bar field that Staff were using");
 
-  // Real-world TEST card formats: six-character letter-and-digits and eight digits.
-  // Both unprogrammed scans must be recognised without touching the Staff form.
+  // Real-world TEST card formats must be recognised without touching Staff UI.
   for (const barcode of ["X06956", "59060154"]) {
-    await barName.fill("Bar Staff");
-    await barName.focus();
+    await productSearch.fill("Water");
+    await productSearch.focus();
     await page.keyboard.type(barcode, { delay: 4 });
     await page.keyboard.press("Enter");
     const cardResult = page.getByRole("dialog", { name: "ACCESS GRANTED" });
     await cardResult.waitFor({ state: "visible" });
-    assert.equal(await barName.inputValue(), "Bar Staff",
-      "Scanner appended a " + barcode.length + "-character card to Staff name");
+    assert.equal(await productSearch.inputValue(), "Water",
+      "Scanner appended a " + barcode.length + "-character card to Bar product search");
     await cardResult.getByText(barcode, { exact: true }).first().waitFor();
     await cardResult.getByRole("button", { name: "Close / Return to Staff Task" }).click();
-    assert.equal(await barName.inputValue(), "Bar Staff");
   }
 
-  // Six ordinary letters, even if entered quickly and followed by Enter,
-  // must remain in the form rather than being mistaken for the short card format.
-  await barName.fill("");
-  await barName.focus();
+  // Ordinary fast typing is still ordinary form input, not a short-card scan.
+  await productSearch.fill("");
+  await productSearch.focus();
   await page.keyboard.type("Manuel", { delay: 4 });
   await page.keyboard.press("Enter");
-  assert.equal(await barName.inputValue(), "Manuel");
+  assert.equal(await productSearch.inputValue(), "Manuel");
   assert.equal(await page.getByRole("dialog", { name: "ACCESS GRANTED" }).count(), 0);
 
-  // A person typing normally without Enter must never cause a scan. Fast typing
-  // held in the scanner candidate buffer must be replayed into the form.
-  await barName.fill("");
-  await barName.focus();
-  await page.keyboard.type("Leli Apap", { delay: 50 });
+  await productSearch.fill("");
+  await productSearch.focus();
+  await page.keyboard.type("Water", { delay: 50 });
   await page.waitForTimeout(220);
-  assert.equal(await barName.inputValue(), "Leli Apap");
+  assert.equal(await productSearch.inputValue(), "Water");
   assert.equal(await page.getByRole("dialog", { name: "ACCESS GRANTED" }).count(), 0);
 
-  // Card assignment and renewal must take precedence over the global
-  // entrance reader. A dedicated focused card field receives the scanner
-  // keyboard input and Enter; no access scan should be submitted.
+  // Dedicated assignment/renewal scanner fields always take precedence over
+  // the global entrance reader.
   const assignedBefore = scans;
-  const assignmentInput = await page.evaluate(() => {
+  await page.evaluate(() => {
     const input = document.createElement("input");
     input.setAttribute("data-bgm-scan-input", "true");
     input.setAttribute("aria-label", "Membership assignment scanner input");
     input.placeholder = "Scanner input";
     document.body.appendChild(input);
     input.focus();
-    return true;
   });
-  assert.equal(assignmentInput, true);
   const focusedAssignment = page.getByRole("textbox", { name: "Membership assignment scanner input" });
   await page.keyboard.type("X06956", { delay: 4 });
   await page.keyboard.press("Enter");
   assert.equal(await focusedAssignment.inputValue(), "X06956",
-    "The global reader must let the selected membership scanner input receive the entire card");
+    "Global reader must let a dedicated membership scanner input receive the entire card");
   assert.equal(scans, assignedBefore,
-    "A dedicated enrollment scanner input must NOT cause an entrance-access check");
+    "Dedicated enrollment scanner input must NOT cause an entrance-access check");
   assert.equal(await page.getByRole("dialog", { name: "ACCESS GRANTED" }).count(), 0);
   await focusedAssignment.evaluate((input) => input.remove());
 
-  // Outside a dedicated card field, the same physical code should again
-  // trigger global entrance verification as expected.
-  await barName.fill("Bar Staff");
-  await barName.focus();
+  // Outside the dedicated field, the same card resumes entrance verification.
+  await productSearch.fill("Water");
+  await productSearch.focus();
   await page.keyboard.type("X06956", { delay: 4 });
   await page.keyboard.press("Enter");
-  await page.getByRole("dialog", { name: "ACCESS GRANTED" }).waitFor();
-  await page.getByRole("dialog", { name: "ACCESS GRANTED" })
-    .getByRole("button", { name: "Close / Return to Staff Task" }).click();
-  assert.equal(await barName.inputValue(), "Bar Staff",
-    "Focused Staff fields must still be protected after a card assignment");
+  granted = page.getByRole("dialog", { name: "ACCESS GRANTED" });
+  await granted.waitFor({ state: "visible" });
+  await granted.getByRole("button", { name: "Close / Return to Staff Task" }).click();
+  assert.equal(await productSearch.inputValue(), "Water");
 
-  // Regression: barcode scans when a number/quantity input is focused must
-  // NEVER modify the quantity, its React state or the calculated Bar total.
+  // Barcode scans with a number/quantity input focused must never alter the
+  // quantity, React state, or calculated live Bar total.
+  await productSearch.fill("Water");
   const barQuantity = page.getByRole("spinbutton", { name: "Water 500 ml quantity" });
   await barQuantity.fill("4");
-  await page.waitForTimeout(200);
-  const totalBeforeNumericScans = await page.getByLabel("Total Sales calculated").textContent();
+  await page.waitForTimeout(450);
+  const totalBeforeNumericScans = await page.getByLabel("Bar total for today").textContent();
   for (const barcode of ["X06956", "59060154"]) {
     await barQuantity.focus();
     await page.keyboard.type(barcode, { delay: 4 });
@@ -249,47 +261,29 @@ try {
     const numericResult = page.getByRole("dialog", { name: "ACCESS GRANTED" });
     await numericResult.waitFor({ state: "visible" });
     assert.equal(await barQuantity.inputValue(), "4",
-      "Barcode " + barcode + " must not enter focused quantity input");
+      "Barcode " + barcode + " must not enter focused Bar quantity input");
     await numericResult.getByRole("button", { name: "Close / Return to Staff Task" }).click();
-    assert.equal(await barQuantity.inputValue(), "4",
-      "Bar quantity must still be four after closing scanned member result");
-    assert.equal(await page.getByLabel("Total Sales calculated").textContent(),
-      totalBeforeNumericScans, "Scan must not change the Bar total or quantity state");
+    assert.equal(await barQuantity.inputValue(), "4");
+    assert.equal(await page.getByLabel("Bar total for today").textContent(), totalBeforeNumericScans,
+      "Scan must not change the live Bar total or quantity state");
   }
 
-  // Ordinary human quantity typing must be replayed and still update React
-  // after the short buffered scanner-detection interval.
+  // Human quantity typing must still work after the scanner checks.
   await barQuantity.fill("");
   await barQuantity.focus();
   await page.keyboard.type("2", { delay: 40 });
   await page.waitForTimeout(260);
   assert.equal(await barQuantity.inputValue(), "2",
-    "A single normally typed quantity digit must be retained");
+    "A normally typed quantity digit must be retained");
   await barQuantity.fill("4");
   await page.waitForTimeout(100);
-  assert.equal(await page.getByLabel("Total Sales calculated").textContent(),
-    totalBeforeNumericScans, "Quantity must still be editable after scanning");
+  assert.equal(await page.getByLabel("Bar total for today").textContent(), totalBeforeNumericScans,
+    "Bar quantity must remain editable after scanning");
 
-  // Reliable one-click fallback for unusual fields or scanner timing.
-
-  await barName.fill("Bar Staff");
-  const barCash = page.getByRole("spinbutton", { name: /total cash found/i });
-  if (await barCash.count()) {
-    await barCash.fill("15");
-    await barCash.focus();
-    await page.getByRole("button", { name: "Scan card", exact: true }).click();
-    const manualDialog = page.getByRole("dialog", { name: "Scan card" });
-    await manualDialog.getByPlaceholder("Scan or enter card barcode").fill("BGM0000777");
-    await manualDialog.getByRole("button", { name: "Verify card" }).click();
-    await page.getByRole("dialog", { name: "ACCESS GRANTED" }).waitFor();
-    assert.equal(await barCash.inputValue(), "15", "Manual scan must not alter cash amount");
-    await page.getByRole("dialog", { name: "ACCESS GRANTED" })
-      .getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
-  }
-  assert.equal(scans, (await barCash.count()) ? 10 : 9, "Every submitted scan must be verified exactly once");
+  assert.equal(scans, 9, "Every submitted scan must be verified exactly once");
   assert.deepEqual(pageErrors, [], "Global scanner must not trigger browser errors");
-  console.log("PASS global scanner verifies active and expired cards across Sundries and Bar without losing Staff form input");
+  console.log("PASS global scanner preserves Sundries and live Bar controls while verifying cards");
 } finally {
-  if (browser) await browser.close();
+  if (browser) await browser.close().catch(() => {});
   server.kill("SIGTERM");
 }
