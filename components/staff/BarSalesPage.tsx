@@ -88,7 +88,7 @@ export default function BarSalesPage() {
       expectedPriceCents: item.priceCents,
       lineTotalCents: (item.priceCents || 0) * quantities[item.id],
     })), [activeProducts, quantities]);
-  const chosenExtras = extras.filter((item) => item.quantity > 0);
+  const chosenExtras = useMemo(() => extras.filter((item) => item.quantity > 0), [extras]);
   const invalidExtras = chosenExtras.some((item) => !item.name.trim() || parseEuroCents(item.price) === null);
   const totalCents = selectedItems.reduce((sum, item) => sum + item.lineTotalCents, 0)
     + chosenExtras.reduce((sum, item) => sum + item.quantity * (parseEuroCents(item.price) || 0), 0);
