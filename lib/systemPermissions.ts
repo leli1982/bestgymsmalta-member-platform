@@ -18,6 +18,7 @@ export const SYSTEM_PERMISSION_KEYS = [
   "orders.bar.submit",
   "orders.bar.history",
   "orders.manage",
+  "end_of_day.submit",
   "announcements.manage",
   "analytics.view",
   "members.import",
@@ -42,6 +43,7 @@ export const GYM_STAFF_PERMISSIONS = [
   "barcode.scan",
   "orders.sundries.submit",
   "orders.bar.submit",
+  "end_of_day.submit",
 ] as const satisfies readonly SystemPermissionKey[];
 
 export const GYM_MANAGER_PERMISSIONS = [

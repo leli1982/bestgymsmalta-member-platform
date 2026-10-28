@@ -14,7 +14,7 @@ test("normalizes shared gym usernames consistently", () => {
 });
 
 test("declares the Phase 2 granular permission vocabulary", () => {
-  const required = ["members.view","members.create","members.edit","members.renew","members.photos.view","members.photos.capture","membership.activate","cards.assign","cards.replace","nfc.scan","nfc.assign","nfc.replace","barcode.scan","checkins.view","orders.sundries.submit","orders.sundries.history","orders.bar.submit","orders.bar.history","orders.manage","announcements.manage","analytics.view","members.import","members.export","members.archive","gyms.manage","system_users.manage","offline_roster.view"];
+  const required = ["members.view","members.create","members.edit","members.renew","members.photos.view","members.photos.capture","membership.activate","cards.assign","cards.replace","nfc.scan","nfc.assign","nfc.replace","barcode.scan","checkins.view","orders.sundries.submit","orders.sundries.history","orders.bar.submit","orders.bar.history","orders.manage","end_of_day.submit","announcements.manage","analytics.view","members.import","members.export","members.archive","gyms.manage","system_users.manage","offline_roster.view"];
   for (const key of required) {
     assert.equal(SYSTEM_PERMISSION_KEYS.includes(key), true, key);
     assert.equal(isSystemPermissionKey(key), true, key);
@@ -23,7 +23,7 @@ test("declares the Phase 2 granular permission vocabulary", () => {
 });
 
 test("Gym Staff role contains only the approved daily operational bundle", () => {
-  for (const required of ["members.view","members.create","members.renew","members.photos.view","members.photos.capture","membership.activate","cards.assign","cards.replace","barcode.scan","orders.sundries.submit","orders.bar.submit"]) {
+  for (const required of ["members.view","members.create","members.renew","members.photos.view","members.photos.capture","membership.activate","cards.assign","cards.replace","barcode.scan","orders.sundries.submit","orders.bar.submit","end_of_day.submit"]) {
     assert.equal(GYM_STAFF_PERMISSIONS.includes(required), true, required);
   }
   for (const forbidden of ["analytics.view","system_users.manage","members.import","members.export","orders.sundries.history","orders.bar.history","orders.manage","announcements.manage","gyms.manage","offline_roster.view"]) {
