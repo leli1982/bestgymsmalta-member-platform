@@ -48,21 +48,10 @@ function MaltaClock() {
     return () => window.clearInterval(interval);
   }, []);
 
-  return (
-    <span suppressHydrationWarning>
-      {formatEuropeanDateTime(now, "")}
-    </span>
-  );
+  return <span suppressHydrationWarning>{formatEuropeanDateTime(now, "")}</span>;
 }
 
-function Tile({
-  label,
-  icon: Icon,
-  href,
-  onClick,
-  badge,
-  disabled = false,
-}: {
+function Tile({ label, icon: Icon, href, onClick, badge, disabled = false }: {
   label: string;
   icon: typeof UsersRound;
   href?: string;
@@ -74,17 +63,12 @@ function Tile({
     <>
       <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-950 text-white">
         <Icon className="h-7 w-7" strokeWidth={2.2} />
-        {badge && (
-          <span className="absolute -right-3 -top-3 rounded-full bg-[#ff5a0a] px-2 py-1 text-[10px] font-black text-white shadow-sm">
-            {badge}
-          </span>
-        )}
+        {badge && <span className="absolute -right-3 -top-3 rounded-full bg-[#ff5a0a] px-2 py-1 text-[10px] font-black text-white shadow-sm">{badge}</span>}
       </span>
       <span className="mt-3 text-center text-sm font-black leading-tight text-zinc-950">{label}</span>
     </>
   );
   const cls = `group flex min-h-32 flex-col items-center justify-center rounded-3xl border bg-white p-4 shadow-sm transition ${disabled ? "cursor-not-allowed border-zinc-200 opacity-45" : "border-zinc-200 hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-md"}`;
-
   if (disabled) return <div className={cls}>{content}</div>;
   if (href) return <a href={href} aria-label={label} className={cls}>{content}</a>;
   return <button type="button" aria-label={label} onClick={onClick} className={cls}>{content}</button>;
@@ -97,14 +81,8 @@ export default function StaffDashboard({ user, onLogout }: Props) {
   const [memberFocusToken, setMemberFocusToken] = useState(0);
   const [membersOpen, setMembersOpen] = useState(false);
 
-  const can = useCallback(
-    (permission: string) => user.isSuperAdmin || user.permissions.includes(permission),
-    [user.isSuperAdmin, user.permissions]
-  );
-
-  const signalQueueRefresh = useCallback(() => {
-    setQueueRefreshToken((value) => value + 1);
-  }, []);
+  const can = useCallback((permission: string) => user.isSuperAdmin || user.permissions.includes(permission), [user.isSuperAdmin, user.permissions]);
+  const signalQueueRefresh = useCallback(() => setQueueRefreshToken((value) => value + 1), []);
 
   const realtimeLabel = useMemo(() => {
     if (!user.gymId) return "Network view";
@@ -117,12 +95,7 @@ export default function StaffDashboard({ user, onLogout }: Props) {
   function focusMembers() {
     setMembersOpen(true);
     setMemberFocusToken((value) => value + 1);
-    window.setTimeout(() => {
-      document.getElementById("staff-members")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 0);
+    window.setTimeout(() => document.getElementById("staff-members")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
 
   function focusWaiting() {
@@ -134,39 +107,18 @@ export default function StaffDashboard({ user, onLogout }: Props) {
 
   return (
     <main className="min-h-screen bg-[#f6f6f6] text-zinc-950">
-      {user.gymId && (
-        <StaffRealtimeBridge
-          onQueueChanged={signalQueueRefresh}
-          onConnectionChange={(connected) => setRealtimeStatus(connected ? "connected" : "disconnected")}
-        />
-      )}
+      {user.gymId && <StaffRealtimeBridge onQueueChanged={signalQueueRefresh} onConnectionChange={(connected) => setRealtimeStatus(connected ? "connected" : "disconnected")} />}
       <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
         <header className="rounded-3xl border border-zinc-200 bg-white px-5 py-4 shadow-sm sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ff5a0a] text-white">
-                <Dumbbell className="h-7 w-7" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff5a0a]">BestGymsMalta Staff</p>
-                <h1 className="truncate text-xl font-black tracking-tight sm:text-2xl">{user.displayName}</h1>
-                <p className="mt-0.5 text-xs font-semibold text-zinc-400"><MaltaClock /></p>
-              </div>
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ff5a0a] text-white"><Dumbbell className="h-7 w-7" /></span>
+              <div className="min-w-0"><p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff5a0a]">BestGymsMalta Staff</p><h1 className="truncate text-xl font-black tracking-tight sm:text-2xl">{user.displayName}</h1><p className="mt-0.5 text-xs font-semibold text-zinc-400"><MaltaClock /></p></div>
             </div>
-
             <div className="flex flex-wrap items-center justify-end gap-2">
-              {queueCount > 0 && (
-                <button type="button" onClick={focusWaiting} className="rounded-full bg-[#ff5a0a] px-3 py-2 text-xs font-black text-white">
-                  {queueCount} WAITING
-                </button>
-              )}
-              <span className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-bold ${realtimeStatus === "connected" ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-600"}`}>
-                <span className={`h-2 w-2 rounded-full ${realtimeStatus === "connected" ? "bg-emerald-500" : "bg-zinc-400"}`} />
-                {realtimeLabel}
-              </span>
-              <button type="button" onClick={() => void onLogout()} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-bold text-zinc-700 hover:bg-zinc-50">
-                <LogOut className="h-4 w-4" /> Log Out
-              </button>
+              {queueCount > 0 && <button type="button" onClick={focusWaiting} className="rounded-full bg-[#ff5a0a] px-3 py-2 text-xs font-black text-white">{queueCount} WAITING</button>}
+              <span className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-bold ${realtimeStatus === "connected" ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-600"}`}><span className={`h-2 w-2 rounded-full ${realtimeStatus === "connected" ? "bg-emerald-500" : "bg-zinc-400"}`} />{realtimeLabel}</span>
+              <button type="button" onClick={() => void onLogout()} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-bold text-zinc-700 hover:bg-zinc-50"><LogOut className="h-4 w-4" /> Log Out</button>
             </div>
           </div>
         </header>
@@ -174,95 +126,26 @@ export default function StaffDashboard({ user, onLogout }: Props) {
         <StaffHomeScanner user={user} />
 
         <section className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
-          <Tile
-            label="Members"
-            icon={UsersRound}
-            onClick={focusMembers}
-            disabled={!can("members.view")}
-          />
-          <Tile
-            label="New Member"
-            icon={UserPlus}
-            href="/staff/members/enroll?kind=new"
-            disabled={!canCreateMembership}
-          />
-          <Tile
-            label="Renew"
-            icon={RefreshCw}
-            href="/staff/members/enroll?kind=renewal"
-            disabled={!canRenewMembership}
-          />
-          <Tile
-            label="Waiting"
-            icon={Bell}
-            onClick={focusWaiting}
-            badge={queueCount > 0 ? String(queueCount) : undefined}
-          />
-          <Tile
-            label="Reception Tools"
-            icon={Barcode}
-            href="/staff/reception"
-            disabled={!can("barcode.scan")}
-          />
-          <Tile
-            label="Sundries"
-            icon={Boxes}
-            href="/staff/sundries"
-            disabled={!can("orders.sundries.submit")}
-          />
-          <Tile
-            label="Bar"
-            icon={Beer}
-            href="/staff/bar"
-            disabled={!can("orders.bar.submit")}
-          />
+          <Tile label="Members" icon={UsersRound} onClick={focusMembers} disabled={!can("members.view")} />
+          <Tile label="New Member" icon={UserPlus} href="/staff/members/enroll?kind=new" disabled={!canCreateMembership} />
+          <Tile label="Renew" icon={RefreshCw} href="/staff/members/enroll?kind=renewal" disabled={!canRenewMembership} />
+          <Tile label="Waiting" icon={Bell} onClick={focusWaiting} badge={queueCount > 0 ? String(queueCount) : undefined} />
+          <Tile label="Reception Tools" icon={Barcode} href="/staff/reception" disabled={!can("barcode.scan")} />
+          <Tile label="Sundries" icon={Boxes} href="/staff/sundries" disabled={!can("orders.sundries.submit")} />
+          <Tile label="Bar" icon={Beer} href="/staff/bar" disabled={!can("orders.bar.submit")} />
+          {!user.isSuperAdmin && <Tile label="End of Day" icon={ClipboardList} href="/staff/end-of-day" disabled={!can("end_of_day.submit")} />}
           <Tile label="Punch Clock" icon={Clock3} disabled />
-          {user.isSuperAdmin && (
-            <Tile
-              label="Super Admin"
-              icon={LayoutDashboard}
-              href="/staff/admin"
-            />
-          )}
-          {user.isSuperAdmin && (
-            <Tile
-              label="Operations"
-              icon={ClipboardList}
-              href="/staff/operations"
-            />
-          )}
-          {user.isSuperAdmin && (
-            <Tile
-              label="Membership Settings"
-              icon={Settings2}
-              href="/staff/membership-settings"
-            />
-          )}
+          {user.isSuperAdmin && <Tile label="Super Admin" icon={LayoutDashboard} href="/staff/admin" />}
+          {user.isSuperAdmin && <Tile label="Operations" icon={ClipboardList} href="/staff/operations" />}
+          {user.isSuperAdmin && <Tile label="Membership Settings" icon={Settings2} href="/staff/membership-settings" />}
         </section>
 
-        <div className="mt-5">
-          <StaffMembershipQueue
-            refreshToken={queueRefreshToken}
-            onCountChange={setQueueCount}
-            compact
-          />
-        </div>
+        <div className="mt-5"><StaffMembershipQueue refreshToken={queueRefreshToken} onCountChange={setQueueCount} compact /></div>
 
         {membersOpen && (
           <div className="mt-5">
-            <div className="mb-3 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setMembersOpen(false)}
-                className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-bold text-zinc-600 shadow-sm hover:bg-zinc-50"
-              >
-                <X className="h-4 w-4" /> Close Members
-              </button>
-            </div>
-            <StaffMemberBrowser
-              focusToken={memberFocusToken}
-              canRenew={canRenewMembership}
-            />
+            <div className="mb-3 flex justify-end"><button type="button" onClick={() => setMembersOpen(false)} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-bold text-zinc-600 shadow-sm hover:bg-zinc-50"><X className="h-4 w-4" /> Close Members</button></div>
+            <StaffMemberBrowser focusToken={memberFocusToken} canRenew={canRenewMembership} />
           </div>
         )}
       </div>

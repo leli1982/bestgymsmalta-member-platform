@@ -66,24 +66,36 @@ export default function JoinEnrollmentPage({ gymSlug }: Props) {
 
   useEffect(() => {
     setOnline(navigator.onLine);
-    const wentOnline = () => setOnline(true);
-    const wentOffline = () => setOnline(false);
+    const wentOnline = () => {
+      setOnline(true);
+      void loadConfig();
+    };
+    const wentOffline = () => {
+      setOnline(false);
+      setLoading(false);
+    };
     window.addEventListener("online", wentOnline);
     window.addEventListener("offline", wentOffline);
     return () => {
       window.removeEventListener("online", wentOnline);
       window.removeEventListener("offline", wentOffline);
     };
-  }, []);
+  }, [loadConfig]);
 
   useEffect(() => {
-    void loadConfig();
+    if (navigator.onLine) {
+      void loadConfig();
+    } else {
+      setOnline(false);
+      setLoading(false);
+      setLoadError("");
+    }
   }, [loadConfig]);
 
   async function submitApplication(draft: RegistrationDraft) {
     if (!navigator.onLine) {
       throw new Error(
-        "No internet connection. Your form is still on this screen. Reconnect and try again.",
+        "No internet connection. Please speak to our staff at the front desk and they will enroll you.",
       );
     }
 
@@ -111,8 +123,9 @@ export default function JoinEnrollmentPage({ gymSlug }: Props) {
         body: formData,
       });
     } catch {
+      setOnline(false);
       throw new Error(
-        "The application could not reach the server. Your form is still here—check the connection and try again.",
+        "The system is offline. Please speak to our staff at the front desk and they will enroll you.",
       );
     }
 
@@ -153,21 +166,32 @@ export default function JoinEnrollmentPage({ gymSlug }: Props) {
         </div>
       </header>
 
-      {!online && (
-        <div className="border-b border-amber-300 bg-amber-100 px-5 py-3 text-center text-sm font-bold text-amber-950">
-          You are offline. Keep this page open—your application has not been submitted.
-        </div>
-      )}
-
       <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
-        {loading && (
+        {!online && (
+          <section className="rounded-3xl border-2 border-red-300 bg-white p-7 text-center shadow-lg sm:p-10" role="alert">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-3xl font-black text-red-700">
+              !
+            </div>
+            <p className="mt-5 text-xs font-black uppercase tracking-[0.2em] text-red-700">
+              SYSTEM OFFLINE
+            </p>
+            <h1 className="mx-auto mt-2 max-w-2xl text-3xl font-black text-zinc-950">
+              Membership registration is temporarily unavailable on this tablet.
+            </h1>
+            <p className="mx-auto mt-4 max-w-2xl text-base font-semibold leading-7 text-zinc-700">
+              Please speak to our staff at the front desk and they will enroll you.
+            </p>
+          </section>
+        )}
+
+        {online && loading && (
           <section className="rounded-3xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
             <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-zinc-200 border-t-zinc-950" />
             <p className="mt-4 font-bold text-zinc-700">Loading membership registration…</p>
           </section>
         )}
 
-        {!loading && loadError && (
+        {online && !loading && loadError && (
           <section className="rounded-3xl border border-red-200 bg-white p-7 text-center shadow-sm">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-red-600">
               Registration unavailable
@@ -186,7 +210,7 @@ export default function JoinEnrollmentPage({ gymSlug }: Props) {
           </section>
         )}
 
-        {!loading && config && !success && (
+        {online && !loading && config && !success && (
           <>
             <section className="mb-5 rounded-3xl bg-zinc-950 p-6 text-white shadow-lg">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">
@@ -208,7 +232,7 @@ export default function JoinEnrollmentPage({ gymSlug }: Props) {
           </>
         )}
 
-        {!loading && config && success && (
+        {online && !loading && config && success && (
           <section className="rounded-3xl border border-emerald-200 bg-white p-7 shadow-lg sm:p-10">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl font-black text-emerald-700">
               ✓

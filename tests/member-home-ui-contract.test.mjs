@@ -62,7 +62,8 @@ test("primary and secondary home tools use the approved 3 plus 4 tile layout", (
   assert.match(tools, /Passport/);
   assert.match(tools, /Story Creator/);
   assert.match(tools, /Gyms/);
-  assert.match(tools, /Announcements/);
+  assert.match(tools, /News/);
+  assert.match(tools, /#announcements/);
 });
 
 test("home membership card is the compact strip with the round BGM mark", () => {
