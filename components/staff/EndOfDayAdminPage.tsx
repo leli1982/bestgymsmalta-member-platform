@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, ChevronDown, ChevronUp, RefreshCcw } from "lucide-react";
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
 import { formatBarEuro } from "@/lib/barSalesCore";
+import { todayMaltaDate } from "@/lib/maltaDate";
 
 type Gym = { id: string; name: string; status?: string };
 type ReportRow = {
@@ -59,17 +61,19 @@ export default function EndOfDayAdminPage() {
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [gymId, setGymId] = useState("");
+  const [businessDate, setBusinessDate] = useState(() => todayMaltaDate());
   const [openId, setOpenId] = useState("");
   const [details, setDetails] = useState<Record<string, ReportDetail>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadReports = useCallback(async (filterGymId = "") => {
+  const loadReports = useCallback(async (filterGymId = "", filterBusinessDate = "") => {
     setLoading(true);
     setError("");
     try {
       const query = new URLSearchParams({ admin: "1" });
       if (filterGymId) query.set("gymId", filterGymId);
+      if (filterBusinessDate) query.set("businessDate", filterBusinessDate);
       const response = await fetch(`/api/system/end-of-day?${query.toString()}`, { cache: "no-store" });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Could not load End of Day reports.");
@@ -91,7 +95,7 @@ export default function EndOfDayAdminPage() {
       } catch {
         // Report rows still carry the gym name even if the filter list fails.
       }
-      if (active) await loadReports("");
+      if (active) await loadReports("", todayMaltaDate());
     })();
     return () => { active = false; };
   }, [loadReports]);
@@ -120,14 +124,25 @@ export default function EndOfDayAdminPage() {
           <a href="/staff/admin" className="inline-flex items-center gap-2 text-sm font-black text-orange-700"><ArrowLeft className="h-4 w-4" /> Super Admin</a>
           <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
             <div><p className="text-xs font-black uppercase tracking-widest text-[#ff5a0a]">BestGymsMalta · Operations</p><h1 className="text-3xl font-black">End of Day</h1><p className="mt-1 text-sm text-zinc-600">Submitted daily reports from all gyms.</p></div>
-            <button type="button" onClick={() => void loadReports(gymId)} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-3 text-sm font-black"><RefreshCcw className="h-4 w-4" /> Refresh</button>
+            <button type="button" onClick={() => void loadReports(gymId, businessDate)} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-3 text-sm font-black"><RefreshCcw className="h-4 w-4" /> Refresh</button>
           </div>
-          <label className="mt-5 block max-w-md text-sm font-black">Filter by gym
-            <select aria-label="End of Day gym filter" value={gymId} onChange={(event) => { const next = event.target.value; setGymId(next); setOpenId(""); void loadReports(next); }} className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950">
-              <option value="">All gyms</option>
-              {gyms.map((gym) => <option key={gym.id} value={gym.id}>{gym.name}</option>)}
-            </select>
-          </label>
+          <div className="mt-5 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
+            <label className="block text-sm font-black">Filter by gym
+              <select aria-label="End of Day gym filter" value={gymId} onChange={(event) => { const next = event.target.value; setGymId(next); setOpenId(""); void loadReports(next, businessDate); }} className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950">
+                <option value="">All gyms</option>
+                {gyms.map((gym) => <option key={gym.id} value={gym.id}>{gym.name}</option>)}
+              </select>
+            </label>
+            <label className="block text-sm font-black">Filter by date
+              <EuropeanDateInput
+                ariaLabel="End of Day date filter"
+                value={businessDate}
+                onValueChange={(next) => { setBusinessDate(next); setOpenId(""); void loadReports(gymId, next); }}
+                className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950"
+              />
+            </label>
+            <button type="button" onClick={() => { setGymId(""); setBusinessDate(""); setOpenId(""); void loadReports("", ""); }} className="rounded-xl border border-zinc-200 px-4 py-3 text-sm font-black">Clear filters</button>
+          </div>
         </header>
 
         {error && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</div>}
