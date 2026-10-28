@@ -184,7 +184,7 @@ async function adminGet(request: NextRequest) {
   const reportsResult = await query;
   if (reportsResult.error) throw reportsResult.error;
 
-  const gymIds = [...new Set((reportsResult.data || []).map((row) => String(row.gym_id)))];
+  const gymIds = Array.from(new Set((reportsResult.data || []).map((row) => String(row.gym_id))));
   const gymsResult = gymIds.length
     ? await supabase.from("bgm_gyms").select("id,name,short_name").in("id", gymIds)
     : { data: [], error: null } as any;

@@ -88,7 +88,7 @@ export function calculateEndOfDayTotals(
   return {
     memberships,
     renewals,
-    vouchers: [...vouchers.values()].sort((a, b) => a.voucherCode.localeCompare(b.voucherCode)),
+    vouchers: Array.from(vouchers.values()).sort((a, b) => a.voucherCode.localeCompare(b.voucherCode)),
     voucherReimbursementCents,
     barSalesCents,
     expensesTotalCents,
