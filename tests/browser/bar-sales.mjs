@@ -90,6 +90,7 @@ try {
         lineTotalCents: unitPriceCents * entry.quantity,
       };
     });
+    await new Promise((resolve) => setTimeout(resolve, 200));
     return route.fulfill({ json: {
       ok: true,
       sheet: {
