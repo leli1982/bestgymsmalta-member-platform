@@ -52,6 +52,9 @@ try {
     lineTotalCents: 300,
   }];
   let putCount = 0;
+  let releasePutResponse = null;
+  let markPutStarted = null;
+  const putStarted = new Promise((resolve) => { markPutStarted = resolve; });
 
   await context.route("**/api/system/auth", (route) => route.fulfill({ json: { authenticated: true, user: staff } }));
   await context.route("**/api/gyms", (route) => route.fulfill({ json: { gyms: [gym] } }));
@@ -90,7 +93,8 @@ try {
         lineTotalCents: unitPriceCents * entry.quantity,
       };
     });
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    markPutStarted?.();
+    await new Promise((resolve) => { releasePutResponse = resolve; });
     return route.fulfill({ json: {
       ok: true,
       sheet: {
@@ -127,9 +131,11 @@ try {
   assert.ok((await page.getByLabel("Bar total for today").textContent()).includes("3.00"));
 
   await page.getByRole("button", { name: "Increase Water 500ml" }).click();
+  await putStarted;
   await page.getByText("Saving…", { exact: true }).waitFor({ state: "visible", timeout: 5000 });
+  assert.equal(putCount, 1, "+ automatically saves the live daily sheet exactly once");
+  releasePutResponse?.();
   await page.getByText("Saved", { exact: true }).waitFor({ state: "visible", timeout: 5000 });
-  assert.equal(putCount, 1, "+ automatically saves the live daily sheet");
   assert.equal(savedEntries[0].quantity, 3);
   assert.ok((await page.getByLabel("Bar total for today").textContent()).includes("4.50"));
 
