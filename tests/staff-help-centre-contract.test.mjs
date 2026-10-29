@@ -28,3 +28,8 @@ test("Full Staff Help page reuses the same help source", () => {
   assert.match(manual, /searchStaffHelpTopics/);
   assert.match(manual, /\/api\/system\/auth/);
 });
+
+test("Global Help avoids useSearchParams in the shared Staff layout", () => {
+  const source = read("components/staff/StaffHelpCentre.tsx");
+  assert.doesNotMatch(source, /useSearchParams/);
+});
