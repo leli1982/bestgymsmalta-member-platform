@@ -23,10 +23,10 @@ test("declares the Phase 2 granular permission vocabulary", () => {
 });
 
 test("Gym Staff role contains only the approved daily operational bundle", () => {
-  for (const required of ["members.view","members.create","members.renew","members.photos.view","members.photos.capture","membership.activate","cards.assign","cards.replace","barcode.scan","orders.sundries.submit","orders.bar.submit","end_of_day.submit"]) {
+  for (const required of ["members.view","members.create","members.renew","members.photos.view","members.photos.capture","membership.activate","cards.assign","cards.replace","barcode.scan","orders.sundries.submit","orders.bar.submit","end_of_day.submit","offline_roster.view"]) {
     assert.equal(GYM_STAFF_PERMISSIONS.includes(required), true, required);
   }
-  for (const forbidden of ["analytics.view","system_users.manage","members.import","members.export","orders.sundries.history","orders.bar.history","orders.manage","announcements.manage","gyms.manage","offline_roster.view"]) {
+  for (const forbidden of ["analytics.view","system_users.manage","members.import","members.export","orders.sundries.history","orders.bar.history","orders.manage","announcements.manage","gyms.manage"]) {
     assert.equal(GYM_STAFF_PERMISSIONS.includes(forbidden), false, forbidden);
   }
 });
