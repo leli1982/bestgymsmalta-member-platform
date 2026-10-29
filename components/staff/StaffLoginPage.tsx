@@ -229,5 +229,33 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
     );
   }
 
-  return <StaffDashboard user={user} onLogout={logout} offlineMode={offlineMode} />;
+  if (offlineMode) {
+    return (
+      <main className="min-h-screen bg-zinc-100 px-4 py-8 text-zinc-950">
+        <div className="mx-auto max-w-3xl space-y-5">
+          <header className="rounded-3xl border-2 border-red-300 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-red-600">BestGymsMalta Staff</p>
+                <h1 className="mt-1 text-2xl font-black">OFFLINE MODE</h1>
+                <p className="mt-2 text-sm text-zinc-600">Using the recent staff session saved on this computer for {user.displayName}. Live server tools are disabled until the connection returns.</p>
+              </div>
+              <span className="rounded-full bg-red-600 px-4 py-2 text-xs font-black text-white">NO NETWORK</span>
+            </div>
+          </header>
+
+          <section className="grid gap-3 sm:grid-cols-3">
+            <a href="/staff/offline" className="rounded-2xl border border-zinc-200 bg-white p-5 font-black shadow-sm">Emergency Member Lookup</a>
+            <a href="/staff/members/enroll?kind=new" className="rounded-2xl border border-zinc-200 bg-white p-5 font-black shadow-sm">New Member</a>
+            <a href="/staff/bar" className="rounded-2xl border border-zinc-200 bg-white p-5 font-black shadow-sm">Bar</a>
+          </section>
+
+          <p className="rounded-2xl bg-amber-50 p-4 text-sm font-semibold text-amber-900">Member search, renewals, reception scanning, Sundries, End of Day and other live-only tools stay blocked until the internet connection returns.</p>
+          <button type="button" onClick={() => void logout()} className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-bold">Log Out This Device</button>
+        </div>
+      </main>
+    );
+  }
+
+  return <StaffDashboard user={user} onLogout={logout} />;
 }
