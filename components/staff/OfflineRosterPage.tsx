@@ -23,18 +23,45 @@ export default function OfflineRosterPage() {
 
   async function loadLocal() {
     try {
-      setSnapshot(await loadOfflineRoster());
+      const next = await loadOfflineRoster();
+      setSnapshot(next);
+      return next;
     } catch {
       setSnapshot(null);
+      return null;
+    }
+  }
+
+  async function syncAndShow({ quiet = false }: { quiet?: boolean } = {}) {
+    if (!quiet) setSyncing(true);
+    if (!quiet) setMessage("");
+    try {
+      const next = await syncOfflineRoster();
+      setSnapshot({ id: "active-members", ...next });
+      if (!quiet) setMessage("Offline roster updated.");
+      return true;
+    } catch {
+      if (!quiet) setMessage("Could not refresh. The saved offline copy is still available.");
+      return false;
+    } finally {
+      if (!quiet) setSyncing(false);
     }
   }
 
   useEffect(() => {
-    setOnline(navigator.onLine);
+    const isOnline = navigator.onLine;
+    setOnline(isOnline);
     void registerStaffServiceWorker();
-    void loadLocal();
+    void (async () => {
+      const local = await loadLocal();
+      if (isOnline && !local) await syncAndShow({ quiet: true });
+    })();
 
-    const updateOnline = () => setOnline(navigator.onLine);
+    const updateOnline = () => {
+      const nextOnline = navigator.onLine;
+      setOnline(nextOnline);
+      if (nextOnline) void syncAndShow({ quiet: true });
+    };
     window.addEventListener("online", updateOnline);
     window.addEventListener("offline", updateOnline);
     return () => {
@@ -44,17 +71,7 @@ export default function OfflineRosterPage() {
   }, []);
 
   async function refresh() {
-    setSyncing(true);
-    setMessage("");
-    try {
-      const next = await syncOfflineRoster();
-      setSnapshot({ id: "active-members", ...next });
-      setMessage("Offline roster updated.");
-    } catch {
-      setMessage("Could not refresh. The saved offline copy is still available.");
-    } finally {
-      setSyncing(false);
-    }
+    await syncAndShow();
   }
 
   const results = useMemo(
@@ -84,7 +101,15 @@ export default function OfflineRosterPage() {
 
         {!snapshot ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-800">
-            No offline roster has been saved on this computer yet. Sign in while online and allow the first sync to complete.
+            <p>No offline roster has been saved on this computer yet.</p>
+            {online ? (
+              <button onClick={refresh} disabled={syncing} className="mt-4 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">
+                {syncing ? "Saving offline roster…" : "Save Offline Roster Now"}
+              </button>
+            ) : (
+              <p className="mt-2 text-sm">Reconnect to the internet and sign in once to save the first local copy.</p>
+            )}
+            {message && <p className="mt-3 text-sm">{message}</p>}
           </div>
         ) : (
           <>
