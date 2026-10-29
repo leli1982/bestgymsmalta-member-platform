@@ -60,6 +60,16 @@ test("recent non-admin staff session survives a hard refresh while offline", () 
   assert.match(login, /user\.isSuperAdmin \|\| user\.role === "super_admin"/);
 });
 
+test("Staff landing page prefers offline mode before cached API auth can mask an outage", () => {
+  const offlineGuard = login.indexOf("if (typeof navigator !== \"undefined\" && !navigator.onLine)");
+  const authFetch = login.indexOf('fetch("/api/system/auth", { cache: "no-store" })');
+  assert.notEqual(offlineGuard, -1);
+  assert.notEqual(authFetch, -1);
+  assert.ok(offlineGuard < authFetch);
+  assert.match(login, /const cached = loadOfflineSession\(expectedGym\?\.id \|\| null\)/);
+  assert.match(login, /setOfflineMode\(true\)/);
+});
+
 test("staff service worker precaches outage-safe routes and Bar APIs", () => {
   assert.match(serviceWorker, /bgm-staff-shell-v5/);
   assert.match(serviceWorker, /"\/staff\/offline"/);
