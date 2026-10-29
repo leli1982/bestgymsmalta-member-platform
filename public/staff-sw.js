@@ -1,8 +1,9 @@
-const CACHE_NAME = "bgm-staff-shell-v3";
+const CACHE_NAME = "bgm-staff-shell-v4";
 const STAFF_ROUTES = [
   "/staff",
   "/staff/offline",
   "/staff/members/enroll",
+  "/staff/bar",
   "/manifest.json",
   "/bgm-logo.png",
 ];
