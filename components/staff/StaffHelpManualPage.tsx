@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Search } from "lucide-react";
 import { STAFF_HELP_TOPICS, searchStaffHelpTopics } from "@/lib/staffHelpContent";
+import { STAFF_HELP_SCREENSHOTS } from "@/lib/staffHelpScreenshots";
 
 export default function StaffHelpManualPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
@@ -59,35 +60,38 @@ export default function StaffHelpManualPage() {
         </section>
 
         <div className="mt-5 space-y-5">
-          {topics.map((topic) => (
-            <article key={topic.id} id={topic.id} className="scroll-mt-5 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-7">
-              <h2 className="text-2xl font-black tracking-tight">{topic.title}</h2>
-              <p className="mt-2 text-sm font-medium leading-6 text-zinc-600">{topic.summary}</p>
+          {topics.map((topic) => {
+            const screenshot = STAFF_HELP_SCREENSHOTS[topic.id];
+            return (
+              <article key={topic.id} id={topic.id} className="scroll-mt-5 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-7">
+                <h2 className="text-2xl font-black tracking-tight">{topic.title}</h2>
+                <p className="mt-2 text-sm font-medium leading-6 text-zinc-600">{topic.summary}</p>
 
-              {topic.image && (
-                <div className="mt-5 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={topic.image} alt={`${topic.title} help screenshot`} className="h-auto w-full" />
-                </div>
-              )}
+                {screenshot && (
+                  <div className="mt-5 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={screenshot} alt={`${topic.title} help screenshot`} className="h-auto w-full" />
+                  </div>
+                )}
 
-              <ol className="mt-5 space-y-3">
-                {topic.steps.map((step, index) => (
-                  <li key={`${topic.id}-${index}`} className="flex gap-3 rounded-2xl bg-zinc-50 p-3">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ff5a0a] text-sm font-black text-white">{index + 1}</span>
-                    <p className="pt-1 text-sm font-semibold leading-6 text-zinc-800">{step}</p>
-                  </li>
-                ))}
-              </ol>
+                <ol className="mt-5 space-y-3">
+                  {topic.steps.map((step, index) => (
+                    <li key={`${topic.id}-${index}`} className="flex gap-3 rounded-2xl bg-zinc-50 p-3">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ff5a0a] text-sm font-black text-white">{index + 1}</span>
+                      <p className="pt-1 text-sm font-semibold leading-6 text-zinc-800">{step}</p>
+                    </li>
+                  ))}
+                </ol>
 
-              {topic.important && (
-                <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-4">
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-700">Important</p>
-                  <p className="mt-1 text-sm font-bold leading-6 text-orange-950">{topic.important}</p>
-                </div>
-              )}
-            </article>
-          ))}
+                {topic.important && (
+                  <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-700">Important</p>
+                    <p className="mt-1 text-sm font-bold leading-6 text-orange-950">{topic.important}</p>
+                  </div>
+                )}
+              </article>
+            );
+          })}
           {topics.length === 0 && (
             <div className="rounded-3xl border border-zinc-200 bg-white p-8 text-center text-sm font-semibold text-zinc-500">No help topic found. Try a simpler word.</div>
           )}
