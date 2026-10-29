@@ -44,6 +44,7 @@ export const GYM_STAFF_PERMISSIONS = [
   "orders.sundries.submit",
   "orders.bar.submit",
   "end_of_day.submit",
+  "offline_roster.view",
 ] as const satisfies readonly SystemPermissionKey[];
 
 export const GYM_MANAGER_PERMISSIONS = [
