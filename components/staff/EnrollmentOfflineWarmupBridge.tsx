@@ -24,6 +24,7 @@ export default function EnrollmentOfflineWarmupBridge() {
     if (typeof navigator === "undefined" || !navigator.onLine) return;
 
     try {
+      if ("serviceWorker" in navigator) await navigator.serviceWorker.ready;
       router.prefetch("/staff/members/enroll?kind=new");
 
       const response = await fetch("/api/system/members/registration", {
