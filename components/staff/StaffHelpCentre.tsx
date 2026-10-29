@@ -9,6 +9,7 @@ import {
   searchStaffHelpTopics,
   type StaffHelpTopic,
 } from "@/lib/staffHelpContent";
+import { STAFF_HELP_SCREENSHOTS } from "@/lib/staffHelpScreenshots";
 
 type AuthState = {
   authenticated: boolean;
@@ -16,6 +17,8 @@ type AuthState = {
 };
 
 function HelpArticle({ topic }: { topic: StaffHelpTopic }) {
+  const screenshot = STAFF_HELP_SCREENSHOTS[topic.id];
+
   return (
     <article className="space-y-5">
       <div>
@@ -24,10 +27,10 @@ function HelpArticle({ topic }: { topic: StaffHelpTopic }) {
         <p className="mt-2 text-sm font-medium leading-6 text-zinc-600">{topic.summary}</p>
       </div>
 
-      {topic.image && (
+      {screenshot && (
         <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={topic.image} alt={`${topic.title} help screenshot`} className="h-auto w-full" />
+          <img src={screenshot} alt={`${topic.title} help screenshot`} className="h-auto w-full" />
         </div>
       )}
 
@@ -118,8 +121,7 @@ export default function StaffHelpCentre() {
         onClick={() => setOpen(true)}
         className="fixed bottom-5 right-5 z-[75] inline-flex items-center gap-2 rounded-full bg-[#ff5a0a] px-4 py-3 text-sm font-black text-white shadow-xl shadow-orange-950/20 transition hover:-translate-y-0.5 hover:bg-orange-600 print:hidden"
       >
-        <CircleHelp className="h-5 w-5" />
-        Help
+        <CircleHelp className="h-5 w-5" /> Help
       </button>
 
       {open && (
@@ -184,8 +186,7 @@ export default function StaffHelpCentre() {
             <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 bg-white px-4 py-3 sm:px-6">
               <p className="text-xs font-semibold text-zinc-500">Press Escape or × to close Help.</p>
               <a href="/staff/help" className="inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-black text-white hover:bg-zinc-800">
-                <BookOpen className="h-4 w-4" />
-                Open Full Staff Manual
+                <BookOpen className="h-4 w-4" /> Open Full Staff Manual
               </a>
             </footer>
           </div>
