@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { syncOfflineRoster } from "@/lib/offlineRosterClient";
+import { registerStaffServiceWorker, syncOfflineRoster } from "@/lib/offlineRosterClient";
 
 const BAR_PENDING_PREFIX = "bgm-bar-pending:";
 const BAR_RETRY_MS = 60_000;
@@ -164,6 +164,7 @@ export default function OfflineResilienceBridge() {
       void syncPendingBarBestEffort();
     };
 
+    void registerStaffServiceWorker();
     refreshNetworkState();
     refreshPendingCount();
     syncNow();

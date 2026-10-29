@@ -37,6 +37,11 @@ test("offline roster refreshes on startup, login and reconnect", () => {
   assert.match(roster, /syncAndShow\(\{ quiet: true \}\)/);
 });
 
+test("main Staff shell registers service worker before an outage", () => {
+  assert.match(bridge, /registerStaffServiceWorker/);
+  assert.match(bridge, /void registerStaffServiceWorker\(\)/);
+});
+
 test("recent non-admin staff session survives a hard refresh while offline", () => {
   assert.match(login, /bgmStaffOfflineSessionV1/);
   assert.match(login, /24 \* 60 \* 60 \* 1000/);
