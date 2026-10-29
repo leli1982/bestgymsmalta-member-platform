@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { cacheOfflineEnrollmentContext, type OfflineEnrollmentContext } from "@/lib/offlineMembershipQueue";
 import type { PublicEnrollmentConfig } from "@/lib/membershipRegistrationTypes";
 
@@ -17,10 +18,15 @@ type RegistrationPayload = {
 };
 
 export default function EnrollmentOfflineWarmupBridge() {
+  const router = useRouter();
+
   const warmEnrollmentContext = useCallback(async () => {
     if (typeof navigator === "undefined" || !navigator.onLine) return;
 
     try {
+      if ("serviceWorker" in navigator) await navigator.serviceWorker.ready;
+      router.prefetch("/staff/members/enroll?kind=new");
+
       const response = await fetch("/api/system/members/registration", {
         method: "GET",
         credentials: "same-origin",
@@ -49,7 +55,7 @@ export default function EnrollmentOfflineWarmupBridge() {
     } catch {
       // Best effort only. Keep the most recent valid cached enrollment context intact.
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     const warmNow = () => void warmEnrollmentContext();
