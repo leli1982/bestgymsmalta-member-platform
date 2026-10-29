@@ -86,6 +86,19 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
   const [error, setError] = useState("");
 
   async function checkSession() {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const cached = loadOfflineSession(expectedGym?.id || null);
+      if (cached) {
+        setUser(cached);
+        setOfflineMode(true);
+      } else {
+        setUser(null);
+        setOfflineMode(false);
+      }
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch("/api/system/auth", { cache: "no-store" });
       const data = await response.json();
