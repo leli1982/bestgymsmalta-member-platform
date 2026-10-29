@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { BookOpen, CircleHelp, Search, X } from "lucide-react";
 import {
   STAFF_HELP_TOPICS,
@@ -55,11 +55,11 @@ function HelpArticle({ topic }: { topic: StaffHelpTopic }) {
 
 export default function StaffHelpCentre() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [auth, setAuth] = useState<AuthState | null>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [routeKey, setRouteKey] = useState(pathname);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const verifyAuth = useCallback(async () => {
@@ -82,10 +82,7 @@ export default function StaffHelpCentre() {
     return () => window.removeEventListener("bgm-staff-auth-changed", handler);
   }, [verifyAuth]);
 
-  const routeKey = useMemo(() => {
-    const qs = searchParams.toString();
-    return qs ? `${pathname}?${qs}` : pathname;
-  }, [pathname, searchParams]);
+  useEffect(() => setRouteKey(pathname), [pathname]);
 
   const contextTopic = useMemo(() => getContextStaffHelpTopic(routeKey), [routeKey]);
   const results = useMemo(() => searchStaffHelpTopics(query), [query]);
@@ -118,7 +115,10 @@ export default function StaffHelpCentre() {
       <button
         type="button"
         aria-label="Open Staff Help"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setRouteKey(`${window.location.pathname}${window.location.search}`);
+          setOpen(true);
+        }}
         className="fixed bottom-5 right-5 z-[75] inline-flex items-center gap-2 rounded-full bg-[#ff5a0a] px-4 py-3 text-sm font-black text-white shadow-xl shadow-orange-950/20 transition hover:-translate-y-0.5 hover:bg-orange-600 print:hidden"
       >
         <CircleHelp className="h-5 w-5" /> Help
