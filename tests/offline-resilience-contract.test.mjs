@@ -4,6 +4,7 @@ import fs from "node:fs";
 
 const bridge = fs.readFileSync(new URL("../components/staff/OfflineResilienceBridge.tsx", import.meta.url), "utf8");
 const barWarmup = fs.readFileSync(new URL("../components/staff/BarOfflineWarmupBridge.tsx", import.meta.url), "utf8");
+const enrollmentWarmup = fs.readFileSync(new URL("../components/staff/EnrollmentOfflineWarmupBridge.tsx", import.meta.url), "utf8");
 const layout = fs.readFileSync(new URL("../app/staff/layout.tsx", import.meta.url), "utf8");
 const login = fs.readFileSync(new URL("../components/staff/StaffLoginPage.tsx", import.meta.url), "utf8");
 const roster = fs.readFileSync(new URL("../components/staff/OfflineRosterPage.tsx", import.meta.url), "utf8");
@@ -15,6 +16,8 @@ test("staff shell mounts offline resilience bridges", () => {
   assert.match(layout, /<OfflineResilienceBridge\s*\/>/);
   assert.match(layout, /BarOfflineWarmupBridge/);
   assert.match(layout, /<BarOfflineWarmupBridge\s*\/>/);
+  assert.match(layout, /EnrollmentOfflineWarmupBridge/);
+  assert.match(layout, /<EnrollmentOfflineWarmupBridge\s*\/>/);
 });
 
 test("pending Bar sales survive restart and retry safely", () => {
@@ -93,7 +96,18 @@ test("Bar cache is warmed during ordinary Staff use", () => {
   assert.match(barWarmup, /addEventListener\("online"/);
 });
 
-test("Emergency Member Lookup sits above the Scan card control", () => {
+test("New Member enrollment context is warmed during ordinary Staff use", () => {
+  assert.match(enrollmentWarmup, /\/api\/system\/members\/registration/);
+  assert.match(enrollmentWarmup, /cacheOfflineEnrollmentContext/);
+  assert.match(enrollmentWarmup, /payload\.config/);
+  assert.match(enrollmentWarmup, /payload\.systemUser/);
+  assert.match(enrollmentWarmup, /bgm-staff-auth-changed/);
+  assert.match(enrollmentWarmup, /addEventListener\("online"/);
+  assert.match(enrollmentWarmup, /setInterval/);
+});
+
+test("Emergency Member Lookup is only floated during an outage", () => {
   assert.match(scanner, /fixed bottom-4 left-4/);
-  assert.match(bridge, /fixed bottom-20 left-4/);
+  assert.match(bridge, /!hideLookup && !online/);
+  assert.match(bridge, /OFFLINE · Member Lookup/);
 });
