@@ -3,14 +3,18 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const bridge = fs.readFileSync(new URL("../components/staff/OfflineResilienceBridge.tsx", import.meta.url), "utf8");
+const barWarmup = fs.readFileSync(new URL("../components/staff/BarOfflineWarmupBridge.tsx", import.meta.url), "utf8");
 const layout = fs.readFileSync(new URL("../app/staff/layout.tsx", import.meta.url), "utf8");
 const login = fs.readFileSync(new URL("../components/staff/StaffLoginPage.tsx", import.meta.url), "utf8");
 const roster = fs.readFileSync(new URL("../components/staff/OfflineRosterPage.tsx", import.meta.url), "utf8");
+const scanner = fs.readFileSync(new URL("../components/staff/StaffGlobalScanner.tsx", import.meta.url), "utf8");
 const serviceWorker = fs.readFileSync(new URL("../public/staff-sw.js", import.meta.url), "utf8");
 
-test("staff shell mounts offline resilience bridge", () => {
+test("staff shell mounts offline resilience bridges", () => {
   assert.match(layout, /OfflineResilienceBridge/);
   assert.match(layout, /<OfflineResilienceBridge\s*\/>/);
+  assert.match(layout, /BarOfflineWarmupBridge/);
+  assert.match(layout, /<BarOfflineWarmupBridge\s*\/>/);
 });
 
 test("pending Bar sales survive restart and retry safely", () => {
@@ -56,9 +60,30 @@ test("recent non-admin staff session survives a hard refresh while offline", () 
   assert.match(login, /user\.isSuperAdmin \|\| user\.role === "super_admin"/);
 });
 
-test("staff service worker precaches outage-safe routes", () => {
-  assert.match(serviceWorker, /bgm-staff-shell-v4/);
+test("staff service worker precaches outage-safe routes and Bar APIs", () => {
+  assert.match(serviceWorker, /bgm-staff-shell-v5/);
   assert.match(serviceWorker, /"\/staff\/offline"/);
   assert.match(serviceWorker, /"\/staff\/members\/enroll"/);
   assert.match(serviceWorker, /"\/staff\/bar"/);
+  assert.match(serviceWorker, /\/api\/system\/bar\/catalog/);
+  assert.match(serviceWorker, /\/api\/system\/bar\/today/);
+  assert.match(serviceWorker, /\/api\/gyms/);
+  assert.match(serviceWorker, /AUTH_TTL_MS = 24 \* 60 \* 60 \* 1000/);
+  assert.match(serviceWorker, /payload\.user\.isSuperAdmin/);
+  assert.match(serviceWorker, /payload\.user\.role === "super_admin"/);
+});
+
+test("Bar cache is warmed during ordinary Staff use", () => {
+  assert.match(barWarmup, /\/api\/system\/auth/);
+  assert.match(barWarmup, /\/api\/gyms/);
+  assert.match(barWarmup, /\/api\/system\/bar\/catalog/);
+  assert.match(barWarmup, /\/api\/system\/bar\/today\?gymId=/);
+  assert.match(barWarmup, /navigator\.serviceWorker\.ready/);
+  assert.match(barWarmup, /bgm-staff-auth-changed/);
+  assert.match(barWarmup, /addEventListener\("online"/);
+});
+
+test("Emergency Member Lookup sits above the Scan card control", () => {
+  assert.match(scanner, /fixed bottom-4 left-4/);
+  assert.match(bridge, /fixed bottom-20 left-4/);
 });

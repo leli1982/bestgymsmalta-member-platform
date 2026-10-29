@@ -1,4 +1,7 @@
-const CACHE_NAME = "bgm-staff-shell-v4";
+const CACHE_NAME = "bgm-staff-shell-v5";
+const AUTH_CACHE_NAME = "bgm-staff-auth-v1";
+const BAR_API_CACHE_NAME = "bgm-staff-bar-api-v1";
+const AUTH_TTL_MS = 24 * 60 * 60 * 1000;
 const STAFF_ROUTES = [
   "/staff",
   "/staff/offline",
@@ -7,6 +10,51 @@ const STAFF_ROUTES = [
   "/manifest.json",
   "/bgm-logo.png",
 ];
+
+const authRequest = () => new Request(new URL("/api/system/auth", self.location.origin).href, { method: "GET" });
+
+async function clearCachedAuth() {
+  const cache = await caches.open(AUTH_CACHE_NAME);
+  await cache.delete(authRequest());
+}
+
+async function cacheAuthPayload(payload, response) {
+  if (!response.ok || !payload?.authenticated || !payload?.user || payload.user.isSuperAdmin || payload.user.role === "super_admin") {
+    await clearCachedAuth();
+    return;
+  }
+  const headers = new Headers(response.headers);
+  headers.set("x-bgm-cached-at", String(Date.now()));
+  const cached = new Response(JSON.stringify(payload), {
+    status: 200,
+    headers,
+  });
+  const cache = await caches.open(AUTH_CACHE_NAME);
+  await cache.put(authRequest(), cached);
+}
+
+async function getCachedAuth() {
+  const cache = await caches.open(AUTH_CACHE_NAME);
+  const cached = await cache.match(authRequest());
+  if (!cached) return null;
+  const cachedAt = Number(cached.headers.get("x-bgm-cached-at") || 0);
+  if (!cachedAt || Date.now() - cachedAt > AUTH_TTL_MS) {
+    await cache.delete(authRequest());
+    return null;
+  }
+  return cached;
+}
+
+async function networkFirstApi(request) {
+  const cache = await caches.open(BAR_API_CACHE_NAME);
+  try {
+    const response = await fetch(request);
+    if (response.ok) await cache.put(request, response.clone());
+    return response;
+  } catch {
+    return (await cache.match(request)) || Response.error();
+  }
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -18,7 +66,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
+      Promise.all(keys.filter((key) => ![CACHE_NAME, AUTH_CACHE_NAME, BAR_API_CACHE_NAME].includes(key)).map((key) => caches.delete(key)))
     )
   );
   self.clients.claim();
@@ -69,10 +117,54 @@ self.addEventListener("notificationclick", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
-  if (request.method !== "GET") return;
-
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  if (url.pathname === "/api/system/auth") {
+    if (request.method === "GET") {
+      event.respondWith((async () => {
+        try {
+          const response = await fetch(request);
+          const payload = await response.clone().json().catch(() => null);
+          await cacheAuthPayload(payload, response);
+          return response;
+        } catch {
+          return (await getCachedAuth()) || Response.error();
+        }
+      })());
+      return;
+    }
+
+    if (request.method === "DELETE") {
+      event.respondWith((async () => {
+        await clearCachedAuth();
+        return fetch(request);
+      })());
+      return;
+    }
+
+    if (request.method === "POST") {
+      event.respondWith((async () => {
+        const response = await fetch(request);
+        const payload = await response.clone().json().catch(() => null);
+        await cacheAuthPayload(payload, response);
+        return response;
+      })());
+      return;
+    }
+  }
+
+  if (request.method !== "GET") return;
+
+  if (
+    url.pathname === "/api/gyms" ||
+    url.pathname === "/api/system/bar/catalog" ||
+    url.pathname === "/api/system/bar/today"
+  ) {
+    event.respondWith(networkFirstApi(request));
+    return;
+  }
+
   if (url.pathname.startsWith("/api/")) return;
 
   if (request.mode === "navigate" && url.pathname.startsWith("/staff")) {

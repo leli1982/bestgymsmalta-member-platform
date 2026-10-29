@@ -194,14 +194,14 @@ export default function OfflineResilienceBridge() {
   return (
     <>
       {barWarning && !pathname.startsWith("/staff/admin") && (
-        <div className="fixed bottom-20 left-4 z-[72] max-w-sm rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900 shadow-lg print:hidden">
+        <div className="fixed bottom-36 left-4 z-[72] max-w-sm rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900 shadow-lg print:hidden">
           {barWarning}
         </div>
       )}
       {!hideLookup && (
         <a
           href="/staff/offline"
-          className={`fixed bottom-4 left-4 z-[72] inline-flex items-center gap-2 rounded-full px-4 py-3 text-xs font-black shadow-lg print:hidden ${online ? "border border-zinc-300 bg-white text-zinc-800" : "bg-red-600 text-white"}`}
+          className={`fixed bottom-20 left-4 z-[72] inline-flex items-center gap-2 rounded-full px-4 py-3 text-xs font-black shadow-lg print:hidden ${online ? "border border-zinc-300 bg-white text-zinc-800" : "bg-red-600 text-white"}`}
         >
           <span className={`h-2.5 w-2.5 rounded-full ${online ? "bg-emerald-500" : "bg-white"}`} />
           {online ? "Emergency Member Lookup" : "OFFLINE · Member Lookup"}
