@@ -20,8 +20,65 @@ type ExpectedGym = {
   gymSlug: string;
 };
 
+type CachedOfflineSession = {
+  version: 1;
+  cachedAt: number;
+  expiresAt: number;
+  expectedGymId: string | null;
+  user: SystemUser;
+};
+
+const OFFLINE_SESSION_KEY = "bgmStaffOfflineSessionV1";
+const OFFLINE_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+
+function clearOfflineSession() {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.removeItem(OFFLINE_SESSION_KEY); } catch {}
+}
+
+function saveOfflineSession(user: SystemUser, expectedGymId: string | null) {
+  if (typeof window === "undefined") return;
+  if (user.isSuperAdmin || user.role === "super_admin") {
+    clearOfflineSession();
+    return;
+  }
+  const now = Date.now();
+  const record: CachedOfflineSession = {
+    version: 1,
+    cachedAt: now,
+    expiresAt: now + OFFLINE_SESSION_TTL_MS,
+    expectedGymId,
+    user,
+  };
+  try { window.localStorage.setItem(OFFLINE_SESSION_KEY, JSON.stringify(record)); } catch {}
+}
+
+function loadOfflineSession(expectedGymId: string | null): SystemUser | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(OFFLINE_SESSION_KEY);
+    if (!raw) return null;
+    const record = JSON.parse(raw) as CachedOfflineSession;
+    if (record.version !== 1 || !record.user || record.expiresAt <= Date.now()) {
+      clearOfflineSession();
+      return null;
+    }
+    if (record.user.isSuperAdmin || record.user.role === "super_admin") {
+      clearOfflineSession();
+      return null;
+    }
+    if (expectedGymId && record.user.gymId !== expectedGymId) return null;
+    if (record.expectedGymId && expectedGymId && record.expectedGymId !== expectedGymId) return null;
+    return record.user;
+  } catch {
+    clearOfflineSession();
+    return null;
+  }
+}
+
 export default function StaffLoginPage({ expectedGym }: { expectedGym?: ExpectedGym }) {
   const [user, setUser] = useState<SystemUser | null>(null);
+  const [offlineMode, setOfflineMode] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(true);
@@ -34,6 +91,7 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
       const data = await response.json();
       const sessionUser = data.authenticated ? data.user : null;
       if (!expectedGym && sessionUser?.role === "gym_manager") {
+        clearOfflineSession();
         window.location.replace("/manager");
         return;
       }
@@ -44,12 +102,24 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
         sessionUser.gymId !== expectedGym.id
       ) {
         await fetch("/api/system/auth", { method: "DELETE" });
+        clearOfflineSession();
         setUser(null);
+        setOfflineMode(false);
       } else {
         setUser(sessionUser);
+        setOfflineMode(false);
+        if (sessionUser) saveOfflineSession(sessionUser, expectedGym?.id || null);
+        else clearOfflineSession();
       }
     } catch {
-      setUser(null);
+      const cached = loadOfflineSession(expectedGym?.id || null);
+      if (cached) {
+        setUser(cached);
+        setOfflineMode(true);
+      } else {
+        setUser(null);
+        setOfflineMode(false);
+      }
     } finally {
       setLoading(false);
     }
@@ -57,6 +127,9 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
 
   useEffect(() => {
     void checkSession();
+    const reconnect = () => void checkSession();
+    window.addEventListener("online", reconnect);
+    return () => window.removeEventListener("online", reconnect);
   }, [expectedGym?.id]);
 
   async function login(event: React.FormEvent) {
@@ -79,6 +152,7 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
         return;
       }
       if (!expectedGym && data.user?.role === "gym_manager") {
+        clearOfflineSession();
         window.location.replace("/manager");
         return;
       }
@@ -91,6 +165,8 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
         return;
       }
       setUser(data.user);
+      setOfflineMode(false);
+      saveOfflineSession(data.user, expectedGym?.id || null);
       window.dispatchEvent(new Event("bgm-staff-auth-changed"));
       setPassword("");
     } catch {
@@ -101,8 +177,10 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
   }
 
   async function logout() {
-    await fetch("/api/system/auth", { method: "DELETE" });
+    clearOfflineSession();
+    try { await fetch("/api/system/auth", { method: "DELETE" }); } catch {}
     setUser(null);
+    setOfflineMode(false);
     window.dispatchEvent(new Event("bgm-staff-auth-changed"));
     setUsername("");
     setPassword("");
@@ -151,5 +229,5 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
     );
   }
 
-  return <StaffDashboard user={user} onLogout={logout} />;
+  return <StaffDashboard user={user} onLogout={logout} offlineMode={offlineMode} />;
 }
