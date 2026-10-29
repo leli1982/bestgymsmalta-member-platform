@@ -198,13 +198,13 @@ export default function OfflineResilienceBridge() {
           {barWarning}
         </div>
       )}
-      {!hideLookup && (
+      {!hideLookup && !online && (
         <a
           href="/staff/offline"
-          className={`fixed bottom-20 left-4 z-[72] inline-flex items-center gap-2 rounded-full px-4 py-3 text-xs font-black shadow-lg print:hidden ${online ? "border border-zinc-300 bg-white text-zinc-800" : "bg-red-600 text-white"}`}
+          className="fixed bottom-20 left-4 z-[72] inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-3 text-xs font-black text-white shadow-lg print:hidden"
         >
-          <span className={`h-2.5 w-2.5 rounded-full ${online ? "bg-emerald-500" : "bg-white"}`} />
-          {online ? "Emergency Member Lookup" : "OFFLINE · Member Lookup"}
+          <span className="h-2.5 w-2.5 rounded-full bg-white" />
+          OFFLINE · Member Lookup
           {pendingBarCount > 0 && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] text-amber-900">{pendingBarCount} Bar pending</span>}
         </a>
       )}
