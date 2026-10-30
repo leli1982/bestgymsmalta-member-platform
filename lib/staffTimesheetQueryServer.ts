@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { daysBetweenDateKeys, maltaDayUtcRange } from "@/lib/maltaDate";
+import { maltaDayUtcRange } from "@/lib/maltaDate";
 import {
   buildStaffTimesheetEmployeeReport,
   type StaffTimesheetEmployeeReport,
@@ -54,6 +54,14 @@ function clean(value: string | null | undefined): string {
 function assertDateKey(value: string, label: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`${label} must use YYYY-MM-DD.`);
   maltaDayUtcRange(value);
+}
+
+function daysBetweenDateKeys(fromDate: string, toDate: string): number {
+  const [fromYear, fromMonth, fromDay] = fromDate.split("-").map(Number);
+  const [toYear, toMonth, toDay] = toDate.split("-").map(Number);
+  const fromUtc = Date.UTC(fromYear, fromMonth - 1, fromDay);
+  const toUtc = Date.UTC(toYear, toMonth - 1, toDay);
+  return Math.round((toUtc - fromUtc) / (24 * 60 * 60 * 1000));
 }
 
 function asNumber(value: unknown): number {
