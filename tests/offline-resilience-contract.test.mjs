@@ -10,6 +10,7 @@ const login = fs.readFileSync(new URL("../components/staff/StaffLoginPage.tsx", 
 const roster = fs.readFileSync(new URL("../components/staff/OfflineRosterPage.tsx", import.meta.url), "utf8");
 const scanner = fs.readFileSync(new URL("../components/staff/StaffGlobalScanner.tsx", import.meta.url), "utf8");
 const serviceWorker = fs.readFileSync(new URL("../public/staff-sw.js", import.meta.url), "utf8");
+const rosterRoute = fs.readFileSync(new URL("../app/api/system/offline-roster/route.ts", import.meta.url), "utf8");
 
 test("staff shell mounts offline resilience bridges", () => {
   assert.match(layout, /OfflineResilienceBridge/);
@@ -42,6 +43,15 @@ test("offline roster refreshes on startup, login and reconnect", () => {
   assert.match(bridge, /OFFLINE · Member Lookup/);
   assert.match(roster, /Save Offline Roster Now/);
   assert.match(roster, /syncAndShow\(\{ quiet: true \}\)/);
+});
+
+test("offline roster API fetches every Supabase page", () => {
+  assert.match(rosterRoute, /const PAGE_SIZE = 1000/);
+  assert.match(rosterRoute, /\.range\(from, from \+ PAGE_SIZE - 1\)/);
+  assert.match(rosterRoute, /if \(page\.length < PAGE_SIZE\) break/);
+  assert.match(rosterRoute, /fetchAllActiveMembers/);
+  assert.match(rosterRoute, /fetchAllModernCards/);
+  assert.match(rosterRoute, /fetchAllLegacyCards/);
 });
 
 test("main Staff shell registers service worker before an outage", () => {

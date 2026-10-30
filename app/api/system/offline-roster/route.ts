@@ -8,8 +8,86 @@ import {
 
 export const dynamic = "force-dynamic";
 
+const PAGE_SIZE = 1000;
+
+type SupabaseAdmin = ReturnType<typeof getSupabaseAdmin>;
+type OfflineMemberRow = {
+  id: string;
+  member_number: string | null;
+  full_name: string | null;
+};
+type ModernCardRow = {
+  member_id: string;
+  barcode_value: string | null;
+};
+type LegacyCardRow = {
+  member_id: string;
+  scan3: string | null;
+};
+
 function todayString() {
   return new Date().toISOString().slice(0, 10);
+}
+
+async function fetchAllActiveMembers(supabase: SupabaseAdmin) {
+  const rows: OfflineMemberRow[] = [];
+
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("bgm_members")
+      .select("id, member_number, full_name")
+      .eq("status", "active")
+      .or(`membership_expiry.is.null,membership_expiry.gte.${todayString()}`)
+      .order("member_number", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) throw error;
+    const page = (data || []) as OfflineMemberRow[];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+  }
+
+  return rows;
+}
+
+async function fetchAllModernCards(supabase: SupabaseAdmin) {
+  const rows: ModernCardRow[] = [];
+
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("bgm_member_card_credentials")
+      .select("member_id, barcode_value")
+      .eq("status", "active")
+      .order("member_id", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) throw error;
+    const page = (data || []) as ModernCardRow[];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+  }
+
+  return rows;
+}
+
+async function fetchAllLegacyCards(supabase: SupabaseAdmin) {
+  const rows: LegacyCardRow[] = [];
+
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("bgm_legacy_card_claims")
+      .select("member_id, scan3")
+      .eq("assignment_status", "active")
+      .order("member_id", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) throw error;
+    const page = (data || []) as LegacyCardRow[];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+  }
+
+  return rows;
 }
 
 export async function GET(request: NextRequest) {
@@ -18,26 +96,11 @@ export async function GET(request: NextRequest) {
     if (auth.error || !auth.context) return auth.error;
 
     const supabase = getSupabaseAdmin();
-    const [memberResult, modernCardsResult, legacyCardsResult] = await Promise.all([
-      supabase
-        .from("bgm_members")
-        .select("id, member_number, full_name")
-        .eq("status", "active")
-        .or(`membership_expiry.is.null,membership_expiry.gte.${todayString()}`)
-        .order("member_number", { ascending: true }),
-      supabase
-        .from("bgm_member_card_credentials")
-        .select("member_id, barcode_value")
-        .eq("status", "active"),
-      supabase
-        .from("bgm_legacy_card_claims")
-        .select("member_id, scan3")
-        .eq("assignment_status", "active"),
+    const [memberRows, modernCardRows, legacyCardRows] = await Promise.all([
+      fetchAllActiveMembers(supabase),
+      fetchAllModernCards(supabase),
+      fetchAllLegacyCards(supabase),
     ]);
-
-    if (memberResult.error) throw memberResult.error;
-    if (modernCardsResult.error) throw modernCardsResult.error;
-    if (legacyCardsResult.error) throw legacyCardsResult.error;
 
     const cardsByMember = new Map<string, string[]>();
     const addCard = (memberId: unknown, cardValue: unknown) => {
@@ -49,14 +112,14 @@ export async function GET(request: NextRequest) {
       cardsByMember.set(id, current);
     };
 
-    for (const card of modernCardsResult.data || []) {
+    for (const card of modernCardRows) {
       addCard(card.member_id, card.barcode_value);
     }
-    for (const claim of legacyCardsResult.data || []) {
+    for (const claim of legacyCardRows) {
       addCard(claim.member_id, claim.scan3);
     }
 
-    const members = (memberResult.data || [])
+    const members = memberRows
       .map((row) =>
         toOfflineRosterMember({
           member_number: row.member_number,
