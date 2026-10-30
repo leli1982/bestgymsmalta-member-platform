@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { supabaseServiceRole } from "@/lib/supabaseServer";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +18,11 @@ export async function GET(request: Request) {
     );
   }
 
-  const supabase = supabaseServiceRole();
-  if (!supabase) {
+  let supabase;
+  try {
+    supabase = getSupabaseAdmin();
+  } catch (error) {
+    console.error("Staff midnight auto clock-out cron is not configured:", error);
     return NextResponse.json(
       { ok: false, code: "server_misconfigured" },
       { status: 500, headers: { "Cache-Control": "no-store" } },
@@ -32,8 +35,9 @@ export async function GET(request: Request) {
   });
 
   if (error) {
+    console.error("Staff midnight auto clock-out cron failed:", error);
     return NextResponse.json(
-      { ok: false, code: "auto_clock_out_failed", error: error.message },
+      { ok: false, code: "auto_clock_out_failed" },
       { status: 500, headers: { "Cache-Control": "no-store" } },
     );
   }
