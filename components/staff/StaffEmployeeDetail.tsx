@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Camera, Clock3, Euro, Fingerprint, Save, UserRound } from "lucide-react";
+import { Camera, Clock3, Euro, Fingerprint, Save, Trash2, Upload, UserRound, UserX } from "lucide-react";
 import StaffTimesheetsAdmin from "@/components/staff/StaffTimesheetsAdmin";
-import { formatEuropeanDate, parseEuropeanDate } from "@/lib/europeanDate";
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+import { formatEuropeanDate } from "@/lib/europeanDate";
+import { normaliseStaffPhoto } from "@/lib/staffPhotoClient";
 
 type Gym = { id: string; name: string; status?: string };
 type EmployeeDetailData = {
@@ -18,14 +20,14 @@ type EmployeeDetailData = {
   employmentTypeHistory: Array<{ id: string; employment_type: "full_time" | "part_time"; effective_from: string }>;
 };
 
-type Props = { employeeId: string; gyms: Gym[]; onChanged: () => void };
+type Props = { employeeId: string; gyms: Gym[]; onChanged: () => void; onDeleted?: () => void };
 type Panel = "Details" | "Attendance" | "Payroll" | "Audit";
 
 function eur(cents: number | null) {
   return cents === null ? "—" : new Intl.NumberFormat("en-MT", { style: "currency", currency: "EUR" }).format(cents / 100);
 }
 
-export default function StaffEmployeeDetail({ employeeId, gyms, onChanged }: Props) {
+export default function StaffEmployeeDetail({ employeeId, gyms, onChanged, onDeleted }: Props) {
   const [data, setData] = useState<EmployeeDetailData | null>(null);
   const [panel, setPanel] = useState<Panel>("Details");
   const [form, setForm] = useState({ firstName: "", surname: "", idNumber: "", address: "", mobile: "", email: "", homeGymId: "", active: true });
@@ -60,13 +62,37 @@ export default function StaffEmployeeDetail({ employeeId, gyms, onChanged }: Pro
     finally { setBusy(false); }
   }
 
-  async function addRate() {
-    const euros = Number(rate.amount);
-    const effectiveFrom = parseEuropeanDate(rate.effectiveFrom);
-    if (!Number.isFinite(euros) || euros < 0 || !effectiveFrom) { setError("Enter an hourly rate and a valid Effective from date using DD/MM/YYYY."); return; }
+  async function setActiveStatus(active: boolean) {
+    if (!active && !window.confirm("Deactivate this staff employee? Their attendance and payroll history will be kept.")) return;
     setBusy(true); setError(""); setMessage("");
     try {
-      const response = await fetch(`/api/system/staff-employees/${encodeURIComponent(employeeId)}/rate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hourlyRateCents: Math.round(euros * 100), effectiveFrom }) });
+      const response = await fetch(`/api/system/staff-employees/${encodeURIComponent(employeeId)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active }) });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Could not update staff status.");
+      setMessage(active ? "Staff employee reactivated." : "Staff employee deactivated. Historical attendance and payroll were kept.");
+      await load(); onChanged();
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not update staff status."); }
+    finally { setBusy(false); }
+  }
+
+  async function deleteEmployee() {
+    if (!window.confirm("Delete this staff employee permanently? This is only allowed when no attendance, payroll or biometric history exists. Otherwise deactivate the employee instead.")) return;
+    setBusy(true); setError(""); setMessage("");
+    try {
+      const response = await fetch(`/api/system/staff-employees/${encodeURIComponent(employeeId)}`, { method: "DELETE" });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Could not delete staff employee.");
+      onDeleted?.();
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not delete staff employee."); }
+    finally { setBusy(false); }
+  }
+
+  async function addRate() {
+    const euros = Number(rate.amount);
+    if (!Number.isFinite(euros) || euros < 0 || !rate.effectiveFrom) { setError("Enter an hourly rate and a valid Effective from date using DD/MM/YYYY."); return; }
+    setBusy(true); setError(""); setMessage("");
+    try {
+      const response = await fetch(`/api/system/staff-employees/${encodeURIComponent(employeeId)}/rate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hourlyRateCents: Math.round(euros * 100), effectiveFrom: rate.effectiveFrom }) });
       const body = await response.json(); if (!response.ok) throw new Error(body.error || "Could not add hourly rate.");
       setRate({ amount: "", effectiveFrom: "" }); setMessage("Hourly rate added."); await load(); onChanged();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not add hourly rate."); }
@@ -74,11 +100,10 @@ export default function StaffEmployeeDetail({ employeeId, gyms, onChanged }: Pro
   }
 
   async function addEmploymentType() {
-    const effectiveFrom = parseEuropeanDate(employment.effectiveFrom);
-    if (!effectiveFrom) { setError("Enter a valid employment type Effective from date using DD/MM/YYYY."); return; }
+    if (!employment.effectiveFrom) { setError("Enter a valid employment type Effective from date using DD/MM/YYYY."); return; }
     setBusy(true); setError(""); setMessage("");
     try {
-      const response = await fetch(`/api/system/staff-employees/${encodeURIComponent(employeeId)}/employment-type`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employmentType: employment.type, effectiveFrom }) });
+      const response = await fetch(`/api/system/staff-employees/${encodeURIComponent(employeeId)}/employment-type`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employmentType: employment.type, effectiveFrom: employment.effectiveFrom }) });
       const body = await response.json(); if (!response.ok) throw new Error(body.error || "Could not add employment type.");
       setEmployment({ type: "full_time", effectiveFrom: "" }); setMessage("Employment type added."); await load(); onChanged();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not add employment type."); }
@@ -87,10 +112,10 @@ export default function StaffEmployeeDetail({ employeeId, gyms, onChanged }: Pro
 
   async function uploadPhoto(file: File | undefined) {
     if (!file) return;
-    if (file.type !== "image/webp") { setError("Photo must be WebP."); return; }
     setBusy(true); setError(""); setMessage("");
     try {
-      const body = new FormData(); body.set("file", file);
+      const normalised = await normaliseStaffPhoto(file);
+      const body = new FormData(); body.set("file", normalised);
       const response = await fetch(`/api/system/staff-employees/${encodeURIComponent(employeeId)}/photo`, { method: "POST", body });
       const payload = await response.json(); if (!response.ok) throw new Error(payload.error || "Could not save photo.");
       setMessage("Photo updated."); await load(); onChanged();
@@ -114,8 +139,11 @@ export default function StaffEmployeeDetail({ employeeId, gyms, onChanged }: Pro
           <div className="mx-auto flex h-40 w-40 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm">
             {e.photoUrl ? <img src={e.photoUrl} alt={`${e.firstName} ${e.surname}`} className="h-full w-full object-cover"/> : <UserRound className="h-16 w-16 text-zinc-300"/>}
           </div>
-          <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-orange-600 px-3 py-2 text-sm font-black text-white"><Camera className="h-4 w-4"/> Photo<input type="file" accept="image/webp" className="hidden" onChange={event=>void uploadPhoto(event.target.files?.[0])}/></label>
-          <p className="mt-2 text-xs text-zinc-500">WebP, max 5 MB</p>
+          <div className="mt-3 flex flex-col gap-2">
+            <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-orange-600 px-3 py-2 text-sm font-black text-white"><Camera className="h-4 w-4"/>Take Photo<input type="file" accept="image/*" capture="environment" className="hidden" onChange={event=>void uploadPhoto(event.target.files?.[0])}/></label>
+            <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-black text-zinc-900"><Upload className="h-4 w-4"/>Upload Photo<input type="file" accept="image/*" className="hidden" onChange={event=>void uploadPhoto(event.target.files?.[0])}/></label>
+          </div>
+          <p className="mt-2 text-xs text-zinc-500">Camera or image upload · saved as WebP · max 5 MB</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="First name"><input value={form.firstName} onChange={x=>setForm({...form,firstName:x.target.value})} className="input"/></Field>
@@ -126,7 +154,8 @@ export default function StaffEmployeeDetail({ employeeId, gyms, onChanged }: Pro
           <Field label="Home gym"><select value={form.homeGymId} onChange={x=>setForm({...form,homeGymId:x.target.value})} className="input"><option value="">Choose gym</option>{gyms.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></Field>
           <Field label="Address" wide><textarea value={form.address} onChange={x=>setForm({...form,address:x.target.value})} className="input min-h-20"/></Field>
           <label className="flex items-center gap-3 rounded-xl border border-zinc-200 px-3 py-2 text-sm font-bold"><input type="checkbox" checked={form.active} onChange={x=>setForm({...form,active:x.target.checked})}/> Active</label>
-          <div className="sm:col-span-2"><button disabled={busy} onClick={()=>void saveProfile()} className="inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50"><Save className="h-4 w-4"/>Save details</button></div>
+          <div className="flex flex-wrap gap-2 sm:col-span-2"><button disabled={busy} onClick={()=>void saveProfile()} className="inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50"><Save className="h-4 w-4"/>Save details</button><button disabled={busy} onClick={()=>void setActiveStatus(!e.active)} className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-black text-amber-900 disabled:opacity-50"><UserX className="h-4 w-4"/>{e.active ? "Deactivate staff" : "Reactivate staff"}</button><button disabled={busy} onClick={()=>void deleteEmployee()} className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-red-50 px-4 py-2.5 text-sm font-black text-red-800 disabled:opacity-50"><Trash2 className="h-4 w-4"/>Delete Staff</button></div>
+          <p className="text-xs text-zinc-500 sm:col-span-2">Deactivate keeps all attendance and payroll history. Permanent delete is only allowed when no attendance, payroll or biometric history exists.</p>
         </div>
       </div>
 
@@ -134,7 +163,7 @@ export default function StaffEmployeeDetail({ employeeId, gyms, onChanged }: Pro
         <section className="rounded-2xl border border-zinc-200 p-4">
           <div className="flex items-center gap-2"><Euro className="h-5 w-5 text-orange-600"/><h3 className="font-black">Hourly rate</h3></div>
           <p className="mt-1 text-sm text-zinc-600">Current: <strong>{eur(e.currentHourlyRateCents)}</strong>{e.currentRateEffectiveFrom ? ` · from ${formatEuropeanDate(e.currentRateEffectiveFrom)}` : ""}</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2"><Field label="Hourly rate (€)"><input inputMode="decimal" value={rate.amount} onChange={x=>setRate({...rate,amount:x.target.value})} className="input"/></Field><Field label="Effective from"><input inputMode="numeric" placeholder="DD/MM/YYYY" value={rate.effectiveFrom} onChange={x=>setRate({...rate,effectiveFrom:x.target.value})} className="input"/></Field></div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2"><Field label="Hourly rate (€)"><input inputMode="decimal" value={rate.amount} onChange={x=>setRate({...rate,amount:x.target.value})} className="input"/></Field><Field label="Effective from"><EuropeanDateInput value={rate.effectiveFrom} onValueChange={effectiveFrom=>setRate({...rate,effectiveFrom})} className="input" ariaLabel="Rate effective from"/></Field></div>
           <button disabled={busy} onClick={()=>void addRate()} className="mt-3 rounded-xl bg-orange-600 px-3 py-2 text-sm font-black text-white">Add rate</button>
           <div className="mt-4 space-y-2">{sortedRates.map(row=><div key={row.id} className="flex justify-between rounded-lg bg-zinc-50 px-3 py-2 text-sm"><span>{formatEuropeanDate(row.effective_from)}</span><strong>{eur(row.hourly_rate_cents)}</strong></div>)}</div>
         </section>
@@ -142,7 +171,7 @@ export default function StaffEmployeeDetail({ employeeId, gyms, onChanged }: Pro
         <section className="rounded-2xl border border-zinc-200 p-4">
           <div className="flex items-center gap-2"><Clock3 className="h-5 w-5 text-orange-600"/><h3 className="font-black">Employment type</h3></div>
           <p className="mt-1 text-sm text-zinc-600">Current: <strong>{e.currentEmploymentType === "full_time" ? "Full Time" : e.currentEmploymentType === "part_time" ? "Part Time" : "—"}</strong></p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2"><Field label="Employment type"><select value={employment.type} onChange={x=>setEmployment({...employment,type:x.target.value})} className="input"><option value="full_time">Full Time</option><option value="part_time">Part Time</option></select></Field><Field label="Effective from"><input inputMode="numeric" placeholder="DD/MM/YYYY" value={employment.effectiveFrom} onChange={x=>setEmployment({...employment,effectiveFrom:x.target.value})} className="input"/></Field></div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2"><Field label="Employment type"><select value={employment.type} onChange={x=>setEmployment({...employment,type:x.target.value})} className="input"><option value="full_time">Full Time</option><option value="part_time">Part Time</option></select></Field><Field label="Effective from"><EuropeanDateInput value={employment.effectiveFrom} onValueChange={effectiveFrom=>setEmployment({...employment,effectiveFrom})} className="input" ariaLabel="Employment effective from"/></Field></div>
           <button disabled={busy} onClick={()=>void addEmploymentType()} className="mt-3 rounded-xl bg-orange-600 px-3 py-2 text-sm font-black text-white">Add employment type</button>
           <div className="mt-4 space-y-2">{sortedTypes.map(row=><div key={row.id} className="flex justify-between rounded-lg bg-zinc-50 px-3 py-2 text-sm"><span>{formatEuropeanDate(row.effective_from)}</span><strong>{row.employment_type === "full_time" ? "Full Time" : "Part Time"}</strong></div>)}</div>
         </section>

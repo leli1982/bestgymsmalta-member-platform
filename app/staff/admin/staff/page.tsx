@@ -1,5 +1,6 @@
 import StaffEmployeesAdmin from "@/components/staff/StaffEmployeesAdmin";
+import "./staff-payroll.css";
 
 export default function StaffAdminPage() {
-  return <StaffEmployeesAdmin />;
+  return <div className="staff-payroll-ui"><StaffEmployeesAdmin /></div>;
 }

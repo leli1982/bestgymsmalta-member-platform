@@ -152,3 +152,63 @@ export async function PATCH(
     return NextResponse.json({ error: "Could not update the staff employee." }, { status: 500, headers: noStore });
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ employeeId: string }> }
+) {
+  try {
+    const auth = await requireSuperAdmin(request);
+    if (auth.error || !auth.context) return auth.error;
+    const { employeeId } = await params;
+    const db = getSupabaseAdmin();
+    const employee = await loadStaffEmployee(db, employeeId);
+    if (!employee) return responseError("Staff employee not found.", 404);
+
+    const historyTables = [
+      "bgm_staff_punch_events",
+      "bgm_staff_work_sessions",
+      "bgm_staff_session_payroll_segments",
+      "bgm_staff_attendance_adjustments",
+      "bgm_staff_attendance_alerts",
+      "bgm_staff_biometrics",
+    ] as const;
+    for (const table of historyTables) {
+      const result = await db.from(table).select("id", { count: "exact", head: true }).eq("employee_id", employeeId);
+      if (result.error) throw result.error;
+      if ((result.count || 0) > 0) {
+        return responseError("This staff employee has attendance, payroll or biometric history and cannot be deleted. Deactivate the employee instead so the history is preserved.", 409);
+      }
+    }
+
+    const rateDelete = await db.from("bgm_staff_rate_history").delete().eq("employee_id", employeeId);
+    if (rateDelete.error) throw rateDelete.error;
+    const employmentDelete = await db.from("bgm_staff_employment_type_history").delete().eq("employee_id", employeeId);
+    if (employmentDelete.error) throw employmentDelete.error;
+    const deleted = await db.from("bgm_staff_employees").delete().eq("id", employeeId).select("id").maybeSingle();
+    if (deleted.error) throw deleted.error;
+    if (!deleted.data) return responseError("Staff employee not found.", 404);
+
+    if (employee.photo_path) {
+      const cleanup = await db.storage.from("bgm-staff-photos").remove([employee.photo_path]);
+      if (cleanup.error) console.error("Could not remove deleted staff photo", cleanup.error);
+    }
+    try {
+      await writeStaffAudit(auth.context, {
+        actionKey: "staff.employee.deleted",
+        entityType: "staff_employee",
+        entityId: employeeId,
+        beforeData: employee,
+        afterData: null,
+        contextGymId: employee.home_gym_id,
+      });
+    } catch (auditError) {
+      console.error("Staff employee deleted but audit write failed", auditError);
+    }
+
+    return NextResponse.json({ ok: true }, { headers: noStore });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Could not delete the staff employee." }, { status: 500, headers: noStore });
+  }
+}

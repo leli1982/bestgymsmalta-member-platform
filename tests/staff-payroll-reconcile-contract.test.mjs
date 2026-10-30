@@ -24,3 +24,38 @@ test("reconciled payroll admin keeps reader-specific staff UI out of this phase"
   assert.match(payroll, /Timesheets/);
   assert.match(payroll, /Public Holidays/);
 });
+
+test("payroll dates use the shared DD/MM/YYYY auto-format input", () => {
+  const employees = read("components/staff/StaffEmployeesAdmin.tsx");
+  const detail = read("components/staff/StaffEmployeeDetail.tsx");
+  const holidays = read("components/staff/StaffPublicHolidaysAdmin.tsx");
+  assert.match(employees, /EuropeanDateInput/);
+  assert.match(detail, /EuropeanDateInput/);
+  assert.match(holidays, /EuropeanDateInput/);
+});
+
+test("staff photo offers camera capture and separate upload", () => {
+  const detail = read("components/staff/StaffEmployeeDetail.tsx");
+  assert.match(detail, /capture="environment"/);
+  assert.match(detail, /Take Photo/);
+  assert.match(detail, /Upload Photo/);
+  assert.match(detail, /normaliseStaffPhoto/);
+});
+
+test("attendance and payroll inputs force a legible light field treatment", () => {
+  const page = read("app/staff/admin/staff/page.tsx");
+  const css = read("app/staff/admin/staff/staff-payroll.css");
+  assert.match(page, /staff-payroll\.css/);
+  assert.match(css, /background-color: #ffffff !important/);
+  assert.match(css, /color: #09090b !important/);
+});
+
+test("staff records can be deactivated and only history-free records can be deleted", () => {
+  const detail = read("components/staff/StaffEmployeeDetail.tsx");
+  const route = read("app/api/system/staff-employees/[employeeId]/route.ts");
+  assert.match(detail, /Deactivate staff/);
+  assert.match(detail, /Reactivate staff/);
+  assert.match(detail, /Delete Staff/);
+  assert.match(route, /export async function DELETE/);
+  assert.match(route, /cannot be deleted\. Deactivate the employee instead/);
+});

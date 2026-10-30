@@ -5,7 +5,7 @@ import { ArrowLeft, Plus, Search, UsersRound } from "lucide-react";
 import StaffEmployeeDetail from "@/components/staff/StaffEmployeeDetail";
 import StaffPublicHolidaysAdmin from "@/components/staff/StaffPublicHolidaysAdmin";
 import StaffTimesheetsAdmin from "@/components/staff/StaffTimesheetsAdmin";
-import { parseEuropeanDate } from "@/lib/europeanDate";
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
 
 type Gym = { id: string; name: string; status?: string };
 type Employee = {
@@ -79,17 +79,15 @@ export default function StaffEmployeesAdmin() {
 
   async function createEmployee() {
     const euros = Number(create.initialHourlyRate);
-    const rateEffectiveFrom = parseEuropeanDate(create.rateEffectiveFrom);
-    const employmentTypeEffectiveFrom = parseEuropeanDate(create.employmentTypeEffectiveFrom);
-    if (!create.firstName.trim() || !create.surname.trim() || !create.idNumber.trim() || !create.homeGymId || !Number.isFinite(euros) || euros < 0 || !rateEffectiveFrom || !employmentTypeEffectiveFrom) {
+    if (!create.firstName.trim() || !create.surname.trim() || !create.idNumber.trim() || !create.homeGymId || !Number.isFinite(euros) || euros < 0 || !create.rateEffectiveFrom || !create.employmentTypeEffectiveFrom) {
       setError("Complete the employee identity, Home gym, Hourly rate and both Effective from dates using DD/MM/YYYY."); return;
     }
     setBusy(true); setError(""); setMessage("");
     try {
       const response = await fetch("/api/system/staff-employees", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({
         firstName:create.firstName, surname:create.surname, idNumber:create.idNumber, address:create.address, mobile:create.mobile, email:create.email,
-        homeGymId:create.homeGymId, initialHourlyRateCents:Math.round(euros*100), rateEffectiveFrom,
-        initialEmploymentType:create.initialEmploymentType, employmentTypeEffectiveFrom,
+        homeGymId:create.homeGymId, initialHourlyRateCents:Math.round(euros*100), rateEffectiveFrom:create.rateEffectiveFrom,
+        initialEmploymentType:create.initialEmploymentType, employmentTypeEffectiveFrom:create.employmentTypeEffectiveFrom,
       }) });
       const body = await response.json(); if (!response.ok) throw new Error(body.error || "Could not create staff employee.");
       setCreate(blankCreate); setShowCreate(false); setMessage("Staff employee created."); await load(); setSelectedId(body.employee.id);
@@ -130,9 +128,9 @@ export default function StaffEmployeesAdmin() {
             <Field label="Mobile"><input className="field" value={create.mobile} onChange={e=>setCreate({...create,mobile:e.target.value})}/></Field>
             <Field label="Email"><input type="email" className="field" value={create.email} onChange={e=>setCreate({...create,email:e.target.value})}/></Field>
             <Field label="Hourly rate (€)"><input inputMode="decimal" className="field" value={create.initialHourlyRate} onChange={e=>setCreate({...create,initialHourlyRate:e.target.value})}/></Field>
-            <Field label="Rate Effective from"><input inputMode="numeric" placeholder="DD/MM/YYYY" className="field" value={create.rateEffectiveFrom} onChange={e=>setCreate({...create,rateEffectiveFrom:e.target.value})}/></Field>
+            <Field label="Rate Effective from"><EuropeanDateInput value={create.rateEffectiveFrom} onValueChange={rateEffectiveFrom=>setCreate({...create,rateEffectiveFrom})} className="field" ariaLabel="Rate effective from"/></Field>
             <Field label="Employment type"><select className="field" value={create.initialEmploymentType} onChange={e=>setCreate({...create,initialEmploymentType:e.target.value})}><option value="full_time">Full Time</option><option value="part_time">Part Time</option></select></Field>
-            <Field label="Employment Effective from"><input inputMode="numeric" placeholder="DD/MM/YYYY" className="field" value={create.employmentTypeEffectiveFrom} onChange={e=>setCreate({...create,employmentTypeEffectiveFrom:e.target.value})}/></Field>
+            <Field label="Employment Effective from"><EuropeanDateInput value={create.employmentTypeEffectiveFrom} onValueChange={employmentTypeEffectiveFrom=>setCreate({...create,employmentTypeEffectiveFrom})} className="field" ariaLabel="Employment effective from"/></Field>
           </div><div className="mt-4 flex gap-2"><button disabled={busy} onClick={()=>void createEmployee()} className="rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">Create employee</button><button onClick={()=>setShowCreate(false)} className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-black">Cancel</button></div></div>}
 
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -145,7 +143,7 @@ export default function StaffEmployeesAdmin() {
           <div className="mt-5 overflow-x-auto"><table className="w-full min-w-[800px] text-left text-sm"><thead className="bg-zinc-50 text-xs uppercase text-zinc-500"><tr>{["Staff","ID card","Home gym","Employment type","Hourly rate","Status",""].map(h=><th key={h} className="px-4 py-3 font-black">{h}</th>)}</tr></thead><tbody>{filtered.map(employee=><tr key={employee.id} className="border-t border-zinc-100"><td className="px-4 py-3"><strong>{employee.firstName} {employee.surname}</strong><span className="block text-xs text-zinc-500">{employee.email||employee.mobile||"—"}</span></td><td className="px-4 py-3 font-mono">{employee.idNumber}</td><td className="px-4 py-3">{gymName.get(employee.homeGymId)||employee.homeGymId}</td><td className="px-4 py-3">{employee.currentEmploymentType==="full_time"?"Full Time":employee.currentEmploymentType==="part_time"?"Part Time":"—"}</td><td className="px-4 py-3 font-bold">{eur(employee.currentHourlyRateCents)}</td><td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-black ${employee.active?"bg-green-100 text-green-800":"bg-zinc-200 text-zinc-600"}`}>{employee.active?"Active":"Inactive"}</span></td><td className="px-4 py-3"><button onClick={()=>setSelectedId(employee.id)} className="font-black text-orange-700">Open</button></td></tr>)}{filtered.length===0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-zinc-500">No staff match these filters.</td></tr>}</tbody></table></div>
         </section>}
 
-        {selectedId && <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm"><button onClick={()=>setSelectedId("")} className="mb-4 text-sm font-black text-orange-700">← Employees</button><StaffEmployeeDetail employeeId={selectedId} gyms={data?.gyms||[]} onChanged={()=>void load()}/></section>}
+        {selectedId && <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm"><button onClick={()=>setSelectedId("")} className="mb-4 text-sm font-black text-orange-700">← Employees</button><StaffEmployeeDetail employeeId={selectedId} gyms={data?.gyms||[]} onChanged={()=>void load()} onDeleted={()=>{setSelectedId("");setMessage("Staff employee deleted.");void load();}}/></section>}
       </>}
       <style jsx>{`.field{margin-top:.25rem;width:100%;border:1px solid rgb(212 212 216);border-radius:.75rem;background:white;padding:.625rem .75rem;color:rgb(9 9 11)}`}</style>
     </div>
