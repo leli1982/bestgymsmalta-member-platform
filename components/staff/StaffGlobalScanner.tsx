@@ -5,7 +5,7 @@ import { formatEuropeanDate } from "@/lib/europeanDate";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
-import { getOrCreateOfflineDeviceId } from "@/lib/offlineRosterClient";
+import { getOrCreateOfflineDeviceId, loadOfflineRoster } from "@/lib/offlineRosterClient";
 import OfficialMemberPhotoCapture from "@/components/staff/OfficialMemberPhotoCapture";
 import CardConflictCards, { type CardConflictMember } from "@/components/staff/CardConflictCards";
 import { looksLikeKeyboardBarcode, shouldHoldScannerCandidate, MAX_CONTIGUOUS_GAP_MS } from "@/lib/staffKeyboardScanCore";
@@ -201,6 +201,34 @@ export default function StaffGlobalScanner() {
     setNetworkError("");
     setResult(null);
     setPhotoLoadFailed(false);
+
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      try {
+        const snapshot = await loadOfflineRoster();
+        const normalized = code.trim().toLowerCase();
+        const matches = (snapshot?.members || []).filter((member) =>
+          member.memberNumber.toLowerCase() === normalized ||
+          (member.cardNumbers || []).some((cardNumber) => cardNumber.toLowerCase() === normalized)
+        );
+
+        if (matches.length === 1) {
+          const member = matches[0];
+          const cards = (member.cardNumbers || []).join(", ") || code.trim();
+          setNetworkError(`OFFLINE LOOKUP — ${member.fullName} · BGM ${member.memberNumber} · Card ${cards}`);
+        } else if (matches.length > 1) {
+          setNetworkError(`OFFLINE LOOKUP — Card ${code.trim()} matches more than one saved member. Use Emergency Member Lookup to resolve it manually.`);
+        } else {
+          setNetworkError(`OFFLINE LOOKUP — Card ${code.trim()} was not found in the saved offline roster.`);
+        }
+      } catch {
+        setNetworkError("OFFLINE LOOKUP — The saved offline roster could not be read on this device.");
+      }
+      playTone(false);
+      setChecking(false);
+      busy.current = false;
+      return;
+    }
+
     try {
       const response = await fetch("/api/system/barcode/scan", {
         method: "POST",
@@ -447,6 +475,7 @@ export default function StaffGlobalScanner() {
   if (!canScan) return null;
   const granted = Boolean(result?.granted);
   const problem = Boolean(networkError);
+  const offlineLookup = networkError.startsWith("OFFLINE LOOKUP");
   const color = problem ? "bg-amber-600" : granted ? "bg-emerald-600" : "bg-red-600";
 
   return (
@@ -493,7 +522,7 @@ export default function StaffGlobalScanner() {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={problem ? "SCAN VERIFICATION ERROR" : result ? heading(result) : "VERIFYING MEMBER"}
+      aria-label={problem ? (offlineLookup ? "OFFLINE LOOKUP" : "SCAN VERIFICATION ERROR") : result ? heading(result) : "VERIFYING MEMBER"}
       className={`fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto p-3 sm:items-center sm:p-4 ${color}`}
     >
       <div className="max-h-[calc(100vh-1.5rem)] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-5 text-center shadow-2xl sm:p-6">
@@ -502,8 +531,17 @@ export default function StaffGlobalScanner() {
         ) : problem ? (
           <>
             <AlertTriangle className="mx-auto h-12 w-12 text-amber-600" />
-            <h2 className="mt-3 text-3xl font-black text-amber-700">VERIFICATION UNAVAILABLE</h2>
-            <p className="mt-4 text-lg font-bold text-zinc-800">{networkError}</p>
+            <h2 className="mt-3 text-3xl font-black text-amber-700">
+              {offlineLookup ? "OFFLINE LOOKUP — NOT LIVE VERIFIED" : "VERIFICATION UNAVAILABLE"}
+            </h2>
+            <p className="mt-4 text-lg font-bold text-zinc-800">
+              {offlineLookup ? networkError.replace(/^OFFLINE LOOKUP —\s*/, "") : networkError}
+            </p>
+            {offlineLookup && (
+              <p className="mt-4 rounded-2xl bg-amber-50 p-4 text-base font-black text-amber-900">
+                Saved local roster only. No live access verification or check-in has been recorded.
+              </p>
+            )}
           </>
         ) : result ? (
           <>
