@@ -18,17 +18,52 @@ export async function GET(request: NextRequest) {
     if (auth.error || !auth.context) return auth.error;
 
     const supabase = getSupabaseAdmin();
-    const memberResult = await supabase
-      .from("bgm_members")
-      .select("member_number, full_name")
-      .eq("status", "active")
-      .or(`membership_expiry.is.null,membership_expiry.gte.${todayString()}`)
-      .order("member_number", { ascending: true });
+    const [memberResult, modernCardsResult, legacyCardsResult] = await Promise.all([
+      supabase
+        .from("bgm_members")
+        .select("id, member_number, full_name")
+        .eq("status", "active")
+        .or(`membership_expiry.is.null,membership_expiry.gte.${todayString()}`)
+        .order("member_number", { ascending: true }),
+      supabase
+        .from("bgm_member_card_credentials")
+        .select("member_id, barcode_value")
+        .eq("status", "active"),
+      supabase
+        .from("bgm_legacy_card_claims")
+        .select("member_id, scan3")
+        .eq("assignment_status", "active"),
+    ]);
 
     if (memberResult.error) throw memberResult.error;
+    if (modernCardsResult.error) throw modernCardsResult.error;
+    if (legacyCardsResult.error) throw legacyCardsResult.error;
+
+    const cardsByMember = new Map<string, string[]>();
+    const addCard = (memberId: unknown, cardValue: unknown) => {
+      const id = String(memberId || "").trim();
+      const card = String(cardValue || "").trim();
+      if (!id || !card) return;
+      const current = cardsByMember.get(id) || [];
+      if (!current.includes(card)) current.push(card);
+      cardsByMember.set(id, current);
+    };
+
+    for (const card of modernCardsResult.data || []) {
+      addCard(card.member_id, card.barcode_value);
+    }
+    for (const claim of legacyCardsResult.data || []) {
+      addCard(claim.member_id, claim.scan3);
+    }
 
     const members = (memberResult.data || [])
-      .map(toOfflineRosterMember)
+      .map((row) =>
+        toOfflineRosterMember({
+          member_number: row.member_number,
+          full_name: row.full_name,
+          card_numbers: cardsByMember.get(String(row.id)) || [],
+        })
+      )
       .filter((member) => member.memberNumber && member.fullName);
     const rosterHash = hashOfflineRoster(members);
     const generatedAt = new Date().toISOString();
