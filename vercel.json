@@ -17,6 +17,10 @@
     {
       "path": "/api/cron/membership-expiry-reminders",
       "schedule": "15 7 * * *"
+    },
+    {
+      "path": "/api/cron/staff-midnight-auto-clock-out",
+      "schedule": "0 0 * * *"
     }
   ]
 }
