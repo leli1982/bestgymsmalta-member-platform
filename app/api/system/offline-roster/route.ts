@@ -11,17 +11,26 @@ export const dynamic = "force-dynamic";
 const PAGE_SIZE = 1000;
 
 type SupabaseAdmin = ReturnType<typeof getSupabaseAdmin>;
+type OfflineMemberRow = {
+  id: string;
+  member_number: string | null;
+  full_name: string | null;
+};
+type ModernCardRow = {
+  member_id: string;
+  barcode_value: string | null;
+};
+type LegacyCardRow = {
+  member_id: string;
+  scan3: string | null;
+};
 
 function todayString() {
   return new Date().toISOString().slice(0, 10);
 }
 
 async function fetchAllActiveMembers(supabase: SupabaseAdmin) {
-  const rows: Array<{
-    id: string;
-    member_number: string | null;
-    full_name: string | null;
-  }> = [];
+  const rows: OfflineMemberRow[] = [];
 
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabase
@@ -33,15 +42,16 @@ async function fetchAllActiveMembers(supabase: SupabaseAdmin) {
       .range(from, from + PAGE_SIZE - 1);
 
     if (error) throw error;
-    rows.push(...(data || []));
-    if ((data || []).length < PAGE_SIZE) break;
+    const page = (data || []) as OfflineMemberRow[];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
   }
 
   return rows;
 }
 
 async function fetchAllModernCards(supabase: SupabaseAdmin) {
-  const rows: Array<{ member_id: string; barcode_value: string | null }> = [];
+  const rows: ModernCardRow[] = [];
 
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabase
@@ -52,15 +62,16 @@ async function fetchAllModernCards(supabase: SupabaseAdmin) {
       .range(from, from + PAGE_SIZE - 1);
 
     if (error) throw error;
-    rows.push(...(data || []));
-    if ((data || []).length < PAGE_SIZE) break;
+    const page = (data || []) as ModernCardRow[];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
   }
 
   return rows;
 }
 
 async function fetchAllLegacyCards(supabase: SupabaseAdmin) {
-  const rows: Array<{ member_id: string; scan3: string | null }> = [];
+  const rows: LegacyCardRow[] = [];
 
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabase
@@ -71,8 +82,9 @@ async function fetchAllLegacyCards(supabase: SupabaseAdmin) {
       .range(from, from + PAGE_SIZE - 1);
 
     if (error) throw error;
-    rows.push(...(data || []));
-    if ((data || []).length < PAGE_SIZE) break;
+    const page = (data || []) as LegacyCardRow[];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
   }
 
   return rows;
