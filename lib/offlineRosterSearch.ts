@@ -10,7 +10,10 @@ export function filterOfflineRoster(
   return members.filter((member) => {
     return (
       member.memberNumber.toLowerCase().includes(normalized) ||
-      member.fullName.toLowerCase().includes(normalized)
+      member.fullName.toLowerCase().includes(normalized) ||
+      (member.cardNumbers || []).some((cardNumber) =>
+        cardNumber.toLowerCase().includes(normalized)
+      )
     );
   });
 }
