@@ -127,6 +127,7 @@ export async function queryStaffTimesheets(filters: StaffTimesheetFilters): Prom
     .or(`clock_out_at.gte.${rangeStart},clock_out_at.is.null`)
     .order("clock_in_at");
   if (status) sessionQuery = sessionQuery.eq("status", status);
+  else sessionQuery = sessionQuery.neq("status", "void");
   if (workedGymId) sessionQuery = sessionQuery.or(`clock_in_gym_id.eq.${workedGymId},clock_out_gym_id.eq.${workedGymId}`);
   const sessionResult = await sessionQuery;
   if (sessionResult.error) throw sessionResult.error;
