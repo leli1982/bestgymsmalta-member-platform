@@ -48,7 +48,7 @@ test("offline roster refreshes on startup, login and reconnect", () => {
 test("offline roster API fetches every Supabase page", () => {
   assert.match(rosterRoute, /const PAGE_SIZE = 1000/);
   assert.match(rosterRoute, /\.range\(from, from \+ PAGE_SIZE - 1\)/);
-  assert.match(rosterRoute, /if \(data\.length < PAGE_SIZE\) break/);
+  assert.match(rosterRoute, /if \(page\.length < PAGE_SIZE\) break/);
   assert.match(rosterRoute, /fetchAllActiveMembers/);
   assert.match(rosterRoute, /fetchAllModernCards/);
   assert.match(rosterRoute, /fetchAllLegacyCards/);
