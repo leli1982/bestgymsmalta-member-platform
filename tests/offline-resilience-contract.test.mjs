@@ -96,9 +96,11 @@ test("Bar cache is warmed during ordinary Staff use", () => {
   assert.match(barWarmup, /addEventListener\("online"/);
 });
 
-test("New Member enrollment context and route bundle are warmed during ordinary Staff use", () => {
-  assert.match(enrollmentWarmup, /useRouter/);
-  assert.match(enrollmentWarmup, /router\.prefetch\("\/staff\/members\/enroll\?kind=new"\)/);
+test("New Member enrollment context and all route assets are warmed during ordinary Staff use", () => {
+  assert.match(enrollmentWarmup, /navigator\.serviceWorker\.ready/);
+  assert.match(enrollmentWarmup, /fetch\("\/staff\/members\/enroll\?kind=new"/);
+  assert.match(enrollmentWarmup, /\/_next\/static\//);
+  assert.match(enrollmentWarmup, /Promise\.allSettled/);
   assert.match(enrollmentWarmup, /\/api\/system\/members\/registration/);
   assert.match(enrollmentWarmup, /cacheOfflineEnrollmentContext/);
   assert.match(enrollmentWarmup, /payload\.config/);
