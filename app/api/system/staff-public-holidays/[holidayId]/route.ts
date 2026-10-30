@@ -54,10 +54,7 @@ export async function PATCH(
     const nextVersionNo = Math.max(...versions.map((version) => Number(version.version_no)), 0) + 1;
     const now = new Date().toISOString();
 
-    const supersede = await db.from("bgm_staff_public_holiday_versions").update({
-      active: false,
-      superseded_at: now,
-    }).eq("id", current.id);
+    const supersede = await db.from("bgm_staff_public_holiday_versions").update({ active: false, superseded_at: now }).eq("id", current.id);
     if (supersede.error) throw supersede.error;
 
     const inserted = await db.from("bgm_staff_public_holiday_versions").insert({
@@ -72,10 +69,7 @@ export async function PATCH(
     }).select("id, holiday_id, version_no, name, full_time_multiplier_bps, part_time_multiplier_bps, active, note, effective_created_at, superseded_at, created_at").single();
 
     if (inserted.error) {
-      await db.from("bgm_staff_public_holiday_versions").update({
-        active: current.active,
-        superseded_at: current.superseded_at,
-      }).eq("id", current.id);
+      await db.from("bgm_staff_public_holiday_versions").update({ active: current.active, superseded_at: current.superseded_at }).eq("id", current.id);
       if (isUniqueViolation(inserted.error)) return bad("The public holiday changed at the same time. Refresh and try again.", 409);
       throw inserted.error;
     }
@@ -98,5 +92,55 @@ export async function PATCH(
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Could not version the staff public holiday." }, { status: 500, headers: noStore });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ holidayId: string }> }
+) {
+  try {
+    const auth = await requireSuperAdmin(request);
+    if (auth.error || !auth.context) return auth.error;
+    const { holidayId } = await params;
+    const db = getSupabaseAdmin();
+
+    const [holidayResult, versionsResult] = await Promise.all([
+      db.from("bgm_staff_public_holidays").select("id, holiday_date, created_at").eq("id", holidayId).maybeSingle(),
+      db.from("bgm_staff_public_holiday_versions").select("id, holiday_id, version_no, name, full_time_multiplier_bps, part_time_multiplier_bps, active, note, effective_created_at, superseded_at, created_at").eq("holiday_id", holidayId).order("version_no", { ascending: false }),
+    ]);
+    if (holidayResult.error) throw holidayResult.error;
+    if (versionsResult.error) throw versionsResult.error;
+    if (!holidayResult.data) return bad("Staff public holiday not found.", 404);
+
+    const versions = versionsResult.data || [];
+    const versionIds = versions.map((version) => String(version.id));
+    if (versionIds.length > 0) {
+      const usage = await db.from("bgm_staff_session_payroll_segments").select("id").in("holiday_version_id", versionIds).limit(1);
+      if (usage.error) throw usage.error;
+      if ((usage.data || []).length > 0) {
+        return bad("This public holiday cannot be deleted because it is already used in payroll history. Deactivate it instead.", 409);
+      }
+    }
+
+    if (versionIds.length > 0) {
+      const deleteVersions = await db.from("bgm_staff_public_holiday_versions").delete().in("id", versionIds);
+      if (deleteVersions.error) throw deleteVersions.error;
+    }
+    const deleteHoliday = await db.from("bgm_staff_public_holidays").delete().eq("id", holidayId);
+    if (deleteHoliday.error) throw deleteHoliday.error;
+
+    await writeStaffAudit(auth.context, {
+      actionKey: "staff.holiday.deleted",
+      entityType: "staff_public_holiday",
+      entityId: holidayId,
+      beforeData: { holiday: holidayResult.data, versions },
+      afterData: null,
+    });
+
+    return NextResponse.json({ ok: true }, { headers: noStore });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Could not delete the staff public holiday." }, { status: 500, headers: noStore });
   }
 }
