@@ -5,7 +5,6 @@ import { cacheOfflineEnrollmentContext, type OfflineEnrollmentContext } from "@/
 import type { PublicEnrollmentConfig } from "@/lib/membershipRegistrationTypes";
 
 const REFRESH_MS = 15 * 60_000;
-const NEW_MEMBER_ROUTE = "/staff/members/enroll?kind=new";
 
 type RegistrationPayload = {
   config?: PublicEnrollmentConfig | null;
