@@ -74,7 +74,7 @@ test("Staff landing page prefers offline mode before cached API auth can mask an
 });
 
 test("staff service worker precaches outage-safe routes and Bar APIs", () => {
-  assert.match(serviceWorker, /bgm-staff-shell-v5/);
+  assert.match(serviceWorker, /bgm-staff-shell-v6/);
   assert.match(serviceWorker, /"\/staff\/offline"/);
   assert.match(serviceWorker, /"\/staff\/members\/enroll"/);
   assert.match(serviceWorker, /"\/staff\/bar"/);
