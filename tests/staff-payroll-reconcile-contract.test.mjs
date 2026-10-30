@@ -34,12 +34,17 @@ test("payroll dates use the shared DD/MM/YYYY auto-format input", () => {
   assert.match(holidays, /EuropeanDateInput/);
 });
 
-test("staff photo offers camera capture and separate upload", () => {
+test("staff photo offers real webcam capture and separate upload", () => {
   const detail = read("components/staff/StaffEmployeeDetail.tsx");
-  assert.match(detail, /capture="environment"/);
+  const camera = read("components/staff/StaffCameraCaptureBridge.tsx");
+  const page = read("app/staff/admin/staff/page.tsx");
   assert.match(detail, /Take Photo/);
   assert.match(detail, /Upload Photo/);
   assert.match(detail, /normaliseStaffPhoto/);
+  assert.match(camera, /navigator\.mediaDevices\.getUserMedia/);
+  assert.match(camera, /<video/);
+  assert.match(camera, /Capture Photo/);
+  assert.match(page, /StaffCameraCaptureBridge/);
 });
 
 test("attendance and payroll inputs force a legible light field treatment", () => {
