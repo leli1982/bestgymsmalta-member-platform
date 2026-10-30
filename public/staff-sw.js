@@ -1,4 +1,4 @@
-const CACHE_NAME = "bgm-staff-shell-v5";
+const CACHE_NAME = "bgm-staff-shell-v6";
 const AUTH_CACHE_NAME = "bgm-staff-auth-v1";
 const BAR_API_CACHE_NAME = "bgm-staff-bar-api-v1";
 const AUTH_TTL_MS = 24 * 60 * 60 * 1000;
