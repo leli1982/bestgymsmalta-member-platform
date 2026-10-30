@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CalendarDays, Plus, RefreshCw } from "lucide-react";
+import { CalendarDays, Plus, RefreshCw, Trash2 } from "lucide-react";
 import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
 import { formatEuropeanDate } from "@/lib/europeanDate";
 
@@ -70,6 +70,22 @@ export default function StaffPublicHolidaysAdmin() {
     finally { setBusy(false); }
   }
 
+  async function deleteHoliday(holiday: Holiday) {
+    const version = holiday.currentVersion || holiday.versions[0];
+    const label = version?.name || "this public holiday";
+    if (!window.confirm(`Delete ${label} on ${formatEuropeanDate(holiday.holidayDate)}? This is only allowed if it has not been used in payroll history.`)) return;
+    setBusy(true); setError(""); setMessage("");
+    try {
+      const response = await fetch(`/api/system/staff-public-holidays/${encodeURIComponent(holiday.id)}`, { method: "DELETE" });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Could not delete public holiday.");
+      if (editingId === holiday.id) { setEditingId(""); setForm(blank); }
+      setMessage("Public holiday deleted.");
+      await load();
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not delete public holiday."); }
+    finally { setBusy(false); }
+  }
+
   return <div className="space-y-5">
     <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="flex items-center gap-3"><CalendarDays className="h-6 w-6 text-orange-600"/><div><h2 className="text-xl font-black">Public Holidays</h2><p className="text-sm text-zinc-500">Separate Full Time and Part Time payroll multipliers with immutable Version history.</p></div></div>
@@ -87,7 +103,7 @@ export default function StaffPublicHolidaysAdmin() {
     </section>
 
     <section className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
-      <div className="overflow-x-auto"><table className="w-full min-w-[850px] text-left text-sm"><thead className="bg-zinc-50 text-xs uppercase text-zinc-500"><tr>{["Date","Name","Full Time multiplier","Part Time multiplier","Active","Note",""].map(h=><th key={h} className="px-4 py-3 font-black">{h}</th>)}</tr></thead><tbody>{holidays.map(h=>{const v=h.currentVersion||h.versions[0];return <tr key={h.id} className="border-t border-zinc-100"><td className="px-4 py-3 font-bold">{formatEuropeanDate(h.holidayDate)}</td><td className="px-4 py-3 font-bold">{v?.name||"—"}</td><td className="px-4 py-3">{v ? `${v.full_time_multiplier_bps/10000}x` : "—"}</td><td className="px-4 py-3">{v ? `${v.part_time_multiplier_bps/10000}x` : "—"}</td><td className="px-4 py-3">{v?.active ? "Yes" : "No"}</td><td className="px-4 py-3">{v?.note||"—"}</td><td className="px-4 py-3"><div className="flex gap-3"><button onClick={()=>editHoliday(h)} className="font-black text-orange-700">Edit</button><button onClick={()=>setOpenHistory(openHistory===h.id?"":h.id)} className="font-black text-zinc-700">Version history</button></div>{openHistory===h.id && <div className="mt-3 min-w-[500px] space-y-2 rounded-xl bg-zinc-50 p-3">{h.versions.map(row=><div key={row.id} className="grid grid-cols-5 gap-2 text-xs"><strong>v{row.version_no}</strong><span>{row.name}</span><span>FT {row.full_time_multiplier_bps/10000}x</span><span>PT {row.part_time_multiplier_bps/10000}x</span><span>{row.superseded_at?"Superseded":row.active?"Current":"Inactive"}</span></div>)}</div>}</td></tr>})}{holidays.length===0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-zinc-500">No public holidays configured yet.</td></tr>}</tbody></table></div>
+      <div className="overflow-x-auto"><table className="w-full min-w-[850px] text-left text-sm"><thead className="bg-zinc-50 text-xs uppercase text-zinc-500"><tr>{["Date","Name","Full Time multiplier","Part Time multiplier","Active","Note",""].map(h=><th key={h} className="px-4 py-3 font-black">{h}</th>)}</tr></thead><tbody>{holidays.map(h=>{const v=h.currentVersion||h.versions[0];return <tr key={h.id} className="border-t border-zinc-100"><td className="px-4 py-3 font-bold">{formatEuropeanDate(h.holidayDate)}</td><td className="px-4 py-3 font-bold">{v?.name||"—"}</td><td className="px-4 py-3">{v ? `${v.full_time_multiplier_bps/10000}x` : "—"}</td><td className="px-4 py-3">{v ? `${v.part_time_multiplier_bps/10000}x` : "—"}</td><td className="px-4 py-3">{v?.active ? "Yes" : "No"}</td><td className="px-4 py-3">{v?.note||"—"}</td><td className="px-4 py-3"><div className="flex flex-wrap gap-3"><button onClick={()=>editHoliday(h)} className="font-black text-orange-700">Edit</button><button onClick={()=>setOpenHistory(openHistory===h.id?"":h.id)} className="font-black text-zinc-700">Version history</button><button disabled={busy} onClick={()=>void deleteHoliday(h)} className="inline-flex items-center gap-1 font-black text-red-700 disabled:opacity-50"><Trash2 className="h-4 w-4"/>Delete holiday</button></div>{openHistory===h.id && <div className="mt-3 min-w-[500px] space-y-2 rounded-xl bg-zinc-50 p-3">{h.versions.map(row=><div key={row.id} className="grid grid-cols-5 gap-2 text-xs"><strong>v{row.version_no}</strong><span>{row.name}</span><span>FT {row.full_time_multiplier_bps/10000}x</span><span>PT {row.part_time_multiplier_bps/10000}x</span><span>{row.superseded_at?"Superseded":row.active?"Current":"Inactive"}</span></div>)}</div>}</td></tr>})}{holidays.length===0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-zinc-500">No public holidays configured yet.</td></tr>}</tbody></table></div>
     </section>
     <style jsx>{`.field{margin-top:.25rem;width:100%;border:1px solid rgb(212 212 216);border-radius:.75rem;background:white;padding:.625rem .75rem;color:rgb(9 9 11)}`}</style>
   </div>;
