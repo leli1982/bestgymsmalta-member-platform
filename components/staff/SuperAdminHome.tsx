@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   ArrowLeft, ArrowUpRight, Beer, Bell, BellRing, Building2, ChartNoAxesCombined, ClipboardList, Dumbbell,
-  FileBarChart2, KeyRound, Megaphone, RefreshCw, Settings2, ShieldCheck, UserPlus, UsersRound, Barcode, ShoppingBasket, ScrollText,
+  FileBarChart2, Fingerprint, KeyRound, Megaphone, RefreshCw, Settings2, ShieldCheck, UserPlus, UsersRound, Barcode, ShoppingBasket, ScrollText,
 } from "lucide-react";
 
 type AdminUser = { displayName: string; isSuperAdmin: boolean };
@@ -18,6 +18,7 @@ const sections: Section[] = [
   { href: "/staff/admin/announcements", label: "Announcements", description: "Publish member news, images and links; schedule, edit or hide announcements.", icon: Megaphone, group: "Management" },
   { href: "/bgm-admin/notifications", label: "Notifications", description: "Manage order alerts, Super Admin push devices and automatic membership-expiry reminders.", icon: BellRing, group: "Management" },
   { href: "/staff/admin/gyms", label: "Gym locations", description: "Add and edit gyms, opening hours, active status, staff access and tablet registration links.", icon: Building2, group: "Management" },
+  { href: "/staff/admin/staff", label: "Staff", description: "Manage staff employment, pay configuration, attendance and payroll. Fingerprint Punch Clock remains inactive until hardware setup is complete.", icon: Fingerprint, group: "Management" },
   { href: "/staff/admin/super-admins", label: "Super Admin accounts", description: "View, add, edit usernames, reset passwords and manage Super Admin access.", icon: ShieldCheck, group: "Management" },
   { href: "/staff/admin/gym-managers", label: "Gym Manager accounts", description: "Create Manager usernames and passwords, then assign one or more Active or Coming Soon gyms.", icon: UsersRound, group: "Management" },
   { href: "/staff/admin/staff-logins", label: "Staff Portal logins", description: "Manage each gym's staff username, password and active status.", icon: KeyRound, group: "Management" },
@@ -64,7 +65,7 @@ export default function SuperAdminHome() {
         </header>
         {(["Operations", "Management", "Membership Tools"] as const).map((group) => (
           <section key={group} aria-label={group} className="space-y-3">
-            <div className="flex flex-wrap items-end justify-between gap-2 px-1"><h2 className="text-xl font-black">{group}</h2><p className="text-xs font-semibold text-zinc-500">{group === "Operations" ? "Daily sales and orders" : group === "Management" ? "Gym locations and account access" : "Occasional member and reception actions"}</p></div>
+            <div className="flex flex-wrap items-end justify-between gap-2 px-1"><h2 className="text-xl font-black">{group}</h2><p className="text-xs font-semibold text-zinc-500">{group === "Operations" ? "Daily sales and orders" : group === "Management" ? "Gym locations, staff and account access" : "Occasional member and reception actions"}</p></div>
             <div className="grid gap-3 md:grid-cols-2">
               {sections.filter((section) => section.group === group).map(({ href, label, description, icon: Icon }) => (
                 <a key={href} href={href} className="group flex min-h-32 items-start gap-4 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:border-orange-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-700"><Icon className="h-6 w-6"/></span><span className="min-w-0 flex-1"><span className="flex items-start justify-between gap-2 text-lg font-black">{label}<ArrowUpRight className="h-5 w-5 shrink-0 text-orange-700"/></span><span className="mt-2 block text-sm leading-6 text-zinc-600">{description}</span></span></a>
@@ -72,7 +73,7 @@ export default function SuperAdminHome() {
             </div>
           </section>
         ))}
-        <p className="px-1 text-xs text-zinc-500">The Staff Portal layout is unchanged. Punch Clock will be added in a later phase.</p>
+        <p className="px-1 text-xs text-zinc-500">Staff Punch Clock remains inactive until the fingerprint hardware setup is complete.</p>
       </div>
     </main>
   );

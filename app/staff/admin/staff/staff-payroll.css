@@ -1,0 +1,23 @@
+.staff-payroll-ui input:not([type="checkbox"]):not([type="radio"]),
+.staff-payroll-ui textarea,
+.staff-payroll-ui select {
+  background-color: #ffffff !important;
+  color: #09090b !important;
+  -webkit-text-fill-color: #09090b !important;
+  color-scheme: light;
+}
+
+.staff-payroll-ui input::placeholder,
+.staff-payroll-ui textarea::placeholder {
+  color: #71717a !important;
+  -webkit-text-fill-color: #71717a !important;
+  opacity: 1;
+}
+
+.staff-payroll-ui input:disabled,
+.staff-payroll-ui textarea:disabled,
+.staff-payroll-ui select:disabled {
+  background-color: #f4f4f5 !important;
+  color: #52525b !important;
+  -webkit-text-fill-color: #52525b !important;
+}
