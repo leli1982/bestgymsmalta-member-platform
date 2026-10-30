@@ -91,7 +91,7 @@ export default function OfflineRosterPage() {
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.18em] text-orange-600">BestGymsMalta</p>
               <h1 className="mt-1 text-2xl font-bold">Emergency Offline Member Lookup</h1>
-              <p className="mt-2 text-sm text-zinc-600">This local copy contains only active members&apos; membership numbers and names.</p>
+              <p className="mt-2 text-sm text-zinc-600">This local copy contains active members&apos; BGM numbers, physical card numbers and names.</p>
             </div>
             <div className={`rounded-full px-3 py-2 text-xs font-bold ${online ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
               {online ? "ONLINE" : "OFFLINE MODE"}
@@ -135,16 +135,17 @@ export default function OfflineRosterPage() {
 
             <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
               <label className="block text-sm font-bold">Search member
-                <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-lg text-zinc-950 placeholder:text-zinc-400 caret-zinc-950 outline-none focus:border-orange-500" placeholder="Membership number or name" />
+                <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-lg text-zinc-950 placeholder:text-zinc-400 caret-zinc-950 outline-none focus:border-orange-500" placeholder="BGM number, physical card number or name" />
               </label>
 
-              <div className="mt-4 overflow-hidden rounded-xl border border-zinc-200">
-                <div className="grid grid-cols-[minmax(120px,180px)_1fr] bg-zinc-100 px-4 py-2 text-xs font-bold uppercase tracking-wide text-zinc-500">
-                  <span>Member No.</span><span>Name</span>
+              <div className="mt-4 overflow-x-auto rounded-xl border border-zinc-200">
+                <div className="grid min-w-[620px] grid-cols-[minmax(120px,160px)_minmax(150px,200px)_1fr] bg-zinc-100 px-4 py-2 text-xs font-bold uppercase tracking-wide text-zinc-500">
+                  <span>BGM No.</span><span>Physical Card</span><span>Name</span>
                 </div>
                 {results.map((member) => (
-                  <div key={member.memberNumber} className="grid grid-cols-[minmax(120px,180px)_1fr] border-t border-zinc-100 px-4 py-3 text-sm">
+                  <div key={member.memberNumber} className="grid min-w-[620px] grid-cols-[minmax(120px,160px)_minmax(150px,200px)_1fr] border-t border-zinc-100 px-4 py-3 text-sm">
                     <span className="font-bold">{member.memberNumber}</span>
+                    <span>{(member.cardNumbers || []).join(", ") || "—"}</span>
                     <span>{member.fullName}</span>
                   </div>
                 ))}
