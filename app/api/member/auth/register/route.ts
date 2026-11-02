@@ -110,6 +110,7 @@ export async function POST(request: NextRequest) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const now = new Date().toISOString();
 
     const updateResult = await supabase
       .from("bgm_members")
@@ -117,9 +118,10 @@ export async function POST(request: NextRequest) {
         username,
         password_hash: passwordHash,
         app_enrolled: true,
+        app_enrolled_at: now,
         temp_password_must_change: false,
-        last_login_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        last_login_at: now,
+        updated_at: now,
       })
       .eq("id", member.id)
       .select("*")
