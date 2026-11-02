@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const MAX_RANGE_DAYS = 366;
+const PAGE_SIZE = 1000;
 
 function parseDate(value: string) {
   const [year, month, day] = value.split("-").map(Number);
@@ -54,6 +55,30 @@ async function exactCount(query: any) {
   const result = await query;
   if (result.error) throw result.error;
   return result.count ?? 0;
+}
+
+async function loadEnrollmentDates(
+  db: ReturnType<typeof getSupabaseAdmin>,
+  from: string,
+  to: string
+) {
+  const rows: Array<{ enrollment_date: string | null }> = [];
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const result = await db
+      .from("bgm_members")
+      .select("enrollment_date")
+      .eq("app_enrolled", true)
+      .not("enrollment_date", "is", null)
+      .gte("enrollment_date", from)
+      .lte("enrollment_date", to)
+      .order("enrollment_date", { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1);
+    if (result.error) throw result.error;
+    const batch = result.data || [];
+    rows.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+  }
+  return rows;
 }
 
 export async function GET(request: NextRequest) {
@@ -120,20 +145,11 @@ export async function GET(request: NextRequest) {
           .gte("enrollment_date", monthStart)
           .lte("enrollment_date", today)
       ),
-      db
-        .from("bgm_members")
-        .select("enrollment_date")
-        .eq("app_enrolled", true)
-        .not("enrollment_date", "is", null)
-        .gte("enrollment_date", requestedFrom)
-        .lte("enrollment_date", requestedTo)
-        .order("enrollment_date", { ascending: true }),
+      loadEnrollmentDates(db, requestedFrom, requestedTo),
     ]);
 
-    if (dailyRows.error) throw dailyRows.error;
-
     const counts = new Map<string, number>();
-    for (const row of dailyRows.data || []) {
+    for (const row of dailyRows) {
       const date = String(row.enrollment_date || "");
       if (!date) continue;
       counts.set(date, (counts.get(date) || 0) + 1);
