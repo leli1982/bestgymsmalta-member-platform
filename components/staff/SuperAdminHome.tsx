@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, ArrowUpRight, Beer, Bell, BellRing, Building2, ChartNoAxesCombined, ClipboardList, Dumbbell,
+  Activity, ArrowLeft, ArrowUpRight, Beer, Bell, BellRing, Building2, ChartNoAxesCombined, ClipboardList, Dumbbell,
   FileBarChart2, Fingerprint, KeyRound, Megaphone, RefreshCw, Settings2, ShieldCheck, UserPlus, UsersRound, Barcode, ShoppingBasket, ScrollText,
 } from "lucide-react";
 
 type AdminUser = { displayName: string; isSuperAdmin: boolean };
 type Section = { href: string; label: string; description: string; icon: typeof Beer; group: "Operations" | "Management" | "Membership Tools" };
 const sections: Section[] = [
+  { href: "/staff/admin/live-monitor", label: "Live Gym Monitor", description: "Watch one gym's scans, check-ins, membership activity and Bar totals remotely in near real time.", icon: Activity, group: "Operations" },
   { href: "/staff/operations", label: "Operations dashboard", description: "Review Sundries and Bar submissions across all gyms.", icon: ClipboardList, group: "Operations" },
   { href: "/staff/admin/end-of-day", label: "End of Day", description: "Review submitted daily totals, memberships, voucher reimbursements, Bar sales and expenses by gym.", icon: FileBarChart2, group: "Operations" },
   { href: "/staff/admin/shopping-list", label: "Shopping List", description: "Combined Sundries quantities to buy, grouped gym deliveries, and individual Delivered controls.", icon: ShoppingBasket, group: "Operations" },
