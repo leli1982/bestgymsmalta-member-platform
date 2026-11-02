@@ -13,6 +13,7 @@ test("schema stores explicit access scope and migrates only verified legacy NO m
   assert.match(migration, /real_import_batch_id is not null/i);
   assert.match(migration, /like 'NO%'/i);
   assert.match(migration, /restricted_gym/);
+  assert.match(migration, /application_kind = 'new'/i);
 });
 
 test("barcode and NFC evaluators enforce Neptunes-only scope with gym context", () => {
@@ -36,19 +37,20 @@ test("staffed scan routes select access scope and pass current gym to access eva
   }
 });
 
-test("offline roster carries access scope and scanner warns at the wrong gym", () => {
+test("offline roster carries scope and excludes Neptunes-only members at other gyms", () => {
   const route = read("app/api/system/offline-roster/route.ts");
   const core = read("lib/offlineRosterCore.ts");
-  const scanner = read("components/staff/StaffGlobalScanner.tsx");
   assert.match(route, /access_scope/);
+  assert.match(route, /member\.accessScope !== "neptunes_only"/);
+  assert.match(route, /currentGymId === NEPTUNES_GYM_ID/);
   assert.match(core, /accessScope/);
-  assert.match(scanner, /neptunes_only/);
-  assert.match(scanner, /NEPTUNES-ONLY/);
 });
 
-test("future enrollment carries explicit scope without deriving it from voucher code", () => {
-  const route = read("app/api/system/members/enroll/route.ts");
+test("pending new applications can set explicit scope without deriving it from vouchers", () => {
+  const route = read("app/api/system/members/applications/[applicationId]/access-scope/route.ts");
   assert.match(route, /accessScope/);
   assert.match(route, /neptunes_only/);
-  assert.doesNotMatch(route, /discount.*accessScope|accessScope.*discount/is);
+  assert.match(route, /bgm-neptunes/);
+  assert.match(route, /application_kind/);
+  assert.doesNotMatch(route, /discount|voucher/i);
 });
