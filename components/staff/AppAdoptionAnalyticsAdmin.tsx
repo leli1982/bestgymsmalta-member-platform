@@ -6,6 +6,8 @@ import { RefreshCw, Smartphone, TrendingUp, UserCheck, UserMinus, UsersRound } f
 type DailyPoint = { date: string; count: number };
 type AppAdoption = {
   totalEnrolled: number;
+  trackedEnrolled: number;
+  historicalUntracked: number;
   activeMembers: number;
   activeEnrolled: number;
   adoptionPct: number;
@@ -134,8 +136,14 @@ export default function AppAdoptionAnalyticsAdmin() {
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</div>
       ) : null}
 
+      {data && data.historicalUntracked > 0 ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+          {data.historicalUntracked} existing app enrollment{data.historicalUntracked === 1 ? "" : "s"} predate precise activation tracking. They are included in Total enrolled and Adoption rate, but are not assigned invented dates in the daily chart.
+        </div>
+      ) : null}
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <KpiCard label="Total enrolled" value={data?.totalEnrolled ?? "—"} detail="All members who activated the app" icon={Smartphone} />
+        <KpiCard label="Total enrolled" value={data?.totalEnrolled ?? "—"} detail={data ? `${data.trackedEnrolled} with precise activation timestamps` : "All members who activated the app"} icon={Smartphone} />
         <KpiCard label="Adoption rate" value={data ? `${data.adoptionPct}%` : "—"} detail={data ? `${data.activeEnrolled} of ${data.activeMembers} active members` : undefined} icon={UsersRound} />
         <KpiCard label="Activated today" value={data?.activatedToday ?? "—"} icon={UserCheck} />
         <KpiCard label="Activated this week" value={data?.activatedThisWeek ?? "—"} icon={TrendingUp} />
@@ -148,7 +156,7 @@ export default function AppAdoptionAnalyticsAdmin() {
           <div>
             <h3 className="text-lg font-black text-zinc-950">Daily app activations</h3>
             <p className="mt-1 text-xs font-semibold text-zinc-500">
-              New member-app activations for the selected date range. Zero-activation days are included.
+              Precise first app activations for the selected date range. Zero-activation days are included.
             </p>
           </div>
           {data ? <p className="text-xs font-black text-zinc-500">{displayDate(data.from)} – {displayDate(data.to)}</p> : null}
