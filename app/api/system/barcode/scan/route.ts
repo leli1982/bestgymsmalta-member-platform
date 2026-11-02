@@ -97,6 +97,8 @@ export async function POST(request: NextRequest) {
         const activeClaims = allClaims.filter((candidate) => accessFor(candidate, gymId).granted);
         credentialKind = "physical_card";
 
+        // Shared/historical cards must continue to show every matching member.
+        // Gym scope is enforced only after the correct person is identified.
         if (allClaims.length > 1) {
           cardMatches = allClaims;
           ambiguousPhysicalCard = true;
@@ -141,8 +143,10 @@ export async function POST(request: NextRequest) {
             (candidate) => accessFor(candidate, gymId).granted
           );
 
-          if (activeLegacyMembers.length > 1) {
-            cardMatches = activeLegacyMembers;
+          // Preserve the existing safety contract: non-unique legacy PK values
+          // always surface every match instead of collapsing to one person.
+          if (legacyMembers.length > 1) {
+            cardMatches = legacyMembers;
             ambiguousPhysicalCard = true;
             credentialKind = "legacy_pk_customer";
           } else if (activeLegacyMembers.length === 1) {
@@ -150,10 +154,6 @@ export async function POST(request: NextRequest) {
             credentialKind = "legacy_pk_customer";
           } else if (legacyMembers.length === 1) {
             member = legacyMembers[0];
-            credentialKind = "legacy_pk_customer";
-          } else if (legacyMembers.length > 1) {
-            cardMatches = legacyMembers;
-            ambiguousPhysicalCard = true;
             credentialKind = "legacy_pk_customer";
           }
         }
