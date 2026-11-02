@@ -12,6 +12,7 @@ export type WelcomeDeclarations = {
 
 export type WelcomeEmailInput = {
   memberName: string;
+  memberNumber: string;
   appUrl: string;
   declarations: WelcomeDeclarations;
 };
@@ -41,6 +42,7 @@ function declarationSection(
 
 export function buildWelcomeEmail(input: WelcomeEmailInput) {
   const memberName = clean(input.memberName) || "Member";
+  const memberNumber = clean(input.memberNumber);
   const appUrl = clean(input.appUrl);
   const sections = [
     declarationSection("Gym Rules", input.declarations.gymRules),
@@ -64,6 +66,10 @@ export function buildWelcomeEmail(input: WelcomeEmailInput) {
     `Welcome to BestGymsMalta, ${memberName}.`,
     "Your membership has been activated successfully.",
     "",
+    "Your BGM membership number:",
+    memberNumber,
+    "Use this membership number when registering for the BestGymsMalta member app.",
+    "",
     "Access the BestGymsMalta member app here:",
     appUrl,
     "",
@@ -72,7 +78,7 @@ export function buildWelcomeEmail(input: WelcomeEmailInput) {
     ...textSections,
   ].join("\n\n");
 
-  const html = `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#18181b;line-height:1.5"><h2>Welcome to BestGymsMalta, ${escapeHtml(memberName)}.</h2><p>Your membership has been activated successfully.</p><p><strong>Access the BestGymsMalta member app:</strong><br><a href="${escapeHtml(appUrl)}">${escapeHtml(appUrl)}</a></p><p>Below are the membership declarations and rules that apply to your enrollment:</p>${htmlSections.join("")}</body></html>`;
+  const html = `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#18181b;line-height:1.5"><h2>Welcome to BestGymsMalta, ${escapeHtml(memberName)}.</h2><p>Your membership has been activated successfully.</p><div style="margin:20px 0;padding:16px;border:2px solid #f59e0b;border-radius:12px;background:#fff7ed"><div style="font-size:13px;font-weight:700;text-transform:uppercase;color:#9a3412">Your BGM membership number</div><div style="margin-top:4px;font-size:28px;font-weight:800;letter-spacing:1px">${escapeHtml(memberNumber)}</div><div style="margin-top:6px;font-size:14px">Use this membership number when registering for the BestGymsMalta member app.</div></div><p><strong>Access the BestGymsMalta member app:</strong><br><a href="${escapeHtml(appUrl)}">${escapeHtml(appUrl)}</a></p><p>Below are the membership declarations and rules that apply to your enrollment:</p>${htmlSections.join("")}</body></html>`;
 
   return { subject, text, html };
 }

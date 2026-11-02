@@ -8,6 +8,7 @@ let cachedTransporter: ReturnType<typeof nodemailer.createTransport> | null = nu
 export async function sendWelcomeEmail(input: {
   recipient: string;
   memberName: string;
+  memberNumber: string;
   appUrl: string;
   declarations: WelcomeDeclarations;
 }) {
