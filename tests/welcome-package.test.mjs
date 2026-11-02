@@ -9,9 +9,10 @@ const walletSync = readFileSync(new URL("../lib/googleWalletSync.ts", import.met
 const welcomePackage = readFileSync(new URL("../lib/welcomePackage.ts", import.meta.url), "utf8");
 const welcomeMailer = readFileSync(new URL("../lib/welcomeMailer.ts", import.meta.url), "utf8");
 
-test("welcome email contains app link and accepted declaration text", () => {
+test("welcome email contains member number, app link and accepted declaration text", () => {
   const email = buildWelcomeEmail({
     memberName: "Test Member",
+    memberNumber: "BGM0123456",
     appUrl: "https://example.test/login",
     declarations: {
       gymRules: { versionNo: 7, body: "Respect the gym and return weights after use." },
@@ -21,6 +22,10 @@ test("welcome email contains app link and accepted declaration text", () => {
     },
   });
   assert.match(email.subject, /Welcome/i);
+  assert.match(email.text, /BGM0123456/);
+  assert.match(email.text, /membership number/i);
+  assert.match(email.html, /BGM0123456/);
+  assert.match(email.html, /membership number/i);
   assert.match(email.text, /https:\/\/example\.test\/login/);
   assert.match(email.text, /Gym Rules/i);
   assert.match(email.text, /Health Declaration/i);
@@ -33,6 +38,7 @@ test("welcome email contains app link and accepted declaration text", () => {
 test("welcome email omits guardian section when no guardian declaration was accepted", () => {
   const email = buildWelcomeEmail({
     memberName: "Adult Member",
+    memberNumber: "BGM0765432",
     appUrl: "https://example.test/login",
     declarations: {
       gymRules: { versionNo: 1, body: "Rules" },
@@ -62,6 +68,13 @@ test("welcome mailer attaches the accepted Gym Rules as a PDF", () => {
   assert.match(welcomeMailer, /attachments:\s*\[/);
   assert.match(welcomeMailer, /contentType:\s*"application\/pdf"/);
   assert.match(welcomeMailer, /Accepted Gym Rules are missing from the welcome package/);
+});
+
+test("welcome package resolves and sends each activated member's permanent BGM number", () => {
+  assert.match(welcomePackage, /member_number/);
+  assert.match(welcomePackage, /memberNumber/);
+  assert.match(welcomePackage, /bgm_memberships/);
+  assert.match(welcomePackage, /bgm_membership_members/);
 });
 
 test("successful activation flows through the existing post-activation hook", () => {
