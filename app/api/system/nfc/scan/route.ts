@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       const memberResult = await supabase
         .from("bgm_members")
         .select(
-          "id, member_number, full_name, status, membership_expiry, cancellation_effective_date, enrollment_gym_id, official_photo_path"
+          "id, member_number, full_name, status, membership_expiry, cancellation_effective_date, access_scope, enrollment_gym_id, official_photo_path"
         )
         .eq("id", card.member_id)
         .maybeSingle();
@@ -88,9 +88,11 @@ export async function POST(request: NextRequest) {
             status: member.status,
             membershipExpiry: member.membership_expiry,
             cancellationEffectiveDate: member.cancellation_effective_date,
+            accessScope: member.access_scope,
           }
         : null,
       today: todayString(),
+      gymId,
     });
 
     let checkinId: string | null = null;
@@ -152,6 +154,7 @@ export async function POST(request: NextRequest) {
             fullName: member.full_name,
             status: member.status,
             membershipExpiry: member.membership_expiry,
+            accessScope: member.access_scope || "network",
             enrollmentGymId: member.enrollment_gym_id || null,
             enrollmentGymName,
             officialPhotoPath: member.official_photo_path || null,
