@@ -1,5 +1,11 @@
 import EndOfDayPage from "@/components/staff/EndOfDayPage";
+import EndOfDayPrintBridge from "@/components/staff/EndOfDayPrintBridge";
 
 export default function StaffEndOfDayPage() {
-  return <EndOfDayPage />;
+  return (
+    <>
+      <EndOfDayPrintBridge />
+      <EndOfDayPage />
+    </>
+  );
 }
