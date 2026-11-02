@@ -117,6 +117,40 @@ export async function sendWelcomePackagesBestEffort(applicationId: string) {
   );
   if (!pendingRecipients.length) return;
 
+  const memberships = await supabase
+    .from("bgm_memberships")
+    .select("id")
+    .eq("application_id", applicationId);
+  if (memberships.error) throw memberships.error;
+
+  const membershipIds = (memberships.data || []).map((row) => row.id).filter(Boolean);
+  if (!membershipIds.length) {
+    console.error(`Welcome email skipped for application ${applicationId}: no activated membership was found.`);
+    return;
+  }
+
+  const membershipMembers = await supabase
+    .from("bgm_membership_members")
+    .select("member_id,member_role")
+    .in("membership_id", membershipIds);
+  if (membershipMembers.error) throw membershipMembers.error;
+
+  const memberIds = (membershipMembers.data || []).map((row) => row.member_id).filter(Boolean);
+  const members = memberIds.length
+    ? await supabase.from("bgm_members").select("id,member_number").in("id", memberIds)
+    : { data: [], error: null };
+  if (members.error) throw members.error;
+
+  const memberNumberById = new Map(
+    (members.data || []).map((row) => [String(row.id), String(row.member_number || "").trim()])
+  );
+  const memberNumberByRole = new Map(
+    (membershipMembers.data || []).map((row) => [
+      String(row.member_role || "").trim().toLowerCase(),
+      memberNumberById.get(String(row.member_id)) || "",
+    ])
+  );
+
   const includeGuardian = (participants.data || []).some((row) =>
     Boolean(String(row.guardian_name || "").trim())
   );
@@ -128,10 +162,20 @@ export async function sendWelcomePackagesBestEffort(applicationId: string) {
   const appUrl = memberAppUrl();
   for (const row of pendingRecipients) {
     const recipient = String(row.email || "").trim().toLowerCase();
+    const memberRole = Number(row.participant_order) === 1 ? "primary" : "partner";
+    const memberNumber = memberNumberByRole.get(memberRole) || "";
+    if (!memberNumber) {
+      console.error(
+        `Welcome email skipped for ${recipient} on application ${applicationId}: permanent BGM number could not be resolved.`
+      );
+      continue;
+    }
+
     try {
       await sendWelcomeEmail({
         recipient,
         memberName: `${String(row.first_name || "").trim()} ${String(row.last_name || "").trim()}`.trim(),
+        memberNumber,
         appUrl,
         declarations,
       });
@@ -145,6 +189,7 @@ export async function sendWelcomePackagesBestEffort(applicationId: string) {
         after_data: {
           recipient,
           participantOrder: row.participant_order,
+          memberNumber,
           sentAt: new Date().toISOString(),
         },
       });
