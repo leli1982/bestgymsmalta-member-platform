@@ -2,73 +2,62 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a read-only App Adoption section to Super Admin Statistics & Analytics using existing member app-enrollment data.
+**Goal:** Add a read-only App Adoption section to Super Admin Statistics & Analytics with accurate first-app-activation dates.
 
-**Architecture:** Extend the existing Super Admin business analytics API response with an `appAdoption` payload derived from `bgm_members`, then render that payload as one additional section in the existing button-driven Statistics & Analytics UI. Keep all calculations server-side and all UI read-only.
+**Architecture:** Keep the existing large business analytics endpoint unchanged. Add one small Super Admin-only read endpoint for App Adoption, one isolated UI panel, and one additive nullable `app_enrolled_at` column. Member registration stamps that field exactly when `app_enrolled` first becomes true. Legacy enrolled members remain counted but are not assigned guessed activation dates.
 
 **Tech Stack:** Next.js 16, React, TypeScript, Supabase/PostgREST, Node test runner.
 
 **Spec:** `docs/superpowers/specs/2026-11-02-app-adoption-analytics.md`
 
 ## Global Constraints
-- No database migration or writes.
-- Super Admin only.
-- Do not alter enrollment, scanner, Bar, EOD, membership or member-app behavior.
-- Use Malta calendar dates and existing analytics endpoint/auth patterns.
+- Additive nullable schema change only; no historical backfill guesses.
+- Super Admin analytics endpoint is read-only.
+- Registration change is limited to recording the first activation timestamp.
+- Do not alter scanner, Bar, EOD, memberships or other member-app behavior.
+- Use Malta calendar dates and existing auth/date helpers.
 
 ## Review Focus
-- `app_enrolled=true` with a null enrollment date must not fabricate a daily activation.
+- `app_enrolled=true` with null `app_enrolled_at` must count toward adoption totals but never a daily activation.
 - Expired/archived/cancelled members must not inflate the active-member adoption denominator.
 - Date ranges must include zero-activation days.
-- Today/week/month KPI boundaries must use Malta calendar dates.
+- Today/week/month boundaries must use Europe/Malta, including DST.
 - Existing Statistics & Analytics sections must remain available.
 
 ---
 
 ### Task 1: Pin the analytics contract
+- [x] Add failing contract assertions and confirm RED before implementation.
 
+### Task 2: Track precise first activation
 **Files:**
-- Modify: `tests/business-analytics-contract.test.mjs`
+- Add: `supabase/migrations/20261102_120000_member_app_enrolled_at.sql`
+- Modify: `app/api/member/auth/register/route.ts`
 
-**Interfaces:**
-- Produces: contract assertions for `appAdoption`, daily activations and the `App Adoption` dashboard option.
+- [x] Add nullable `app_enrolled_at timestamptz`.
+- [x] Stamp it at the same instant registration first sets `app_enrolled=true`.
+- [x] Leave historical enrolled users null rather than fabricating dates.
 
-- [ ] Add failing assertions for the new API payload and dashboard option.
-- [ ] Run `node --test tests/business-analytics-contract.test.mjs` and confirm RED for the missing feature.
-- [ ] Commit the RED test.
-
-### Task 2: Add server-side app adoption analytics
-
+### Task 3: Add isolated server-side analytics
 **Files:**
-- Modify: `app/api/system/business-analytics/route.ts`
+- Add: `app/api/system/app-adoption-analytics/route.ts`
 
-**Interfaces:**
-- Produces: `appAdoption` with `totalEnrolled`, `activeMembers`, `activeEnrolled`, `adoptionPct`, `notEnrolledActive`, `activatedToday`, `activatedThisWeek`, `activatedThisMonth`, and `daily`.
+- [x] Require Super Admin.
+- [x] Calculate total/adoption KPIs from `app_enrolled`.
+- [x] Calculate daily/today/week/month activations from `app_enrolled_at` using Malta day boundaries.
+- [x] Paginate activation rows and include zero days in the selected range.
 
-- [ ] Extend the existing member selection with app enrollment fields.
-- [ ] Calculate active-member adoption KPIs and daily activation buckets for the selected range, including zero days.
-- [ ] Run the contract test and TypeScript checks.
-- [ ] Commit.
-
-### Task 3: Render App Adoption under Statistics & Analytics
-
+### Task 4: Render App Adoption under Statistics & Analytics
 **Files:**
+- Add: `components/staff/AppAdoptionAnalyticsAdmin.tsx`
 - Modify: `components/staff/StatisticsDashboardAdmin.tsx`
-- Modify: `components/staff/BusinessAnalyticsAdmin.tsx`
 
-**Interfaces:**
-- Consumes: `appAdoption` from the business analytics API.
-- Produces: `App Adoption` selector plus KPI cards and daily activation visualization.
+- [x] Add `App Adoption` to Business analytics.
+- [x] Render six headline KPIs and daily activation chart.
+- [x] Clearly disclose legacy enrolled users that predate precise tracking.
 
-- [ ] Add `app-adoption` to the section/view types and Business analytics selector.
-- [ ] Render KPIs and daily activation trend using existing date/gym filters and analytics styling.
-- [ ] Run contract, TypeScript and production build checks.
-- [ ] Commit.
-
-### Task 4: Regression and release gate
-
-**Files:** no functional changes expected.
-
-- [ ] Run the full existing Phase 2 CI/regression suite on the branch.
-- [ ] Review the branch diff for analytics-only scope.
-- [ ] Open PR and merge only after all checks are green.
+### Task 5: Regression and release gate
+- [ ] Run contract, TypeScript, build and full Phase 2 CI on the final branch head.
+- [ ] Verify TEST database migration and preview behavior.
+- [ ] Review PR diff for intended scope only.
+- [ ] Merge/release only after explicit Production approval.
