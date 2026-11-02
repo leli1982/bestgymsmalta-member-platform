@@ -15,6 +15,7 @@ type OfflineMemberRow = {
   id: string;
   member_number: string | null;
   full_name: string | null;
+  access_scope: string | null;
 };
 type ModernCardRow = {
   member_id: string;
@@ -35,7 +36,7 @@ async function fetchAllActiveMembers(supabase: SupabaseAdmin) {
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from("bgm_members")
-      .select("id, member_number, full_name")
+      .select("id, member_number, full_name, access_scope")
       .eq("status", "active")
       .or(`membership_expiry.is.null,membership_expiry.gte.${todayString()}`)
       .order("member_number", { ascending: true })
@@ -124,6 +125,7 @@ export async function GET(request: NextRequest) {
         toOfflineRosterMember({
           member_number: row.member_number,
           full_name: row.full_name,
+          access_scope: row.access_scope,
           card_numbers: cardsByMember.get(String(row.id)) || [],
         })
       )
