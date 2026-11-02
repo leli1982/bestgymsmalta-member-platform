@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSuperAdmin } from "@/lib/systemAuth";
-import { isValidCalendarDate, todayMaltaDate } from "@/lib/maltaDate";
+import { isValidCalendarDate, maltaDayUtcRange, todayMaltaDate } from "@/lib/maltaDate";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -40,6 +40,17 @@ function firstOfMonth(value: string) {
   return `${value.slice(0, 7)}-01`;
 }
 
+function maltaDateFromInstant(value: string) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Malta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(value));
+  const map = new Map(parts.map((part) => [part.type, part.value]));
+  return `${map.get("year")}-${map.get("month")}-${map.get("day")}`;
+}
+
 function activeMemberQuery(db: ReturnType<typeof getSupabaseAdmin>) {
   const today = todayMaltaDate();
   return db
@@ -57,21 +68,21 @@ async function exactCount(query: any) {
   return result.count ?? 0;
 }
 
-async function loadEnrollmentDates(
+async function loadActivationInstants(
   db: ReturnType<typeof getSupabaseAdmin>,
-  from: string,
-  to: string
+  start: string,
+  end: string
 ) {
-  const rows: Array<{ enrollment_date: string | null }> = [];
+  const rows: Array<{ app_enrolled_at: string | null }> = [];
   for (let offset = 0; ; offset += PAGE_SIZE) {
     const result = await db
       .from("bgm_members")
-      .select("enrollment_date")
+      .select("app_enrolled_at")
       .eq("app_enrolled", true)
-      .not("enrollment_date", "is", null)
-      .gte("enrollment_date", from)
-      .lte("enrollment_date", to)
-      .order("enrollment_date", { ascending: true })
+      .not("app_enrolled_at", "is", null)
+      .gte("app_enrolled_at", start)
+      .lt("app_enrolled_at", end)
+      .order("app_enrolled_at", { ascending: true })
       .range(offset, offset + PAGE_SIZE - 1);
     if (result.error) throw result.error;
     const batch = result.data || [];
@@ -107,9 +118,14 @@ export async function GET(request: NextRequest) {
     const db = getSupabaseAdmin();
     const weekStart = mondayOfWeek(today);
     const monthStart = firstOfMonth(today);
+    const selectedRange = { start: maltaDayUtcRange(requestedFrom).start, end: maltaDayUtcRange(requestedTo).end };
+    const todayRange = maltaDayUtcRange(today);
+    const weekRange = { start: maltaDayUtcRange(weekStart).start, end: todayRange.end };
+    const monthRange = { start: maltaDayUtcRange(monthStart).start, end: todayRange.end };
 
     const [
       totalEnrolled,
+      trackedEnrolled,
       activeMembers,
       activeEnrolled,
       activatedToday,
@@ -120,6 +136,13 @@ export async function GET(request: NextRequest) {
       exactCount(
         db.from("bgm_members").select("id", { count: "exact", head: true }).eq("app_enrolled", true)
       ),
+      exactCount(
+        db
+          .from("bgm_members")
+          .select("id", { count: "exact", head: true })
+          .eq("app_enrolled", true)
+          .not("app_enrolled_at", "is", null)
+      ),
       exactCount(activeMemberQuery(db)),
       exactCount(activeMemberQuery(db).eq("app_enrolled", true)),
       exactCount(
@@ -127,31 +150,33 @@ export async function GET(request: NextRequest) {
           .from("bgm_members")
           .select("id", { count: "exact", head: true })
           .eq("app_enrolled", true)
-          .eq("enrollment_date", today)
+          .gte("app_enrolled_at", todayRange.start)
+          .lt("app_enrolled_at", todayRange.end)
       ),
       exactCount(
         db
           .from("bgm_members")
           .select("id", { count: "exact", head: true })
           .eq("app_enrolled", true)
-          .gte("enrollment_date", weekStart)
-          .lte("enrollment_date", today)
+          .gte("app_enrolled_at", weekRange.start)
+          .lt("app_enrolled_at", weekRange.end)
       ),
       exactCount(
         db
           .from("bgm_members")
           .select("id", { count: "exact", head: true })
           .eq("app_enrolled", true)
-          .gte("enrollment_date", monthStart)
-          .lte("enrollment_date", today)
+          .gte("app_enrolled_at", monthRange.start)
+          .lt("app_enrolled_at", monthRange.end)
       ),
-      loadEnrollmentDates(db, requestedFrom, requestedTo),
+      loadActivationInstants(db, selectedRange.start, selectedRange.end),
     ]);
 
     const counts = new Map<string, number>();
     for (const row of dailyRows) {
-      const date = String(row.enrollment_date || "");
-      if (!date) continue;
+      const instant = String(row.app_enrolled_at || "");
+      if (!instant) continue;
+      const date = maltaDateFromInstant(instant);
       counts.set(date, (counts.get(date) || 0) + 1);
     }
 
@@ -168,6 +193,8 @@ export async function GET(request: NextRequest) {
       {
         appAdoption: {
           totalEnrolled,
+          trackedEnrolled,
+          historicalUntracked: Math.max(0, totalEnrolled - trackedEnrolled),
           activeMembers,
           activeEnrolled,
           adoptionPct,
