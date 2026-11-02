@@ -37,10 +37,8 @@ alter table public.bgm_access_scans
     'unknown_member', 'invalid_barcode', 'photo_required', 'restricted_gym'
   ));
 
--- Copy the application's explicit scope onto the activated permanent member(s)
--- after the existing activation RPC completes. This avoids changing the large,
--- safety-critical activation function. Renewals preserve scope because their
--- application scope is inherited from the existing member before submission.
+-- Copy explicit scope only for genuinely new people. Renewal applications must
+-- never widen or narrow the permanent member's existing access scope.
 create or replace function public.bgm_sync_activated_membership_access_scope()
 returns trigger
 language plpgsql
@@ -48,7 +46,9 @@ security invoker
 set search_path = ''
 as $$
 begin
-  if new.status = 'activated' and old.status is distinct from new.status then
+  if new.status = 'activated'
+    and old.status is distinct from new.status
+    and new.application_kind = 'new' then
     update public.bgm_members member
     set access_scope = new.access_scope,
         updated_at = now()
