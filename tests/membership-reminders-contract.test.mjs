@@ -10,6 +10,8 @@ const defaultOnMigration = fs.readFileSync(
   new URL("../supabase/migrations/20261008194935_renewal_reminders_enabled_by_default.sql", import.meta.url),
   "utf8",
 );
+const reminderCore = fs.readFileSync(new URL("../lib/membershipReminderCore.ts", import.meta.url), "utf8");
+const reminderMailer = fs.readFileSync(new URL("../lib/membershipReminderMailer.ts", import.meta.url), "utf8");
 const engine = fs.readFileSync(
   new URL("../lib/membershipReminderEngine.ts", import.meta.url),
   "utf8",
@@ -83,4 +85,26 @@ test("Super Admin and signed-in member both have reminder controls", () => {
   assert.match(memberPush, /getMemberRequestSession/);
   assert.match(memberPush, /bgm_member_push_subscriptions/);
   assert.match(more, /MemberReminderNotifications/);
+});
+
+test("membership reminder email uses same branded footer and app installation instructions", async () => {
+  const { buildMembershipReminderEmail } = await import("../lib/membershipReminderCore.ts");
+  for (const daysBefore of [1, 7, 14, 21, 30]) {
+    const message = buildMembershipReminderEmail({
+      memberName: "Member", expiryDate: "2026-12-31", daysBefore,
+    });
+    assert.match(message.subject, /31\/12\/2026/);
+    assert.match(message.text, /Renew before it expires/);
+    assert.match(message.text, /Android:/);
+    assert.match(message.text, /iPhone:/);
+    assert.match(message.text, /info@bestgymsmalta\.com/);
+    assert.match(message.html, /bgm-logo-horizontal-black\.png/);
+    assert.match(message.html, /Open Member App/);
+    assert.match(message.html, /Add to Home Screen/);
+    assert.match(message.html, /This is an automated email/);
+    assert.match(message.html, /mailto:info@bestgymsmalta\.com/);
+  }
+  assert.match(reminderCore, /bgmEmailFooterHtml\(\)/);
+  assert.match(reminderMailer, /replyTo: "info@bestgymsmalta\.com"/);
+  assert.match(engine, /sendMembershipReminderEmail/);
 });
