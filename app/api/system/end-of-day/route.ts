@@ -113,7 +113,7 @@ async function staffPreview(request: NextRequest) {
       .eq("gym_id", gymId).eq("business_date", businessDate)
       .order("shift_sequence", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("bgm_operational_orders")
-      .select("id,total_cents,locked_at")
+      .select("id,total_cents,locked_at,updated_at")
       .eq("order_type", "bar").eq("is_daily_sheet", true)
       .eq("gym_id", gymId)
       .order("updated_at", { ascending: false }).limit(1).maybeSingle(),
@@ -134,8 +134,14 @@ async function staffPreview(request: NextRequest) {
     .lte("payment_business_date", businessDate);
   if (paymentsResult.error) throw paymentsResult.error;
 
+  const barBelongsToOpenShift = Boolean(
+    barResult.data?.id
+      && (!shiftStartedAt || (barResult.data.updated_at
+        && new Date(barResult.data.updated_at).getTime() >= new Date(shiftStartedAt).getTime())),
+  );
+
   let barItems: EndOfDayBarItem[] = [];
-  if (barResult.data?.id && !barResult.data.locked_at) {
+  if (barBelongsToOpenShift && barResult.data?.id && !barResult.data.locked_at) {
     const itemsResult = await supabase.from("bgm_operational_order_items")
       .select("item_name,quantity,unit_price_cents,line_total_cents,sort_order")
       .eq("order_id", barResult.data.id)
