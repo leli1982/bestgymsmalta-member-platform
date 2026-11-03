@@ -7,17 +7,17 @@ const read = (path) => readFileSync(path, "utf8");
 test("staff enrollment selects pricing by explicit access scope and persists target gym", () => {
   const route = read("app/api/system/members/registration/route.ts");
   assert.match(route, /accessScopeValue/);
-  assert.match(route, /\.eq\("access_scope", accessScope\)/);
-  assert.match(route, /\.eq\("gym_id", gymId\)/);
   assert.match(route, /access_scope: accessScope/);
   assert.match(route, /access_gym_id: accessScope === "single_gym" \? gym\.id : null/);
   assert.match(route, /singleGymPricing/);
+  assert.match(route, /price_catalog_version_id: selectedCatalog\.versionId/);
 });
 
-test("network pricing is explicitly scoped and cannot fall through to a gym catalogue", () => {
-  const route = read("app/api/system/members/registration/route.ts");
-  assert.match(route, /\.eq\("access_scope", "network"\)/);
-  assert.match(route, /\.is\("gym_id", null\)/);
+test("published pricing loader always scopes catalogues by access mode and target gym", () => {
+  const helper = read("lib/scopedMembershipPricing.ts");
+  assert.match(helper, /\.eq\("access_scope", accessScope\)/);
+  assert.match(helper, /catalogQuery = catalogQuery\.is\("gym_id", null\)/);
+  assert.match(helper, /catalogQuery = catalogQuery\.eq\("gym_id", gymId\)/);
 });
 
 test("single gym pricing has no network fallback", () => {
