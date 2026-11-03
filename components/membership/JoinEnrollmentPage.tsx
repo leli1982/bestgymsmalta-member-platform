@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import RegistrationForm, {
-  type PublicEnrollmentConfig,
-  type RegistrationDraft,
+import AccessScopedRegistrationForm from "./AccessScopedRegistrationForm";
+import type {
+  PublicEnrollmentConfig,
+  RegistrationDraft,
 } from "./RegistrationForm";
 
 type Props = {
@@ -102,6 +103,7 @@ export default function JoinEnrollmentPage({ gymSlug }: Props) {
     const formData = new FormData();
     const payload = {
       gymSlug,
+      accessScope: draft.accessScope || "network",
       membershipType: draft.membershipType,
       durationKey: draft.durationKey,
       participants: draft.participants,
@@ -222,7 +224,7 @@ export default function JoinEnrollmentPage({ gymSlug }: Props) {
               </p>
             </section>
 
-            <RegistrationForm
+            <AccessScopedRegistrationForm
               key={formKey}
               mode="tablet"
               gym={{ id: config.gym.id, name: config.gym.name, slug: config.gym.slug }}
