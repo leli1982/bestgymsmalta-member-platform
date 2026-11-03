@@ -17,11 +17,15 @@ import type {
   PublishedDeclarationSnapshot,
   RegistrationParticipant,
 } from "@/lib/membershipRegistrationTypes";
-import {
-  validatePriceMatrix,
-  type MembershipDurationKey,
-  type MembershipType,
+import type {
+  MembershipDurationKey,
+  MembershipType,
 } from "@/lib/membershipSettingsCore";
+import {
+  loadPublishedEnrollmentPriceCatalog,
+  normalizeEnrollmentAccessScope,
+  type EnrollmentAccessScope,
+} from "@/lib/scopedMembershipPricing";
 import { broadcastStaffMembershipRefresh } from "@/lib/staffRealtime";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
@@ -58,6 +62,7 @@ type GymRow = {
   short_name: string | null;
   public_enrollment_slug: string | null;
   status: string;
+  single_gym_pricing_enabled: boolean;
 };
 
 type ServerParticipant = {
@@ -150,12 +155,16 @@ function declarationSnapshot(row: DeclarationRow): PublishedDeclarationSnapshot 
   };
 }
 
-function applicationDeclarationSnapshot(rows: {
-  gymRules: DeclarationRow;
-  privacy: DeclarationRow;
-  health: DeclarationRow;
-  guardian?: DeclarationRow;
-}, includeGuardian: boolean, supervisionUnder16Orders: number[]) {
+function applicationDeclarationSnapshot(
+  rows: {
+    gymRules: DeclarationRow;
+    privacy: DeclarationRow;
+    health: DeclarationRow;
+    guardian?: DeclarationRow;
+  },
+  includeGuardian: boolean,
+  supervisionUnder16Orders: number[],
+) {
   return {
     gymRules: {
       id: rows.gymRules.id,
@@ -200,15 +209,12 @@ async function resolveGym(
     throw new RouteError(403, "You can only create memberships for your assigned gym.");
   }
 
-  // Super Admin must explicitly select a gym; staff always use their assigned gym.
   const gymId = auth.isSuperAdmin ? requested : auth.gymId;
-  if (!gymId) {
-    throw new RouteError(400, "Choose an enrollment gym.");
-  }
+  if (!gymId) throw new RouteError(400, "Choose an enrollment gym.");
 
   const gymResult = await supabase
     .from("bgm_gyms")
-    .select("id,name,short_name,public_enrollment_slug,status")
+    .select("id,name,short_name,public_enrollment_slug,status,single_gym_pricing_enabled")
     .eq("id", gymId)
     .maybeSingle();
   if (gymResult.error) throw gymResult.error;
@@ -219,21 +225,11 @@ async function resolveGym(
 }
 
 async function loadCurrentSettings(supabase: SupabaseAdmin, gym: GymRow) {
-  const catalogResult = await supabase
-    .from("bgm_membership_price_catalog_versions")
-    .select("id,version_no,status")
-    .eq("status", "published")
-    .order("version_no", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (catalogResult.error) throw catalogResult.error;
-  if (!catalogResult.data) throw new RouteError(503, "Membership registration is not ready.");
-
-  const [priceResult, declarationResult] = await Promise.all([
-    supabase
-      .from("bgm_membership_price_entries")
-      .select("membership_type,duration_key,amount_cents,currency,is_active")
-      .eq("catalog_version_id", catalogResult.data.id),
+  const [networkPricing, singleGymPricing, declarationResult] = await Promise.all([
+    loadPublishedEnrollmentPriceCatalog(supabase, "network", null),
+    gym.single_gym_pricing_enabled
+      ? loadPublishedEnrollmentPriceCatalog(supabase, "single_gym", gym.id)
+      : Promise.resolve(null),
     supabase
       .from("bgm_membership_declaration_versions")
       .select("id,content_key,version_no,body,content_sha256,status")
@@ -241,18 +237,8 @@ async function loadCurrentSettings(supabase: SupabaseAdmin, gym: GymRow) {
       .in("content_key", [...DECLARATION_KEYS])
       .order("version_no", { ascending: false }),
   ]);
-  if (priceResult.error) throw priceResult.error;
   if (declarationResult.error) throw declarationResult.error;
-
-  const entries = (priceResult.data || []).map((row) => ({
-    membershipType: row.membership_type as MembershipType,
-    durationKey: row.duration_key as MembershipDurationKey,
-    amountCents: Number(row.amount_cents),
-    currency: row.currency as "EUR",
-    isActive: row.is_active !== false,
-  }));
-  const priceValidation = validatePriceMatrix(entries);
-  if (!priceValidation.ok) {
+  if (!networkPricing) {
     throw new RouteError(503, "Membership registration pricing is not ready.");
   }
 
@@ -276,10 +262,13 @@ async function loadCurrentSettings(supabase: SupabaseAdmin, gym: GymRow) {
       shortName: gym.short_name || gym.name,
       slug: gym.public_enrollment_slug || gym.id,
     },
-    pricing: {
-      versionId: catalogResult.data.id,
-      entries: entries.filter((entry) => entry.isActive !== false),
-    },
+    pricing: networkPricing,
+    ...(singleGymPricing
+      ? {
+          singleGymPricing,
+          singleGymPricingGymId: gym.id,
+        }
+      : {}),
     declarations: {
       gymRules: declarationSnapshot(gymRules),
       privacy: declarationSnapshot(privacy),
@@ -290,7 +279,6 @@ async function loadCurrentSettings(supabase: SupabaseAdmin, gym: GymRow) {
 
   return {
     config,
-    catalogId: catalogResult.data.id as string,
     declarations: { gymRules, privacy, health, guardian },
   };
 }
@@ -325,8 +313,6 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabaseAdmin();
     const isSuperAdmin = authResult.context.isSuperAdmin;
     const requestedGymId = request.nextUrl.searchParams.get("gymId") || undefined;
-    // Load the selectable gyms without requiring a selection first. Never use a
-    // public fallback list for the operational membership enrollment workflow.
     const gymChoices = isSuperAdmin
       ? await supabase
           .from("bgm_gyms")
@@ -335,6 +321,7 @@ export async function GET(request: NextRequest) {
           .order("name", { ascending: true })
       : null;
     if (gymChoices?.error) throw gymChoices.error;
+
     const gym = !isSuperAdmin || requestedGymId
       ? await resolveGym(supabase, authResult.context, requestedGymId)
       : null;
@@ -371,9 +358,11 @@ export async function POST(request: NextRequest) {
     const draft = asRecord(body.draft);
     const membershipTypeValue = clean(draft.membershipType);
     const durationKeyValue = clean(draft.durationKey);
+    const accessScopeValue = normalizeEnrollmentAccessScope(draft.accessScope);
     if (
       !isMembershipType(membershipTypeValue) ||
       !isDurationKey(durationKeyValue) ||
+      !accessScopeValue ||
       draft.documentReadinessAcknowledged !== true
     ) {
       throw new RouteError(400, "Membership registration details are incomplete.");
@@ -381,6 +370,7 @@ export async function POST(request: NextRequest) {
 
     const membershipType = membershipTypeValue;
     const durationKey = durationKeyValue;
+    const accessScope: EnrollmentAccessScope = accessScopeValue;
     const participantValues = Array.isArray(draft.participants) ? draft.participants : [];
     const declarationValues = Array.isArray(draft.declarations) ? draft.declarations : [];
     const expectedParticipantCount = participantCountForType(membershipType);
@@ -398,7 +388,24 @@ export async function POST(request: NextRequest) {
       clean(body.enrollmentGymId),
     );
     const settings = await loadCurrentSettings(supabase, gym);
-    const selectedPrice = settings.config.pricing.entries.find(
+
+    if (
+      accessScope === "single_gym" &&
+      (!gym.single_gym_pricing_enabled ||
+        !settings.config.singleGymPricing ||
+        settings.config.singleGymPricingGymId !== gym.id)
+    ) {
+      throw new RouteError(409, "Single Gym membership is not available for this gym.");
+    }
+
+    const selectedCatalog = accessScope === "single_gym"
+      ? settings.config.singleGymPricing
+      : settings.config.pricing;
+    if (!selectedCatalog) {
+      throw new RouteError(503, "Membership price is not available.");
+    }
+
+    const selectedPrice = selectedCatalog.entries.find(
       (entry) =>
         entry.membershipType === membershipType && entry.durationKey === durationKey,
     );
@@ -407,8 +414,10 @@ export async function POST(request: NextRequest) {
     const submittedOnMalta = todayMaltaDate();
     const expiryDate = addMembershipDurationDate(submittedOnMalta, durationKey);
     const acceptances = declarationValues.map(declarationAcceptance);
-    // One address is entered for the household; preserve two distinct member records.
-    const enrollmentParticipants = withCouplesSharedAddress(membershipType, participantValues.map(sanitizeParticipant));
+    const enrollmentParticipants = withCouplesSharedAddress(
+      membershipType,
+      participantValues.map(sanitizeParticipant),
+    );
     const serverParticipants: ServerParticipant[] = [];
 
     for (let index = 0; index < expectedParticipantCount; index += 1) {
@@ -418,8 +427,14 @@ export async function POST(request: NextRequest) {
       if (validationErrors.length > 0) {
         throw new RouteError(400, `Applicant ${index + 1}: ${validationErrors[0]}`);
       }
-      const couplesAgeError = couplesAgeEligibilityError(membershipType, participant.dateOfBirth, submittedOnMalta);
-      if (couplesAgeError) throw new RouteError(400, `Applicant ${index + 1}: ${couplesAgeError}`);
+      const couplesAgeError = couplesAgeEligibilityError(
+        membershipType,
+        participant.dateOfBirth,
+        submittedOnMalta,
+      );
+      if (couplesAgeError) {
+        throw new RouteError(400, `Applicant ${index + 1}: ${couplesAgeError}`);
+      }
       if (!acceptance.gymRules || !acceptance.privacy || !acceptance.health) {
         throw new RouteError(400, `Applicant ${index + 1} must accept all required declarations.`);
       }
@@ -485,6 +500,8 @@ export async function POST(request: NextRequest) {
         membership_type: membershipType,
         duration_key: durationKey,
         enrollment_gym_id: gym.id,
+        access_scope: accessScope,
+        access_gym_id: accessScope === "single_gym" ? gym.id : null,
         staff_name: staffName,
         application_kind: "new",
         start_date: submittedOnMalta,
@@ -496,16 +513,18 @@ export async function POST(request: NextRequest) {
         submitted_on_malta: submittedOnMalta,
         base_price_cents: selectedPrice.amountCents,
         currency: "EUR",
-        price_catalog_version_id: settings.catalogId,
+        price_catalog_version_id: selectedCatalog.versionId,
         gym_rules_version_id: settings.declarations.gymRules.id,
         privacy_version_id: settings.declarations.privacy.id,
         health_version_id: settings.declarations.health.id,
         declaration_snapshot: applicationDeclarationSnapshot(
           settings.declarations,
-          serverParticipants.some(({ participant }) => isUnder18On(participant.dateOfBirth, submittedOnMalta)),
+          serverParticipants.some(({ participant }) =>
+            isUnder18On(participant.dateOfBirth, submittedOnMalta),
+          ),
           serverParticipants.flatMap(({ participant }, index) =>
-            isUnder16On(participant.dateOfBirth, submittedOnMalta) ? [index + 1] : []
-          )
+            isUnder16On(participant.dateOfBirth, submittedOnMalta) ? [index + 1] : [],
+          ),
         ),
         document_readiness_ack_at: now,
         updated_at: now,
@@ -567,12 +586,14 @@ export async function POST(request: NextRequest) {
         applicationReference,
         applicationKind: "new",
         applicationSource: "staff",
+        accessScope,
+        accessGymId: accessScope === "single_gym" ? gym.id : null,
         membershipType,
         durationKey,
         startDate: submittedOnMalta,
         expiryDate,
         basePriceCents: selectedPrice.amountCents,
-        priceCatalogVersionId: settings.catalogId,
+        priceCatalogVersionId: selectedCatalog.versionId,
         participants: serverParticipants.map((serverParticipant, index) => ({
           applicationMemberId: participantIds[index],
           participantOrder: index + 1,
@@ -604,6 +625,8 @@ export async function POST(request: NextRequest) {
           id: applicationId,
           reference: applicationInsert.data.application_reference,
           status: applicationInsert.data.status,
+          accessScope,
+          accessGymId: accessScope === "single_gym" ? gym.id : null,
           members: participantIds.map((id, index) => ({
             id,
             participantOrder: index + 1,
@@ -616,7 +639,6 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     if (applicationId && supabase && !(error instanceof RouteError)) {
-      // Best-effort cleanup for unexpected failures after the application row was created.
       await cleanupApplication(supabase, applicationId);
     }
     return routeErrorResponse(error);
