@@ -12,6 +12,7 @@ const printShell = read("components/staff/StaffApplicationPrint.tsx");
 const sheet = read("components/staff/MembershipA4Sheet.tsx");
 const overflow = read("components/staff/MembershipPrintOverflowPreview.tsx");
 const printRoute = read("app/api/system/members/applications/[applicationId]/print/route.ts");
+const printLoader = read("lib/printableMembershipApplication.ts");
 const settings = read("components/staff/MembershipSettingsAdmin.tsx");
 const browser = read("tests/browser/membership-print-a4.mjs");
 const workflow = read(".github/workflows/phase2-ci.yml");
@@ -49,28 +50,29 @@ test("each member sheet is standalone and uses historical application snapshots"
 
   assert.match(sheet, /guardian/i);
   assert.match(sheet, /declarationSnapshot/);
-  assert.match(printRoute, /declaration_snapshot/);
-  assert.match(printRoute, /base_price_cents/);
-  assert.match(printRoute, /discount_amount_cents/);
-  assert.match(printRoute, /final_amount_cents/);
-  assert.match(printRoute, /payment_method/);
-  assert.match(printRoute, /payment_staff_name/);
-  assert.match(printRoute, /id_verified_at/);
-  assert.match(printRoute, /student_eligibility_verified_at/);
-  assert.match(printRoute, /guardian_present_verified_at/);
-  assert.match(printRoute, /guardian_cosign_verified_at/);
+  assert.match(printRoute, /loadPrintableMembershipApplication/);
+  assert.match(printLoader, /declaration_snapshot/);
+  assert.match(printLoader, /base_price_cents/);
+  assert.match(printLoader, /discount_amount_cents/);
+  assert.match(printLoader, /final_amount_cents/);
+  assert.match(printLoader, /payment_method/);
+  assert.match(printLoader, /payment_staff_name/);
+  assert.match(printLoader, /id_verified_at/);
+  assert.match(printLoader, /student_eligibility_verified_at/);
+  assert.match(printLoader, /guardian_present_verified_at/);
+  assert.match(printLoader, /guardian_cosign_verified_at/);
 });
 
-test("print route resolves allocated member and card numbers after activation", () => {
-  assert.match(printRoute, /bgm_membership_members/);
-  assert.match(printRoute, /member_number/);
-  assert.match(printRoute, /bgm_member_card_credentials/);
-  assert.match(printRoute, /memberRole|member_role/);
+test("print data loader resolves allocated member and card numbers after activation", () => {
+  assert.match(printLoader, /bgm_membership_members/);
+  assert.match(printLoader, /member_number/);
+  assert.match(printLoader, /bgm_member_card_credentials/);
+  assert.match(printLoader, /memberRole|member_role/);
 });
 
-test("print preview uses authenticated inline photo bytes for member and application photos", () => {
-  assert.match(printRoute, /\/api\/system\/members\/photo\/\$\{encodeURIComponent\(memberId\)\}\?inline=1/);
-  assert.match(printRoute, /applicationMemberId=\$\{encodeURIComponent\(participant\.id\)\}&inline=1/);
+test("print data loader resolves authenticated inline photo bytes for member and application photos", () => {
+  assert.match(printLoader, /\/api\/system\/members\/photo\/\$\{encodeURIComponent\(memberId\)\}\?inline=1/);
+  assert.match(printLoader, /applicationMemberId=\$\{encodeURIComponent\(participant\.id\)\}&inline=1/);
 });
 
 test("Super Admin declaration publishing has an A4 overflow measurement gate", () => {
