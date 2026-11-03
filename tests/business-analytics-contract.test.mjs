@@ -3,11 +3,16 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const route = readFileSync(new URL("../app/api/system/business-analytics/route.ts", import.meta.url), "utf8");
+const appAdoptionRoute = readFileSync(new URL("../app/api/system/app-adoption-analytics/route.ts", import.meta.url), "utf8");
 const dashboard = readFileSync(new URL("../components/staff/StatisticsDashboardAdmin.tsx", import.meta.url), "utf8");
+const appAdoption = readFileSync(new URL("../components/staff/AppAdoptionAnalyticsAdmin.tsx", import.meta.url), "utf8");
+const legacyRegister = readFileSync(new URL("../app/api/member/auth/legacy-register/route.ts", import.meta.url), "utf8");
+const register = readFileSync(new URL("../app/api/member/auth/register/route.ts", import.meta.url), "utf8");
+const migration = readFileSync(new URL("../supabase/migrations/20261102_120000_member_app_enrolled_at.sql", import.meta.url), "utf8");
 const home = readFileSync(new URL("../components/staff/SuperAdminHome.tsx", import.meta.url), "utf8");
 const operations = readFileSync(new URL("../components/staff/OperationsDashboardAdmin.tsx", import.meta.url), "utf8");
 
-test("business analytics route covers retention revenue usage engagement and trends", () => {
+test("business analytics route keeps existing retention revenue usage engagement and trends", () => {
   assert.match(route, /retention:/);
   assert.match(route, /revenue:/);
   assert.match(route, /usage:/);
@@ -19,6 +24,34 @@ test("business analytics route covers retention revenue usage engagement and tre
   assert.match(route, /averageValueCents/);
 });
 
+test("first app activation is stored once during member registration", () => {
+  assert.match(migration, /add column if not exists app_enrolled_at timestamptz/i);
+  assert.match(register, /app_enrolled:\s*true/);
+  assert.match(register, /app_enrolled_at:\s*now/);
+  assert.match(legacyRegister, /app_enrolled_at:\s*now/);
+});
+
+test("app adoption analytics is read-only, Super Admin protected and uses precise activation timestamps", () => {
+  assert.match(appAdoptionRoute, /requireSuperAdmin/);
+  assert.match(appAdoptionRoute, /\.from\("bgm_members"\)/);
+  assert.match(appAdoptionRoute, /app_enrolled/);
+  assert.match(appAdoptionRoute, /app_enrolled_at/);
+  assert.doesNotMatch(appAdoptionRoute, /enrollment_date/);
+  assert.match(appAdoptionRoute, /totalEnrolled/);
+  assert.match(appAdoptionRoute, /trackedEnrolled/);
+  assert.match(appAdoptionRoute, /historicalUntracked/);
+  assert.match(appAdoptionRoute, /activeEnrolled/);
+  assert.match(appAdoptionRoute, /adoptionPct/);
+  assert.match(appAdoptionRoute, /notEnrolledActive/);
+  assert.match(appAdoptionRoute, /activatedToday/);
+  assert.match(appAdoptionRoute, /activatedThisWeek/);
+  assert.match(appAdoptionRoute, /activatedThisMonth/);
+  assert.match(appAdoptionRoute, /daily/);
+  assert.doesNotMatch(appAdoptionRoute, /\.insert\(/);
+  assert.doesNotMatch(appAdoptionRoute, /\.update\(/);
+  assert.doesNotMatch(appAdoptionRoute, /\.delete\(/);
+});
+
 test("statistics dashboard exposes button-driven analytics and existing reports", () => {
   for (const label of [
     "Overview",
@@ -28,11 +61,27 @@ test("statistics dashboard exposes button-driven analytics and existing reports"
     "Gym usage",
     "Member activity",
     "Busy periods",
+    "App Adoption",
     "New memberships",
     "Active members by gym",
     "Check-in statistics",
     "Vouchers",
   ]) assert.match(dashboard, new RegExp(label.replace(/[&]/g, "\\&")));
+  assert.match(dashboard, /<AppAdoptionAnalyticsAdmin/);
+});
+
+test("App Adoption renders the required headline KPIs and daily activation trend", () => {
+  for (const label of [
+    "Total enrolled",
+    "Adoption rate",
+    "Activated today",
+    "Activated this week",
+    "Activated this month",
+    "Active not enrolled",
+    "Daily app activations",
+    "predate precise activation tracking",
+  ]) assert.match(appAdoption, new RegExp(label));
+  assert.match(appAdoption, /\/api\/system\/app-adoption-analytics/);
 });
 
 test("Super Admin links to dedicated statistics page and Operations no longer embeds all reports", () => {

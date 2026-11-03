@@ -3,22 +3,27 @@
 import { useState } from "react";
 import {
   Activity, ArrowLeft, Banknote, BarChart3, CalendarRange, ChartNoAxesCombined,
-  Dumbbell, Repeat2, TicketCheck, TrendingUp, UsersRound,
+  Dumbbell, Repeat2, Smartphone, TicketCheck, TrendingUp, UsersRound,
 } from "lucide-react";
 import BusinessAnalyticsAdmin from "@/components/staff/BusinessAnalyticsAdmin";
+import AppAdoptionAnalyticsAdmin from "@/components/staff/AppAdoptionAnalyticsAdmin";
 import MembershipStatsAdmin from "@/components/staff/MembershipStatsAdmin";
 import ActiveMembersByGymAdmin from "@/components/staff/ActiveMembersByGymAdmin";
 import ScanVisitStatsAdmin from "@/components/staff/ScanVisitStatsAdmin";
 import VoucherAnalyticsAdmin from "@/components/staff/VoucherAnalyticsAdmin";
 
-type View =
+type BusinessView =
   | "overview"
   | "memberships"
   | "retention"
   | "revenue"
   | "usage"
   | "engagement"
-  | "trends"
+  | "trends";
+
+type View =
+  | BusinessView
+  | "app-adoption"
   | "new-memberships"
   | "active-members"
   | "checkins"
@@ -38,6 +43,7 @@ const options: Array<{
   { key: "usage", label: "Gym usage", description: "Cross-gym behaviour, visits/member, peak days and peak hours.", icon: Dumbbell, group: "Business analytics" },
   { key: "engagement", label: "Member activity", description: "30/60/90-day inactivity and members with no digital visit history.", icon: Activity, group: "Business analytics" },
   { key: "trends", label: "Busy periods", description: "Busiest months and weeks for new memberships and renewals.", icon: TrendingUp, group: "Business analytics" },
+  { key: "app-adoption", label: "App Adoption", description: "Track member-app activation totals, adoption and daily sign-ups.", icon: Smartphone, group: "Business analytics" },
   { key: "new-memberships", label: "New memberships", description: "Existing detailed activation report with gym/date filters.", icon: CalendarRange, group: "Detailed reports" },
   { key: "active-members", label: "Active members by gym", description: "Existing live active-member base by enrollment gym.", icon: UsersRound, group: "Detailed reports" },
   { key: "checkins", label: "Check-in statistics", description: "Existing detailed visits, origins, dates and hours report.", icon: BarChart3, group: "Detailed reports" },
@@ -100,11 +106,12 @@ export default function StatisticsDashboardAdmin() {
             </div>
           </div>
 
-          {view === "new-memberships" ? <MembershipStatsAdmin /> :
+          {view === "app-adoption" ? <AppAdoptionAnalyticsAdmin /> :
+           view === "new-memberships" ? <MembershipStatsAdmin /> :
            view === "active-members" ? <ActiveMembersByGymAdmin /> :
            view === "checkins" ? <ScanVisitStatsAdmin /> :
            view === "vouchers" ? <VoucherAnalyticsAdmin /> :
-           <BusinessAnalyticsAdmin section={view} />}
+           <BusinessAnalyticsAdmin section={view as BusinessView} />}
         </section>
       </div>
     </main>
