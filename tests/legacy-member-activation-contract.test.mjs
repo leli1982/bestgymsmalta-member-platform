@@ -40,3 +40,14 @@ test("missing-email records request DOB and mobile verification", () => {
   assert.match(route, /dateOfBirth/);
   assert.match(route, /mobile/);
 });
+
+test("successful legacy activation attempts a confirmation email after the member update", () => {
+  assert.match(route, /sendLegacyActivationConfirmationEmail/);
+  const updateIndex = route.indexOf("const updateResult");
+  const sendIndex = route.indexOf("await sendLegacyActivationConfirmationEmail");
+  assert.ok(updateIndex >= 0 && sendIndex > updateIndex,
+    "confirmation email must only be attempted after the member update succeeds");
+  assert.match(route, /welcomeEmailSent/);
+  assert.match(route, /catch\s*\([^)]*\)\s*\{[\s\S]*welcomeEmailSent/s,
+    "email failure must be handled without rolling back activation");
+});
