@@ -253,7 +253,7 @@ try {
   const barQuantity = page.getByRole("spinbutton", { name: "Water 500 ml quantity" });
   await barQuantity.fill("4");
   await page.waitForTimeout(450);
-  const barTotal = page.locator('strong[aria-label="Bar total for today"]');
+  const barTotal = page.locator('strong[aria-label="Bar total since last End of Day"]');
   const totalBeforeNumericScans = await barTotal.textContent();
   for (const barcode of ["X06956", "59060154"]) {
     await barQuantity.focus();
