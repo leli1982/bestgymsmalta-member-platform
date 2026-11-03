@@ -25,6 +25,7 @@ export async function sendWelcomeEmail(input: {
   appUrl: string;
   applicationKind?: "new" | "renewal";
   declarations: WelcomeDeclarations;
+  membershipFormPdf: { filename: string; content: Buffer };
 }) {
   const config = resolveOperationsMailConfig({
     GMAIL_USER: process.env.GMAIL_USER,
@@ -35,19 +36,16 @@ export async function sendWelcomeEmail(input: {
 
   const recipient = String(input.recipient || "").trim().toLowerCase();
   if (!recipient) throw new Error("Member email address is missing.");
+  if (!input.membershipFormPdf?.filename?.startsWith("BestGymsMalta-Membership-")) {
+    throw new Error("BestGymsMalta-Membership PDF is missing from the welcome package.");
+  }
 
   const gymRules = input.declarations.gymRules;
-  if (!String(gymRules?.body || "").trim()) {
-    throw new Error("Accepted Gym Rules are missing from the welcome package.");
-  }
+  if (!String(gymRules?.body || "").trim()) throw new Error("Accepted Gym Rules are missing from the welcome package.");
   const health = input.declarations.health;
-  if (!String(health?.body || "").trim()) {
-    throw new Error("Accepted Health Declaration is missing from the welcome package.");
-  }
+  if (!String(health?.body || "").trim()) throw new Error("Accepted Health Declaration is missing from the welcome package.");
   const privacy = input.declarations.privacy;
-  if (!String(privacy?.body || "").trim()) {
-    throw new Error("Accepted Privacy / GDPR declaration is missing from the welcome package.");
-  }
+  if (!String(privacy?.body || "").trim()) throw new Error("Accepted Privacy / GDPR declaration is missing from the welcome package.");
 
   if (!cachedTransporter) {
     cachedTransporter = nodemailer.createTransport({
@@ -74,7 +72,6 @@ export async function sendWelcomeEmail(input: {
       declaration: privacy!,
     }),
   ];
-
   if (input.declarations.guardian) {
     declarationAttachments.push(
       declarationAttachment({
@@ -94,6 +91,11 @@ export async function sendWelcomeEmail(input: {
     text: email.text,
     html: email.html,
     attachments: [
+      {
+        filename: input.membershipFormPdf.filename,
+        content: input.membershipFormPdf.content,
+        contentType: "application/pdf",
+      },
       {
         filename: gymRulesPdfFilename(gymRules!),
         content: gymRulesPdf,
