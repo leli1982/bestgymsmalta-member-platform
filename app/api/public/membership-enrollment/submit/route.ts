@@ -20,6 +20,11 @@ import type {
   MembershipType,
 } from "@/lib/membershipSettingsCore";
 import {
+  loadPublishedEnrollmentPriceCatalog,
+  normalizeEnrollmentAccessScope,
+  type EnrollmentAccessScope,
+} from "@/lib/scopedMembershipPricing";
+import {
   PUBLIC_SUBMISSIONS_PER_HOUR,
   hashPublicRateKey,
   hourlyRateWindow,
@@ -175,10 +180,12 @@ export async function POST(request: NextRequest) {
   const gymSlug = clean(draft.gymSlug).toLowerCase();
   const membershipTypeValue = clean(draft.membershipType);
   const durationKeyValue = clean(draft.durationKey);
+  const accessScopeValue = normalizeEnrollmentAccessScope(draft.accessScope);
   if (
     !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(gymSlug) ||
     !isMembershipType(membershipTypeValue) ||
     !isDurationKey(durationKeyValue) ||
+    !accessScopeValue ||
     draft.documentReadinessAcknowledged !== true
   ) {
     return NextResponse.json({ error: "Enrollment details are incomplete." }, { status: 400 });
@@ -186,6 +193,7 @@ export async function POST(request: NextRequest) {
 
   const membershipType = membershipTypeValue;
   const durationKey = durationKeyValue;
+  const accessScope: EnrollmentAccessScope = accessScopeValue;
   const expectedParticipantCount = participantCountForType(membershipType);
   const participantValues = Array.isArray(draft.participants) ? draft.participants : [];
   const declarationValues = Array.isArray(draft.declarations) ? draft.declarations : [];
@@ -222,8 +230,10 @@ export async function POST(request: NextRequest) {
   const under18Flags: boolean[] = [];
   const under16Flags: boolean[] = [];
   const acceptances = declarationValues.map(acceptance);
-  // Normalize both Couples applicants to the single household address before validation.
-  const enrollmentParticipants = withCouplesSharedAddress(membershipType, participantValues.map(sanitizeParticipant));
+  const enrollmentParticipants = withCouplesSharedAddress(
+    membershipType,
+    participantValues.map(sanitizeParticipant),
+  );
 
   for (let index = 0; index < expectedParticipantCount; index += 1) {
     const participant = enrollmentParticipants[index];
@@ -238,7 +248,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Please check the application details." }, { status: 400 });
     }
 
-    const couplesAgeError = couplesAgeEligibilityError(membershipType, participant.dateOfBirth, submittedOnMalta);
+    const couplesAgeError = couplesAgeEligibilityError(
+      membershipType,
+      participant.dateOfBirth,
+      submittedOnMalta,
+    );
     if (couplesAgeError) {
       return NextResponse.json({ error: `Applicant ${index + 1}: ${couplesAgeError}` }, { status: 400 });
     }
@@ -257,7 +271,7 @@ export async function POST(request: NextRequest) {
 
   const { data: gym, error: gymError } = await supabase
     .from("bgm_gyms")
-    .select("id,name,public_enrollment_slug,status")
+    .select("id,name,public_enrollment_slug,status,single_gym_pricing_enabled")
     .eq("public_enrollment_slug", gymSlug)
     .eq("status", "active")
     .maybeSingle();
@@ -268,6 +282,12 @@ export async function POST(request: NextRequest) {
   }
   if (!gym) {
     return NextResponse.json({ error: "Gym not found." }, { status: 404 });
+  }
+  if (accessScope === "single_gym" && gym.single_gym_pricing_enabled !== true) {
+    return NextResponse.json(
+      { error: "Single Gym membership is not available for this gym." },
+      { status: 409 },
+    );
   }
 
   const windowStart = hourlyRateWindow();
@@ -301,52 +321,46 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Too many requests." }, { status: 429 });
   }
 
-  const { data: catalog, error: catalogError } = await supabase
-    .from("bgm_membership_price_catalog_versions")
-    .select("id,version_no,status")
-    .eq("status", "published")
-    .order("version_no", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (catalogError) {
+  let catalog;
+  try {
+    catalog = await loadPublishedEnrollmentPriceCatalog(
+      supabase,
+      accessScope,
+      accessScope === "single_gym" ? gym.id : null,
+    );
+  } catch {
     console.error("Public enrollment price catalog lookup failed.");
     return NextResponse.json({ error: "Enrollment service is unavailable." }, { status: 503 });
   }
   if (!catalog) {
+    return NextResponse.json(
+      {
+        error:
+          accessScope === "single_gym"
+            ? "Single Gym membership is not available for this gym."
+            : "Enrollment is not ready.",
+      },
+      { status: 503 },
+    );
+  }
+
+  const priceEntry = catalog.entries.find(
+    (entry) =>
+      entry.membershipType === membershipType && entry.durationKey === durationKey,
+  );
+  if (!priceEntry) {
     return NextResponse.json({ error: "Enrollment is not ready." }, { status: 503 });
   }
 
-  const [
-    { data: priceEntry, error: priceError },
-    { data: declarationRows, error: declarationError },
-  ] = await Promise.all([
-    supabase
-      .from("bgm_membership_price_entries")
-      .select("amount_cents,currency,is_active")
-      .eq("catalog_version_id", catalog.id)
-      .eq("membership_type", membershipType)
-      .eq("duration_key", durationKey)
-      .maybeSingle(),
-    supabase
-      .from("bgm_membership_declaration_versions")
-      .select("id,content_key,version_no,body,content_sha256,status")
-      .eq("status", "published")
-      .in("content_key", [...PUBLIC_DECLARATION_KEYS]),
-  ]);
+  const { data: declarationRows, error: declarationError } = await supabase
+    .from("bgm_membership_declaration_versions")
+    .select("id,content_key,version_no,body,content_sha256,status")
+    .eq("status", "published")
+    .in("content_key", [...PUBLIC_DECLARATION_KEYS]);
 
-  if (priceError || declarationError) {
+  if (declarationError) {
     console.error("Public enrollment settings lookup failed.");
     return NextResponse.json({ error: "Enrollment service is unavailable." }, { status: 503 });
-  }
-  if (
-    !priceEntry ||
-    priceEntry.currency !== "EUR" ||
-    priceEntry.is_active === false ||
-    !Number.isInteger(Number(priceEntry.amount_cents)) ||
-    Number(priceEntry.amount_cents) < 0
-  ) {
-    return NextResponse.json({ error: "Enrollment is not ready." }, { status: 503 });
   }
 
   const declarationByKey = new Map(
@@ -459,7 +473,9 @@ export async function POST(request: NextRequest) {
               versionNo: Number(guardianDeclaration.version_no),
               body: guardianDeclaration.body,
               contentSha256: guardianDeclaration.content_sha256,
-              supervisionUnder16Orders: under16Flags.flatMap((under16, index) => under16 ? [index + 1] : []),
+              supervisionUnder16Orders: under16Flags.flatMap((under16, index) =>
+                under16 ? [index + 1] : [],
+              ),
               supervisionUnder16Text: UNDER16_SUPERVISION_CLAUSE,
             },
           }
@@ -470,12 +486,13 @@ export async function POST(request: NextRequest) {
       applicationId,
       applicationSource: "tablet",
       enrollmentGymId: gym.id,
+      accessScope,
       membershipType,
       durationKey,
       startDate: submittedOnMalta,
       expiryDate,
-      basePriceCents: Number(priceEntry.amount_cents),
-      priceCatalogVersionId: catalog.id,
+      basePriceCents: priceEntry.amountCents,
+      priceCatalogVersionId: catalog.versionId,
       declarationSnapshot,
       documentReadinessAcknowledged: true,
       participants: serverParticipants.map((serverParticipant, index) => ({
@@ -521,6 +538,12 @@ export async function POST(request: NextRequest) {
           { status: 409 },
         );
       }
+      if (/Single Gym membership is not available/i.test(creationError.message || "")) {
+        return NextResponse.json(
+          { error: "Single Gym membership is not available for this gym." },
+          { status: 409 },
+        );
+      }
       console.error("Public membership application creation failed.");
       return NextResponse.json({ error: "Could not submit application." }, { status: 500 });
     }
@@ -532,9 +555,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Could not submit application." }, { status: 500 });
     }
 
-    // The application has been committed. Alert the subscribed reception
-    // dashboard immediately; the queue's polling remains the fallback.
-    // Broadcast failures are handled by the helper and do not reject submission.
     await broadcastStaffMembershipRefresh(gym.id);
 
     return NextResponse.json(

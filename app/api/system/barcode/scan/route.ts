@@ -9,10 +9,24 @@ import { requireSystemPermission } from "@/lib/systemAuth";
 export const dynamic = "force-dynamic";
 
 const MEMBER_SELECT =
-  "id, member_number, full_name, status, membership_expiry, cancellation_effective_date, access_scope, enrollment_gym_id, official_photo_path, legacy_pk_customer, legacy_gym";
+  "id, member_number, full_name, status, membership_expiry, cancellation_effective_date, access_scope, access_gym_id, pending_access_scope, pending_access_gym_id, pending_access_effective_date, enrollment_gym_id, official_photo_path, legacy_pk_customer, legacy_gym";
 
 function clean(value: unknown) {
   return String(value ?? "").trim();
+}
+
+function effectiveAccess(member: any, today: string) {
+  const pendingIsEffective = Boolean(
+    member?.pending_access_scope &&
+      member?.pending_access_effective_date &&
+      member.pending_access_effective_date <= today,
+  );
+  const accessScope = pendingIsEffective ? member.pending_access_scope : member?.access_scope;
+  const accessGymId = pendingIsEffective ? member.pending_access_gym_id : member?.access_gym_id;
+  return {
+    accessScope: accessScope || "network",
+    accessGymId: accessGymId || (accessScope === "neptunes_only" ? "bgm-neptunes" : null),
+  };
 }
 
 function accessFor(member: any, gymId?: string | null) {
@@ -22,6 +36,10 @@ function accessFor(member: any, gymId?: string | null) {
       membershipExpiry: member.membership_expiry,
       cancellationEffectiveDate: member.cancellation_effective_date,
       accessScope: member.access_scope,
+      accessGymId: member.access_gym_id,
+      pendingAccessScope: member.pending_access_scope,
+      pendingAccessGymId: member.pending_access_gym_id,
+      pendingAccessEffectiveDate: member.pending_access_effective_date,
     },
     today: todayMaltaDate(),
     gymId,
@@ -97,8 +115,6 @@ export async function POST(request: NextRequest) {
         const activeClaims = allClaims.filter((candidate) => accessFor(candidate, gymId).granted);
         credentialKind = "physical_card";
 
-        // Shared/historical cards must continue to show every matching member.
-        // Gym scope is enforced only after the correct person is identified.
         if (allClaims.length > 1) {
           cardMatches = allClaims;
           ambiguousPhysicalCard = true;
@@ -143,8 +159,6 @@ export async function POST(request: NextRequest) {
             (candidate) => accessFor(candidate, gymId).granted
           );
 
-          // Preserve the existing safety contract: non-unique legacy PK values
-          // always surface every match instead of collapsing to one person.
           if (legacyMembers.length > 1) {
             cardMatches = legacyMembers;
             ambiguousPhysicalCard = true;
@@ -264,6 +278,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const today = todayMaltaDate();
+    const effective = effectiveAccess(member, today);
+    let accessGymName = "";
+    if (effective.accessGymId) {
+      const accessGymResult = await supabase
+        .from("bgm_gyms")
+        .select("name")
+        .eq("id", effective.accessGymId)
+        .maybeSingle();
+      if (!accessGymResult.error) accessGymName = accessGymResult.data?.name || "";
+    }
+
     return NextResponse.json({
       result: decision.result,
       granted: decision.granted,
@@ -310,7 +336,9 @@ export async function POST(request: NextRequest) {
             fullName: member.full_name,
             status: member.status,
             membershipExpiry: member.membership_expiry,
-            accessScope: member.access_scope || "network",
+            accessScope: effective.accessScope,
+            accessGymId: effective.accessGymId,
+            accessGymName,
             enrollmentGymId: member.enrollment_gym_id || null,
             enrollmentGymName,
             legacyGym: member.legacy_gym || null,

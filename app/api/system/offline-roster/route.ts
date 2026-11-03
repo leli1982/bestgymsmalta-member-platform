@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
+import { offlineRosterMemberMayMatterAtGym } from "@/lib/offlineAccessCore";
+import { todayMaltaDate } from "@/lib/maltaDate";
 import {
   hashOfflineRoster,
   toOfflineRosterMember,
@@ -9,14 +11,19 @@ import {
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 1000;
-const NEPTUNES_GYM_ID = "bgm-neptunes";
 
 type SupabaseAdmin = ReturnType<typeof getSupabaseAdmin>;
 type OfflineMemberRow = {
   id: string;
   member_number: string | null;
   full_name: string | null;
+  membership_expiry: string | null;
+  cancellation_effective_date: string | null;
   access_scope: string | null;
+  access_gym_id: string | null;
+  pending_access_scope: string | null;
+  pending_access_gym_id: string | null;
+  pending_access_effective_date: string | null;
 };
 type ModernCardRow = {
   member_id: string;
@@ -27,19 +34,16 @@ type LegacyCardRow = {
   scan3: string | null;
 };
 
-function todayString() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-async function fetchAllActiveMembers(supabase: SupabaseAdmin) {
+async function fetchAllActiveMembers(supabase: SupabaseAdmin, today: string) {
   const rows: OfflineMemberRow[] = [];
 
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from("bgm_members")
-      .select("id, member_number, full_name, access_scope")
+      .select("id, member_number, full_name, membership_expiry, cancellation_effective_date, access_scope, access_gym_id, pending_access_scope, pending_access_gym_id, pending_access_effective_date")
       .eq("status", "active")
-      .or(`membership_expiry.is.null,membership_expiry.gte.${todayString()}`)
+      .or(`membership_expiry.is.null,membership_expiry.gte.${today}`)
+      .or(`cancellation_effective_date.is.null,cancellation_effective_date.gt.${today}`)
       .order("member_number", { ascending: true })
       .range(from, from + PAGE_SIZE - 1);
 
@@ -98,11 +102,15 @@ export async function GET(request: NextRequest) {
     if (auth.error || !auth.context) return auth.error;
 
     const supabase = getSupabaseAdmin();
-    const [memberRows, modernCardRows, legacyCardRows] = await Promise.all([
-      fetchAllActiveMembers(supabase),
+    const today = todayMaltaDate();
+    const [memberRows, modernCardRows, legacyCardRows, gymsResult] = await Promise.all([
+      fetchAllActiveMembers(supabase, today),
       fetchAllModernCards(supabase),
       fetchAllLegacyCards(supabase),
+      supabase.from("bgm_gyms").select("id,name"),
     ]);
+    if (gymsResult.error) throw gymsResult.error;
+    const gymNames = new Map((gymsResult.data || []).map((gym) => [gym.id, gym.name]));
 
     const cardsByMember = new Map<string, string[]>();
     const addCard = (memberId: unknown, cardValue: unknown) => {
@@ -123,14 +131,23 @@ export async function GET(request: NextRequest) {
         toOfflineRosterMember({
           member_number: row.member_number,
           full_name: row.full_name,
+          membership_expiry: row.membership_expiry,
+          cancellation_effective_date: row.cancellation_effective_date,
           access_scope: row.access_scope,
+          access_gym_id: row.access_gym_id,
+          access_gym_name: row.access_gym_id ? gymNames.get(row.access_gym_id) || null : null,
+          pending_access_scope: row.pending_access_scope,
+          pending_access_gym_id: row.pending_access_gym_id,
+          pending_access_gym_name: row.pending_access_gym_id ? gymNames.get(row.pending_access_gym_id) || null : null,
+          pending_access_effective_date: row.pending_access_effective_date,
           card_numbers: cardsByMember.get(String(row.id)) || [],
         })
       )
       .filter((member) =>
         member.memberNumber &&
         member.fullName &&
-        (member.accessScope !== "neptunes_only" || currentGymId === NEPTUNES_GYM_ID)
+        Boolean(currentGymId) &&
+        offlineRosterMemberMayMatterAtGym(member, currentGymId || "")
       );
 
     const rosterHash = hashOfflineRoster(members);

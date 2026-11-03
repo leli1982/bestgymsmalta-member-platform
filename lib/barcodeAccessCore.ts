@@ -10,9 +10,23 @@ type BarcodeMemberState = {
   membershipExpiry?: string | null;
   cancellationEffectiveDate?: string | null;
   accessScope?: string | null;
+  accessGymId?: string | null;
+  pendingAccessScope?: string | null;
+  pendingAccessGymId?: string | null;
+  pendingAccessEffectiveDate?: string | null;
 };
 
-const NEPTUNES_GYM_ID = "bgm-neptunes";
+function effectiveAccess(member: BarcodeMemberState, today: string) {
+  const pendingIsEffective = Boolean(
+    member.pendingAccessScope &&
+      member.pendingAccessEffectiveDate &&
+      member.pendingAccessEffectiveDate <= today,
+  );
+  const accessScope = pendingIsEffective ? member.pendingAccessScope : member.accessScope;
+  const explicitGymId = pendingIsEffective ? member.pendingAccessGymId : member.accessGymId;
+  const accessGymId = explicitGymId || (accessScope === "neptunes_only" ? "bgm-neptunes" : null);
+  return { accessScope, accessGymId };
+}
 
 export function evaluateBarcodeAccess({
   member,
@@ -39,10 +53,12 @@ export function evaluateBarcodeAccess({
     return { result: "expired", granted: false };
   }
 
+  const effective = effectiveAccess(member, today);
   if (
-    member.accessScope === "neptunes_only" &&
+    (effective.accessScope === "single_gym" || effective.accessScope === "neptunes_only") &&
+    effective.accessGymId &&
     gymId &&
-    gymId !== NEPTUNES_GYM_ID
+    gymId !== effective.accessGymId
   ) {
     return { result: "restricted_gym", granted: false };
   }

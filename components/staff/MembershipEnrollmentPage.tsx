@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import RegistrationForm from "@/components/membership/RegistrationForm";
+import AccessScopedRegistrationForm from "@/components/membership/AccessScopedRegistrationForm";
 import OfflineMembershipCheckout from "@/components/staff/OfflineMembershipCheckout";
 import StaffRenewalEnrollmentPage from "@/components/staff/StaffRenewalEnrollmentPage";
 import StaffMembershipReviewModal from "@/components/staff/StaffMembershipReviewModal";
@@ -527,7 +527,7 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
           onCancel={() => setOfflineDraft(null)}
         />
       ) : !success ? (
-        <RegistrationForm
+        <AccessScopedRegistrationForm
           key={config.gym.id}
           mode="staff"
           gym={config.gym}

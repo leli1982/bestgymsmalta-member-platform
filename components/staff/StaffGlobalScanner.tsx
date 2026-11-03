@@ -1,6 +1,8 @@
 "use client";
 
 import { formatEuropeanDate } from "@/lib/europeanDate";
+import { evaluateOfflineRosterMember } from "@/lib/offlineAccessCore";
+import { todayMaltaDate } from "@/lib/maltaDate";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -19,6 +21,7 @@ type StaffUser = {
 type AccessResult = {
   result: string;
   granted: boolean;
+  offline?: boolean;
   scanId?: string;
   cardMatches?: CardConflictMember[];
   duplicate?: boolean;
@@ -33,6 +36,8 @@ type AccessResult = {
     fullName: string;
     status: string;
     membershipExpiry: string | null;
+    accessScope?: string | null;
+    accessGymName?: string | null;
     enrollmentGymName?: string | null;
     legacyGym?: string | null;
     photoRequired: boolean;
@@ -110,6 +115,9 @@ function heading(result: AccessResult) {
   if (result.cardMatches?.length) return "SHARED CARD CONFLICT";
   if (result.result === "expired") return "MEMBERSHIP EXPIRED";
   if (result.result === "inactive") return "MEMBERSHIP INACTIVE";
+  if (result.result === "restricted_gym") {
+    return `${(result.member?.accessGymName || "SINGLE GYM").toUpperCase()} ACCESS ONLY`;
+  }
   if (result.result === "disabled_card") return "CARD REPLACED";
   if (result.result === "ambiguous_card") return "CARD NUMBER AMBIGUOUS";
   if (result.result === "invalid_barcode") return "INVALID BARCODE";
@@ -211,19 +219,41 @@ export default function StaffGlobalScanner() {
           (member.cardNumbers || []).some((cardNumber) => cardNumber.toLowerCase() === normalized)
         );
 
-        if (matches.length === 1) {
+        if (matches.length === 1 && user?.gymId) {
           const member = matches[0];
-          const cards = (member.cardNumbers || []).join(", ") || code.trim();
-          setNetworkError(`OFFLINE LOOKUP — ${member.fullName} · BGM ${member.memberNumber} · Card ${cards}`);
+          const access = evaluateOfflineRosterMember(member, user.gymId, todayMaltaDate());
+          setResult({
+            result: access.result,
+            granted: access.granted,
+            offline: true,
+            scannedBarcode: code.trim(),
+            currentPhysicalCard: (member.cardNumbers || [])[0] || null,
+            member: {
+              id: `offline:${member.memberNumber}`,
+              memberNumber: member.memberNumber,
+              fullName: member.fullName,
+              status: access.result === "inactive" ? "inactive" : "active",
+              membershipExpiry: member.membershipExpiry || null,
+              accessScope: access.accessScope,
+              accessGymName: access.accessGymName || access.accessGymId || null,
+              enrollmentGymName: null,
+              legacyGym: null,
+              photoRequired: false,
+              photoUrl: null,
+            },
+          });
+          playTone(access.granted);
         } else if (matches.length > 1) {
           setNetworkError(`OFFLINE LOOKUP — Card ${code.trim()} matches more than one saved member. Use Emergency Member Lookup to resolve it manually.`);
+          playTone(false);
         } else {
           setNetworkError(`OFFLINE LOOKUP — Card ${code.trim()} was not found in the saved offline roster.`);
+          playTone(false);
         }
       } catch {
         setNetworkError("OFFLINE LOOKUP — The saved offline roster could not be read on this device.");
+        playTone(false);
       }
-      playTone(false);
       setChecking(false);
       busy.current = false;
       return;
@@ -259,7 +289,7 @@ export default function StaffGlobalScanner() {
         // A queued result appears after Staff dismiss the current result.
       }
     }
-  }, [canScan]);
+  }, [canScan, user?.gymId]);
 
   const processNext = useCallback(() => {
     if (busy.current || result || networkError || checking) return;
@@ -553,6 +583,11 @@ export default function StaffGlobalScanner() {
             <h2 className={`mt-2 text-3xl font-black sm:text-5xl ${granted ? "text-emerald-700" : "text-red-700"}`}>
               {heading(result)}
             </h2>
+            {result.offline && (
+              <p className="mx-auto mt-3 max-w-3xl rounded-2xl bg-amber-50 p-3 text-sm font-black text-amber-900">
+                OFFLINE CACHED ACCESS — evaluated from the last saved roster using today&apos;s Malta date. No live check-in has been recorded.
+              </p>
+            )}
             {Boolean(result.cardMatches?.length) && <CardConflictCards members={result.cardMatches || []} scanId={result.scanId} />}
             {result.member ? (
               <div className="mx-auto mt-4 grid max-w-5xl gap-5 text-left lg:grid-cols-[minmax(300px,420px)_minmax(0,1fr)] lg:items-center">
@@ -576,8 +611,15 @@ export default function StaffGlobalScanner() {
                   <p className="mt-1 font-mono text-sm font-bold text-zinc-700">Current card: {result.currentPhysicalCard || "Not assigned"}</p>
                   <p className="mt-1 text-xs font-bold text-zinc-500">Scanned: <span className="font-mono">{result.scannedBarcode || "—"}</span></p>
                   <p className="mt-2 font-bold text-zinc-700">Expiry: {formatEuropeanDate(result.member.membershipExpiry, "Not set")}</p>
-                  <p className="mt-1 font-semibold text-zinc-600">Current enrollment gym: {result.member.enrollmentGymName || "Not recorded"}</p>
-                  <p className="mt-1 font-semibold text-zinc-600">Original gym: {result.member.legacyGym || "Not recorded"}</p>
+                  {result.member.accessScope === "single_gym" && (
+                    <p className="mt-1 font-black text-orange-700">Access: {result.member.accessGymName || "Single Gym"} only</p>
+                  )}
+                  {!result.offline && (
+                    <>
+                      <p className="mt-1 font-semibold text-zinc-600">Current enrollment gym: {result.member.enrollmentGymName || "Not recorded"}</p>
+                      <p className="mt-1 font-semibold text-zinc-600">Original gym: {result.member.legacyGym || "Not recorded"}</p>
+                    </>
+                  )}
                   <p className="mt-1 text-sm font-semibold text-zinc-500">Status: {result.member.status}</p>
                 </div>
               </div>

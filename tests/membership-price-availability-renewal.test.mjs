@@ -19,10 +19,11 @@ test("renewal form filters durations by published rates and blocks invalid selec
   assert.match(renewal, /availableDurations\.map/);
   assert.match(renewal, /availablePrices\.some\(\(entry\) => entry\.membershipType === membershipType && entry\.durationKey === durationKey\)/);
 });
-test("renewal shows the selected duration's currently published price before submission", () => {
+test("renewal shows the selected duration's currently published scoped price before submission", () => {
   assert.match(renewal, /selectedPrice = availablePrices\.find/);
   assert.match(renewal, /entry\.membershipType === membershipType && entry\.durationKey === durationKey/);
-  assert.match(renewal, /Current published renewal price/);
+  assert.match(renewal, /Current published Single Gym renewal price/);
+  assert.match(renewal, /Current published All Access renewal price/);
   assert.match(renewal, /selectedPrice\.amountCents \/ 100/);
   assert.match(renewal, /Before any applicable discount/);
 });

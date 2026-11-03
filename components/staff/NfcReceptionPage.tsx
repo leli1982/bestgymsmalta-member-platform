@@ -29,6 +29,9 @@ type ScanResponse = {
     fullName: string;
     status: string;
     membershipExpiry: string | null;
+    accessScope?: string | null;
+    accessGymId?: string | null;
+    accessGymName?: string | null;
     enrollmentGymId: string | null;
     enrollmentGymName: string;
     officialPhotoPath: string | null;
@@ -152,7 +155,7 @@ export default function NfcReceptionPage() {
       const scan = data as ScanResponse;
       setResult(scan);
       setUid("");
-      const presentation = nfcReceptionPresentation(scan.result);
+      const presentation = nfcReceptionPresentation(scan.result, scan.member?.accessGymName);
       playTone(presentation.tone);
 
       if (presentation.autoResetMs) {
@@ -199,7 +202,7 @@ export default function NfcReceptionPage() {
   }
 
   if (result) {
-    const presentation = nfcReceptionPresentation(result.result);
+    const presentation = nfcReceptionPresentation(result.result, result.member?.accessGymName);
     const success = presentation.severity === "success";
 
     return (
@@ -225,6 +228,9 @@ export default function NfcReceptionPage() {
                 <dl className="mt-6 grid gap-3 sm:grid-cols-2">
                   <Detail label="Expiry" value={formatEuropeanDate(result.member.membershipExpiry, "No expiry date")} />
                   <Detail label="Enrollment Gym" value={result.member.enrollmentGymName || "Not recorded"} />
+                  {result.member.accessScope === "single_gym" && (
+                    <Detail label="Access" value={`${result.member.accessGymName || "Single Gym"} only`} />
+                  )}
                   <Detail label="Scanned At" value={result.gym?.name || "BGM Gym"} />
                   <Detail label="Membership" value={result.member.status.toUpperCase()} />
                 </dl>

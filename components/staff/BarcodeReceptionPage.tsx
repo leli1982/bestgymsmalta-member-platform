@@ -20,6 +20,7 @@ type BarcodeResult =
   | "granted"
   | "expired"
   | "inactive"
+  | "restricted_gym"
   | "unknown_card"
   | "unknown_member"
   | "disabled_card"
@@ -52,6 +53,8 @@ type ScanResponse = {
     fullName: string;
     status: string;
     membershipExpiry: string | null;
+    accessScope?: string | null;
+    accessGymName?: string | null;
     enrollmentGymId: string | null;
     enrollmentGymName: string;
     hasPhoto: boolean;
@@ -60,13 +63,21 @@ type ScanResponse = {
   };
 };
 
-function presentation(result: BarcodeResult) {
+function presentation(result: BarcodeResult, accessGymName?: string | null) {
   if (result === "granted") {
     return {
       title: "ACCESS GRANTED",
       severity: "success" as const,
       tone: "success" as const,
       autoResetMs: 3_500,
+    };
+  }
+  if (result === "restricted_gym") {
+    return {
+      title: `${(accessGymName || "SINGLE GYM").toUpperCase()} ACCESS ONLY`,
+      severity: "warning" as const,
+      tone: "warning" as const,
+      autoResetMs: 0,
     };
   }
   if (result === "disabled_card") {
@@ -235,7 +246,7 @@ export default function BarcodeReceptionPage() {
       setPhotoLoadFailed(false);
       setResult(scan);
       setMembershipNumber("");
-      const view = presentation(scan.result);
+      const view = presentation(scan.result, scan.member?.accessGymName);
       playTone(view.tone);
       if (scan.granted && scan.member?.photoRequired) {
         window.setTimeout(() => playTone("warning"), 220);
@@ -299,7 +310,7 @@ export default function BarcodeReceptionPage() {
   }
 
   if (result) {
-    const baseView = presentation(result.result);
+    const baseView = presentation(result.result, result.member?.accessGymName);
     const view =
       result.result === "disabled_card" && result.cardStatus === "reserved"
         ? { ...baseView, title: "CARD NOT ACTIVE" }
@@ -395,6 +406,12 @@ export default function BarcodeReceptionPage() {
                     label="Current physical card"
                     value={result.currentPhysicalCard || "Not assigned"}
                   />
+                  {result.member.accessScope === "single_gym" && (
+                    <Detail
+                      label="Access"
+                      value={`${result.member.accessGymName || "Single Gym"} only`}
+                    />
+                  )}
                   <Detail
                     label="Enrollment Gym"
                     value={result.member.enrollmentGymName || "Not recorded"}

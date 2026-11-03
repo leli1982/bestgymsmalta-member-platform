@@ -13,6 +13,8 @@ import { requireSuperAdmin, type SystemContext } from "@/lib/systemAuth";
 
 export const dynamic = "force-dynamic";
 
+type PriceAccessScope = "network" | "single_gym";
+
 const DECLARATION_KEYS: readonly DeclarationKey[] = [
   "gym_rules",
   "legacy_declaration",
@@ -33,6 +35,10 @@ function requiredString(value: unknown, label: string) {
   const normalized = typeof value === "string" ? value.trim() : "";
   if (!normalized) throw new Error(`${label} is required.`);
   return normalized;
+}
+
+function priceScope(value: unknown): PriceAccessScope {
+  return value === "single_gym" ? "single_gym" : "network";
 }
 
 function optionalDate(value: unknown, label: string) {
@@ -89,11 +95,11 @@ export async function GET(request: NextRequest) {
     if (auth.error || !auth.context) return auth.error;
 
     const supabase = getSupabaseAdmin();
-    const [catalogsResult, entriesResult, declarationsResult, discountsResult] =
+    const [catalogsResult, entriesResult, declarationsResult, discountsResult, gymsResult] =
       await Promise.all([
         supabase
           .from("bgm_membership_price_catalog_versions")
-          .select("id, version_no, status, published_at, created_by_system_user_id, created_at")
+          .select("id, version_no, status, access_scope, gym_id, published_at, created_by_system_user_id, created_at")
           .order("version_no", { ascending: false }),
         supabase
           .from("bgm_membership_price_entries")
@@ -111,9 +117,13 @@ export async function GET(request: NextRequest) {
             "id, code, percentage, active, valid_from, valid_until, max_uses, successful_uses, created_by_system_user_id, created_at, updated_at"
           )
           .order("created_at", { ascending: false }),
+        supabase
+          .from("bgm_gyms")
+          .select("id, name, status, single_gym_pricing_enabled")
+          .order("name", { ascending: true }),
       ]);
 
-    for (const result of [catalogsResult, entriesResult, declarationsResult, discountsResult]) {
+    for (const result of [catalogsResult, entriesResult, declarationsResult, discountsResult, gymsResult]) {
       if (result.error) throw result.error;
     }
 
@@ -124,6 +134,8 @@ export async function GET(request: NextRequest) {
         id: catalog.id,
         versionNo: catalog.version_no,
         status: catalog.status,
+        accessScope: catalog.access_scope || "network",
+        gymId: catalog.gym_id || null,
         publishedAt: catalog.published_at,
         createdAt: catalog.created_at,
         entries: priceEntries
@@ -135,6 +147,12 @@ export async function GET(request: NextRequest) {
             currency: entry.currency,
             isActive: entry.is_active,
           })),
+      })),
+      gyms: (gymsResult.data || []).map((gym) => ({
+        id: gym.id,
+        name: gym.name,
+        status: gym.status,
+        singleGymPricingEnabled: gym.single_gym_pricing_enabled === true,
       })),
       declarations: (declarationsResult.data || []).map((declaration) => ({
         id: declaration.id,
@@ -180,8 +198,46 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseAdmin();
     const actorSystemUserId = auth.context.systemUserId;
 
+    if (action === "set_single_gym_pricing_enabled") {
+      let gymId: string;
+      try {
+        gymId = requiredString(body.gymId, "Gym");
+        if (typeof body.enabled !== "boolean") throw new Error("Enabled state must be true or false.");
+      } catch (error) {
+        return badRequest(error instanceof Error ? error.message : "Invalid gym pricing state.");
+      }
+
+      const existingResult = await supabase
+        .from("bgm_gyms")
+        .select("id, name, single_gym_pricing_enabled")
+        .eq("id", gymId)
+        .maybeSingle();
+      if (existingResult.error) throw existingResult.error;
+      if (!existingResult.data) return NextResponse.json({ error: "Gym not found." }, { status: 404 });
+
+      const updateResult = await supabase
+        .from("bgm_gyms")
+        .update({ single_gym_pricing_enabled: body.enabled })
+        .eq("id", gymId)
+        .select("id, name, single_gym_pricing_enabled")
+        .single();
+      if (updateResult.error) throw updateResult.error;
+
+      await writeAudit(
+        auth.context,
+        "membership_settings.single_gym_pricing.changed",
+        "gym",
+        gymId,
+        { singleGymPricingEnabled: existingResult.data.single_gym_pricing_enabled },
+        { singleGymPricingEnabled: updateResult.data.single_gym_pricing_enabled }
+      );
+      return NextResponse.json({ ok: true, gym: updateResult.data });
+    }
+
     if (action === "save_price_draft") {
       let entries: PriceEntry[];
+      const accessScope = priceScope(body.accessScope);
+      const gymId = accessScope === "single_gym" ? requiredString(body.gymId, "Gym") : null;
       try {
         entries = parsePriceEntries(body.entries);
       } catch (error) {
@@ -194,10 +250,27 @@ export async function POST(request: NextRequest) {
       const validation = validatePriceMatrix(entries);
       if (!validation.ok) return badRequest(validation.error);
 
+      if (accessScope === "single_gym") {
+        const gymResult = await supabase
+          .from("bgm_gyms")
+          .select("id, single_gym_pricing_enabled")
+          .eq("id", gymId)
+          .maybeSingle();
+        if (gymResult.error) throw gymResult.error;
+        if (!gymResult.data) return NextResponse.json({ error: "Gym not found." }, { status: 404 });
+        if (!gymResult.data.single_gym_pricing_enabled) {
+          return badRequest("Enable Single Gym Pricing for this gym before saving its prices.");
+        }
+      }
+
       const catalogResult = await supabase
         .from("bgm_membership_price_catalog_versions")
-        .insert({ created_by_system_user_id: actorSystemUserId })
-        .select("id, version_no, status, created_at")
+        .insert({
+          created_by_system_user_id: actorSystemUserId,
+          access_scope: accessScope,
+          gym_id: gymId,
+        })
+        .select("id, version_no, status, access_scope, gym_id, created_at")
         .single();
       if (catalogResult.error) throw catalogResult.error;
 
@@ -230,6 +303,8 @@ export async function POST(request: NextRequest) {
           versionNo: catalogResult.data.version_no,
           entryCount: entries.length,
           currency: "EUR",
+          accessScope,
+          gymId,
         }
       );
 
@@ -244,20 +319,25 @@ export async function POST(request: NextRequest) {
         return badRequest(error instanceof Error ? error.message : "Invalid catalog version.");
       }
 
-      // An older abandoned draft must not replace rates already published later.
-      const [draftResult, currentResult] = await Promise.all([
-        supabase.from("bgm_membership_price_catalog_versions")
-          .select("version_no,status").eq("id", catalogVersionId).maybeSingle(),
-        supabase.from("bgm_membership_price_catalog_versions")
-          .select("version_no").eq("status", "published").maybeSingle(),
-      ]);
+      const draftResult = await supabase.from("bgm_membership_price_catalog_versions")
+        .select("version_no,status,access_scope,gym_id").eq("id", catalogVersionId).maybeSingle();
       if (draftResult.error) throw draftResult.error;
-      if (currentResult.error) throw currentResult.error;
       if (draftResult.data?.status !== "draft") return badRequest("Select a current price draft.");
+
+      let currentQuery = supabase.from("bgm_membership_price_catalog_versions")
+        .select("version_no")
+        .eq("status", "published")
+        .eq("access_scope", draftResult.data.access_scope);
+      currentQuery = draftResult.data.gym_id
+        ? currentQuery.eq("gym_id", draftResult.data.gym_id)
+        : currentQuery.is("gym_id", null);
+      const currentResult = await currentQuery.maybeSingle();
+      if (currentResult.error) throw currentResult.error;
       if (currentResult.data &&
           Number(draftResult.data.version_no) <= Number(currentResult.data.version_no)) {
         return badRequest("This draft predates the current published rates. Save a new draft based on the current prices.");
       }
+
       const result = await supabase.rpc("bgm_publish_membership_price_catalog", {
         p_catalog_version_id: catalogVersionId,
         p_system_user_id: actorSystemUserId,
