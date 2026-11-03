@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { setMemberSessionCookie } from "@/lib/memberAuth";
+import { sendLegacyActivationConfirmationEmail } from "@/lib/welcomeMailer";
 import {
   normalizeLegacyEmail,
   resolveLegacyMemberCandidate,
@@ -29,6 +30,15 @@ function genericIdentityError() {
     { error: "We could not verify those legacy membership details." },
     { status: 404 }
   );
+}
+
+function memberAppUrl() {
+  const configured = String(
+    process.env.BGM_MEMBER_APP_URL ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "https://bestgymsmalta-member-platform.vercel.app/login"
+  ).trim();
+  return configured || "https://bestgymsmalta-member-platform.vercel.app/login";
 }
 
 export async function POST(request: NextRequest) {
@@ -140,10 +150,28 @@ export async function POST(request: NextRequest) {
 
     if (updateResult.error) throw updateResult.error;
 
+    let welcomeEmailSent = false;
+    try {
+      await sendLegacyActivationConfirmationEmail({
+        recipient: String(updateResult.data.email || email || ""),
+        memberName: String(updateResult.data.full_name || ""),
+        memberNumber: String(updateResult.data.member_number || ""),
+        appUrl: memberAppUrl(),
+      });
+      welcomeEmailSent = true;
+    } catch (emailError) {
+      console.error(
+        `Legacy activation confirmation email failed for ${String(updateResult.data.member_number || member.id)}.`,
+        emailError
+      );
+      welcomeEmailSent = false;
+    }
+
     const response = NextResponse.json({
       member: publicMember(updateResult.data),
       recoveredMemberNumber: String(updateResult.data.member_number || ""),
       emailUpdated: resolution.shouldUpdateEmail,
+      welcomeEmailSent,
     });
 
     return setMemberSessionCookie(response, String(updateResult.data.id));
