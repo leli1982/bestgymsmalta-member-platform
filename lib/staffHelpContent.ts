@@ -163,7 +163,7 @@ export const STAFF_HELP_TOPICS: StaffHelpTopic[] = [
       "Use Others only when the item is not on the official list and enter the required value/details.",
       "Watch the save status. Saved means the open Bar sheet is stored. Offline – waiting to sync means it will sync when the connection returns.",
       "There is no Send Bar List button. The Bar is an auto-save open sheet and its total is pulled into End of Day automatically.",
-      "If midnight passes and no End of Day was submitted, the Bar does not start from zero. The same open figures carry into the next morning.",
+      "If midnight passes and no End of Day was submitted, the Bar does not start from zero. The open Bar sheet carries across midnight into the next morning.",
     ],
     important: "The Bar resets only when staff submit End of Day successfully. Sales made after that End of Day start building the next End of Day.",
   },
