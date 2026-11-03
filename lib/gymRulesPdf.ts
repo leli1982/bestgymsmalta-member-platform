@@ -2,7 +2,7 @@ import {
   buildDeclarationPdf,
   declarationPdfFilename,
   type DeclarationPdfDeclaration,
-} from "@/lib/declarationPdf";
+} from "./declarationPdf.ts";
 
 type GymRulesDeclaration = DeclarationPdfDeclaration;
 
