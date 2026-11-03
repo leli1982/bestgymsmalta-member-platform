@@ -14,7 +14,8 @@ test("renewal UI carries member access scope and gym from search results", () =>
 });
 
 test("renewal UI preselects the member current access and swaps price matrices", () => {
-  assert.match(renewal, /setAccessScope\(candidate\.accessScope === "single_gym" \? "single_gym" : "network"\)/);
+  assert.match(renewal, /candidateScope[^=]*= candidate\.accessScope === "single_gym" \? "single_gym" : "network"/);
+  assert.match(renewal, /setAccessScope\(candidateScope\)/);
   assert.match(renewal, /singleGymEntries/);
   assert.match(renewal, /accessScope === "single_gym" \? singleGymPrices : networkPrices/);
   assert.match(renewal, /All Access/);
