@@ -32,13 +32,10 @@ begin
     raise exception 'Daily Bar cash value is invalid.';
   end if;
 
-  -- Serialize Bar saves and EOD closes for the whole gym, including across midnight.
   perform pg_advisory_xact_lock(
     hashtextextended('bgm-eod:' || p_gym_id, 0)
   );
 
-  -- Reuse the latest live Bar working sheet across calendar dates. It is cleared
-  -- only by a successful End of Day submission.
   select id into v_order_id
   from public.bgm_operational_orders
   where order_type = 'bar'
@@ -161,13 +158,10 @@ begin
     raise exception 'Gym not found.';
   end if;
 
-  -- One financial stream per gym. Midnight must not create a second lock domain.
   perform pg_advisory_xact_lock(
     hashtextextended('bgm-eod:' || p_gym_id, 0)
   );
 
-  -- The next financial shift starts exactly where the latest EOD ended,
-  -- irrespective of which Malta calendar date that EOD belongs to.
   select shift_ended_at
   into v_shift_start
   from public.bgm_end_of_day_reports
@@ -176,7 +170,6 @@ begin
   limit 1;
   v_has_previous_shift := found;
 
-  -- Shift numbering remains a per-report-date presentation detail.
   select coalesce(max(shift_sequence), 0)
   into v_previous_sequence
   from public.bgm_end_of_day_reports
@@ -205,7 +198,6 @@ begin
     v_expenses_total := v_expenses_total + v_expense_amount;
   end loop;
 
-  -- Keep the existing New Membership / Renewal / Voucher arithmetic exactly the same.
   select
     coalesce(sum(case when application_kind = 'new' and payment_method = 'cash' then coalesce(final_amount_cents, 0) else 0 end), 0),
     coalesce(sum(case when application_kind = 'new' and payment_method = 'card' then coalesce(final_amount_cents, 0) else 0 end), 0)
@@ -229,13 +221,12 @@ begin
       (v_has_previous_shift and coalesce(payment_received_at, activated_at, submitted_at) > v_shift_start)
     );
 
-  -- Snapshot the same live Bar working sheet that has been carrying forward,
-  -- regardless of the date on which that working row was first created.
   select id into v_bar_order_id
   from public.bgm_operational_orders
   where order_type = 'bar'
     and is_daily_sheet = true
     and gym_id = p_gym_id
+    and (not v_has_previous_shift or updated_at >= v_shift_start)
   order by updated_at desc
   limit 1
   for update;
@@ -312,8 +303,6 @@ begin
     )
   group by coalesce(nullif(btrim(discount_code_snapshot), ''), 'VOUCHER');
 
-  -- The EOD snapshot is complete. Only a successful EOD submission clears the
-  -- live Bar sheet. Midnight alone never touches it.
   if v_bar_order_id is not null then
     delete from public.bgm_operational_order_items where order_id = v_bar_order_id;
     update public.bgm_operational_orders
