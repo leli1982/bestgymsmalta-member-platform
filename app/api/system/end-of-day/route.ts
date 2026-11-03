@@ -102,31 +102,47 @@ async function staffPreview(request: NextRequest) {
 
   const businessDate = todayMaltaDate();
   const supabase = getSupabaseAdmin();
-  const [gymResult, latestShiftResult, paymentsResult, barResult] = await Promise.all([
+  const [gymResult, latestGlobalShiftResult, latestTodayShiftResult, barResult] = await Promise.all([
     supabase.from("bgm_gyms").select("id,name,short_name").eq("id", gymId).maybeSingle(),
     supabase.from("bgm_end_of_day_reports")
-      .select("shift_sequence,shift_ended_at")
+      .select("shift_ended_at")
+      .eq("gym_id", gymId)
+      .order("shift_ended_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("bgm_end_of_day_reports")
+      .select("shift_sequence")
       .eq("gym_id", gymId).eq("business_date", businessDate)
       .order("shift_sequence", { ascending: false }).limit(1).maybeSingle(),
-    supabase.from("bgm_membership_applications")
-      .select("application_kind,payment_method,final_amount_cents,discount_code_snapshot,discount_reimbursement_cents_snapshot,payment_received_at,activated_at,submitted_at")
-      .eq("status", "activated")
-      .eq("enrollment_gym_id", gymId)
-      .eq("payment_business_date", businessDate),
     supabase.from("bgm_operational_orders")
-      .select("id,total_cents,locked_at")
+      .select("id,total_cents,locked_at,updated_at")
       .eq("order_type", "bar").eq("is_daily_sheet", true)
-      .eq("gym_id", gymId).eq("business_date", businessDate).maybeSingle(),
+      .eq("gym_id", gymId)
+      .order("updated_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
-  for (const result of [gymResult, latestShiftResult, paymentsResult, barResult]) {
+  for (const result of [gymResult, latestGlobalShiftResult, latestTodayShiftResult, barResult]) {
     if (result.error) throw result.error;
   }
 
-  const shiftSequence = Number(latestShiftResult.data?.shift_sequence || 0) + 1;
-  const shiftStartedAt = latestShiftResult.data?.shift_ended_at || null;
+  const shiftSequence = Number(latestTodayShiftResult.data?.shift_sequence || 0) + 1;
+  const shiftStartedAt = latestGlobalShiftResult.data?.shift_ended_at || null;
+  const shiftStartDate = shiftStartedAt ? todayMaltaDate(new Date(shiftStartedAt)) : businessDate;
+
+  const paymentsResult = await supabase.from("bgm_membership_applications")
+    .select("application_kind,payment_method,final_amount_cents,discount_code_snapshot,discount_reimbursement_cents_snapshot,payment_received_at,activated_at,submitted_at")
+    .eq("status", "activated")
+    .eq("enrollment_gym_id", gymId)
+    .gte("payment_business_date", shiftStartDate)
+    .lte("payment_business_date", businessDate);
+  if (paymentsResult.error) throw paymentsResult.error;
+
+  const barUpdatedAt = barResult.data?.updated_at || null;
+  const barBelongsToOpenShift = Boolean(
+    barResult.data?.id
+      && (!shiftStartedAt || (barUpdatedAt
+        && new Date(barResult.data.updated_at).getTime() >= new Date(shiftStartedAt).getTime())),
+  );
 
   let barItems: EndOfDayBarItem[] = [];
-  if (barResult.data?.id && !barResult.data.locked_at) {
+  if (barBelongsToOpenShift && barResult.data?.id && !barResult.data.locked_at) {
     const itemsResult = await supabase.from("bgm_operational_order_items")
       .select("item_name,quantity,unit_price_cents,line_total_cents,sort_order")
       .eq("order_id", barResult.data.id)
