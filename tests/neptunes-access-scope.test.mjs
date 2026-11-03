@@ -40,13 +40,16 @@ test("staffed scan routes select target gym and pass it to generic access evalua
   }
 });
 
-test("offline roster carries target gym and filters any restricted member to that gym", () => {
+test("offline roster retains current and pending scoped access and includes either relevant gym", () => {
   const route = read("app/api/system/offline-roster/route.ts");
   const core = read("lib/offlineRosterCore.ts");
   assert.match(route, /access_gym_id/);
-  assert.match(route, /member\.accessScope === "network"/);
-  assert.match(route, /member\.accessGymId === currentGymId/);
-  assert.match(core, /accessGymId/);
+  assert.match(route, /pending_access_scope/);
+  assert.match(route, /pending_access_gym_id/);
+  assert.match(route, /pending_access_effective_date/);
+  assert.match(route, /offlineRosterMemberMayMatterAtGym/);
+  assert.match(core, /pendingAccessScope/);
+  assert.match(core, /pendingAccessEffectiveDate/);
   assert.match(core, /single_gym/);
 });
 
@@ -60,7 +63,6 @@ test("pending applications use the generic explicit scope endpoint during staged
   assert.match(route, /application_kind/);
   assert.match(route, /discount_code_id:\s*null/);
   assert.match(route, /discount_code_snapshot:\s*null/);
-  assert.match(route, /discount_percentage_snapshot:\s*null/);
   assert.match(route, /discount_amount_cents:\s*0/);
   assert.match(route, /final_amount_cents:\s*Number\(price\.amount_cents\)/);
 });

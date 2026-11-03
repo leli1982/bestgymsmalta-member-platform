@@ -5,6 +5,13 @@ export type OfflineRosterMember = {
   fullName: string;
   accessScope: "network" | "single_gym" | "neptunes_only";
   accessGymId: string | null;
+  accessGymName: string | null;
+  pendingAccessScope: "network" | "single_gym" | "neptunes_only" | null;
+  pendingAccessGymId: string | null;
+  pendingAccessGymName: string | null;
+  pendingAccessEffectiveDate: string | null;
+  membershipExpiry: string | null;
+  cancellationEffectiveDate: string | null;
   cardNumbers?: string[];
 };
 
@@ -13,42 +20,58 @@ type MemberRow = {
   full_name?: string | null;
   access_scope?: string | null;
   access_gym_id?: string | null;
+  access_gym_name?: string | null;
   pending_access_scope?: string | null;
   pending_access_gym_id?: string | null;
+  pending_access_gym_name?: string | null;
   pending_access_effective_date?: string | null;
+  membership_expiry?: string | null;
+  cancellation_effective_date?: string | null;
   card_numbers?: unknown;
 };
 
-export function toOfflineRosterMember(
-  row: MemberRow,
-  today = new Date().toISOString().slice(0, 10),
-): OfflineRosterMember {
+function rosterScope(value: unknown): OfflineRosterMember["accessScope"] {
+  return value === "single_gym"
+    ? "single_gym"
+    : value === "neptunes_only"
+      ? "neptunes_only"
+      : "network";
+}
+
+function optionalText(value: unknown) {
+  return String(value || "").trim() || null;
+}
+
+export function toOfflineRosterMember(row: MemberRow): OfflineRosterMember {
   const rawCards = Array.isArray(row.card_numbers) ? row.card_numbers : [];
   const cardNumbers = Array.from(
     new Set(rawCards.map((value) => String(value ?? "").trim()).filter(Boolean))
   );
-  const pendingIsEffective = Boolean(
-    row.pending_access_scope &&
-      row.pending_access_effective_date &&
-      row.pending_access_effective_date <= today,
-  );
-  const rawScope = pendingIsEffective ? row.pending_access_scope : row.access_scope;
-  const rawGymId = pendingIsEffective ? row.pending_access_gym_id : row.access_gym_id;
-  const accessScope = rawScope === "single_gym"
-    ? "single_gym"
-    : rawScope === "neptunes_only"
-      ? "neptunes_only"
-      : "network";
-  const explicitGymId = String(rawGymId || "").trim() || null;
+  const accessScope = rosterScope(row.access_scope);
+  const pendingAccessScope = row.pending_access_scope
+    ? rosterScope(row.pending_access_scope)
+    : null;
   const accessGymId = accessScope === "network"
     ? null
-    : explicitGymId || (accessScope === "neptunes_only" ? "bgm-neptunes" : null);
+    : optionalText(row.access_gym_id) || (accessScope === "neptunes_only" ? "bgm-neptunes" : null);
+  const pendingAccessGymId = pendingAccessScope === "network" || !pendingAccessScope
+    ? null
+    : optionalText(row.pending_access_gym_id) || (pendingAccessScope === "neptunes_only" ? "bgm-neptunes" : null);
 
   return {
     memberNumber: String(row.member_number || "").trim(),
     fullName: String(row.full_name || "").trim(),
     accessScope,
     accessGymId,
+    accessGymName: accessScope === "network" ? null : optionalText(row.access_gym_name),
+    pendingAccessScope,
+    pendingAccessGymId,
+    pendingAccessGymName: pendingAccessScope === "network" || !pendingAccessScope
+      ? null
+      : optionalText(row.pending_access_gym_name),
+    pendingAccessEffectiveDate: optionalText(row.pending_access_effective_date),
+    membershipExpiry: optionalText(row.membership_expiry),
+    cancellationEffectiveDate: optionalText(row.cancellation_effective_date),
     cardNumbers,
   };
 }
