@@ -5,10 +5,13 @@ import { buildWelcomeEmail } from "../lib/welcomeEmailCore.ts";
 import { buildGymRulesPdf, gymRulesPdfFilename } from "../lib/gymRulesPdf.ts";
 
 const enrollRoute = readFileSync(new URL("../app/api/system/members/enroll/route.ts", import.meta.url), "utf8");
+const printRoute = readFileSync(new URL("../app/api/system/members/applications/[applicationId]/print/route.ts", import.meta.url), "utf8");
 const walletSync = readFileSync(new URL("../lib/googleWalletSync.ts", import.meta.url), "utf8");
 const welcomePackage = readFileSync(new URL("../lib/welcomePackage.ts", import.meta.url), "utf8");
 const welcomeMailer = readFileSync(new URL("../lib/welcomeMailer.ts", import.meta.url), "utf8");
 const declarationPdfUrl = new URL("../lib/declarationPdf.ts", import.meta.url);
+const membershipFormPdfUrl = new URL("../lib/membershipFormPdf.ts", import.meta.url);
+const printableLoaderUrl = new URL("../lib/printableMembershipApplication.ts", import.meta.url);
 
 test("welcome email contains member number, app link and accepted declaration text", () => {
   const email = buildWelcomeEmail({
@@ -119,6 +122,53 @@ test("welcome mailer attaches all required declaration PDFs and guardian only wh
   assert.match(welcomeMailer, /if\s*\(input\.declarations\.guardian\)/);
   assert.match(welcomeMailer, /buildDeclarationPdf/);
   assert.match(welcomeMailer, /declarationPdfFilename/);
+});
+
+test("completed membership form PDF carries transaction, member, payment and declaration version details", async () => {
+  assert.ok(existsSync(membershipFormPdfUrl), "membership form PDF builder must exist");
+  const { buildMembershipFormPdf, membershipFormPdfFilename } = await import("../lib/membershipFormPdf.ts");
+  const participant = {
+    id: "participant-1", participantOrder: 1, firstName: "Test", lastName: "Member",
+    addressLine1: "1 Test Street", addressLine2: "", town: "Mosta", postcode: "MST 0001",
+    idNumber: "123456M", dateOfBirth: "1982-02-07", phone: "79000000", email: "test@example.test",
+    nextOfKin: "Test Kin 79000001", memberId: "member-1", memberNumber: "BGM0123456",
+    barcode: "CARD0001", photoUrl: null, under18AtSubmission: false, guardianName: "",
+    guardianIdNumber: "", guardianRelationship: "", guardianPhone: "", guardianEmail: "",
+    guardianAddress: "", idVerified: true, studentEligibilityVerified: false,
+    guardianPresentVerified: false, guardianCosignVerified: false,
+  };
+  const application = {
+    id: "app-1", applicationReference: "APP-2026-0001", kind: "renewal", membershipType: "regular",
+    durationKey: "12m", startDate: "2026-11-03", expiryDate: "2027-11-02", status: "activated",
+    submittedAt: "2026-11-03T10:00:00Z", paymentReceivedAt: "2026-11-03T10:10:00Z",
+    activatedAt: "2026-11-03T10:12:00Z", applicationStaffName: "Kirkop", activationStaffName: "Kirkop",
+    enrollmentGymId: "gym-kirkop", enrollmentGymName: "Kirkop Fitness · Access: All Access",
+    basePriceCents: 42500, currency: "EUR", discountCode: "LOYAL10", discountPercentage: 10,
+    discountAmountCents: 4250, finalAmountCents: 38250, paymentMethod: "card", paymentOtherText: null,
+    paymentStaffName: "Kirkop", declarationSnapshot: {
+      gymRules: { versionNo: 7, body: "Rules accepted" },
+      health: { versionNo: 3, body: "Health accepted" },
+      privacy: { versionNo: 5, body: "Privacy accepted" },
+    }, sameAddressVerified: false, participants: [participant],
+  };
+  const pdf = buildMembershipFormPdf(application, participant);
+  assert.equal(pdf.subarray(0, 5).toString("ascii"), "%PDF-");
+  assert.equal(membershipFormPdfFilename(application, participant), "BestGymsMalta-Membership-APP-2026-0001-BGM0123456.pdf");
+  const source = pdf.toString("latin1");
+  for (const expected of ["APP-2026-0001", "BGM0123456", "Test Member", "2026-11-03", "2027-11-02", "382.50", "Version 7", "Version 3", "Version 5"]) {
+    assert.ok(source.includes(expected), `membership form PDF must include ${expected}`);
+  }
+});
+
+test("Staff print route and welcome package share the printable application loader", () => {
+  assert.ok(existsSync(printableLoaderUrl), "shared printable application loader must exist");
+  assert.match(printRoute, /loadPrintableMembershipApplication/);
+  assert.match(welcomePackage, /loadPrintableMembershipApplication/);
+});
+
+test("welcome mailer accepts and attaches the completed membership form PDF", () => {
+  assert.match(welcomeMailer, /membershipFormPdf/);
+  assert.match(welcomeMailer, /BestGymsMalta-Membership/);
 });
 
 test("welcome package resolves and sends each activated member's permanent BGM number", () => {
