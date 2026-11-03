@@ -22,6 +22,7 @@ export function nfcReceptionPresentation(
   const titleMap: Record<Exclude<NfcAccessResult, "granted">, string> = {
     expired: "EXPIRED",
     inactive: "INACTIVE",
+    restricted_gym: "NEPTUNES ONLY",
     unknown_card: "UNKNOWN CARD",
     disabled_card: "CARD DISABLED",
   };
