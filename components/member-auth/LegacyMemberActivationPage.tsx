@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle2, ChevronRight, CreditCard, KeyRound, Mail, RefreshCw, ShieldCheck, Smartphone, User } from "lucide-react";
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
 import { saveMember } from "@/lib/memberSession";
 
 export default function LegacyMemberActivationPage() {
@@ -121,7 +122,7 @@ export default function LegacyMemberActivationPage() {
           {needsIdentityCheck ? (
             <div className="grid gap-4 rounded-2xl border border-orange-200 bg-orange-50 p-4">
               <p className="text-sm font-black leading-6 text-orange-900">This old membership has no email saved. Confirm these details and we will save the email above to your membership record.</p>
-              <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">Date of Birth</span><input aria-label="Legacy member date of birth" type="date" value={dateOfBirth} onChange={(event) => setDateOfBirth(event.target.value)} className="rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm font-bold outline-none" /></label>
+              <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">Date of Birth</span><EuropeanDateInput ariaLabel="Legacy member date of birth" value={dateOfBirth} onValueChange={setDateOfBirth} className="rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm font-bold outline-none" /></label>
               <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">Mobile Number</span><div className="flex items-center gap-3 rounded-2xl border border-orange-200 bg-white px-4 py-3"><Smartphone className="text-zinc-400" size={18} strokeWidth={3} /><input aria-label="Legacy member mobile number" inputMode="tel" value={mobile} onChange={(event) => setMobile(event.target.value)} placeholder="Mobile number on your old record" className="w-full bg-transparent text-sm font-bold outline-none placeholder:text-zinc-400" /></div></label>
             </div>
           ) : null}
