@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { buildWelcomeEmail } from "../lib/welcomeEmailCore.ts";
 import { buildGymRulesPdf, gymRulesPdfFilename } from "../lib/gymRulesPdf.ts";
 
@@ -8,6 +8,7 @@ const enrollRoute = readFileSync(new URL("../app/api/system/members/enroll/route
 const walletSync = readFileSync(new URL("../lib/googleWalletSync.ts", import.meta.url), "utf8");
 const welcomePackage = readFileSync(new URL("../lib/welcomePackage.ts", import.meta.url), "utf8");
 const welcomeMailer = readFileSync(new URL("../lib/welcomeMailer.ts", import.meta.url), "utf8");
+const declarationPdfUrl = new URL("../lib/declarationPdf.ts", import.meta.url);
 
 test("welcome email contains member number, app link and accepted declaration text", () => {
   const email = buildWelcomeEmail({
@@ -87,6 +88,37 @@ test("welcome mailer attaches the accepted Gym Rules as a PDF", () => {
   assert.match(welcomeMailer, /attachments:\s*\[/);
   assert.match(welcomeMailer, /contentType:\s*"application\/pdf"/);
   assert.match(welcomeMailer, /Accepted Gym Rules are missing from the welcome package/);
+});
+
+test("generic declaration PDF preserves title, version and exact accepted source", async () => {
+  assert.ok(existsSync(declarationPdfUrl), "generic declaration PDF builder must exist");
+  const { buildDeclarationPdf, declarationPdfFilename } = await import("../lib/declarationPdf.ts");
+  const body = "I confirm the health declaration exactly as accepted.";
+  const input = {
+    title: "Health Declaration",
+    filenameLabel: "Health-Declaration",
+    sourceKey: "Health",
+    declaration: { versionNo: 3, body },
+  };
+  const pdf = buildDeclarationPdf(input);
+  assert.equal(pdf.subarray(0, 5).toString("ascii"), "%PDF-");
+  assert.equal(declarationPdfFilename(input), "BestGymsMalta-Health-Declaration-v3.pdf");
+  const source = pdf.toString("latin1");
+  assert.match(source, /Health Declaration/);
+  assert.match(source, /Version 3/);
+  assert.ok(source.includes(`BGM-Health-UTF8-Base64: ${Buffer.from(body, "utf8").toString("base64")}`));
+});
+
+test("welcome mailer attaches all required declaration PDFs and guardian only when present", () => {
+  assert.match(welcomeMailer, /Health Declaration/);
+  assert.match(welcomeMailer, /Privacy \/ GDPR/);
+  assert.match(welcomeMailer, /Guardian Consent/);
+  assert.match(welcomeMailer, /input\.declarations\.health/);
+  assert.match(welcomeMailer, /input\.declarations\.privacy/);
+  assert.match(welcomeMailer, /input\.declarations\.guardian/);
+  assert.match(welcomeMailer, /if\s*\(input\.declarations\.guardian\)/);
+  assert.match(welcomeMailer, /buildDeclarationPdf/);
+  assert.match(welcomeMailer, /declarationPdfFilename/);
 });
 
 test("welcome package resolves and sends each activated member's permanent BGM number", () => {
