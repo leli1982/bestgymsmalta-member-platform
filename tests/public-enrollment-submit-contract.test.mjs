@@ -31,8 +31,8 @@ test("tablet submit rebuilds all authoritative values on the server", () => {
   assert.match(source, /validateRegistrationParticipant/);
   assert.match(source, /calculateMembershipExpiry/);
   assert.match(source, /bgm_classify_membership_identity/);
-  assert.match(source, /bgm_membership_price_catalog_versions/);
-  assert.match(source, /bgm_membership_price_entries/);
+  assert.match(source, /loadPublishedEnrollmentPriceCatalog/);
+  assert.match(source, /normalizeEnrollmentAccessScope/);
   assert.match(source, /bgm_membership_declaration_versions/);
   assert.match(source, /Europe\/Malta/);
   assert.match(source, /duplicateContactWarning/);

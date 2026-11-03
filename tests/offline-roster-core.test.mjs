@@ -20,6 +20,7 @@ test("offline roster exposes only lookup-safe identity, access scope and physica
     memberNumber: "BGM001",
     fullName: "Maria Borg",
     accessScope: "network",
+    accessGymId: null,
     cardNumbers: ["M112232", "K778899"],
   });
 });
@@ -33,8 +34,8 @@ test("offline roster defaults unknown scope safely to network", () => {
 
 test("offline roster hash is stable for the same ordered roster", () => {
   const roster = [
-    { memberNumber: "BGM001", fullName: "Maria Borg", accessScope: "network", cardNumbers: ["M112232"] },
-    { memberNumber: "BGM002", fullName: "John Vella", accessScope: "network", cardNumbers: [] },
+    { memberNumber: "BGM001", fullName: "Maria Borg", accessScope: "network", accessGymId: null, cardNumbers: ["M112232"] },
+    { memberNumber: "BGM002", fullName: "John Vella", accessScope: "network", accessGymId: null, cardNumbers: [] },
   ];
 
   assert.equal(hashOfflineRoster(roster), hashOfflineRoster(roster));

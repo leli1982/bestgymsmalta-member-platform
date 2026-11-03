@@ -50,11 +50,13 @@ test("offline roster carries target gym and filters any restricted member to tha
   assert.match(core, /single_gym/);
 });
 
-test("pending new applications still preserve old explicit scope endpoint during staged rollout", () => {
+test("pending applications use the generic explicit scope endpoint during staged rollout", () => {
   const route = read("app/api/system/members/applications/[applicationId]/access-scope/route.ts");
   assert.match(route, /accessScope/);
   assert.match(route, /neptunes_only/);
-  assert.match(route, /bgm-neptunes/);
+  assert.match(route, /requestedScope === "neptunes_only" \? "single_gym" : requestedScope/);
+  assert.match(route, /accessScope === "single_gym" \? application\.enrollment_gym_id : null/);
+  assert.match(route, /single_gym_pricing_enabled/);
   assert.match(route, /application_kind/);
   assert.doesNotMatch(route, /discount|voucher/i);
 });

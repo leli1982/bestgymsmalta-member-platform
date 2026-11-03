@@ -22,9 +22,9 @@ test("under-18 Regular/Student applicants see guardian consent; Couples applican
 
 test("both staff and public submissions snapshot age-specific guardian terms prospectively", () => {
   assert.match(staff, /under18AtSubmission && !settings\.declarations\.guardian/);
-  assert.match(staff, /serverParticipants\.some\(\(\{ participant \}\) => isUnder18On/);
-  assert.match(staff, /supervisionUnder16Orders/);
-  assert.match(staff, /supervisionUnder16Text: UNDER16_SUPERVISION_CLAUSE/);
+  assert.match(staff, /serverParticipants\.some\(\(\{ participant \}\) =>[\s\S]*isUnder18On\(participant\.dateOfBirth, submittedOnMalta\)/);
+  assert.match(staff, /serverParticipants\.flatMap\(\(\{ participant \}, index\) =>[\s\S]*isUnder16On\(participant\.dateOfBirth, submittedOnMalta\)/);
+  assert.match(staff, /UNDER16_SUPERVISION_CLAUSE/);
   assert.match(publicSubmit, /under18Flags\.push\(isUnder18On/);
   assert.match(publicSubmit, /under16Flags\.push\(isUnder16On/);
   assert.match(publicSubmit, /under18Flags\.some\(Boolean\) && !guardianDeclaration/);
