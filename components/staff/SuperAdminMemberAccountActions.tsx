@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 type Member = {
-  id: string; memberNumber: string; fullName: string; updatedAt: string;
+  id: string; memberNumber: string; fullName: string; email: string; updatedAt: string;
   status: string; archivedAt: string | null; archivedReason: string | null;
 };
 type Assessment = {
@@ -25,6 +25,7 @@ export default function SuperAdminMemberAccountActions({
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [loadingAssessment, setLoadingAssessment] = useState(false);
   const [confirmedNumber, setConfirmedNumber] = useState("");
+  const [resendingEmail, setResendingEmail] = useState(false);
   useEffect(() => {
     setReason(""); setError(""); setMessage(""); setAssessment(null); setConfirmedNumber("");
   }, [member.id]);
@@ -55,6 +56,26 @@ export default function SuperAdminMemberAccountActions({
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not update account status.");
     } finally { setBusy(false); onBusyChange(false); }
+  }
+
+  async function resendActivationEmail() {
+    if (blocked || resendingEmail || !member.email) return;
+    if (!window.confirm("Resend the confirmation to the saved email for "
+      + member.memberNumber + " (" + member.email + ")? No account details will change.")) return;
+    setResendingEmail(true); onBusyChange(true); setError(""); setMessage("");
+    try {
+      const response = await fetch("/api/system/admin/members/" + encodeURIComponent(member.id) + "/resend-activation-email", {
+        method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expectedUpdatedAt: member.updatedAt, confirmedMemberNumber: member.memberNumber }),
+      });
+      const result = await response.json();
+      if (!response.ok || result.sent !== true) throw new Error(result.error || "Email delivery was not accepted.");
+      setMessage("Activation confirmation accepted by the email provider for " + member.email
+        + ". Check Inbox and Spam."
+        + (result.auditRecorded === false ? " Warning: audit could not be recorded." : ""));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not resend activation email.");
+    } finally { setResendingEmail(false); onBusyChange(false); }
   }
 
   async function assessDeletion() {
@@ -129,6 +150,19 @@ export default function SuperAdminMemberAccountActions({
       )}
       {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-800">{error}</p>}
       {message && <p role="status" className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">{message}</p>}
+      <div className="mt-6 border-t border-zinc-200 pt-5">
+        <h3 className="text-lg font-black">Resend member app activation email</h3>
+        <p className="mt-2 text-sm text-zinc-600">
+          Sends the branded confirmation only to this member&apos;s saved email address.
+          This does not create, reset, or reactivate an account. A five-minute resend cooldown applies.
+        </p>
+        <button type="button" disabled={blocked || resendingEmail || !member.email}
+          onClick={() => void resendActivationEmail()}
+          className="mt-3 rounded-xl border border-orange-400 px-5 py-3 text-sm font-black text-orange-800 disabled:opacity-50">
+          {resendingEmail ? "Sending…" : "Resend activation confirmation"}
+        </button>
+        {!member.email && <p className="mt-2 text-sm text-zinc-600">Save an email address before using resend.</p>}
+      </div>
       <div className="mt-6 border-t border-zinc-200 pt-5">
         <h3 className="text-lg font-black text-red-800">Delete member permanently</h3>
         <p className="mt-2 text-sm text-zinc-600">
