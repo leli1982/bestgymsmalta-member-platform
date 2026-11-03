@@ -26,6 +26,15 @@ test("Bar working sheet is not reset or replaced merely because Malta date chang
   assert.doesNotMatch(barRoute, /\.eq\("business_date",\s*businessDate\)\s*\.maybeSingle\(\)/);
 });
 
+test("Bar rows older than the previous EOD are never resurrected", () => {
+  const migration = read("supabase/migrations/20261103_160000_eod_cross_midnight_carry.sql");
+  const route = read("app/api/system/end-of-day/route.ts");
+
+  assert.match(migration, /not v_has_previous_shift\s+or\s+updated_at\s*>=\s*v_shift_start/i);
+  assert.match(route, /barResult\.data\?\.updated_at/);
+  assert.match(route, /new Date\(barResult\.data\.updated_at\)\.getTime\(\)\s*>=\s*new Date\(shiftStartedAt\)\.getTime\(\)/);
+});
+
 test("Staff EOD preview carries memberships and renewals from the previous EOD timestamp across midnight", () => {
   const route = read("app/api/system/end-of-day/route.ts");
 
