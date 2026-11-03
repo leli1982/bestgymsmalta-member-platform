@@ -58,5 +58,9 @@ test("pending applications use the generic explicit scope endpoint during staged
   assert.match(route, /accessScope === "single_gym" \? application\.enrollment_gym_id : null/);
   assert.match(route, /single_gym_pricing_enabled/);
   assert.match(route, /application_kind/);
-  assert.doesNotMatch(route, /discount|voucher/i);
+  assert.match(route, /discount_code_id:\s*null/);
+  assert.match(route, /discount_code_snapshot:\s*null/);
+  assert.match(route, /discount_percentage_snapshot:\s*null/);
+  assert.match(route, /discount_amount_cents:\s*0/);
+  assert.match(route, /final_amount_cents:\s*Number\(price\.amount_cents\)/);
 });
