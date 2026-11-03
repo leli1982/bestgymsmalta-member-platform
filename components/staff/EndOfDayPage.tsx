@@ -164,7 +164,7 @@ export default function EndOfDayPage() {
           <p className="mt-3 text-xs font-black uppercase tracking-widest text-[#ff5a0a]">BestGymsMalta · Staff</p>
           <h1 className="text-3xl font-black">End of Day</h1>
           <p className="mt-2 text-sm font-bold text-zinc-600">{data.gymName} · {displayDate(data.businessDate)}</p>
-          <p className="mt-1 text-sm text-zinc-500">Figures below are calculated automatically from today's saved activity.</p>
+          <p className="mt-1 text-sm text-zinc-500">Figures below are calculated automatically from the open financial period since the previous End of Day. Midnight does not reset them.</p>
         </header>
         {error && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</div>}
 
@@ -180,12 +180,12 @@ export default function EndOfDayPage() {
         )}
 
         <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <div className="flex items-end justify-between gap-3"><div><h2 className="text-xl font-black">Bar</h2><p className="mt-1 text-sm text-zinc-500">Today's live Bar sheet.</p></div><strong className="text-2xl font-black">{formatBarEuro(Number(data.barSalesCents || 0))}</strong></div>
-          <div className="mt-4 space-y-2">{(data.barItems || []).length ? (data.barItems || []).map((item, index) => <div key={`${item.itemName}-${index}`} className="flex justify-between gap-3 text-sm"><span>{item.itemName} × {item.quantity}</span><strong>{formatBarEuro(item.lineTotalCents)}</strong></div>) : <p className="text-sm text-zinc-500">No Bar sales today.</p>}</div>
+          <div className="flex items-end justify-between gap-3"><div><h2 className="text-xl font-black">Bar</h2><p className="mt-1 text-sm text-zinc-500">Open Bar sales since the previous End of Day.</p></div><strong className="text-2xl font-black">{formatBarEuro(Number(data.barSalesCents || 0))}</strong></div>
+          <div className="mt-4 space-y-2">{(data.barItems || []).length ? (data.barItems || []).map((item, index) => <div key={`${item.itemName}-${index}`} className="flex justify-between gap-3 text-sm"><span>{item.itemName} × {item.quantity}</span><strong>{formatBarEuro(item.lineTotalCents)}</strong></div>) : <p className="text-sm text-zinc-500">No Bar sales in this open period.</p>}</div>
         </section>
 
         <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-black">Expenses</h2><p className="mt-1 text-sm text-zinc-500">Add each expense paid today.</p></div><button type="button" onClick={() => { setExpenses((current) => [...current, { id: nextId, description: "", value: "" }]); setNextId((value) => value + 1); }} className="inline-flex items-center gap-2 rounded-xl bg-orange-50 px-4 py-3 text-sm font-black text-orange-700"><Plus className="h-4 w-4" /> Add expense</button></div>
+          <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-black">Expenses</h2><p className="mt-1 text-sm text-zinc-500">Add each expense that belongs to this open End of Day period.</p></div><button type="button" onClick={() => { setExpenses((current) => [...current, { id: nextId, description: "", value: "" }]); setNextId((value) => value + 1); }} className="inline-flex items-center gap-2 rounded-xl bg-orange-50 px-4 py-3 text-sm font-black text-orange-700"><Plus className="h-4 w-4" /> Add expense</button></div>
           <div className="mt-4 space-y-3">{expenses.map((row) => <div key={row.id} className="grid gap-3 rounded-2xl bg-zinc-50 p-3 sm:grid-cols-[1fr_180px_auto] sm:items-end"><label className="text-xs font-black text-zinc-600">Description<input aria-label={`Expense ${row.id} description`} value={row.description} onChange={(event) => setExpenses((current) => current.map((item) => item.id === row.id ? { ...item, description: event.target.value } : item))} className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-base text-zinc-950" /></label><label className="text-xs font-black text-zinc-600">Value €<input aria-label={`Expense ${row.id} value`} inputMode="decimal" value={row.value} onChange={(event) => setExpenses((current) => current.map((item) => item.id === row.id ? { ...item, value: event.target.value } : item))} className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-base text-zinc-950" placeholder="0.00" /></label><button type="button" aria-label={`Remove expense ${row.id}`} onClick={() => setExpenses((current) => current.filter((item) => item.id !== row.id))} className="flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-200 bg-white text-red-700"><Minus className="h-4 w-4" /></button></div>)}</div>
           {expenseState.invalid && <p className="mt-3 text-sm font-bold text-red-700">Complete both the description and a positive value for every expense row.</p>}
         </section>
@@ -204,7 +204,7 @@ export default function EndOfDayPage() {
             className="mt-4 w-full rounded-2xl bg-[#ff5a0a] px-5 py-4 text-lg font-black text-white disabled:opacity-40">
             {submitting ? "SUBMITTING…" : "SUBMIT END OF DAY"}
           </button>
-          <p className="mt-2 text-center text-xs font-semibold text-zinc-500">Only one End of Day can be submitted for this gym today. Submitting locks today's Bar sheet.</p>
+          <p className="mt-2 text-center text-xs font-semibold text-zinc-500">Submitting closes the current financial period. Any sales after this submission begin the next End of Day period.</p>
         </section>
       </div>
     </main>

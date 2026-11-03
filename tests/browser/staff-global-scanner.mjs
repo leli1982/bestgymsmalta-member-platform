@@ -253,7 +253,8 @@ try {
   const barQuantity = page.getByRole("spinbutton", { name: "Water 500 ml quantity" });
   await barQuantity.fill("4");
   await page.waitForTimeout(450);
-  const totalBeforeNumericScans = await page.getByLabel("Bar total for today").textContent();
+  const barTotal = page.locator('strong[aria-label="Bar total since last End of Day"]');
+  const totalBeforeNumericScans = await barTotal.textContent();
   for (const barcode of ["X06956", "59060154"]) {
     await barQuantity.focus();
     await page.keyboard.type(barcode, { delay: 4 });
@@ -264,7 +265,7 @@ try {
       "Barcode " + barcode + " must not enter focused Bar quantity input");
     await numericResult.getByRole("button", { name: "Close / Return to Staff Task" }).click();
     assert.equal(await barQuantity.inputValue(), "4");
-    assert.equal(await page.getByLabel("Bar total for today").textContent(), totalBeforeNumericScans,
+    assert.equal(await barTotal.textContent(), totalBeforeNumericScans,
       "Scan must not change the live Bar total or quantity state");
   }
 
@@ -277,7 +278,7 @@ try {
     "A normally typed quantity digit must be retained");
   await barQuantity.fill("4");
   await page.waitForTimeout(100);
-  assert.equal(await page.getByLabel("Bar total for today").textContent(), totalBeforeNumericScans,
+  assert.equal(await barTotal.textContent(), totalBeforeNumericScans,
     "Bar quantity must remain editable after scanning");
 
   assert.equal(scans, 9, "Every submitted scan must be verified exactly once");

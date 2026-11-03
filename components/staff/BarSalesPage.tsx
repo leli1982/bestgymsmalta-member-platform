@@ -125,7 +125,7 @@ export default function BarSalesPage() {
   const loadSheet = useCallback(async (location: string, currentCatalog: BarCatalogItem[]) => {
     const response = await fetch(`/api/system/bar/today?gymId=${encodeURIComponent(location)}`, { cache: "no-store" });
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "Could not load today's Bar sheet.");
+    if (!response.ok) throw new Error(payload.error || "Could not load the open Bar sheet.");
     applySheet(payload as DailySheet, currentCatalog);
     setSaveState("saved");
   }, [applySheet]);
@@ -206,7 +206,7 @@ export default function BarSalesPage() {
           setSheet((current) => current ? { ...current, locked: true } : current);
           throw new Error("End of Day has been submitted. This Bar sheet is now locked.");
         }
-        throw new Error(data.error || "Could not save today's Bar sheet.");
+        throw new Error(data.error || "Could not save the open Bar sheet.");
       }
       if (pendingKeyRef.current) window.localStorage.removeItem(pendingKeyRef.current);
       if (data.sheet) setSheet(data.sheet as DailySheet);
@@ -218,7 +218,7 @@ export default function BarSalesPage() {
         setSaveState("offline");
       } else {
         setSaveState("idle");
-        setError(saveError instanceof Error ? saveError.message : "Could not save today's Bar sheet.");
+        setError(saveError instanceof Error ? saveError.message : "Could not save the open Bar sheet.");
       }
     }
   }, [buildEntries, gymId, locked, user]);
@@ -294,9 +294,9 @@ export default function BarSalesPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <a href="/staff" className="inline-flex items-center gap-1 text-sm font-bold text-orange-700"><ArrowLeft className="h-4 w-4" /> Staff Home</a>
-              <p className="mt-3 text-xs font-black uppercase tracking-widest text-[#ff5a0a]">BGM · Live daily bar sheet</p>
+              <p className="mt-3 text-xs font-black uppercase tracking-widest text-[#ff5a0a]">BGM · Live open Bar sheet</p>
               <h1 className="text-3xl font-black">Bar</h1>
-              <p className="mt-1 text-sm text-zinc-600">Press + or − as items are sold. Changes save automatically.</p>
+              <p className="mt-1 text-sm text-zinc-600">Press + or − as items are sold. Changes save automatically and carry forward until End of Day is submitted.</p>
               <p className="mt-2 text-sm font-black text-orange-700">Location: {gymName}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -370,9 +370,9 @@ export default function BarSalesPage() {
         )}
 
         <section className="rounded-3xl bg-zinc-950 p-5 text-white shadow-sm">
-          <p className="text-xs font-black uppercase tracking-widest text-orange-400">Bar total for today</p>
-          <div className="mt-2 flex flex-wrap items-end justify-between gap-3"><span className="text-sm text-zinc-300">{sheet?.businessDate || "Today"} · {gymName}</span><strong aria-label="Bar total for today" className="text-4xl font-black tabular-nums text-orange-400">{formatBarEuro(totalCents)}</strong></div>
-          <p className="mt-3 text-xs text-zinc-400">There is no Send Bar List button. This is the one live daily sheet for this gym and it feeds End of Day automatically.</p>
+          <p className="text-xs font-black uppercase tracking-widest text-orange-400">Bar total since last End of Day</p>
+          <div className="mt-2 flex flex-wrap items-end justify-between gap-3"><span className="text-sm text-zinc-300">Open Bar period · {gymName}</span><strong aria-label="Bar total since last End of Day" className="text-4xl font-black tabular-nums text-orange-400">{formatBarEuro(totalCents)}</strong></div>
+          <p className="mt-3 text-xs text-zinc-400">There is no Send Bar List button. This open sheet carries across midnight and feeds End of Day automatically until EOD is submitted.</p>
         </section>
       </div>
     </main>
