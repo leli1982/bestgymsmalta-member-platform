@@ -5,6 +5,7 @@ import type {
 
 export type RegistrationMode = "tablet" | "staff";
 export type IdentityMatchState = "clear" | "active" | "expired_inactive";
+export type MembershipAccessScope = "network" | "single_gym";
 
 export type PriceEntry = {
   membershipType: MembershipType;
@@ -12,6 +13,11 @@ export type PriceEntry = {
   amountCents: number;
   currency: "EUR";
   isActive?: boolean;
+};
+
+export type PublishedPriceConfig = {
+  versionId: string;
+  entries: PriceEntry[];
 };
 
 export type PublishedDeclarationSnapshot = {
@@ -29,10 +35,8 @@ export type PublicEnrollmentConfig = {
     shortName: string;
     slug: string;
   };
-  pricing: {
-    versionId: string;
-    entries: PriceEntry[];
-  };
+  pricing: PublishedPriceConfig;
+  singleGymPricing?: PublishedPriceConfig;
   declarations: {
     gymRules: PublishedDeclarationSnapshot;
     privacy: PublishedDeclarationSnapshot;
@@ -72,6 +76,7 @@ export type ParticipantDeclarationAcceptance = {
 };
 
 export type RegistrationDraft = {
+  accessScope?: MembershipAccessScope;
   membershipType: MembershipType;
   durationKey: MembershipDurationKey;
   documentReadinessAcknowledged: boolean;
