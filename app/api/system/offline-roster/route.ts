@@ -9,7 +9,6 @@ import {
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 1000;
-const NEPTUNES_GYM_ID = "bgm-neptunes";
 
 type SupabaseAdmin = ReturnType<typeof getSupabaseAdmin>;
 type OfflineMemberRow = {
@@ -17,6 +16,7 @@ type OfflineMemberRow = {
   member_number: string | null;
   full_name: string | null;
   access_scope: string | null;
+  access_gym_id: string | null;
 };
 type ModernCardRow = {
   member_id: string;
@@ -37,7 +37,7 @@ async function fetchAllActiveMembers(supabase: SupabaseAdmin) {
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from("bgm_members")
-      .select("id, member_number, full_name, access_scope")
+      .select("id, member_number, full_name, access_scope, access_gym_id")
       .eq("status", "active")
       .or(`membership_expiry.is.null,membership_expiry.gte.${todayString()}`)
       .order("member_number", { ascending: true })
@@ -124,13 +124,15 @@ export async function GET(request: NextRequest) {
           member_number: row.member_number,
           full_name: row.full_name,
           access_scope: row.access_scope,
+          access_gym_id: row.access_gym_id,
           card_numbers: cardsByMember.get(String(row.id)) || [],
         })
       )
       .filter((member) =>
         member.memberNumber &&
         member.fullName &&
-        (member.accessScope !== "neptunes_only" || currentGymId === NEPTUNES_GYM_ID)
+        (member.accessScope === "network" ||
+          (Boolean(currentGymId) && member.accessGymId === currentGymId))
       );
 
     const rosterHash = hashOfflineRoster(members);

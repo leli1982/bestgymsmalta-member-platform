@@ -16,37 +16,41 @@ test("schema stores explicit access scope and migrates only verified legacy NO m
   assert.match(migration, /application_kind = 'new'/i);
 });
 
-test("barcode and NFC evaluators enforce Neptunes-only scope with gym context", () => {
+test("barcode and NFC evaluators preserve legacy Neptunes-only enforcement during generic rollout", () => {
   const barcode = read("lib/barcodeAccessCore.ts");
   const nfc = read("lib/nfcAccessCore.ts");
   for (const source of [barcode, nfc]) {
     assert.match(source, /restricted_gym/);
     assert.match(source, /accessScope/);
+    assert.match(source, /accessGymId/);
     assert.match(source, /gymId/);
     assert.match(source, /bgm-neptunes/);
   }
 });
 
-test("staffed scan routes select access scope and pass current gym to access evaluation", () => {
+test("staffed scan routes select target gym and pass it to generic access evaluation", () => {
   const barcode = read("app/api/system/barcode/scan/route.ts");
   const nfc = read("app/api/system/nfc/scan/route.ts");
   for (const source of [barcode, nfc]) {
     assert.match(source, /access_scope/);
+    assert.match(source, /access_gym_id/);
     assert.match(source, /accessScope/);
+    assert.match(source, /accessGymId/);
     assert.match(source, /gymId/);
   }
 });
 
-test("offline roster carries scope and excludes Neptunes-only members at other gyms", () => {
+test("offline roster carries target gym and filters any restricted member to that gym", () => {
   const route = read("app/api/system/offline-roster/route.ts");
   const core = read("lib/offlineRosterCore.ts");
-  assert.match(route, /access_scope/);
-  assert.match(route, /member\.accessScope !== "neptunes_only"/);
-  assert.match(route, /currentGymId === NEPTUNES_GYM_ID/);
-  assert.match(core, /accessScope/);
+  assert.match(route, /access_gym_id/);
+  assert.match(route, /member\.accessScope === "network"/);
+  assert.match(route, /member\.accessGymId === currentGymId/);
+  assert.match(core, /accessGymId/);
+  assert.match(core, /single_gym/);
 });
 
-test("pending new applications can set explicit scope without deriving it from vouchers", () => {
+test("pending new applications still preserve old explicit scope endpoint during staged rollout", () => {
   const route = read("app/api/system/members/applications/[applicationId]/access-scope/route.ts");
   assert.match(route, /accessScope/);
   assert.match(route, /neptunes_only/);

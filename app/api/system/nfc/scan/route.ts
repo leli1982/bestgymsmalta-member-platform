@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       const memberResult = await supabase
         .from("bgm_members")
         .select(
-          "id, member_number, full_name, status, membership_expiry, cancellation_effective_date, access_scope, enrollment_gym_id, official_photo_path"
+          "id, member_number, full_name, status, membership_expiry, cancellation_effective_date, access_scope, access_gym_id, enrollment_gym_id, official_photo_path"
         )
         .eq("id", card.member_id)
         .maybeSingle();
@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
             membershipExpiry: member.membership_expiry,
             cancellationEffectiveDate: member.cancellation_effective_date,
             accessScope: member.access_scope,
+            accessGymId: member.access_gym_id,
           }
         : null,
       today: todayString(),
@@ -140,6 +141,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    let accessGymName = "";
+    if (member?.access_gym_id) {
+      const accessGymResult = await supabase
+        .from("bgm_gyms")
+        .select("name")
+        .eq("id", member.access_gym_id)
+        .maybeSingle();
+      if (!accessGymResult.error) accessGymName = accessGymResult.data?.name || "";
+    }
+
     return NextResponse.json({
       result: decision.result,
       granted: decision.granted,
@@ -155,6 +166,8 @@ export async function POST(request: NextRequest) {
             status: member.status,
             membershipExpiry: member.membership_expiry,
             accessScope: member.access_scope || "network",
+            accessGymId: member.access_gym_id || null,
+            accessGymName,
             enrollmentGymId: member.enrollment_gym_id || null,
             enrollmentGymName,
             officialPhotoPath: member.official_photo_path || null,

@@ -10,9 +10,13 @@ type BarcodeMemberState = {
   membershipExpiry?: string | null;
   cancellationEffectiveDate?: string | null;
   accessScope?: string | null;
+  accessGymId?: string | null;
 };
 
-const NEPTUNES_GYM_ID = "bgm-neptunes";
+function targetGymId(member: BarcodeMemberState) {
+  if (member.accessGymId) return member.accessGymId;
+  return member.accessScope === "neptunes_only" ? "bgm-neptunes" : null;
+}
 
 export function evaluateBarcodeAccess({
   member,
@@ -39,10 +43,12 @@ export function evaluateBarcodeAccess({
     return { result: "expired", granted: false };
   }
 
+  const restrictedGymId = targetGymId(member);
   if (
-    member.accessScope === "neptunes_only" &&
+    (member.accessScope === "single_gym" || member.accessScope === "neptunes_only") &&
+    restrictedGymId &&
     gymId &&
-    gymId !== NEPTUNES_GYM_ID
+    gymId !== restrictedGymId
   ) {
     return { result: "restricted_gym", granted: false };
   }
