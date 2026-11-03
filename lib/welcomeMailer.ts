@@ -10,6 +10,7 @@ export async function sendWelcomeEmail(input: {
   memberName: string;
   memberNumber: string;
   appUrl: string;
+  applicationKind?: "new" | "renewal";
   declarations: WelcomeDeclarations;
 }) {
   const config = resolveOperationsMailConfig({
