@@ -2,8 +2,21 @@ import nodemailer from "nodemailer";
 import { resolveOperationsMailConfig } from "@/lib/operationsMailConfig";
 import { buildWelcomeEmail, type WelcomeDeclarations } from "@/lib/welcomeEmailCore";
 import { buildGymRulesPdf, gymRulesPdfFilename } from "@/lib/gymRulesPdf";
+import {
+  buildDeclarationPdf,
+  declarationPdfFilename,
+  type DeclarationPdfInput,
+} from "@/lib/declarationPdf";
 
 let cachedTransporter: ReturnType<typeof nodemailer.createTransport> | null = null;
+
+function declarationAttachment(input: DeclarationPdfInput) {
+  return {
+    filename: declarationPdfFilename(input),
+    content: buildDeclarationPdf(input),
+    contentType: "application/pdf",
+  };
+}
 
 export async function sendWelcomeEmail(input: {
   recipient: string;
@@ -27,6 +40,14 @@ export async function sendWelcomeEmail(input: {
   if (!String(gymRules?.body || "").trim()) {
     throw new Error("Accepted Gym Rules are missing from the welcome package.");
   }
+  const health = input.declarations.health;
+  if (!String(health?.body || "").trim()) {
+    throw new Error("Accepted Health Declaration is missing from the welcome package.");
+  }
+  const privacy = input.declarations.privacy;
+  if (!String(privacy?.body || "").trim()) {
+    throw new Error("Accepted Privacy / GDPR declaration is missing from the welcome package.");
+  }
 
   if (!cachedTransporter) {
     cachedTransporter = nodemailer.createTransport({
@@ -39,6 +60,37 @@ export async function sendWelcomeEmail(input: {
 
   const email = buildWelcomeEmail(input);
   const gymRulesPdf = buildGymRulesPdf(gymRules!);
+  const attachments = [
+    {
+      filename: gymRulesPdfFilename(gymRules!),
+      content: gymRulesPdf,
+      contentType: "application/pdf",
+    },
+    declarationAttachment({
+      title: "Health Declaration",
+      filenameLabel: "Health-Declaration",
+      sourceKey: "Health-Declaration",
+      declaration: health!,
+    }),
+    declarationAttachment({
+      title: "Privacy / GDPR",
+      filenameLabel: "Privacy-GDPR",
+      sourceKey: "Privacy-GDPR",
+      declaration: privacy!,
+    }),
+  ];
+
+  if (input.declarations.guardian) {
+    attachments.push(
+      declarationAttachment({
+        title: "Guardian Consent",
+        filenameLabel: "Guardian-Consent",
+        sourceKey: "Guardian-Consent",
+        declaration: input.declarations.guardian,
+      })
+    );
+  }
+
   await cachedTransporter.sendMail({
     from: config.from,
     to: recipient,
@@ -46,12 +98,6 @@ export async function sendWelcomeEmail(input: {
     subject: email.subject,
     text: email.text,
     html: email.html,
-    attachments: [
-      {
-        filename: gymRulesPdfFilename(gymRules!),
-        content: gymRulesPdf,
-        contentType: "application/pdf",
-      },
-    ],
+    attachments,
   });
 }
