@@ -7,8 +7,10 @@ import {
   type MembershipType,
 } from "@/lib/membershipSettingsCore";
 import type {
+  PriceEntry,
   PublicEnrollmentConfig,
   PublishedDeclarationSnapshot,
+  PublishedPriceConfig,
 } from "@/lib/membershipRegistrationTypes";
 
 const PUBLIC_DECLARATION_KEYS = ["gym_rules", "privacy", "health", "guardian"] as const;
@@ -37,6 +39,37 @@ function notReady() {
   return NextResponse.json({ error: "Enrollment is not ready." }, { status: 503 });
 }
 
+function mapPriceRows(rows: any[]): PriceEntry[] {
+  return rows.map((row) => ({
+    membershipType: row.membership_type as MembershipType,
+    durationKey: row.duration_key as MembershipDurationKey,
+    amountCents: Number(row.amount_cents),
+    currency: "EUR" as const,
+    isActive: row.is_active !== false,
+  }));
+}
+
+async function loadPriceConfig(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  catalogId: string,
+): Promise<PublishedPriceConfig | null> {
+  const { data: priceRows, error } = await supabase
+    .from("bgm_membership_price_entries")
+    .select("membership_type,duration_key,amount_cents,currency,is_active")
+    .eq("catalog_version_id", catalogId);
+  if (error) throw error;
+  const entries = mapPriceRows(priceRows || []);
+  try {
+    if (!validatePriceMatrix(entries).ok) return null;
+  } catch {
+    return null;
+  }
+  return {
+    versionId: catalogId,
+    entries: entries.filter((entry) => entry.isActive !== false),
+  };
+}
+
 export async function GET(request: NextRequest) {
   const gymSlug = cleanGymSlug(request.nextUrl.searchParams.get("gymSlug"));
   if (!gymSlug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(gymSlug)) {
@@ -50,7 +83,7 @@ export async function GET(request: NextRequest) {
 
   const { data: gym, error: gymError } = await supabase
     .from("bgm_gyms")
-    .select("id,name,short_name,public_enrollment_slug,status")
+    .select("id,name,short_name,public_enrollment_slug,status,single_gym_pricing_enabled")
     .eq("public_enrollment_slug", gymSlug)
     .eq("status", "active")
     .maybeSingle();
@@ -63,50 +96,61 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Gym not found." }, { status: 404 });
   }
 
-  const { data: catalog, error: catalogError } = await supabase
+  const networkCatalogResult = await supabase
     .from("bgm_membership_price_catalog_versions")
     .select("id,version_no,status")
     .eq("status", "published")
+    .eq("access_scope", "network")
+    .is("gym_id", null)
     .order("version_no", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (catalogError) {
-    console.error("Public enrollment price catalog lookup failed.");
+  if (networkCatalogResult.error) {
+    console.error("Public enrollment network price catalog lookup failed.");
     return NextResponse.json({ error: "Enrollment service is unavailable." }, { status: 503 });
   }
-  if (!catalog) return notReady();
+  if (!networkCatalogResult.data) return notReady();
 
-  const [{ data: priceRows, error: priceError }, { data: declarationRows, error: declarationError }] =
-    await Promise.all([
-      supabase
-        .from("bgm_membership_price_entries")
-        .select("membership_type,duration_key,amount_cents,currency,is_active")
-        .eq("catalog_version_id", catalog.id),
-      supabase
-        .from("bgm_membership_declaration_versions")
-        .select("id,content_key,version_no,body,content_sha256,status")
+  const singleGymCatalogResult = gym.single_gym_pricing_enabled
+    ? await supabase
+        .from("bgm_membership_price_catalog_versions")
+        .select("id,version_no,status")
         .eq("status", "published")
-        .in("content_key", [...PUBLIC_DECLARATION_KEYS]),
-    ]);
+        .eq("access_scope", "single_gym")
+        .eq("gym_id", gym.id)
+        .order("version_no", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    : { data: null, error: null };
 
-  if (priceError || declarationError) {
+  if (singleGymCatalogResult.error) {
+    console.error("Public enrollment single-gym price catalog lookup failed.");
+    return NextResponse.json({ error: "Enrollment service is unavailable." }, { status: 503 });
+  }
+
+  let pricing: PublishedPriceConfig | null = null;
+  let singleGymPricing: PublishedPriceConfig | null = null;
+  try {
+    pricing = await loadPriceConfig(supabase, networkCatalogResult.data.id);
+    if (singleGymCatalogResult.data) {
+      singleGymPricing = await loadPriceConfig(supabase, singleGymCatalogResult.data.id);
+    }
+  } catch {
+    console.error("Public enrollment pricing lookup failed.");
+    return NextResponse.json({ error: "Enrollment service is unavailable." }, { status: 503 });
+  }
+  if (!pricing) return notReady();
+
+  const { data: declarationRows, error: declarationError } = await supabase
+    .from("bgm_membership_declaration_versions")
+    .select("id,content_key,version_no,body,content_sha256,status")
+    .eq("status", "published")
+    .in("content_key", [...PUBLIC_DECLARATION_KEYS]);
+
+  if (declarationError) {
     console.error("Public enrollment settings lookup failed.");
     return NextResponse.json({ error: "Enrollment service is unavailable." }, { status: 503 });
-  }
-
-  const entries = (priceRows || []).map((row) => ({
-    membershipType: row.membership_type as MembershipType,
-    durationKey: row.duration_key as MembershipDurationKey,
-    amountCents: Number(row.amount_cents),
-    currency: "EUR" as const,
-    isActive: row.is_active !== false,
-  }));
-
-  try {
-    if (!validatePriceMatrix(entries).ok) return notReady();
-  } catch {
-    return notReady();
   }
 
   const publishedDeclarations = new Set((declarationRows || []).map((row) => row.content_key));
@@ -127,10 +171,8 @@ export async function GET(request: NextRequest) {
       shortName: gym.short_name || gym.name,
       slug: gym.public_enrollment_slug,
     },
-    pricing: {
-      versionId: catalog.id,
-      entries: entries.filter((entry) => entry.isActive !== false),
-    },
+    pricing,
+    ...(singleGymPricing ? { singleGymPricing } : {}),
     declarations: {
       gymRules: declarationSnapshot(gymRules),
       privacy: declarationSnapshot(privacy),

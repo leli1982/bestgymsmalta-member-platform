@@ -6,6 +6,7 @@ const route = readFileSync(new URL("../app/api/system/business-analytics/route.t
 const appAdoptionRoute = readFileSync(new URL("../app/api/system/app-adoption-analytics/route.ts", import.meta.url), "utf8");
 const dashboard = readFileSync(new URL("../components/staff/StatisticsDashboardAdmin.tsx", import.meta.url), "utf8");
 const appAdoption = readFileSync(new URL("../components/staff/AppAdoptionAnalyticsAdmin.tsx", import.meta.url), "utf8");
+const legacyRegister = readFileSync(new URL("../app/api/member/auth/legacy-register/route.ts", import.meta.url), "utf8");
 const register = readFileSync(new URL("../app/api/member/auth/register/route.ts", import.meta.url), "utf8");
 const migration = readFileSync(new URL("../supabase/migrations/20261102_120000_member_app_enrolled_at.sql", import.meta.url), "utf8");
 const home = readFileSync(new URL("../components/staff/SuperAdminHome.tsx", import.meta.url), "utf8");
@@ -27,6 +28,7 @@ test("first app activation is stored once during member registration", () => {
   assert.match(migration, /add column if not exists app_enrolled_at timestamptz/i);
   assert.match(register, /app_enrolled:\s*true/);
   assert.match(register, /app_enrolled_at:\s*now/);
+  assert.match(legacyRegister, /app_enrolled_at:\s*now/);
 });
 
 test("app adoption analytics is read-only, Super Admin protected and uses precise activation timestamps", () => {

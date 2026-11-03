@@ -8,7 +8,8 @@ export type NfcReceptionPresentation = {
 };
 
 export function nfcReceptionPresentation(
-  result: NfcAccessResult
+  result: NfcAccessResult,
+  accessGymName?: string | null,
 ): NfcReceptionPresentation {
   if (result === "granted") {
     return {
@@ -19,9 +20,13 @@ export function nfcReceptionPresentation(
     };
   }
 
+  const restrictedTitle = accessGymName?.trim()
+    ? `${accessGymName.trim().toUpperCase()} ACCESS ONLY`
+    : "SINGLE GYM ACCESS ONLY";
   const titleMap: Record<Exclude<NfcAccessResult, "granted">, string> = {
     expired: "EXPIRED",
     inactive: "INACTIVE",
+    restricted_gym: restrictedTitle,
     unknown_card: "UNKNOWN CARD",
     disabled_card: "CARD DISABLED",
   };

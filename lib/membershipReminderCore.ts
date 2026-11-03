@@ -1,3 +1,5 @@
+import { bgmAppAccessHtml, bgmAppAccessText, bgmEmailFooterHtml, bgmEmailFooterText } from "./emailBranding.ts";
+
 export const MEMBERSHIP_REMINDER_DAYS = [1, 7, 14, 21, 30] as const;
 export type MembershipReminderDays = (typeof MEMBERSHIP_REMINDER_DAYS)[number];
 
@@ -65,8 +67,9 @@ export function buildMembershipReminderEmail(input: {
     "",
     "If you have already renewed, no action is needed.",
     "",
-    "BestGymsMalta",
-    "Be the best... Beat the rest.",
+    bgmAppAccessText("https://bestgymsmalta-member-platform.vercel.app/login"),
+    "",
+    bgmEmailFooterText(),
   ].join("\n");
   const html = `<!doctype html>
 <html><body style="margin:0;background:#f4f4f5;font-family:Arial,sans-serif;color:#18181b">
@@ -80,8 +83,9 @@ export function buildMembershipReminderEmail(input: {
       <p style="margin:0 0 16px;line-height:1.6">A quick reminder that your BestGymsMalta membership expires <strong>${escapeHtml(lead)}</strong>, on <strong>${escapeHtml(expiry)}</strong>.</p>
       <p style="margin:0 0 16px;line-height:1.6">Renew before it expires to keep uninterrupted access to your BestGymsMalta membership.</p>
       <p style="margin:0;color:#71717a;font-size:14px;line-height:1.6">If you have already renewed, no action is needed.</p>
+      ${bgmAppAccessHtml("https://bestgymsmalta-member-platform.vercel.app/login")}
+      ${bgmEmailFooterHtml()}
     </div>
-    <p style="text-align:center;color:#71717a;font-size:12px;font-weight:700;margin:18px 0 0">Be the best... Beat the rest.</p>
   </div>
 </body></html>`;
   return { subject, text, html };

@@ -128,7 +128,8 @@ try {
   assert.equal(await water.inputValue(), "2", "Bar loads the saved daily quantity");
   assert.equal(await page.getByRole("button", { name: /SEND BAR LIST/i }).count(), 0, "manual Submit Bar List button is removed");
   assert.equal(await page.getByText("Saved", { exact: true }).count() > 0, true);
-  assert.ok((await page.getByLabel("Bar total for today").textContent()).includes("3.00"));
+  const barTotal = page.locator('strong[aria-label="Bar total since last End of Day"]');
+  assert.ok((await barTotal.textContent()).includes("3.00"));
 
   await page.getByRole("button", { name: "Increase Water 500ml" }).click();
   await putStarted;
@@ -137,7 +138,7 @@ try {
   releasePutResponse?.();
   await page.getByText("Saved", { exact: true }).waitFor({ state: "visible", timeout: 5000 });
   assert.equal(savedEntries[0].quantity, 3);
-  assert.ok((await page.getByLabel("Bar total for today").textContent()).includes("4.50"));
+  assert.ok((await barTotal.textContent()).includes("4.50"));
 
   await page.reload();
   await water.waitFor({ state: "visible", timeout: 15000 });

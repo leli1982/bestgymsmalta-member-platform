@@ -60,6 +60,14 @@ function isIsoDate(value: string) {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
+function normalizedAccessScope(value: unknown) {
+  return value === "single_gym" || value === "neptunes_only" ? "single_gym" : "network";
+}
+
+function accessDisplay(scope: "network" | "single_gym", gymName: string) {
+  return scope === "single_gym" ? `Single Gym — ${gymName}` : "All Access";
+}
+
 async function loadApplication(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   applicationId: string
@@ -67,7 +75,7 @@ async function loadApplication(
   const result = await supabase
     .from("bgm_membership_applications")
     .select(
-      "id, application_reference, application_kind, application_source, membership_type, duration_key, start_date, expiry_date, enrollment_gym_id, staff_name, status, submitted_at, payment_received_at, activated_at, created_at, updated_at, base_price_cents, currency, price_catalog_version_id, declaration_snapshot, same_address_verified_at, reviewed_by_system_user_id"
+      "id, application_reference, application_kind, application_source, membership_type, duration_key, start_date, expiry_date, enrollment_gym_id, access_scope, access_gym_id, staff_name, status, submitted_at, payment_received_at, activated_at, created_at, updated_at, base_price_cents, currency, price_catalog_version_id, declaration_snapshot, same_address_verified_at, reviewed_by_system_user_id"
     )
     .eq("id", applicationId)
     .maybeSingle();
@@ -202,7 +210,7 @@ export async function GET(
     const scopeError = gymScopeError(application, auth.context);
     if (scopeError) return scopeError;
 
-    const [participantsResult, gymResult, printConfirmedResult] = await Promise.all([
+    const [participantsResult, gymResult, accessGymResult, printConfirmedResult] = await Promise.all([
       supabase
         .from("bgm_membership_application_members")
         .select(
@@ -215,6 +223,9 @@ export async function GET(
         .select("id, name")
         .eq("id", application.enrollment_gym_id)
         .maybeSingle(),
+      application.access_gym_id && application.access_gym_id !== application.enrollment_gym_id
+        ? supabase.from("bgm_gyms").select("id, name").eq("id", application.access_gym_id).maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
       supabase
         .from("bgm_audit_log")
         .select("created_at")
@@ -228,7 +239,17 @@ export async function GET(
 
     if (participantsResult.error) throw participantsResult.error;
     if (gymResult.error) throw gymResult.error;
+    if (accessGymResult.error) throw accessGymResult.error;
     if (printConfirmedResult.error) throw printConfirmedResult.error;
+
+    const accessScope = normalizedAccessScope(application.access_scope);
+    const enrollmentGymName = gymResult.data?.name || application.enrollment_gym_id;
+    const accessGymName = accessScope === "single_gym"
+      ? accessGymResult.data?.name ||
+        (application.access_gym_id === application.enrollment_gym_id ? enrollmentGymName : application.access_gym_id) ||
+        enrollmentGymName
+      : "";
+    const visibleGymAndAccess = `${enrollmentGymName} · Access: ${accessDisplay(accessScope, accessGymName)}`;
 
     const participants = participantsResult.data || [];
     const participantIds = participants.map((participant) => participant.id);
@@ -296,8 +317,10 @@ export async function GET(
         startDate: application.start_date || "",
         expiryDate: application.expiry_date || "",
         enrollmentGymId: application.enrollment_gym_id,
-        enrollmentGymName:
-          gymResult.data?.name || application.enrollment_gym_id,
+        enrollmentGymName: visibleGymAndAccess,
+        accessScope,
+        accessGymId: accessScope === "single_gym" ? application.access_gym_id : null,
+        accessGymName: accessScope === "single_gym" ? accessGymName : null,
         submittedAt: application.submitted_at,
         paymentReceivedAt: application.payment_received_at,
         activatedAt: application.activated_at,
@@ -505,7 +528,6 @@ export async function PATCH(
           if (review.membershipType === "student" && !participant.studentEligibilityVerified) {
             return validationResponse("Student eligibility must be verified before confirming the online review.", 409);
           }
-          // Guardian signs the printed form after review; activation enforces the verified co-sign.
           if (
             stored.matched_member_id &&
             !stored.existing_member_id &&

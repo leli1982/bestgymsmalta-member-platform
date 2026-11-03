@@ -43,6 +43,9 @@ type Candidate = {
   idNumber?: string;
   dateOfBirth?: string;
   nextOfKin?: string;
+  accessScope?: "network" | "single_gym";
+  accessGymId?: string | null;
+  accessGymName?: string;
   legacyPkCustomer: string;
   legacyGym: string;
   officialPhotoPath?: string | null;
@@ -72,8 +75,8 @@ type ParticipantForm = {
 };
 
 type GuardianDeclaration = { id: string; versionNo: number; body: string; contentSha256: string };
-
 type AvailablePriceEntry = { membershipType: string; durationKey: string; amountCents: number };
+type AccessScope = "network" | "single_gym";
 
 type ApplicationSummary = {
   id: string;
@@ -191,7 +194,11 @@ export default function MembershipEnrollmentPage() {
   const [user, setUser] = useState<SystemUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [gyms, setGyms] = useState<Gym[]>([]);
-  const [availablePrices, setAvailablePrices] = useState<AvailablePriceEntry[]>([]);
+  const [networkPrices, setNetworkPrices] = useState<AvailablePriceEntry[]>([]);
+  const [singleGymPrices, setSingleGymPrices] = useState<AvailablePriceEntry[]>([]);
+  const [singleGymEnabled, setSingleGymEnabled] = useState(false);
+  const [accessScope, setAccessScope] = useState<AccessScope>("network");
+  const [selectedCurrentAccessScope, setSelectedCurrentAccessScope] = useState<AccessScope>("network");
   const [guardianDeclaration, setGuardianDeclaration] = useState<GuardianDeclaration | null>(null);
   const [kind, setKind] = useState<"new" | "renewal" | null>(null);
   const [membershipType, setMembershipType] = useState("single");
@@ -234,7 +241,10 @@ export default function MembershipEnrollmentPage() {
         if (!pricingResponse.ok || !Array.isArray(pricingData.entries)) {
           throw new Error(pricingData.error || "Could not load the current published membership rates.");
         }
-        setAvailablePrices(pricingData.entries);
+        setNetworkPrices(pricingData.entries);
+        const scoped = Array.isArray(pricingData.singleGymEntries) ? pricingData.singleGymEntries : [];
+        setSingleGymPrices(scoped);
+        setSingleGymEnabled(Boolean(pricingData.singleGymEnabled && scoped.length));
         setGuardianDeclaration(pricingData.guardianDeclaration || null);
       } catch {
         setError("Could not load membership tools.");
@@ -246,6 +256,44 @@ export default function MembershipEnrollmentPage() {
     void load();
   }, []);
 
+  const pricingGymId = useMemo(() => {
+    if (
+      accessScope === "single_gym" &&
+      selectedCurrentAccessScope === "single_gym" &&
+      selectedRenewalCandidates[0]?.accessGymId
+    ) {
+      return selectedRenewalCandidates[0].accessGymId || "";
+    }
+    return enrollmentGymId || user?.gymId || "";
+  }, [accessScope, selectedCurrentAccessScope, selectedRenewalCandidates, enrollmentGymId, user?.gymId]);
+
+  useEffect(() => {
+    if (!user?.isSuperAdmin || !pricingGymId) return;
+    let active = true;
+    void fetch(`/api/system/members/available-prices?gymId=${encodeURIComponent(pricingGymId)}`, {
+      cache: "no-store",
+      credentials: "same-origin",
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not load this gym's renewal prices.");
+        if (!active) return;
+        setNetworkPrices(Array.isArray(data.entries) ? data.entries : []);
+        const scoped = Array.isArray(data.singleGymEntries) ? data.singleGymEntries : [];
+        setSingleGymPrices(scoped);
+        setSingleGymEnabled(Boolean(data.singleGymEnabled && scoped.length));
+        setGuardianDeclaration(data.guardianDeclaration || null);
+      })
+      .catch((requestError) => {
+        if (active) {
+          setError(requestError instanceof Error ? requestError.message : "Could not load this gym's renewal prices.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [user?.isSuperAdmin, pricingGymId]);
+
   const canCreate = Boolean(
     user?.isSuperAdmin || user?.permissions.includes("members.create")
   );
@@ -255,6 +303,7 @@ export default function MembershipEnrollmentPage() {
   const canSearch = Boolean(
     user?.isSuperAdmin || user?.permissions.includes("members.view")
   );
+  const availablePrices = accessScope === "single_gym" ? singleGymPrices : networkPrices;
   const availableDurations = DURATIONS.filter((duration) => availablePrices.some(
     (entry) => entry.membershipType === membershipType && entry.durationKey === duration.value,
   ));
@@ -274,6 +323,20 @@ export default function MembershipEnrollmentPage() {
     () => renewalStartForCandidates(selectedRenewalCandidates),
     [selectedRenewalCandidates]
   );
+  const selectedAccessGymName = useMemo(() => {
+    if (accessScope !== "single_gym") return "";
+    if (selectedCurrentAccessScope === "single_gym" && selectedRenewalCandidates[0]?.accessGymName) {
+      return selectedRenewalCandidates[0].accessGymName || "";
+    }
+    const targetId = enrollmentGymId || user?.gymId || "";
+    return gyms.find((gym) => gym.id === targetId)?.name || "this gym";
+  }, [accessScope, selectedCurrentAccessScope, selectedRenewalCandidates, enrollmentGymId, user?.gymId, gyms]);
+
+  useEffect(() => {
+    if (availableMembershipTypes.some((type) => type.value === membershipType)) return;
+    const firstType = availableMembershipTypes[0]?.value || "single";
+    setMembershipType(firstType);
+  }, [availableMembershipTypes, membershipType]);
 
   useEffect(() => {
     if (availableDurations.some((duration) => duration.value === durationKey)) return;
@@ -282,10 +345,12 @@ export default function MembershipEnrollmentPage() {
     if (startDate) {
       setExpiryDate(first ? calculateMembershipExpiry(startDate, first as MembershipDurationKey) : "");
     }
-  }, [availablePrices, membershipType, durationKey, startDate]);
+  }, [availablePrices, membershipType, durationKey, startDate, availableDurations]);
 
   function resetWorkflow() {
     setKind(null);
+    setAccessScope("network");
+    setSelectedCurrentAccessScope("network");
     setMembershipType("single");
     setDurationKey("1_month");
     setStartDate("");
@@ -302,6 +367,8 @@ export default function MembershipEnrollmentPage() {
 
   function chooseKind(nextKind: "new" | "renewal") {
     setKind(nextKind);
+    setAccessScope("network");
+    setSelectedCurrentAccessScope("network");
     setMembershipType("single");
     setParticipants(nextKind === "new" ? [blankParticipant()] : []);
     setApplication(null);
@@ -310,6 +377,15 @@ export default function MembershipEnrollmentPage() {
     setSelectedRenewalCandidates([]);
     setSearchQuery("");
     setMessage("");
+    setError("");
+  }
+
+  function changeAccessScope(nextScope: AccessScope) {
+    if (nextScope === "single_gym" && (!singleGymEnabled || !singleGymPrices.length)) {
+      setError("Single Gym renewal pricing is not published for this gym.");
+      return;
+    }
+    setAccessScope(nextScope);
     setError("");
   }
 
@@ -395,8 +471,34 @@ export default function MembershipEnrollmentPage() {
   }
 
   function selectRenewalMember(candidate: Candidate) {
+    const candidateScope: AccessScope = candidate.accessScope === "single_gym" ? "single_gym" : "network";
+    if (
+      selectedRenewalCandidates.length > 0 &&
+      selectedCurrentAccessScope !== candidateScope
+    ) {
+      setError("Couples renewal members must have the same current access type.");
+      return;
+    }
+
     setError("");
     setMessage("");
+    setAccessScope(candidateScope);
+    setSelectedCurrentAccessScope(candidateScope);
+
+    if (
+      candidateScope === "single_gym" &&
+      user?.gymId &&
+      candidate.accessGymId &&
+      candidate.accessGymId !== user.gymId
+    ) {
+      setError(
+        `This member has ${candidate.accessGymName || "another gym"} Single Gym access. Process this renewal at that gym or use Super Admin.`
+      );
+    }
+    if (user?.isSuperAdmin && candidateScope === "single_gym" && candidate.accessGymId) {
+      setEnrollmentGymId(candidate.accessGymId);
+    }
+
     setParticipants((current) => {
       if (current.some((participant) => participant.existingMemberId === candidate.id)) {
         return current;
@@ -489,6 +591,10 @@ export default function MembershipEnrollmentPage() {
     );
     setSelectedRenewalCandidates((current) => {
       const next = current.filter((candidate) => candidate.id !== memberId);
+      if (!next.length) {
+        setAccessScope("network");
+        setSelectedCurrentAccessScope("network");
+      }
       const automaticStart = renewalStartForCandidates(next);
       if (automaticStart) {
         setStartDate(automaticStart);
@@ -511,7 +617,18 @@ export default function MembershipEnrollmentPage() {
     if (!kind) return;
 
     if (!availablePrices.some((entry) => entry.membershipType === membershipType && entry.durationKey === durationKey)) {
-      setError("This membership duration is not currently available. Refresh the page to load published rates.");
+      setError("This membership duration is not currently available for the selected access type. Refresh the page to load published rates.");
+      return;
+    }
+
+    if (
+      accessScope === "single_gym" &&
+      selectedCurrentAccessScope === "single_gym" &&
+      selectedRenewalCandidates[0]?.accessGymId &&
+      user?.gymId &&
+      selectedRenewalCandidates[0].accessGymId !== user.gymId
+    ) {
+      setError(`This Single Gym renewal must be processed at ${selectedRenewalCandidates[0].accessGymName || "the member's assigned gym"} or by Super Admin.`);
       return;
     }
 
@@ -592,6 +709,24 @@ export default function MembershipEnrollmentPage() {
         setError(data.error || "Could not submit membership application.");
         return;
       }
+
+      if (kind === "renewal" && accessScope !== selectedCurrentAccessScope) {
+        const scopeResponse = await fetch(
+          `/api/system/members/applications/${encodeURIComponent(data.application.id)}/access-scope`,
+          {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ accessScope }),
+          },
+        );
+        const scopeData = await scopeResponse.json().catch(() => ({}));
+        if (!scopeResponse.ok) {
+          setError(scopeData.error || "The renewal was created, but the access conversion could not be applied. Do not take payment or activate it.");
+          return;
+        }
+      }
+
       setApplication(data.application);
       setMessage(
         "Renewal prepared. Continue below with card verification, mandatory printing, payment and activation."
@@ -603,7 +738,6 @@ export default function MembershipEnrollmentPage() {
       setSubmitting(false);
     }
   }
-
 
   if (loading) {
     return (
@@ -730,32 +864,37 @@ export default function MembershipEnrollmentPage() {
 
             {renewalSelections.length > 0 && (
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {renewalSelections.map((participant) => (
-                  <div
-                    key={participant.existingMemberId}
-                    className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-4"
-                  >
-                    <p className="text-xs font-black uppercase tracking-wide text-emerald-700">
-                      Confirmed existing member
-                    </p>
-                    <p className="mt-1 text-xl font-black">
-                      {participant.firstName} {participant.lastName}
-                    </p>
-                    <p className="mt-1 font-mono text-lg font-black text-zinc-900">
-                      {participant.memberNumber}
-                    </p>
-                    <p className="mt-2 text-sm font-bold text-emerald-900">
-                      Stored member details and permanent number have been carried forward.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => removeRenewalMember(participant.existingMemberId)}
-                      className="mt-3 text-xs font-bold text-red-700 underline"
+                {renewalSelections.map((participant) => {
+                  const candidate = selectedRenewalCandidates.find((item) => item.id === participant.existingMemberId);
+                  return (
+                    <div
+                      key={participant.existingMemberId}
+                      className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-4"
                     >
-                      Remove selection
-                    </button>
-                  </div>
-                ))}
+                      <p className="text-xs font-black uppercase tracking-wide text-emerald-700">
+                        Confirmed existing member
+                      </p>
+                      <p className="mt-1 text-xl font-black">
+                        {participant.firstName} {participant.lastName}
+                      </p>
+                      <p className="mt-1 font-mono text-lg font-black text-zinc-900">
+                        {participant.memberNumber}
+                      </p>
+                      <p className="mt-2 text-sm font-bold text-emerald-900">
+                        Current access: {candidate?.accessScope === "single_gym"
+                          ? `${candidate.accessGymName || "Single Gym"} only`
+                          : "All Access"}.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => removeRenewalMember(participant.existingMemberId)}
+                        className="mt-3 text-xs font-bold text-red-700 underline"
+                      >
+                        Remove selection
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -799,6 +938,9 @@ export default function MembershipEnrollmentPage() {
                       <span className="mt-1 block text-xs text-zinc-500">
                         Status: {candidate.status} · Expiry: {candidate.membershipExpiry || "—"}
                         {candidate.mobile ? ` · ${candidate.mobile}` : ""}
+                        {candidate.accessScope === "single_gym"
+                          ? ` · ${candidate.accessGymName || "Single Gym"} only`
+                          : " · All Access"}
                         {candidate.legacyPkCustomer
                           ? ` · Legacy ${candidate.legacyGym || "?"}/${candidate.legacyPkCustomer}`
                           : ""}
@@ -820,6 +962,50 @@ export default function MembershipEnrollmentPage() {
               <h2 className="text-lg font-black">
                 {kind === "renewal" ? "2. Renewal details" : "1. New membership details"}
               </h2>
+
+              {kind === "renewal" && (
+                <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                  <p className="text-xs font-black uppercase tracking-wide text-zinc-500">Access Type</p>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => changeAccessScope("network")}
+                      className={`rounded-2xl border-2 p-4 text-left ${
+                        accessScope === "network"
+                          ? "border-zinc-900 bg-zinc-900 text-white"
+                          : "border-zinc-300 bg-white text-zinc-900"
+                      }`}
+                    >
+                      <span className="block text-lg font-black">All Access</span>
+                      <span className={`mt-1 block text-sm ${accessScope === "network" ? "text-zinc-300" : "text-zinc-500"}`}>
+                        Valid across the BestGymsMalta network.
+                      </span>
+                    </button>
+                    {singleGymEnabled && singleGymPrices.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => changeAccessScope("single_gym")}
+                        className={`rounded-2xl border-2 p-4 text-left ${
+                          accessScope === "single_gym"
+                            ? "border-orange-500 bg-orange-500 text-white"
+                            : "border-orange-300 bg-white text-orange-950"
+                        }`}
+                      >
+                        <span className="block text-lg font-black">Single Gym</span>
+                        <span className={`mt-1 block text-sm ${accessScope === "single_gym" ? "text-orange-50" : "text-orange-800/70"}`}>
+                          {selectedAccessGymName ? `${selectedAccessGymName} access only.` : "Valid only at the assigned gym."}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                  {accessScope !== selectedCurrentAccessScope && (
+                    <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-900">
+                      Access will change when this renewal starts. Current access remains unchanged until then.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Field label="Membership Type">
                   <select
@@ -910,7 +1096,7 @@ export default function MembershipEnrollmentPage() {
               </div>
               <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4" role="status" aria-live="polite">
                 <p className="text-xs font-black uppercase tracking-wide text-emerald-800">
-                  {kind === "renewal" ? "Current published renewal price" : "Current published membership price"}
+                  {accessScope === "single_gym" ? "Current published Single Gym renewal price" : "Current published All Access renewal price"}
                 </p>
                 <p className="mt-1 text-3xl font-black text-emerald-950">
                   {selectedPrice

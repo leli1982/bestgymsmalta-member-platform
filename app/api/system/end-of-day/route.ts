@@ -20,6 +20,9 @@ function mapReport(row: any) {
     gymId: row.gym_id,
     businessDate: row.business_date,
     staffName: row.staff_name,
+    shiftSequence: Number(row.shift_sequence || 1),
+    shiftStartedAt: row.shift_started_at || null,
+    shiftEndedAt: row.shift_ended_at || row.submitted_at,
     memberships: {
       cashCents: Number(row.memberships_cash_cents || 0),
       cardCents: Number(row.memberships_card_cents || 0),
@@ -42,7 +45,7 @@ function mapReport(row: any) {
 async function loadReportDetails(supabase: ReturnType<typeof getSupabaseAdmin>, reportId: string) {
   const reportResult = await supabase
     .from("bgm_end_of_day_reports")
-    .select("id,gym_id,business_date,staff_name,memberships_cash_cents,memberships_card_cents,memberships_other_cents,renewals_cash_cents,renewals_card_cents,renewals_other_cents,voucher_reimbursement_cents,bar_sales_cents,gross_cents,expenses_total_cents,daily_total_cents,submitted_at")
+    .select("id,gym_id,business_date,staff_name,shift_sequence,shift_started_at,shift_ended_at,memberships_cash_cents,memberships_card_cents,memberships_other_cents,renewals_cash_cents,renewals_card_cents,renewals_other_cents,voucher_reimbursement_cents,bar_sales_cents,gross_cents,expenses_total_cents,daily_total_cents,submitted_at")
     .eq("id", reportId)
     .maybeSingle();
   if (reportResult.error) throw reportResult.error;
@@ -99,36 +102,47 @@ async function staffPreview(request: NextRequest) {
 
   const businessDate = todayMaltaDate();
   const supabase = getSupabaseAdmin();
-  const [gymResult, submittedResult, paymentsResult, barResult] = await Promise.all([
+  const [gymResult, latestGlobalShiftResult, latestTodayShiftResult, barResult] = await Promise.all([
     supabase.from("bgm_gyms").select("id,name,short_name").eq("id", gymId).maybeSingle(),
-    supabase.from("bgm_end_of_day_reports").select("id").eq("gym_id", gymId).eq("business_date", businessDate).maybeSingle(),
-    supabase.from("bgm_membership_applications")
-      .select("application_kind,payment_method,final_amount_cents,discount_code_snapshot,discount_reimbursement_cents_snapshot")
-      .eq("status", "activated")
-      .eq("enrollment_gym_id", gymId)
-      .eq("payment_business_date", businessDate),
+    supabase.from("bgm_end_of_day_reports")
+      .select("shift_ended_at")
+      .eq("gym_id", gymId)
+      .order("shift_ended_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("bgm_end_of_day_reports")
+      .select("shift_sequence")
+      .eq("gym_id", gymId).eq("business_date", businessDate)
+      .order("shift_sequence", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("bgm_operational_orders")
-      .select("id,total_cents,locked_at")
+      .select("id,total_cents,locked_at,updated_at")
       .eq("order_type", "bar").eq("is_daily_sheet", true)
-      .eq("gym_id", gymId).eq("business_date", businessDate).maybeSingle(),
+      .eq("gym_id", gymId)
+      .order("updated_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
-  for (const result of [gymResult, submittedResult, paymentsResult, barResult]) {
+  for (const result of [gymResult, latestGlobalShiftResult, latestTodayShiftResult, barResult]) {
     if (result.error) throw result.error;
   }
 
-  if (submittedResult.data?.id) {
-    const report = await loadReportDetails(supabase, submittedResult.data.id);
-    return NextResponse.json({
-      gymId,
-      gymName: gymResult.data?.name || gymResult.data?.short_name || gymId,
-      businessDate,
-      submitted: true,
-      report,
-    }, { headers: { "Cache-Control": "private, no-store" } });
-  }
+  const shiftSequence = Number(latestTodayShiftResult.data?.shift_sequence || 0) + 1;
+  const shiftStartedAt = latestGlobalShiftResult.data?.shift_ended_at || null;
+  const shiftStartDate = shiftStartedAt ? todayMaltaDate(new Date(shiftStartedAt)) : businessDate;
+
+  const paymentsResult = await supabase.from("bgm_membership_applications")
+    .select("application_kind,payment_method,final_amount_cents,discount_code_snapshot,discount_reimbursement_cents_snapshot,payment_received_at,activated_at,submitted_at")
+    .eq("status", "activated")
+    .eq("enrollment_gym_id", gymId)
+    .gte("payment_business_date", shiftStartDate)
+    .lte("payment_business_date", businessDate);
+  if (paymentsResult.error) throw paymentsResult.error;
+
+  const barUpdatedAt = barResult.data?.updated_at || null;
+  const barBelongsToOpenShift = Boolean(
+    barResult.data?.id
+      && (!shiftStartedAt || (barUpdatedAt
+        && new Date(barResult.data.updated_at).getTime() >= new Date(shiftStartedAt).getTime())),
+  );
 
   let barItems: EndOfDayBarItem[] = [];
-  if (barResult.data?.id) {
+  if (barBelongsToOpenShift && barResult.data?.id && !barResult.data.locked_at) {
     const itemsResult = await supabase.from("bgm_operational_order_items")
       .select("item_name,quantity,unit_price_cents,line_total_cents,sort_order")
       .eq("order_id", barResult.data.id)
@@ -143,13 +157,19 @@ async function staffPreview(request: NextRequest) {
     }));
   }
 
-  const paymentRows: EndOfDayPaymentRow[] = (paymentsResult.data || []).map((row) => ({
-    applicationKind: row.application_kind,
-    paymentMethod: row.payment_method,
-    finalAmountCents: row.final_amount_cents,
-    discountCodeSnapshot: row.discount_code_snapshot,
-    discountReimbursementCentsSnapshot: row.discount_reimbursement_cents_snapshot,
-  }));
+  const paymentRows: EndOfDayPaymentRow[] = (paymentsResult.data || [])
+    .filter((row) => {
+      if (!shiftStartedAt) return true;
+      const eventTime = row.payment_received_at || row.activated_at || row.submitted_at;
+      return Boolean(eventTime && new Date(eventTime).getTime() > new Date(shiftStartedAt).getTime());
+    })
+    .map((row) => ({
+      applicationKind: row.application_kind,
+      paymentMethod: row.payment_method,
+      finalAmountCents: row.final_amount_cents,
+      discountCodeSnapshot: row.discount_code_snapshot,
+      discountReimbursementCentsSnapshot: row.discount_reimbursement_cents_snapshot,
+    }));
   const totals = calculateEndOfDayTotals(paymentRows, barItems, []);
 
   return NextResponse.json({
@@ -157,7 +177,9 @@ async function staffPreview(request: NextRequest) {
     gymName: gymResult.data?.name || gymResult.data?.short_name || gymId,
     businessDate,
     submitted: false,
-    barLocked: Boolean(barResult.data?.locked_at),
+    shiftSequence,
+    shiftStartedAt,
+    barLocked: false,
     barItems,
     ...totals,
   }, { headers: { "Cache-Control": "private, no-store" } });
@@ -179,10 +201,10 @@ async function adminGet(request: NextRequest) {
   if (businessDate && !isValidCalendarDate(businessDate)) return jsonError("Enter a valid End of Day date.", 400);
 
   let query = supabase.from("bgm_end_of_day_reports")
-    .select("id,gym_id,business_date,staff_name,daily_total_cents,submitted_at")
+    .select("id,gym_id,business_date,staff_name,shift_sequence,shift_started_at,shift_ended_at,daily_total_cents,submitted_at")
     .order("business_date", { ascending: false })
-    .order("submitted_at", { ascending: false })
-    .limit(500);
+    .order("shift_sequence", { ascending: false })
+    .limit(1000);
   if (gymId) query = query.eq("gym_id", gymId);
   if (businessDate) query = query.eq("business_date", businessDate);
   const reportsResult = await query;
@@ -195,7 +217,24 @@ async function adminGet(request: NextRequest) {
   if (gymsResult.error) throw gymsResult.error;
   const gymNames = new Map((gymsResult.data || []).map((gym: any) => [String(gym.id), gym.name || gym.short_name || gym.id]));
 
+  const dailyMap = new Map<string, { gymId: string; gymName: string; businessDate: string; shiftCount: number; dailyTotalCents: number }>();
+  for (const row of reportsResult.data || []) {
+    const key = `${row.gym_id}|${row.business_date}`;
+    const current = dailyMap.get(key) || {
+      gymId: String(row.gym_id),
+      gymName: String(gymNames.get(String(row.gym_id)) || row.gym_id),
+      businessDate: String(row.business_date),
+      shiftCount: 0,
+      dailyTotalCents: 0,
+    };
+    current.shiftCount += 1;
+    current.dailyTotalCents += Number(row.daily_total_cents || 0);
+    dailyMap.set(key, current);
+  }
+  const dailyTotals = Array.from(dailyMap.values());
+
   return NextResponse.json({
+    dailyTotals,
     reports: (reportsResult.data || []).map((row) => ({
       id: row.id,
       gymId: row.gym_id,
@@ -203,6 +242,9 @@ async function adminGet(request: NextRequest) {
       staffName: row.staff_name,
       businessDate: row.business_date,
       submittedAt: row.submitted_at,
+      shiftSequence: Number(row.shift_sequence || 1),
+      shiftStartedAt: row.shift_started_at || null,
+      shiftEndedAt: row.shift_ended_at || row.submitted_at,
       dailyTotalCents: Number(row.daily_total_cents || 0),
     })),
   }, { headers: { "Cache-Control": "private, no-store" } });
@@ -254,7 +296,6 @@ export async function POST(request: NextRequest) {
     });
     if (result.error) {
       const message = String(result.error.message || "");
-      if (/already been submitted|already been locked/i.test(message)) return jsonError(message, 409);
       if (/required|invalid|positive|maximum|belongs to another gym/i.test(message)) return jsonError(message, 400);
       throw result.error;
     }

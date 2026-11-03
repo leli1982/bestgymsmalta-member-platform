@@ -9,20 +9,40 @@ import { requireSystemPermission } from "@/lib/systemAuth";
 export const dynamic = "force-dynamic";
 
 const MEMBER_SELECT =
-  "id, member_number, full_name, status, membership_expiry, cancellation_effective_date, enrollment_gym_id, official_photo_path, legacy_pk_customer, legacy_gym";
+  "id, member_number, full_name, status, membership_expiry, cancellation_effective_date, access_scope, access_gym_id, pending_access_scope, pending_access_gym_id, pending_access_effective_date, enrollment_gym_id, official_photo_path, legacy_pk_customer, legacy_gym";
 
 function clean(value: unknown) {
   return String(value ?? "").trim();
 }
 
-function accessFor(member: any) {
+function effectiveAccess(member: any, today: string) {
+  const pendingIsEffective = Boolean(
+    member?.pending_access_scope &&
+      member?.pending_access_effective_date &&
+      member.pending_access_effective_date <= today,
+  );
+  const accessScope = pendingIsEffective ? member.pending_access_scope : member?.access_scope;
+  const accessGymId = pendingIsEffective ? member.pending_access_gym_id : member?.access_gym_id;
+  return {
+    accessScope: accessScope || "network",
+    accessGymId: accessGymId || (accessScope === "neptunes_only" ? "bgm-neptunes" : null),
+  };
+}
+
+function accessFor(member: any, gymId?: string | null) {
   return evaluateBarcodeAccess({
     member: {
       status: member.status,
       membershipExpiry: member.membership_expiry,
       cancellationEffectiveDate: member.cancellation_effective_date,
+      accessScope: member.access_scope,
+      accessGymId: member.access_gym_id,
+      pendingAccessScope: member.pending_access_scope,
+      pendingAccessGymId: member.pending_access_gym_id,
+      pendingAccessEffectiveDate: member.pending_access_effective_date,
     },
     today: todayMaltaDate(),
+    gymId,
   });
 }
 
@@ -92,13 +112,9 @@ export async function POST(request: NextRequest) {
           .in("id", Array.from(new Set(claimIds)));
         if (claimedResult.error) throw claimedResult.error;
         const allClaims = claimedResult.data || [];
-        const activeClaims = allClaims.filter((candidate) => accessFor(candidate).granted);
+        const activeClaims = allClaims.filter((candidate) => accessFor(candidate, gymId).granted);
         credentialKind = "physical_card";
 
-        // A shared historical/physical card must never collapse to "not found".
-        // If more than one member owns the scanned value, show every match so
-        // reception can identify the person and flag the conflict to admin,
-        // regardless of whether the memberships are active or expired.
         if (allClaims.length > 1) {
           cardMatches = allClaims;
           ambiguousPhysicalCard = true;
@@ -140,11 +156,11 @@ export async function POST(request: NextRequest) {
 
           const legacyMembers = legacyResult.data || [];
           const activeLegacyMembers = legacyMembers.filter(
-            (candidate) => accessFor(candidate).granted
+            (candidate) => accessFor(candidate, gymId).granted
           );
 
-          if (activeLegacyMembers.length > 1) {
-            cardMatches = activeLegacyMembers;
+          if (legacyMembers.length > 1) {
+            cardMatches = legacyMembers;
             ambiguousPhysicalCard = true;
             credentialKind = "legacy_pk_customer";
           } else if (activeLegacyMembers.length === 1) {
@@ -152,10 +168,6 @@ export async function POST(request: NextRequest) {
             credentialKind = "legacy_pk_customer";
           } else if (legacyMembers.length === 1) {
             member = legacyMembers[0];
-            credentialKind = "legacy_pk_customer";
-          } else if (legacyMembers.length > 1) {
-            cardMatches = legacyMembers;
-            ambiguousPhysicalCard = true;
             credentialKind = "legacy_pk_customer";
           }
         }
@@ -167,6 +179,7 @@ export async function POST(request: NextRequest) {
         | "granted"
         | "expired"
         | "inactive"
+        | "restricted_gym"
         | "unknown_member"
         | "unknown_card"
         | "disabled_card"
@@ -183,14 +196,11 @@ export async function POST(request: NextRequest) {
     } else if (ambiguousPhysicalCard) {
       decision = { result: "ambiguous_card", granted: false };
     } else if (card && card.status !== "active" && activeLegacyClaimCount === 0) {
-      // A retired/replaced modern physical card must never grant entry merely
-      // because its historical credential still points at the member.
       decision = { result: "disabled_card", granted: false };
     } else if (!member) {
       decision = { result: "unknown_card", granted: false };
     } else {
-      const membershipDecision = accessFor(member);
-      decision = membershipDecision;
+      decision = accessFor(member, gymId);
     }
 
     let checkinId: string | null = null;
@@ -206,8 +216,7 @@ export async function POST(request: NextRequest) {
       duplicate = checkin.duplicate;
     }
 
-    const credentialValue =
-      membershipNumber || rawMembershipNumber || "(blank)";
+    const credentialValue = membershipNumber || rawMembershipNumber || "(blank)";
     const scanResult = await supabase
       .from("bgm_access_scans")
       .insert({
@@ -269,6 +278,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const today = todayMaltaDate();
+    const effective = effectiveAccess(member, today);
+    let accessGymName = "";
+    if (effective.accessGymId) {
+      const accessGymResult = await supabase
+        .from("bgm_gyms")
+        .select("name")
+        .eq("id", effective.accessGymId)
+        .maybeSingle();
+      if (!accessGymResult.error) accessGymName = accessGymResult.data?.name || "";
+    }
+
     return NextResponse.json({
       result: decision.result,
       granted: decision.granted,
@@ -292,9 +313,12 @@ export async function POST(request: NextRequest) {
                 .eq("id", candidate.enrollment_gym_id).maybeSingle()
               : null;
             return {
-              id: candidate.id, memberNumber: candidate.member_number,
-              fullName: candidate.full_name, legacyPkCustomer: candidate.legacy_pk_customer,
-              status: candidate.status, membershipExpiry: candidate.membership_expiry,
+              id: candidate.id,
+              memberNumber: candidate.member_number,
+              fullName: candidate.full_name,
+              legacyPkCustomer: candidate.legacy_pk_customer,
+              status: candidate.status,
+              membershipExpiry: candidate.membership_expiry,
               enrollmentGymName: gym?.data?.name || "Not recorded",
               scan3: membershipNumber,
               photoUrl: candidate.official_photo_path
@@ -312,6 +336,9 @@ export async function POST(request: NextRequest) {
             fullName: member.full_name,
             status: member.status,
             membershipExpiry: member.membership_expiry,
+            accessScope: effective.accessScope,
+            accessGymId: effective.accessGymId,
+            accessGymName,
             enrollmentGymId: member.enrollment_gym_id || null,
             enrollmentGymName,
             legacyGym: member.legacy_gym || null,

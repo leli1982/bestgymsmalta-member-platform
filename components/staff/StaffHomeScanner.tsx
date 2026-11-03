@@ -23,6 +23,7 @@ type ScanResponse = {
     | "granted"
     | "expired"
     | "inactive"
+    | "restricted_gym"
     | "unknown_card"
     | "unknown_member"
     | "disabled_card"
@@ -49,6 +50,8 @@ type ScanResponse = {
     fullName: string;
     status: string;
     membershipExpiry: string | null;
+    accessScope?: string | null;
+    accessGymName?: string | null;
     enrollmentGymName: string;
     legacyGym?: string | null;
     photoRequired: boolean;
@@ -61,6 +64,9 @@ function resultTitle(result: ScanResponse) {
   if (result.cardMatches?.length) return "SHARED CARD CONFLICT";
   if (result.result === "expired") return "MEMBERSHIP EXPIRED";
   if (result.result === "inactive") return "MEMBERSHIP INACTIVE";
+  if (result.result === "restricted_gym") {
+    return `${(result.member?.accessGymName || "SINGLE GYM").toUpperCase()} ACCESS ONLY`;
+  }
   if (result.result === "disabled_card") return "CARD REPLACED";
   if (result.result === "ambiguous_card") return "DUPLICATE LEGACY NUMBER";
   return "MEMBER NOT FOUND";
@@ -307,6 +313,9 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
                           : "BGM member number"}
                     </p>
                     <div className="mt-4 grid gap-2 text-sm font-semibold text-zinc-600 sm:grid-cols-2">
+                      {result.member.accessScope === "single_gym" && (
+                        <p>Access: <strong className="text-orange-700">{result.member.accessGymName || "Single Gym"} only</strong></p>
+                      )}
                       <p>Current enrollment gym: <strong className="text-zinc-900">{result.member.enrollmentGymName || "Not recorded"}</strong></p>
                       <p>Original gym: <strong className="text-zinc-900">{result.member.legacyGym || "Not recorded"}</strong></p>
                     </div>
