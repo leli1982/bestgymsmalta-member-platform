@@ -9,12 +9,14 @@ import {
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 1000;
+const NEPTUNES_GYM_ID = "bgm-neptunes";
 
 type SupabaseAdmin = ReturnType<typeof getSupabaseAdmin>;
 type OfflineMemberRow = {
   id: string;
   member_number: string | null;
   full_name: string | null;
+  access_scope: string | null;
 };
 type ModernCardRow = {
   member_id: string;
@@ -35,7 +37,7 @@ async function fetchAllActiveMembers(supabase: SupabaseAdmin) {
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from("bgm_members")
-      .select("id, member_number, full_name")
+      .select("id, member_number, full_name, access_scope")
       .eq("status", "active")
       .or(`membership_expiry.is.null,membership_expiry.gte.${todayString()}`)
       .order("member_number", { ascending: true })
@@ -112,22 +114,25 @@ export async function GET(request: NextRequest) {
       cardsByMember.set(id, current);
     };
 
-    for (const card of modernCardRows) {
-      addCard(card.member_id, card.barcode_value);
-    }
-    for (const claim of legacyCardRows) {
-      addCard(claim.member_id, claim.scan3);
-    }
+    for (const card of modernCardRows) addCard(card.member_id, card.barcode_value);
+    for (const claim of legacyCardRows) addCard(claim.member_id, claim.scan3);
 
+    const currentGymId = auth.context.gymId;
     const members = memberRows
       .map((row) =>
         toOfflineRosterMember({
           member_number: row.member_number,
           full_name: row.full_name,
+          access_scope: row.access_scope,
           card_numbers: cardsByMember.get(String(row.id)) || [],
         })
       )
-      .filter((member) => member.memberNumber && member.fullName);
+      .filter((member) =>
+        member.memberNumber &&
+        member.fullName &&
+        (member.accessScope !== "neptunes_only" || currentGymId === NEPTUNES_GYM_ID)
+      );
+
     const rosterHash = hashOfflineRoster(members);
     const generatedAt = new Date().toISOString();
     const deviceId = String(request.nextUrl.searchParams.get("deviceId") || "").trim();
@@ -145,16 +150,10 @@ export async function GET(request: NextRequest) {
         },
         { onConflict: "system_user_id,device_id" }
       );
-
       if (syncResult.error) throw syncResult.error;
     }
 
-    return NextResponse.json({
-      generatedAt,
-      memberCount: members.length,
-      rosterHash,
-      members,
-    });
+    return NextResponse.json({ generatedAt, memberCount: members.length, rosterHash, members });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
