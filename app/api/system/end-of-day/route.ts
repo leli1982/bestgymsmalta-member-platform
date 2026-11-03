@@ -134,9 +134,10 @@ async function staffPreview(request: NextRequest) {
     .lte("payment_business_date", businessDate);
   if (paymentsResult.error) throw paymentsResult.error;
 
+  const barUpdatedAt = barResult.data?.updated_at || null;
   const barBelongsToOpenShift = Boolean(
     barResult.data?.id
-      && (!shiftStartedAt || (barResult.data.updated_at
+      && (!shiftStartedAt || (barUpdatedAt
         && new Date(barResult.data.updated_at).getTime() >= new Date(shiftStartedAt).getTime())),
   );
 
