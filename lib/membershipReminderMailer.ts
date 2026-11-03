@@ -33,7 +33,7 @@ export async function sendMembershipReminderEmail(input: {
   await cachedTransporter.sendMail({
     from: config.from,
     to: recipient,
-    replyTo: config.user,
+    replyTo: "info@bestgymsmalta.com",
     subject: email.subject,
     text: email.text,
     html: email.html,
