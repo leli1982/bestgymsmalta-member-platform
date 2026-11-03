@@ -5,6 +5,8 @@ import type { WelcomeDeclarations } from "@/lib/welcomeEmailCore";
 const WELCOME_AUDIT_ACTION = "membership.welcome_email.sent";
 const RECENT_ACTIVATION_WINDOW_MS = 15 * 60 * 1000;
 
+type WelcomeApplicationKind = "new" | "renewal";
+
 function asRecord(value: unknown): Record<string, any> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, any>)
@@ -74,6 +76,15 @@ async function resolveDeclarations(
   return declarations;
 }
 
+function declarationVersions(declarations: WelcomeDeclarations) {
+  return {
+    gymRules: declarations.gymRules?.versionNo ?? null,
+    health: declarations.health?.versionNo ?? null,
+    privacy: declarations.privacy?.versionNo ?? null,
+    guardian: declarations.guardian?.versionNo ?? null,
+  };
+}
+
 export async function sendWelcomePackagesBestEffort(applicationId: string) {
   const supabase = getSupabaseAdmin();
   const application = await supabase
@@ -83,7 +94,10 @@ export async function sendWelcomePackagesBestEffort(applicationId: string) {
     .maybeSingle();
 
   if (application.error) throw application.error;
-  if (!application.data || application.data.application_kind !== "new") return;
+  if (!application.data) return;
+
+  const applicationKind = String(application.data.application_kind || "").trim() as WelcomeApplicationKind;
+  if (applicationKind !== "new" && applicationKind !== "renewal") return;
 
   const participants = await supabase
     .from("bgm_membership_application_members")
@@ -158,6 +172,7 @@ export async function sendWelcomePackagesBestEffort(applicationId: string) {
     application.data.declaration_snapshot,
     includeGuardian
   );
+  const sentDeclarationVersions = declarationVersions(declarations);
 
   const appUrl = memberAppUrl();
   for (const row of pendingRecipients) {
@@ -177,6 +192,7 @@ export async function sendWelcomePackagesBestEffort(applicationId: string) {
         memberName: `${String(row.first_name || "").trim()} ${String(row.last_name || "").trim()}`.trim(),
         memberNumber,
         appUrl,
+        applicationKind,
         declarations,
       });
 
@@ -190,6 +206,8 @@ export async function sendWelcomePackagesBestEffort(applicationId: string) {
           recipient,
           participantOrder: row.participant_order,
           memberNumber,
+          applicationKind,
+          declarationVersions: sentDeclarationVersions,
           sentAt: new Date().toISOString(),
         },
       });
@@ -234,12 +252,13 @@ export async function sendWelcomePackagesForRecentlyActivatedMembersBestEffort(
     .from("bgm_membership_applications")
     .select("id,application_kind,status,activated_at")
     .in("id", applicationIds)
-    .eq("application_kind", "new")
     .eq("status", "activated")
     .gte("activated_at", threshold);
   if (applications.error) throw applications.error;
 
   for (const application of applications.data || []) {
+    const applicationKind = String(application.application_kind || "").trim();
+    if (applicationKind !== "new" && applicationKind !== "renewal") continue;
     try {
       await sendWelcomePackagesBestEffort(application.id);
     } catch (error) {
