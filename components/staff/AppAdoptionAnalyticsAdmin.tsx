@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
 import { RefreshCw, Smartphone, TrendingUp, UserCheck, UserMinus, UsersRound } from "lucide-react";
 
 type DailyPoint = { date: string; count: number };
@@ -101,22 +102,20 @@ export default function AppAdoptionAnalyticsAdmin() {
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="text-xs font-black uppercase tracking-wider text-zinc-500">
             From
-            <input
-              type="date"
+            <EuropeanDateInput
               value={from}
               max={to}
-              onChange={(event) => setFrom(event.target.value)}
+              onValueChange={setFrom}
               className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-bold text-zinc-900"
             />
           </label>
           <label className="text-xs font-black uppercase tracking-wider text-zinc-500">
             To
-            <input
-              type="date"
+            <EuropeanDateInput
               value={to}
               min={from}
               max={today}
-              onChange={(event) => setTo(event.target.value)}
+              onValueChange={setTo}
               className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-bold text-zinc-900"
             />
           </label>
