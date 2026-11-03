@@ -33,6 +33,8 @@ type AccessResult = {
     fullName: string;
     status: string;
     membershipExpiry: string | null;
+    accessScope?: string | null;
+    accessGymName?: string | null;
     enrollmentGymName?: string | null;
     legacyGym?: string | null;
     photoRequired: boolean;
@@ -110,6 +112,9 @@ function heading(result: AccessResult) {
   if (result.cardMatches?.length) return "SHARED CARD CONFLICT";
   if (result.result === "expired") return "MEMBERSHIP EXPIRED";
   if (result.result === "inactive") return "MEMBERSHIP INACTIVE";
+  if (result.result === "restricted_gym") {
+    return `${(result.member?.accessGymName || "SINGLE GYM").toUpperCase()} ACCESS ONLY`;
+  }
   if (result.result === "disabled_card") return "CARD REPLACED";
   if (result.result === "ambiguous_card") return "CARD NUMBER AMBIGUOUS";
   if (result.result === "invalid_barcode") return "INVALID BARCODE";
@@ -576,6 +581,9 @@ export default function StaffGlobalScanner() {
                   <p className="mt-1 font-mono text-sm font-bold text-zinc-700">Current card: {result.currentPhysicalCard || "Not assigned"}</p>
                   <p className="mt-1 text-xs font-bold text-zinc-500">Scanned: <span className="font-mono">{result.scannedBarcode || "—"}</span></p>
                   <p className="mt-2 font-bold text-zinc-700">Expiry: {formatEuropeanDate(result.member.membershipExpiry, "Not set")}</p>
+                  {result.member.accessScope === "single_gym" && (
+                    <p className="mt-1 font-black text-orange-700">Access: {result.member.accessGymName || "Single Gym"} only</p>
+                  )}
                   <p className="mt-1 font-semibold text-zinc-600">Current enrollment gym: {result.member.enrollmentGymName || "Not recorded"}</p>
                   <p className="mt-1 font-semibold text-zinc-600">Original gym: {result.member.legacyGym || "Not recorded"}</p>
                   <p className="mt-1 text-sm font-semibold text-zinc-500">Status: {result.member.status}</p>
