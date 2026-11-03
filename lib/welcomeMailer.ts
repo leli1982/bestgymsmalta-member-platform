@@ -116,7 +116,7 @@ export async function sendWelcomeEmail(input: {
   await cachedTransporter.sendMail({
     from: config.from,
     to: recipient,
-    replyTo: config.user,
+    replyTo: "info@bestgymsmalta.com",
     subject: email.subject,
     text: email.text,
     html: email.html,
@@ -168,7 +168,7 @@ export async function sendLegacyActivationConfirmationEmail(input: {
   await transporter.sendMail({
     from: config.from,
     to: recipient,
-    replyTo: config.user,
+    replyTo: "info@bestgymsmalta.com",
     subject,
     text,
     html,
