@@ -15,7 +15,7 @@ import {
 export const dynamic = "force-dynamic";
 
 const MEMBER_SEARCH_FIELDS =
-  "id, member_number, first_name, last_name, full_name, status, membership_expiry, cancellation_effective_date, mobile, phone, email, id_number, address_line_1, address_line_2, town, postcode, date_of_birth, next_of_kin, enrollment_gym_id, legacy_pk_customer, legacy_gym, official_photo_path";
+  "id, member_number, first_name, last_name, full_name, status, membership_expiry, cancellation_effective_date, mobile, phone, email, id_number, address_line_1, address_line_2, town, postcode, date_of_birth, next_of_kin, enrollment_gym_id, access_scope, access_gym_id, pending_access_scope, pending_access_gym_id, pending_access_effective_date, legacy_pk_customer, legacy_gym, official_photo_path";
 const VALID_FILTERS = new Set<StaffMemberFilter>(["all", "active", "expired"]);
 
 function escapeLikePattern(value: string) {
@@ -25,6 +25,22 @@ function escapeLikePattern(value: string) {
 function positiveInteger(value: string | null, fallback: number) {
   const parsed = Number.parseInt(String(value || ""), 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function effectiveAccess(member: any, today: string) {
+  const pendingIsEffective = Boolean(
+    member.pending_access_scope &&
+      member.pending_access_effective_date &&
+      member.pending_access_effective_date <= today,
+  );
+  const accessScope = pendingIsEffective ? member.pending_access_scope : member.access_scope;
+  const accessGymId = pendingIsEffective ? member.pending_access_gym_id : member.access_gym_id;
+  return {
+    accessScope: accessScope === "single_gym" || accessScope === "neptunes_only" ? "single_gym" : "network",
+    accessGymId: accessScope === "single_gym" || accessScope === "neptunes_only"
+      ? accessGymId || (accessScope === "neptunes_only" ? "bgm-neptunes" : null)
+      : null,
+  };
 }
 
 async function loadCurrentPhysicalCards(supabase: any, members: any[]) {
@@ -81,6 +97,7 @@ function toCandidate(
     today,
   });
   const hasOfficialPhoto = Boolean(member.official_photo_path);
+  const effective = effectiveAccess(member, today);
 
   return {
     id: member.id,
@@ -107,6 +124,9 @@ function toCandidate(
     enrollmentGymName: member.enrollment_gym_id
       ? gymNames.get(member.enrollment_gym_id) || ""
       : "",
+    accessScope: effective.accessScope,
+    accessGymId: effective.accessGymId,
+    accessGymName: effective.accessGymId ? gymNames.get(effective.accessGymId) || "" : "",
     currentPhysicalCard: currentPhysicalCards.get(member.id) || "",
     legacyPkCustomer: member.legacy_pk_customer || "",
     legacyGym: member.legacy_gym || "",
@@ -264,8 +284,6 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Staff can find an account with either its permanent BGM number (above)
-  // or its CURRENT active physical card number; a retired card is never usable.
   const activeCardResult = await supabase
     .from("bgm_member_card_credentials")
     .select("member_id")
@@ -320,48 +338,13 @@ export async function GET(request: NextRequest) {
     emailResult,
     legacyPkResult,
   ] = await Promise.all([
-    supabase
-      .from("bgm_members")
-      .select(MEMBER_SEARCH_FIELDS)
-      .neq("status", "archived")
-      .ilike("member_number", pattern)
-      .limit(searchPoolLimit),
-    supabase
-      .from("bgm_members")
-      .select(MEMBER_SEARCH_FIELDS)
-      .neq("status", "archived")
-      .ilike("full_name", pattern)
-      .limit(searchPoolLimit),
-    supabase
-      .from("bgm_members")
-      .select(MEMBER_SEARCH_FIELDS)
-      .neq("status", "archived")
-      .ilike("id_number", pattern)
-      .limit(searchPoolLimit),
-    supabase
-      .from("bgm_members")
-      .select(MEMBER_SEARCH_FIELDS)
-      .neq("status", "archived")
-      .ilike("mobile", pattern)
-      .limit(searchPoolLimit),
-    supabase
-      .from("bgm_members")
-      .select(MEMBER_SEARCH_FIELDS)
-      .neq("status", "archived")
-      .ilike("phone", pattern)
-      .limit(searchPoolLimit),
-    supabase
-      .from("bgm_members")
-      .select(MEMBER_SEARCH_FIELDS)
-      .neq("status", "archived")
-      .ilike("email", pattern)
-      .limit(searchPoolLimit),
-    supabase
-      .from("bgm_members")
-      .select(MEMBER_SEARCH_FIELDS)
-      .ilike("legacy_pk_customer", pattern)
-      .neq("status", "archived")
-      .limit(searchPoolLimit),
+    supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).neq("status", "archived").ilike("member_number", pattern).limit(searchPoolLimit),
+    supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).neq("status", "archived").ilike("full_name", pattern).limit(searchPoolLimit),
+    supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).neq("status", "archived").ilike("id_number", pattern).limit(searchPoolLimit),
+    supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).neq("status", "archived").ilike("mobile", pattern).limit(searchPoolLimit),
+    supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).neq("status", "archived").ilike("phone", pattern).limit(searchPoolLimit),
+    supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).neq("status", "archived").ilike("email", pattern).limit(searchPoolLimit),
+    supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).ilike("legacy_pk_customer", pattern).neq("status", "archived").limit(searchPoolLimit),
   ]);
 
   const results = [
