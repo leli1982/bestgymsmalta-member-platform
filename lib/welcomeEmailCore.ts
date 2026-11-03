@@ -1,3 +1,5 @@
+import { bgmEmailFooterHtml, bgmEmailFooterText } from "./emailBranding.ts";
+
 type DeclarationSnapshot = {
   versionNo?: number | string | null;
   body?: string | null;
@@ -95,12 +97,14 @@ export function buildWelcomeEmail(input: WelcomeEmailInput) {
     `Below are the membership declarations and rules that apply to ${declarationsContext}:`,
     "",
     ...textSections,
+    "",
+    bgmEmailFooterText(),
   ].join("\n\n");
 
   const registrationHtml = registrationText
     ? `<div style="margin-top:6px;font-size:14px">${escapeHtml(registrationText)}</div>`
     : "";
-  const html = `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#18181b;line-height:1.5"><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(statusText)}</p><div style="margin:20px 0;padding:16px;border:2px solid #f59e0b;border-radius:12px;background:#fff7ed"><div style="font-size:13px;font-weight:700;text-transform:uppercase;color:#9a3412">${escapeHtml(memberNumberLabel)}</div><div style="margin-top:4px;font-size:28px;font-weight:800;letter-spacing:1px">${escapeHtml(memberNumber)}</div>${registrationHtml}</div><p><strong>Access the BestGymsMalta member app:</strong><br><a href="${escapeHtml(appUrl)}">${escapeHtml(appUrl)}</a></p><p>Below are the membership declarations and rules that apply to ${escapeHtml(declarationsContext)}:</p>${htmlSections.join("")}</body></html>`;
+  const html = `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#18181b;line-height:1.5"><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(statusText)}</p><div style="margin:20px 0;padding:16px;border:2px solid #f59e0b;border-radius:12px;background:#fff7ed"><div style="font-size:13px;font-weight:700;text-transform:uppercase;color:#9a3412">${escapeHtml(memberNumberLabel)}</div><div style="margin-top:4px;font-size:28px;font-weight:800;letter-spacing:1px">${escapeHtml(memberNumber)}</div>${registrationHtml}</div><p><strong>Access the BestGymsMalta member app:</strong><br><a href="${escapeHtml(appUrl)}">${escapeHtml(appUrl)}</a></p><p>Below are the membership declarations and rules that apply to ${escapeHtml(declarationsContext)}:</p>${htmlSections.join("")}${bgmEmailFooterHtml()}</body></html>`;
 
   return { subject, text, html };
 }

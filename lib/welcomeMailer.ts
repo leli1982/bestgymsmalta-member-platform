@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { bgmEmailFooterHtml, bgmEmailFooterText } from "@/lib/emailBranding";
 import { resolveOperationsMailConfig } from "@/lib/operationsMailConfig";
 import { buildWelcomeEmail, type WelcomeDeclarations } from "@/lib/welcomeEmailCore";
 import { buildGymRulesPdf, gymRulesPdfFilename } from "@/lib/gymRulesPdf";
@@ -160,9 +161,9 @@ export async function sendLegacyActivationConfirmationEmail(input: {
     "You can now log in to the member app here:",
     appUrl,
     "",
-    "BestGymsMalta",
+    bgmEmailFooterText(),
   ].join("\n");
-  const html = `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#18181b;line-height:1.5"><h2>Your BestGymsMalta member app is activated</h2><p>Hi ${escapeHtml(memberName)},</p><p>Your BestGymsMalta member app account has been activated successfully.</p><div style="margin:20px 0;padding:16px;border:2px solid #f59e0b;border-radius:12px;background:#fff7ed"><div style="font-size:13px;font-weight:700;text-transform:uppercase;color:#9a3412">Your BGM membership number</div><div style="margin-top:4px;font-size:28px;font-weight:800;letter-spacing:1px">${escapeHtml(memberNumber)}</div></div><p><strong>Log in to the BestGymsMalta member app:</strong><br><a href="${escapeHtml(appUrl)}">${escapeHtml(appUrl)}</a></p><p>BestGymsMalta</p></body></html>`;
+  const html = `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#18181b;line-height:1.5"><h2>Your BestGymsMalta member app is activated</h2><p>Hi ${escapeHtml(memberName)},</p><p>Your BestGymsMalta member app account has been activated successfully.</p><div style="margin:20px 0;padding:16px;border:2px solid #f59e0b;border-radius:12px;background:#fff7ed"><div style="font-size:13px;font-weight:700;text-transform:uppercase;color:#9a3412">Your BGM membership number</div><div style="margin-top:4px;font-size:28px;font-weight:800;letter-spacing:1px">${escapeHtml(memberNumber)}</div></div><p><strong>Log in to the BestGymsMalta member app:</strong><br><a href="${escapeHtml(appUrl)}">${escapeHtml(appUrl)}</a></p>${bgmEmailFooterHtml()}</body></html>`;
 
   await transporter.sendMail({
     from: config.from,
