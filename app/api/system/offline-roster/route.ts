@@ -17,6 +17,9 @@ type OfflineMemberRow = {
   full_name: string | null;
   access_scope: string | null;
   access_gym_id: string | null;
+  pending_access_scope: string | null;
+  pending_access_gym_id: string | null;
+  pending_access_effective_date: string | null;
 };
 type ModernCardRow = {
   member_id: string;
@@ -37,7 +40,7 @@ async function fetchAllActiveMembers(supabase: SupabaseAdmin) {
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from("bgm_members")
-      .select("id, member_number, full_name, access_scope, access_gym_id")
+      .select("id, member_number, full_name, access_scope, access_gym_id, pending_access_scope, pending_access_gym_id, pending_access_effective_date")
       .eq("status", "active")
       .or(`membership_expiry.is.null,membership_expiry.gte.${todayString()}`)
       .order("member_number", { ascending: true })
@@ -118,6 +121,7 @@ export async function GET(request: NextRequest) {
     for (const claim of legacyCardRows) addCard(claim.member_id, claim.scan3);
 
     const currentGymId = auth.context.gymId;
+    const today = todayString();
     const members = memberRows
       .map((row) =>
         toOfflineRosterMember({
@@ -125,8 +129,11 @@ export async function GET(request: NextRequest) {
           full_name: row.full_name,
           access_scope: row.access_scope,
           access_gym_id: row.access_gym_id,
+          pending_access_scope: row.pending_access_scope,
+          pending_access_gym_id: row.pending_access_gym_id,
+          pending_access_effective_date: row.pending_access_effective_date,
           card_numbers: cardsByMember.get(String(row.id)) || [],
-        })
+        }, today)
       )
       .filter((member) =>
         member.memberNumber &&
