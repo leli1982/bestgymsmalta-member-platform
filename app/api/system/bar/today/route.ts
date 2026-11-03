@@ -38,7 +38,8 @@ async function loadSheet(gymId: string) {
     .eq("order_type", "bar")
     .eq("is_daily_sheet", true)
     .eq("gym_id", gymId)
-    .eq("business_date", businessDate)
+    .order("updated_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (orderResult.error) throw orderResult.error;
 
