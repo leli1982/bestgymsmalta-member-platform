@@ -23,6 +23,7 @@ const PUBLIC_PREFIXES = [
   "/member-login",
   "/member-activate",
   "/member-reset-password",
+  "/legacy-activate",
   "/join",
   "/staff",
   "/bgm-admin",
