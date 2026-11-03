@@ -60,12 +60,7 @@ export async function sendWelcomeEmail(input: {
 
   const email = buildWelcomeEmail(input);
   const gymRulesPdf = buildGymRulesPdf(gymRules!);
-  const attachments = [
-    {
-      filename: gymRulesPdfFilename(gymRules!),
-      content: gymRulesPdf,
-      contentType: "application/pdf",
-    },
+  const declarationAttachments = [
     declarationAttachment({
       title: "Health Declaration",
       filenameLabel: "Health-Declaration",
@@ -81,7 +76,7 @@ export async function sendWelcomeEmail(input: {
   ];
 
   if (input.declarations.guardian) {
-    attachments.push(
+    declarationAttachments.push(
       declarationAttachment({
         title: "Guardian Consent",
         filenameLabel: "Guardian-Consent",
@@ -98,6 +93,13 @@ export async function sendWelcomeEmail(input: {
     subject: email.subject,
     text: email.text,
     html: email.html,
-    attachments,
+    attachments: [
+      {
+        filename: gymRulesPdfFilename(gymRules!),
+        content: gymRulesPdf,
+        contentType: "application/pdf",
+      },
+      ...declarationAttachments,
+    ],
   });
 }
