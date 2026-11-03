@@ -7,10 +7,12 @@ const read = (path) => readFileSync(path, "utf8");
 test("membership review and print payloads visibly carry All Access or Single Gym target", () => {
   const reviewRoute = read("app/api/system/members/applications/[applicationId]/route.ts");
   const printRoute = read("app/api/system/members/applications/[applicationId]/print/route.ts");
+  const printLoader = read("lib/printableMembershipApplication.ts");
   const reviewModal = read("components/staff/StaffMembershipReviewModal.tsx");
   const printSheet = read("components/staff/MembershipA4Sheet.tsx");
 
-  for (const source of [reviewRoute, printRoute]) {
+  assert.match(printRoute, /loadPrintableMembershipApplication/);
+  for (const source of [reviewRoute, printLoader]) {
     assert.match(source, /access_scope/);
     assert.match(source, /access_gym_id/);
     assert.match(source, /normalizedAccessScope/);
