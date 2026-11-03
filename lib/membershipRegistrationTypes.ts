@@ -37,6 +37,7 @@ export type PublicEnrollmentConfig = {
   };
   pricing: PublishedPriceConfig;
   singleGymPricing?: PublishedPriceConfig;
+  singleGymPricingGymId?: string;
   declarations: {
     gymRules: PublishedDeclarationSnapshot;
     privacy: PublishedDeclarationSnapshot;
