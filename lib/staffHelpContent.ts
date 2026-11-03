@@ -165,7 +165,7 @@ export const STAFF_HELP_TOPICS: StaffHelpTopic[] = [
       "There is no Send Bar List button. The Bar is an auto-save open sheet and its total is pulled into End of Day automatically.",
       "If midnight passes and no End of Day was submitted, the Bar does not start from zero. The open Bar sheet carries across midnight into the next morning.",
     ],
-    important: "The Bar resets only when staff submit End of Day successfully. Sales made after that End of Day start building the next End of Day.",
+    important: "The Bar resets only after End of Day is submitted successfully. Sales made after that End of Day start building the next End of Day.",
   },
   {
     id: "end-of-day",
@@ -186,7 +186,7 @@ export const STAFF_HELP_TOPICS: StaffHelpTopic[] = [
       "Press Submit End of Day only when everything is correct.",
       "Wait for the submitted confirmation. The browser print flow opens so the EOD hard copy can be printed.",
     ],
-    important: "Midnight does not reset End of Day. Figures reset only when staff submit End of Day successfully. Any membership, renewal or Bar sales made after that End of Day belong to the next End of Day.",
+    important: "Midnight does not reset End of Day. Figures reset only after End of Day is submitted successfully. Any membership, renewal or Bar sales made after that End of Day belong to the next End of Day.",
   },
 ];
 
