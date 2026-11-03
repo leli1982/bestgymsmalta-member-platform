@@ -14,6 +14,7 @@ test("welcome email contains member number, app link and accepted declaration te
     memberName: "Test Member",
     memberNumber: "BGM0123456",
     appUrl: "https://example.test/login",
+    applicationKind: "new",
     declarations: {
       gymRules: { versionNo: 7, body: "Respect the gym and return weights after use." },
       health: { versionNo: 3, body: "Train responsibly and disclose relevant health concerns." },
@@ -35,11 +36,29 @@ test("welcome email contains member number, app link and accepted declaration te
   assert.match(email.html, /https:\/\/example\.test\/login/);
 });
 
+test("renewal welcome email uses renewal-specific confirmation copy", () => {
+  const email = buildWelcomeEmail({
+    memberName: "Renewing Member",
+    memberNumber: "BGM0765432",
+    appUrl: "https://example.test/login",
+    applicationKind: "renewal",
+    declarations: {
+      gymRules: { versionNo: 9, body: "Rules" },
+      health: { versionNo: 4, body: "Health" },
+      privacy: { versionNo: 6, body: "Privacy" },
+    },
+  });
+  assert.match(email.subject, /renew/i);
+  assert.match(email.text, /renewed/i);
+  assert.doesNotMatch(email.text, /registering for the BestGymsMalta member app/i);
+});
+
 test("welcome email omits guardian section when no guardian declaration was accepted", () => {
   const email = buildWelcomeEmail({
     memberName: "Adult Member",
     memberNumber: "BGM0765432",
     appUrl: "https://example.test/login",
+    applicationKind: "new",
     declarations: {
       gymRules: { versionNo: 1, body: "Rules" },
       health: { versionNo: 1, body: "Health" },
@@ -83,12 +102,16 @@ test("successful activation flows through the existing post-activation hook", ()
   assert.match(walletSync, /Welcome email failure must never undo or fail the membership mutation/);
 });
 
-test("welcome delivery is new-membership-only, recent-activation-only and audited per recipient", () => {
-  assert.match(welcomePackage, /application_kind[^\n]*"new"|application_kind[^\n]*new/);
+test("welcome delivery supports new and renewal applications, stays recent-only, and audits sent declaration versions", () => {
+  assert.match(welcomePackage, /application_kind/);
+  assert.doesNotMatch(welcomePackage, /application_kind\s*!==\s*["']new["']/);
+  assert.doesNotMatch(welcomePackage, /\.eq\(["']application_kind["'],\s*["']new["']\)/);
   assert.match(welcomePackage, /RECENT_ACTIVATION_WINDOW_MS/);
   assert.match(welcomePackage, /membership\.welcome_email\.sent/);
   assert.match(welcomePackage, /alreadySent/);
   assert.match(welcomePackage, /bgm_membership_declaration_versions/);
   assert.match(welcomePackage, /status[^\n]*"published"/);
   assert.match(welcomePackage, /snapshot\.gymRules \|\| snapshot\.gym_rules/);
+  assert.match(welcomePackage, /declarationVersions/);
+  assert.match(welcomePackage, /applicationKind/);
 });
