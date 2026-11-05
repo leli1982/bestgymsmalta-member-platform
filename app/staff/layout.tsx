@@ -1,5 +1,6 @@
 import EmergencySupportFooter from "@/components/system/EmergencySupportFooter";
 import StaffGlobalScanner from "@/components/staff/StaffGlobalScanner";
+import UrgentStaffAlertOverlay from "@/components/staff/UrgentStaffAlertOverlay";
 import OfflineMembershipSyncBridge from "@/components/staff/OfflineMembershipSyncBridge";
 import OfflineResilienceBridge from "@/components/staff/OfflineResilienceBridge";
 import BarOfflineWarmupBridge from "@/components/staff/BarOfflineWarmupBridge";
@@ -21,6 +22,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
       <StaffHelpCentre />
       <AdminHelpCentre />
       <StaffGlobalScanner />
+      <UrgentStaffAlertOverlay />
     </>
   );
 }
