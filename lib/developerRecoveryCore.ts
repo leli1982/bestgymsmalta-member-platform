@@ -24,7 +24,7 @@ export function developerRecoveryDestinations(env: NodeJS.ProcessEnv) {
     env.BGM_DEVELOPER_RECOVERY_EMAIL,
     env.BGM_DEVELOPER_RECOVERY_BACKUP_EMAIL,
   ].map(value => String(value || "").trim().toLowerCase())
-    .filter(email => /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)))];
+    .filter(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))];
 }
 
 export function developerRecoveryBaseUrl(env: NodeJS.ProcessEnv) {

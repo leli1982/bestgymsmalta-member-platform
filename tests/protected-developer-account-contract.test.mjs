@@ -34,8 +34,8 @@ test("Primary and backup recovery addresses are private and deduplicated", () =>
     BGM_DEVELOPER_RECOVERY_BACKUP_EMAIL: "two@example.net",
   }), ["two@example.net"]);
   const route = read("app/api/system/developer/recovery/route.ts");
-  assert.match(route, /for \\(const destination of destinations\\)/);
-  assert.match(route, /if \\(delivered === 0\\)/);
+  assert.ok(route.includes("for (const destination of destinations)"));
+  assert.ok(route.includes("if (delivered === 0)"));
   assert.match(route, /developerRecoveryDestinations/);
 });
 
