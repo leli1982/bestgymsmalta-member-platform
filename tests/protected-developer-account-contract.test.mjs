@@ -58,7 +58,7 @@ test("Developer account is hidden from ordinary Super Admin list and cannot be p
 
 test("Recovery is email-controlled, atomic, one-time and not accessible to public roles", () => {
   const route = read("app/api/system/developer/recovery/route.ts");
-  assert.match(route, /BGM_DEVELOPER_RECOVERY_EMAIL/);
+  assert.match(read("lib/developerRecoveryCore.ts"), /BGM_DEVELOPER_RECOVERY_EMAIL/);
   assert.match(route, /bgm_consume_developer_password_reset/);
   assert.match(route, /15 \* 60 \* 1000/);
   assert.match(migration, /for update;/);
