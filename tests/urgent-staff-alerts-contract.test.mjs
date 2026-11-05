@@ -60,7 +60,8 @@ test("Realtime delivers only refresh signals and has polling fallback", () => {
   assert.match(realtime, /refresh: true/);
   assert.match(rtRoute, /context\.role !== "gym_staff"/);
   assert.match(overlay, /setInterval\(refresh, 15000\)/);
-  assert.doesNotMatch(realtime, /subject|message|read_by|memberNumber/);
+  assert.match(realtime, /httpSend\(EVENT_NAME,\s*\{ refresh: true \}\)/);
+  assert.doesNotMatch(realtime, /httpSend\([^\n]*(?:subject|message|read_by|memberNumber)/);
 });
 
 test("Super Admin gets a separate alert screen; members announcement remains distinct", () => {
