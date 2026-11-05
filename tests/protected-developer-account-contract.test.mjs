@@ -24,9 +24,9 @@ test("Recovery email isolates the URL on its own line (no literal backslash-n es
   const { token } = createDeveloperRecoveryToken();
   const link = "https://example.vercel.app/staff/developer-recovery?token=" + token;
   const body = buildDeveloperRecoveryEmailText(link);
-  assert.ok(body.includes("\\n" + link + "\\n\\nIf you did not request"));
-  assert.equal(body.includes(String.raw`\\n\\nIf`), false);
-  const tokenLine = body.split("\\n").find(line => line.startsWith("https://"));
+  assert.ok(body.includes("\n" + link + "\n\nIf you did not request"));
+  assert.equal(body.includes(String.raw`\n\nIf`), false);
+  const tokenLine = body.split("\n").find(line => line.startsWith("https://"));
   assert.equal(tokenLine, link);
   assert.equal(validDeveloperRecoveryToken(new URL(tokenLine).searchParams.get("token")), true);
 });
