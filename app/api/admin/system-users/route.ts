@@ -240,7 +240,7 @@ export async function POST(request: NextRequest) {
         role: validation.role,
         active: true,
       })
-      .select("id, gym_id, username, display_name, is_super_admin, active, role, is_protected_developer")
+      .select("id, gym_id, username, display_name, is_super_admin, active, role")
       .single();
 
     if (insertResult.error) {
@@ -309,7 +309,7 @@ export async function PATCH(request: NextRequest) {
     const supabase = getSupabaseAdmin();
     const currentResult = await supabase
       .from("bgm_system_users")
-      .select("id, gym_id, username, display_name, is_super_admin, active, role")
+      .select("id, gym_id, username, display_name, is_super_admin, active, role, is_protected_developer")
       .eq("id", id)
       .maybeSingle();
     if (currentResult.error) throw currentResult.error;
