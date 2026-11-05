@@ -8,6 +8,7 @@ const TEST_SUPABASE_URL = "https://vlvyqdjhzdcxatilbdiv.supabase.co";
 const TEST_ONLY_PREVIEW_BRANCHES = new Set([
   "feature/tablet-enrollment-membership-settings",
   "feature/launch-member-reconciliation",
+  "feature/staff-urgent-alerts",
 ]);
 
 export function resolveSupabaseAdminConfig(env: SupabaseAdminEnvironment) {

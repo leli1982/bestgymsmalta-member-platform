@@ -9,6 +9,7 @@ import {
 type AdminUser = { displayName: string; isSuperAdmin: boolean };
 type Section = { href: string; label: string; description: string; icon: typeof Beer; group: "Operations" | "Management" | "Membership Tools" };
 const sections: Section[] = [
+  { href: "/staff/admin/urgent-staff-alerts", label: "Urgent Staff Alerts", description: "Send mandatory internal popup notices to one gym or all staffed gyms, with named acknowledgement tracking.", icon: BellRing, group: "Management" },
   { href: "/staff/admin/live-monitor", label: "Live Gym Monitor", description: "Watch one gym's scans, check-ins, membership activity and Bar totals remotely in near real time.", icon: Activity, group: "Operations" },
   { href: "/staff/operations", label: "Operations dashboard", description: "Review Sundries and Bar submissions across all gyms.", icon: ClipboardList, group: "Operations" },
   { href: "/staff/admin/end-of-day", label: "End of Day", description: "Review submitted daily totals, memberships, voucher reimbursements, Bar sales and expenses by gym.", icon: FileBarChart2, group: "Operations" },
