@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
-  createDeveloperRecoveryToken, developerRecoveryBaseUrl, developerRecoveryDestinations,
+  createDeveloperRecoveryToken, developerRecoveryBaseUrl, developerRecoveryDestinations, buildDeveloperRecoveryEmailText,
   validDeveloperPassword, validDeveloperRecoveryToken,
 } from "../lib/developerRecoveryCore.ts";
 
@@ -18,6 +18,17 @@ test("Developer recovery uses 256-bit single-use random tokens and 14+ character
   assert.equal(validDeveloperRecoveryToken("invalid"), false);
   assert.equal(validDeveloperPassword("short"), false);
   assert.equal(validDeveloperPassword("ThisIsALongerPassword123"), true);
+});
+
+test("Recovery email isolates the URL on its own line (no literal backslash-n escape contamination)", () => {
+  const { token } = createDeveloperRecoveryToken();
+  const link = "https://example.vercel.app/staff/developer-recovery?token=" + token;
+  const body = buildDeveloperRecoveryEmailText(link);
+  assert.ok(body.includes("\\n" + link + "\\n\\nIf you did not request"));
+  assert.equal(body.includes(String.raw`\\n\\nIf`), false);
+  const tokenLine = body.split("\\n").find(line => line.startsWith("https://"));
+  assert.equal(tokenLine, link);
+  assert.equal(validDeveloperRecoveryToken(new URL(tokenLine).searchParams.get("token")), true);
 });
 
 test("Primary and backup recovery addresses are private and deduplicated", () => {

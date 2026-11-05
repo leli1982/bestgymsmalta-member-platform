@@ -6,6 +6,7 @@ import { resolveOperationsMailConfig } from "@/lib/operationsMailConfig";
 import {
   createDeveloperRecoveryToken, developerRecoveryBaseUrl,
   hashDeveloperRecoveryToken, validDeveloperPassword, validDeveloperRecoveryToken, developerRecoveryDestinations,
+  buildDeveloperRecoveryEmailText,
 } from "@/lib/developerRecoveryCore";
 
 export const dynamic = "force-dynamic";
@@ -66,9 +67,7 @@ export async function POST(request: NextRequest) {
           await transporter.sendMail({
             from: mail.from, to: destination,
             subject: "BestGymsMalta — Developer account password recovery",
-            text: "A password reset was requested for the protected BestGymsMalta Developer account.\\n\\n" +
-              "Use this single-use link within 15 minutes:\\n" + link +
-              "\\n\\nIf you did not request this, ignore this email. Ordinary Super Admins cannot reset this account.",
+            text: buildDeveloperRecoveryEmailText(link),
           });
           delivered += 1;
         } catch {
@@ -87,8 +86,11 @@ export async function POST(request: NextRequest) {
     if (mode === "reset") {
       const token = body.token;
       const password = body.password;
-      if (!validDeveloperRecoveryToken(token) || !validDeveloperPassword(password)) {
-        return NextResponse.json({ error: "Invalid reset link or password. Use at least 14 characters." }, { status: 400, headers: noStore });
+      if (!validDeveloperRecoveryToken(token)) {
+        return NextResponse.json({ error: "The recovery link is malformed or incomplete. Please request a new email." }, { status: 400, headers: noStore });
+      }
+      if (!validDeveloperPassword(password)) {
+        return NextResponse.json({ error: "Password must contain between 14 and 128 characters." }, { status: 400, headers: noStore });
       }
       const hash = await bcrypt.hash(password, 12);
       const db = getSupabaseAdmin();

@@ -27,6 +27,17 @@ export function developerRecoveryDestinations(env: NodeJS.ProcessEnv) {
     .filter(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))));
 }
 
+export function buildDeveloperRecoveryEmailText(link: string) {
+  return [
+    "A password reset was requested for the protected BestGymsMalta Developer account.",
+    "",
+    "Use this single-use link within 15 minutes:",
+    link,
+    "",
+    "If you did not request this, ignore this email. Ordinary Super Admins cannot reset this account.",
+  ].join("\n");
+}
+
 export function developerRecoveryBaseUrl(env: NodeJS.ProcessEnv) {
   // Never trust an arbitrary request Host header when emailing recovery links.
   if (env.VERCEL_ENV === "production") return "https://bestgymsmalta-member-platform.vercel.app";
