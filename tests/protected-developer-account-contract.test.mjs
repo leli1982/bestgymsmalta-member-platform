@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
-  createDeveloperRecoveryToken, developerRecoveryBaseUrl,
+  createDeveloperRecoveryToken, developerRecoveryBaseUrl, developerRecoveryDestinations,
   validDeveloperPassword, validDeveloperRecoveryToken,
 } from "../lib/developerRecoveryCore.ts";
 
@@ -18,6 +18,25 @@ test("Developer recovery uses 256-bit single-use random tokens and 14+ character
   assert.equal(validDeveloperRecoveryToken("invalid"), false);
   assert.equal(validDeveloperPassword("short"), false);
   assert.equal(validDeveloperPassword("ThisIsALongerPassword123"), true);
+});
+
+test("Primary and backup recovery addresses are private and deduplicated", () => {
+  assert.deepEqual(developerRecoveryDestinations({
+    BGM_DEVELOPER_RECOVERY_EMAIL: "ONE@example.org",
+    BGM_DEVELOPER_RECOVERY_BACKUP_EMAIL: "two@example.net",
+  }), ["one@example.org", "two@example.net"]);
+  assert.deepEqual(developerRecoveryDestinations({
+    BGM_DEVELOPER_RECOVERY_EMAIL: "one@example.org",
+    BGM_DEVELOPER_RECOVERY_BACKUP_EMAIL: "ONE@example.org",
+  }), ["one@example.org"]);
+  assert.deepEqual(developerRecoveryDestinations({
+    BGM_DEVELOPER_RECOVERY_EMAIL: "bad-address",
+    BGM_DEVELOPER_RECOVERY_BACKUP_EMAIL: "two@example.net",
+  }), ["two@example.net"]);
+  const route = read("app/api/system/developer/recovery/route.ts");
+  assert.match(route, /for \\(const destination of destinations\\)/);
+  assert.match(route, /if \\(delivered === 0\\)/);
+  assert.match(route, /developerRecoveryDestinations/);
 });
 
 test("Recovery links are derived only from approved deployment URLs", () => {

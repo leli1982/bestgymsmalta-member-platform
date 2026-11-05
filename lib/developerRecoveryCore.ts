@@ -17,6 +17,16 @@ export function validDeveloperPassword(password: unknown): password is string {
   return typeof password === "string" && password.length >= 14 && password.length <= 128;
 }
 
+export function developerRecoveryDestinations(env: NodeJS.ProcessEnv) {
+  // Recovery addresses exist only in server-side environment settings.
+  // Each address gets a separate message, not a shared To/Cc header.
+  return [...new Set([
+    env.BGM_DEVELOPER_RECOVERY_EMAIL,
+    env.BGM_DEVELOPER_RECOVERY_BACKUP_EMAIL,
+  ].map(value => String(value || "").trim().toLowerCase())
+    .filter(email => /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)))];
+}
+
 export function developerRecoveryBaseUrl(env: NodeJS.ProcessEnv) {
   // Never trust an arbitrary request Host header when emailing recovery links.
   if (env.VERCEL_ENV === "production") return "https://bestgymsmalta-member-platform.vercel.app";

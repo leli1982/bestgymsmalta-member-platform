@@ -5,7 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveOperationsMailConfig } from "@/lib/operationsMailConfig";
 import {
   createDeveloperRecoveryToken, developerRecoveryBaseUrl,
-  hashDeveloperRecoveryToken, validDeveloperPassword, validDeveloperRecoveryToken,
+  hashDeveloperRecoveryToken, validDeveloperPassword, validDeveloperRecoveryToken, developerRecoveryDestinations,
 } from "@/lib/developerRecoveryCore";
 
 export const dynamic = "force-dynamic";
@@ -22,14 +22,14 @@ export async function POST(request: NextRequest) {
     }
     const mode = String(body.mode || "");
     if (mode === "request") {
-      const destination = String(process.env.BGM_DEVELOPER_RECOVERY_EMAIL || "").trim();
+      const destinations = developerRecoveryDestinations(process.env);
       const baseUrl = developerRecoveryBaseUrl(process.env);
       const mail = resolveOperationsMailConfig({
         GMAIL_USER: process.env.GMAIL_USER,
         GMAIL_APP_PASSWORD: process.env.GMAIL_APP_PASSWORD,
         GMAIL_FROM: process.env.GMAIL_FROM,
       });
-      if (!destination || !baseUrl || !mail) {
+      if (!destinations.length || !baseUrl || !mail) {
         console.error("Developer recovery is not fully configured.");
         return NextResponse.json(generic, { headers: noStore });
       }
@@ -55,24 +55,31 @@ export async function POST(request: NextRequest) {
       if (issued.error) throw issued.error;
 
       const link = baseUrl + "/staff/developer-recovery?token=" + encodeURIComponent(token);
-      try {
-        const transporter = nodemailer.createTransport({
-          host: "smtp.gmail.com", port: 465, secure: true,
-          auth: { user: mail.user, pass: mail.appPassword },
-        });
-        await transporter.sendMail({
-          from: mail.from, to: destination,
-          subject: "BestGymsMalta — Developer account password recovery",
-          text: "A password reset was requested for the protected BestGymsMalta Developer account.\n\n" +
-            "Use this single-use link within 15 minutes:\n" + link +
-            "\n\nIf you did not request this, ignore this email. Ordinary Super Admins cannot reset this account.",
-        });
-      } catch (mailError) {
-        console.error("Developer recovery mail send failed", mailError);
-        // Do not log reset tokens or expose delivery/configuration status publicly.
+      const transporter = nodemailer.createTransport({
+        host: "smtp.gmail.com", port: 465, secure: true,
+        auth: { user: mail.user, pass: mail.appPassword },
+      });
+      let delivered = 0;
+      // Both inboxes receive the same single-use token. One reset consumes it for both.
+      for (const destination of destinations) {
+        try {
+          await transporter.sendMail({
+            from: mail.from, to: destination,
+            subject: "BestGymsMalta — Developer account password recovery",
+            text: "A password reset was requested for the protected BestGymsMalta Developer account.\\n\\n" +
+              "Use this single-use link within 15 minutes:\\n" + link +
+              "\\n\\nIf you did not request this, ignore this email. Ordinary Super Admins cannot reset this account.",
+          });
+          delivered += 1;
+        } catch {
+          console.error("One Developer recovery email could not be delivered.");
+        }
+      }
+      if (delivered === 0) {
+        // Do not leave a usable token behind if both email deliveries failed.
         const revoked = await db.from("bgm_developer_password_resets")
           .update({ used_at: new Date().toISOString() }).eq("token_hash", tokenHash);
-        if (revoked.error) console.error("Could not invalidate failed recovery token", revoked.error);
+        if (revoked.error) console.error("Could not invalidate undelivered recovery token", revoked.error);
       }
       return NextResponse.json(generic, { headers: noStore });
     }
