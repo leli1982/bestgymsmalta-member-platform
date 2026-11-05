@@ -20,11 +20,11 @@ export function validDeveloperPassword(password: unknown): password is string {
 export function developerRecoveryDestinations(env: NodeJS.ProcessEnv) {
   // Recovery addresses exist only in server-side environment settings.
   // Each address gets a separate message, not a shared To/Cc header.
-  return [...new Set([
+  return Array.from(new Set([
     env.BGM_DEVELOPER_RECOVERY_EMAIL,
     env.BGM_DEVELOPER_RECOVERY_BACKUP_EMAIL,
   ].map(value => String(value || "").trim().toLowerCase())
-    .filter(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))];
+    .filter(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))));
 }
 
 export function developerRecoveryBaseUrl(env: NodeJS.ProcessEnv) {
