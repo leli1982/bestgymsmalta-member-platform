@@ -113,6 +113,7 @@ async function loadUsers() {
     supabase
       .from("bgm_system_users")
       .select("id, gym_id, username, display_name, is_super_admin, active, role, last_login_at, created_at, updated_at")
+      .eq("is_protected_developer", false)
       .order("is_super_admin", { ascending: false })
       .order("display_name", { ascending: true }),
     supabase.from("bgm_gyms").select("id, name"),
@@ -308,11 +309,16 @@ export async function PATCH(request: NextRequest) {
     const supabase = getSupabaseAdmin();
     const currentResult = await supabase
       .from("bgm_system_users")
-      .select("id, gym_id, username, display_name, is_super_admin, active, role")
+      .select("id, gym_id, username, display_name, is_super_admin, active, role, is_protected_developer")
       .eq("id", id)
       .maybeSingle();
     if (currentResult.error) throw currentResult.error;
     if (!currentResult.data) return NextResponse.json({ error: "System user not found." }, { status: 404 });
+    // Applies to BOTH Super Admin and legacy bootstrap-admin requests.
+    // Never reveal whether the protected Developer account exists.
+    if (currentResult.data.is_protected_developer) {
+      return NextResponse.json({ error: "System user not found." }, { status: 404 });
+    }
 
     const currentRole: SystemUserRole = currentResult.data.is_super_admin || currentResult.data.role === "super_admin"
       ? "super_admin"

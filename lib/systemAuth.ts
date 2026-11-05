@@ -72,13 +72,16 @@ export async function getSystemContext(
   const supabase = getSupabaseAdmin();
   const accountResult = await supabase
     .from("bgm_system_users")
-    .select("id, gym_id, username, display_name, is_super_admin, active, role")
+    .select("id, gym_id, username, display_name, is_super_admin, active, role, is_protected_developer, developer_password_changed_at")
     .eq("id", session.systemUserId)
     .maybeSingle();
 
   if (accountResult.error) throw accountResult.error;
   const account = accountResult.data;
   if (!account || !account.active) return null;
+  // A recovered Developer password revokes every previously issued session.
+  if (account.is_protected_developer && account.developer_password_changed_at &&
+      session.issuedAt < new Date(account.developer_password_changed_at).getTime()) return null;
 
   const role: SystemUserRole = account.is_super_admin || account.role === "super_admin"
     ? "super_admin"
