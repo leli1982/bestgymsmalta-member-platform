@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import OfficialMemberPhotoCapture from "@/components/staff/OfficialMemberPhotoCapture";
 import StaffVoucherSelect from "@/components/staff/StaffVoucherSelect";
+import StaffVoucherApprovalStatus from "@/components/staff/StaffVoucherApprovalStatus";
+import type { VoucherApprovalStatus } from "@/lib/voucherApprovalCore";
 
 type Participant = {
   id: string;
@@ -43,6 +45,8 @@ export default function PendingMembershipActions() {
     discountAmountCents: number;
     finalAmountCents: number;
     currency: string;
+    requiresVerification?: boolean;
+    approvalStatus?: VoucherApprovalStatus;
   }>>({});
   const [paymentMethods, setPaymentMethods] = useState<Record<string, "cash" | "card" | "other" | "">>({});
   const [paymentOtherTexts, setPaymentOtherTexts] = useState<Record<string, string>>({});
@@ -166,6 +170,10 @@ export default function PendingMembershipActions() {
     }
     if (paymentMethod === "other" && !paymentOtherText) {
       setError("Describe the Other payment method.");
+      return;
+    }
+    if (discountPreview?.requiresVerification && discountPreview.approvalStatus !== "approved") {
+      setError("Super Admin approval is required before accepting payment.");
       return;
     }
     if (discountCode && !discountPreview) {
@@ -340,6 +348,19 @@ export default function PendingMembershipActions() {
                     </div>
                   </label>
 
+                  {discountPreviews[application.id]?.requiresVerification ? (
+                    <StaffVoucherApprovalStatus
+                      applicationId={application.id}
+                      code={discountCodes[application.id] || ""}
+                      status={discountPreviews[application.id].approvalStatus || "pending"}
+                      onStatusChange={(status) => setDiscountPreviews((current) => {
+                        const existing = current[application.id];
+                        if (!existing || existing.code !== (discountCodes[application.id] || "")) return current;
+                        return { ...current, [application.id]: { ...existing, approvalStatus: status } };
+                      })}
+                    />
+                  ) : null}
+
                   <div className="mt-4 grid grid-cols-3 gap-2">
                     {(["cash", "card", "other"] as const).map((method) => (
                       <label key={method} className="rounded-xl border border-zinc-300 bg-white p-3 text-center text-sm font-black">
@@ -375,7 +396,8 @@ export default function PendingMembershipActions() {
                       !(activationStaffNames[application.id] || "").trim() ||
                       !paymentMethods[application.id] ||
                       (paymentMethods[application.id] === "other" && !(paymentOtherTexts[application.id] || "").trim()) ||
-                      Boolean((discountCodes[application.id] || "").trim() && !discountPreviews[application.id])
+                      Boolean((discountCodes[application.id] || "").trim() && !discountPreviews[application.id]) ||
+                      Boolean(discountPreviews[application.id]?.requiresVerification && discountPreviews[application.id].approvalStatus !== "approved")
                     }
                     onClick={() => void activateApplication(application)}
                     className="mt-4 w-full rounded-xl bg-green-600 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"

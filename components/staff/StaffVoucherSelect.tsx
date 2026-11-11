@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-type Voucher = { code: string; percentage: number };
+type Voucher = { code: string; percentage: number; requiresVerification?: boolean };
 
 type Props = {
   value: string;
@@ -52,7 +52,7 @@ export default function StaffVoucherSelect({ value, onChange, className }: Props
         <option value="">No voucher</option>
         {vouchers.map((voucher) => (
           <option key={voucher.code} value={voucher.code}>
-            {voucher.code} — {voucher.percentage}%
+            {voucher.code} — {voucher.percentage}%{voucher.requiresVerification ? " (approval required)" : ""}
           </option>
         ))}
         {value && !listed && (

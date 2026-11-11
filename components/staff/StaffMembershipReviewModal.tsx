@@ -4,6 +4,8 @@ import { formatEuropeanDate, formatEuropeanDateTime } from "@/lib/europeanDate";
 
 import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
 import StaffVoucherSelect from "@/components/staff/StaffVoucherSelect";
+import StaffVoucherApprovalStatus from "@/components/staff/StaffVoucherApprovalStatus";
+import type { VoucherApprovalStatus } from "@/lib/voucherApprovalCore";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -188,6 +190,8 @@ export default function StaffMembershipReviewModal({
     discountAmountCents: number;
     finalAmountCents: number;
     currency: string;
+    requiresVerification?: boolean;
+    approvalStatus?: VoucherApprovalStatus;
   } | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -608,6 +612,10 @@ export default function StaffMembershipReviewModal({
       return;
     }
     if (paymentMethod === "other" && !paymentOtherText.trim()) return;
+    if (discountPreview?.requiresVerification && discountPreview.approvalStatus !== "approved") {
+      setError("Super Admin approval is required before accepting payment.");
+      return;
+    }
     if (discountCode.trim() && !discountPreview) {
       setError("Apply the discount code before confirming payment.");
       return;
@@ -1160,6 +1168,16 @@ export default function StaffMembershipReviewModal({
                   </label>
                 </div>
 
+                {discountPreview?.requiresVerification ? (
+                  <StaffVoucherApprovalStatus
+                    applicationId={applicationId}
+                    code={discountCode}
+                    status={discountPreview.approvalStatus || "pending"}
+                    onStatusChange={(status) => setDiscountPreview((current) =>
+                      current?.code === discountCode ? { ...current, approvalStatus: status } : current)}
+                  />
+                ) : null}
+
                 <form onSubmit={activateMembership} className="mt-4 space-y-4">
                   <fieldset>
                     <legend className="text-xs font-black uppercase tracking-wide text-emerald-800">Payment method</legend>
@@ -1209,7 +1227,8 @@ export default function StaffMembershipReviewModal({
                       !staffName.trim() ||
                       !paymentMethod ||
                       (paymentMethod === "other" && !paymentOtherText.trim()) ||
-                      Boolean(discountCode.trim() && !discountPreview)
+                      Boolean(discountCode.trim() && !discountPreview) ||
+                      Boolean(discountPreview?.requiresVerification && discountPreview.approvalStatus !== "approved")
                     }
                     className="w-full rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white disabled:opacity-40"
                   >

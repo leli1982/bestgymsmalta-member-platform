@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
         supabase
           .from("bgm_discount_codes")
           .select(
-            "id, code, percentage, active, valid_from, valid_until, max_uses, successful_uses, created_by_system_user_id, created_at, updated_at"
+            "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, created_by_system_user_id, created_at, updated_at"
           )
           .order("created_at", { ascending: false }),
         supabase
@@ -169,6 +169,7 @@ export async function GET(request: NextRequest) {
         code: discount.code,
         percentage: discount.percentage,
         active: discount.active,
+        requiresVerification: discount.requires_verification === true,
         validFrom: discount.valid_from,
         validUntil: discount.valid_until,
         maxUses: discount.max_uses,
@@ -430,6 +431,7 @@ export async function POST(request: NextRequest) {
       let code: string;
       let percentage: number;
       let active: boolean;
+      let requiresVerification: boolean;
       let validFrom: string | null;
       let validUntil: string | null;
       let maxUses: number | null;
@@ -445,6 +447,10 @@ export async function POST(request: NextRequest) {
         if (body.active !== undefined && typeof body.active !== "boolean") {
           throw new Error("Discount active state must be true or false.");
         }
+        if (body.requiresVerification !== undefined && typeof body.requiresVerification !== "boolean") {
+          throw new Error("Requires verification must be true or false.");
+        }
+        requiresVerification = body.requiresVerification === true;
         validFrom = optionalDate(body.validFrom, "Valid from");
         validUntil = optionalDate(body.validUntil, "Valid until");
         if (validFrom && validUntil && validUntil < validFrom) {
@@ -470,7 +476,7 @@ export async function POST(request: NextRequest) {
         const existingResult = await supabase
           .from("bgm_discount_codes")
           .select(
-            "id, code, percentage, active, valid_from, valid_until, max_uses, successful_uses, created_by_system_user_id, created_at, updated_at"
+            "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, created_by_system_user_id, created_at, updated_at"
           )
           .eq("id", id)
           .maybeSingle();
@@ -479,6 +485,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: "Discount code not found." }, { status: 404 });
         }
         beforeData = existingResult.data;
+        if (body.requiresVerification === undefined) requiresVerification = existingResult.data.requires_verification === true;
 
         discountResult = await supabase
           .from("bgm_discount_codes")
@@ -486,6 +493,7 @@ export async function POST(request: NextRequest) {
             code,
             percentage,
             active,
+            requires_verification: requiresVerification,
             valid_from: validFrom,
             valid_until: validUntil,
             max_uses: maxUses,
@@ -493,7 +501,7 @@ export async function POST(request: NextRequest) {
           })
           .eq("id", id)
           .select(
-            "id, code, percentage, active, valid_from, valid_until, max_uses, successful_uses, created_at, updated_at"
+            "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, created_at, updated_at"
           )
           .single();
       } else {
@@ -503,6 +511,7 @@ export async function POST(request: NextRequest) {
             code,
             percentage,
             active,
+            requires_verification: requiresVerification,
             valid_from: validFrom,
             valid_until: validUntil,
             max_uses: maxUses,
@@ -510,7 +519,7 @@ export async function POST(request: NextRequest) {
             updated_at: now,
           })
           .select(
-            "id, code, percentage, active, valid_from, valid_until, max_uses, successful_uses, created_at, updated_at"
+            "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, created_at, updated_at"
           )
           .single();
       }
@@ -545,7 +554,7 @@ export async function POST(request: NextRequest) {
       const existingResult = await supabase
         .from("bgm_discount_codes")
         .select(
-          "id, code, percentage, active, valid_from, valid_until, max_uses, successful_uses, created_at, updated_at"
+          "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, created_at, updated_at"
         )
         .eq("id", id)
         .maybeSingle();
@@ -559,7 +568,7 @@ export async function POST(request: NextRequest) {
         .update({ active, updated_at: new Date().toISOString() })
         .eq("id", id)
         .select(
-          "id, code, percentage, active, valid_from, valid_until, max_uses, successful_uses, created_at, updated_at"
+          "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, created_at, updated_at"
         )
         .single();
       if (updateResult.error) throw updateResult.error;

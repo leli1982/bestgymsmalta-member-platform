@@ -46,6 +46,7 @@ type DiscountCode = {
   code: string;
   percentage: number;
   active: boolean;
+  requiresVerification: boolean;
   validFrom: string | null;
   validUntil: string | null;
   maxUses: number | null;
@@ -164,6 +165,7 @@ export default function MembershipSettingsAdmin() {
     validUntil: "",
     maxUses: "",
     active: true,
+    requiresVerification: false,
   });
 
   // A draft created before the current published catalog must never override it.
@@ -328,12 +330,13 @@ export default function MembershipSettingsAdmin() {
       code: discountDraft.code,
       percentage,
       active: discountDraft.active,
+      requiresVerification: discountDraft.requiresVerification,
       validFrom: discountDraft.validFrom || null,
       validUntil: discountDraft.validUntil || null,
       maxUses,
     });
     if (result) {
-      setDiscountDraft({ id: "", code: "", percentage: "", validFrom: "", validUntil: "", maxUses: "", active: true });
+      setDiscountDraft({ id: "", code: "", percentage: "", validFrom: "", validUntil: "", maxUses: "", active: true, requiresVerification: false });
       setMessage("Discount code saved.");
     }
   }
@@ -352,6 +355,7 @@ export default function MembershipSettingsAdmin() {
       validUntil: discount.validUntil || "",
       maxUses: discount.maxUses === null ? "" : String(discount.maxUses),
       active: discount.active,
+      requiresVerification: discount.requiresVerification,
     });
     document.getElementById("discount-editor")?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
@@ -505,8 +509,14 @@ export default function MembershipSettingsAdmin() {
                   <input type="checkbox" checked={discountDraft.active} onChange={(event) => setDiscountDraft((current) => ({ ...current, active: event.target.checked }))} /> Active
                 </label>
               </div>
+              <label className="mt-4 inline-flex flex-wrap items-center gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-black text-zinc-800">
+                <input type="checkbox" checked={discountDraft.requiresVerification}
+                  onChange={(event) => setDiscountDraft((current) => ({ ...current, requiresVerification: event.target.checked }))} />
+                Requires verification
+                <span className="text-xs font-semibold text-zinc-600">Super Admin approval is required before Staff can activate a membership with this voucher.</span>
+              </label>
               <div className="mt-4 flex justify-end gap-2">
-                {discountDraft.id && <button type="button" onClick={() => setDiscountDraft({ id: "", code: "", percentage: "", validFrom: "", validUntil: "", maxUses: "", active: true })} className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-black">Cancel edit</button>}
+                {discountDraft.id && <button type="button" onClick={() => setDiscountDraft({ id: "", code: "", percentage: "", validFrom: "", validUntil: "", maxUses: "", active: true, requiresVerification: false })} className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-black">Cancel edit</button>}
                 <button type="button" disabled={saving} onClick={() => void saveDiscountCode()} className="rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{discountDraft.id ? "Update Discount" : "Save Discount"}</button>
               </div>
 
@@ -516,7 +526,7 @@ export default function MembershipSettingsAdmin() {
                 ) : settings.discountCodes.map((discount) => (
                   <div key={discount.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 p-4">
                     <div>
-                      <div className="flex flex-wrap items-center gap-2"><span className="font-black">{discount.code}</span><span className={`rounded-full px-2 py-1 text-[10px] font-black ${discount.active ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{discount.active ? "ACTIVE" : "INACTIVE"}</span></div>
+                      <div className="flex flex-wrap items-center gap-2"><span className="font-black">{discount.code}</span><span className={`rounded-full px-2 py-1 text-[10px] font-black ${discount.active ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{discount.active ? "ACTIVE" : "INACTIVE"}</span>{discount.requiresVerification ? <span className="rounded-full bg-orange-100 px-2 py-1 text-[10px] font-black text-orange-800">VERIFICATION REQUIRED</span> : null}</div>
                       <p className="mt-1 text-xs font-semibold text-zinc-500">{discount.percentage}% · {discount.successfulUses}{discount.maxUses ? ` / ${discount.maxUses}` : ""} successful uses · {discount.validFrom || "No start"} → {discount.validUntil || "No expiry"}</p>
                     </div>
                     <div className="flex gap-2">

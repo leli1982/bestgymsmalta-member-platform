@@ -36,7 +36,9 @@ jobs:
           npm install --prefix /tmp/bgm-ci-playwright --no-save --package-lock=false playwright@1.63.0
           ln -s /tmp/bgm-ci-playwright/node_modules/playwright node_modules/playwright
           ln -s /tmp/bgm-ci-playwright/node_modules/playwright-core node_modules/playwright-core
-          node /tmp/bgm-ci-playwright/node_modules/playwright/cli.js install --with-deps chromium
+          # Browser binaries download without apt; hosted runner apt mirrors are intermittently
+          # unavailable (Ubuntu 26.04 DNS). Runner already ships browser system libs.
+          node /tmp/bgm-ci-playwright/node_modules/playwright/cli.js install chromium
 
       - name: Run tests
         run: node --experimental-strip-types --test tests/*.test.mjs
