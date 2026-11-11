@@ -1,27 +1,18 @@
-import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { todayMaltaDate } from "@/lib/maltaDate";
+import { requireSuperAdmin } from "@/lib/systemAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { sendWelcomePackagesBestEffort } from "@/lib/welcomePackage";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// One-time incident-only maintenance endpoint. Remove after delivery verification.
-// Secret is supplied through Vercel's encrypted Production environment variables,
-// never in a URL or source. The date and application scope are immutable.
+// Incident-only Super Admin recovery; date and application scope are immutable.
 const REPLAY_DAY = "2026-11-11";
 const START_UTC = "2026-11-10T23:00:00.000Z";
 const END_UTC = "2026-11-11T23:00:00.000Z";
 const SENT_AUDIT_ACTION = "membership.welcome_email.sent";
 const NO_STORE = { "Cache-Control": "private, no-store, max-age=0" };
-
-function authorized(request: NextRequest): boolean {
-  const expected = process.env.BGM_ONE_OFF_WELCOME_REPLAY_TOKEN || "";
-  const supplied = request.headers.get("x-bgm-welcome-replay-token") || "";
-  if (expected.length < 48 || supplied.length !== expected.length) return false;
-  return timingSafeEqual(Buffer.from(supplied, "utf8"), Buffer.from(expected, "utf8"));
-}
 
 function sentRecipients(rows: Array<{ after_data: unknown }>) {
   return new Set(rows
@@ -34,9 +25,8 @@ function sentRecipients(rows: Array<{ after_data: unknown }>) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!authorized(request)) {
-    return NextResponse.json({ error: "Not found." }, { status: 404, headers: NO_STORE });
-  }
+  const auth = await requireSuperAdmin(request);
+  if (auth.error || !auth.context) return auth.error;
   if (todayMaltaDate() !== REPLAY_DAY) {
     return NextResponse.json({ error: "This incident-only replay window has expired." }, { status: 410, headers: NO_STORE });
   }
