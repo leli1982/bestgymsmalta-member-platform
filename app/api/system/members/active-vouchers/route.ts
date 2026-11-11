@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 type VoucherRow = {
   code: string;
   percentage: number;
+  requires_verification: boolean;
   active: boolean;
   valid_from: string | null;
   valid_until: string | null;
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     const result = await getSupabaseAdmin()
       .from("bgm_discount_codes")
-      .select("code, percentage, active, valid_from, valid_until, max_uses, successful_uses")
+      .select("code, percentage, requires_verification, active, valid_from, valid_until, max_uses, successful_uses")
       .eq("active", true)
       .order("code", { ascending: true });
 
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
     const today = todayMaltaDate();
     const vouchers = ((result.data || []) as VoucherRow[])
       .filter((voucher) => voucherAvailableToday(voucher, today))
-      .map(({ code, percentage }) => ({ code, percentage }));
+      .map(({ code, percentage, requires_verification }) => ({ code, percentage, requiresVerification: requires_verification }));
 
     return NextResponse.json(
       { vouchers },
