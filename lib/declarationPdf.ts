@@ -56,7 +56,22 @@ function toWinAnsi(value: string, title: string) {
       result += "    ";
       continue;
     }
-    throw new Error(`${title} PDF cannot encode character U+${cp.toString(16).toUpperCase().padStart(4, "0")}.`);
+    // Helvetica/WinAnsi cannot display all Unicode glyphs. Use a readable
+    // transliteration only for the visible PDF text; the original UTF-8 text
+    // remains losslessly preserved in BGM-*-UTF8-Base64 metadata below.
+    // This prevents email delivery from failing for Maltese names and rules.
+    const malteseLatin: Record<string, string> = {
+      "Ċ": "C", "ċ": "c", "Ġ": "G", "ġ": "g", "Ħ": "H", "ħ": "h",
+      "Ż": "Z", "ż": "z", "Ł": "L", "ł": "l", "Đ": "D", "đ": "d",
+      "Ø": "O", "ø": "o", "Œ": "OE", "œ": "oe",
+    };
+    const visible = malteseLatin[char] ||
+      char.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+    const fallback = Array.from(visible).every((unit) => {
+      const point = unit.codePointAt(0) ?? 0;
+      return (point >= 0x20 && point <= 0x7e) || (point >= 0xa0 && point <= 0xff);
+    }) ? visible : "?";
+    result += fallback;
   }
   return result;
 }
