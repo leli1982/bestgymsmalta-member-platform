@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import OfficialMemberPhotoCapture from "@/components/staff/OfficialMemberPhotoCapture";
+import StaffVoucherSelect from "@/components/staff/StaffVoucherSelect";
 
 type Participant = {
   id: string;
@@ -312,7 +313,7 @@ export default function PendingMembershipActions() {
               {openId === application.id && (
                 <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
                   <p className="text-sm font-black">Payment</p>
-                  <p className="mt-1 text-xs text-zinc-500">Rates and discount values are controlled by Super Admin. Staff can only enter an issued Discount code.</p>
+                  <p className="mt-1 text-xs text-zinc-500">Rates and discount values are controlled by Super Admin. Staff can select an available Discount code.</p>
 
                   <div className="mt-4 grid gap-2 sm:grid-cols-3">
                     <div className="rounded-xl bg-white p-3"><p className="text-[11px] font-black uppercase text-zinc-400">Base Price</p><p className="mt-1 font-black">€{(((discountPreviews[application.id]?.basePriceCents ?? application.basePriceCents ?? 0) / 100)).toFixed(2)}</p></div>
@@ -323,17 +324,16 @@ export default function PendingMembershipActions() {
                   <label className="mt-4 block text-sm font-bold">
                     Discount code
                     <div className="mt-2 flex gap-2">
-                      <input
+                      <StaffVoucherSelect
                         value={discountCodes[application.id] || ""}
-                        onChange={(event) => {
-                          setDiscountCodes((current) => ({ ...current, [application.id]: event.target.value.toUpperCase() }));
+                        onChange={(code) => {
+                          setDiscountCodes((current) => ({ ...current, [application.id]: code }));
                           setDiscountPreviews((current) => {
                             const next = { ...current };
                             delete next[application.id];
                             return next;
                           });
                         }}
-                        placeholder="Enter Super Admin code"
                         className="min-w-0 flex-1 rounded-xl border border-zinc-300 bg-white px-3 py-2 font-mono uppercase"
                       />
                       <button type="button" onClick={() => void applyDiscountCode(application)} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-black text-white">Apply code</button>

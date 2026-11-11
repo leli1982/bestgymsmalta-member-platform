@@ -318,6 +318,16 @@ try {
     });
   });
 
+  await page.route("**/api/system/members/active-vouchers", (route) => {
+    assert.equal(route.request().method(), "GET");
+    return route.fulfill({ json: {
+      vouchers: [
+        { code: "SAVE10", percentage: 10 },
+        { code: "STUDENT VOUCHER", percentage: 100 },
+      ],
+    } });
+  });
+
   await page.route(`**/api/system/members/applications/${applicationId}/discount`, (route) => {
     assert.equal(route.request().method(), "POST");
     const payload = route.request().postDataJSON();
@@ -456,7 +466,14 @@ try {
 
   await page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }).click();
   await waitVisible(page.getByText("Base Price", { exact: true }));
-  await page.getByPlaceholder("Enter Super Admin code").fill("SAVE10");
+  const voucherSelect = page.getByRole("combobox", { name: "Discount code" });
+  await waitVisible(voucherSelect);
+  await page.waitForFunction(() => {
+    const dropdown = document.querySelector('select[aria-label="Discount code"]');
+    return dropdown && dropdown.querySelector('option[value="SAVE10"]');
+  });
+  assert.equal(await voucherSelect.inputValue(), "", "No voucher should be selected by default");
+  await voucherSelect.selectOption("SAVE10");
   await page.getByRole("button", { name: "Apply code", exact: true }).click();
   await waitVisible(page.getByText("10% · -€3.00", { exact: true }));
   await page.getByLabel("Cash").check();
