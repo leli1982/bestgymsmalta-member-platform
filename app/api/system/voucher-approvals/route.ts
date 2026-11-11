@@ -23,9 +23,9 @@ export async function GET(request: NextRequest) {
       .order("requested_at",{ascending:false}).limit(120);
     if (result.error) throw result.error;
     const records = result.data || [];
-    const applicationIds = [...new Set(records.map(r => r.application_id))];
-    const gymIds = [...new Set(records.map(r => r.gym_id))];
-    const userIds = [...new Set(records.flatMap(r => [r.requested_by_system_user_id,r.reviewed_by_system_user_id]).filter((id): id is string => Boolean(id)))];
+    const applicationIds = Array.from(new Set(records.map(r => r.application_id)));
+    const gymIds = Array.from(new Set(records.map(r => r.gym_id)));
+    const userIds = Array.from(new Set(records.flatMap(r => [r.requested_by_system_user_id,r.reviewed_by_system_user_id]).filter((id): id is string => Boolean(id))));
 
     const [applications,members,gyms,users] = await Promise.all([
       applicationIds.length ? db.from("bgm_membership_applications")
