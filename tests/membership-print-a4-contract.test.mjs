@@ -96,3 +96,15 @@ test("Chromium verifies Single, Student minor and Couples print fit", () => {
   assert.match(browser, /length,\s*2/);
   assert.match(workflow, /membership-print-a4\.mjs/);
 });
+
+test("print screen offers a safe reprint after the first print and after confirmation", () => {
+  assert.match(printShell, /printDialogOpened \? \(/);
+  assert.match(printShell, /Reprint Membership/);
+  assert.match(printShell, /window\.print\(\)/);
+  assert.match(printShell, /disabled=\{printFit !== "fits"\}/);
+  assert.match(printShell, /printDialogOpened && !printConfirmed/);
+  assert.match(printShell, /CONFIRM PRINTED/);
+  assert.match(browser, /verifyReprintAfterPrinterFailure/);
+  assert.match(browser, /reprinting must not confirm paper was printed/);
+  assert.match(browser, /reprint does not record duplicate confirmations/);
+});
