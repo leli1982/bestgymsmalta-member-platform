@@ -48,6 +48,7 @@ let idVerified = false;
 let reviewed = false;
 let printConfirmed = false;
 let activated = false;
+let voucherApproved = false;
 const applicationId = "app-browser";
 const participantId = "participant-browser";
 
@@ -328,6 +329,14 @@ try {
     } });
   });
 
+  await page.route(`**/api/system/members/applications/${applicationId}/voucher-approval?*`, (route) => {
+    assert.equal(route.request().method(), "GET");
+    return route.fulfill({ json: {
+      status: voucherApproved ? "approved" : "pending",
+      note: null,
+    } });
+  });
+
   await page.route(`**/api/system/members/applications/${applicationId}/discount`, (route) => {
     assert.equal(route.request().method(), "POST");
     const payload = route.request().postDataJSON();
@@ -339,6 +348,8 @@ try {
         basePriceCents: 3000,
         discountAmountCents: 300,
         finalAmountCents: 2700,
+        requiresVerification: true,
+        approvalStatus: "pending",
         currency: "EUR",
         priceCatalogVersionId: "catalog-browser",
       },
@@ -476,6 +487,13 @@ try {
   await voucherSelect.selectOption("SAVE10");
   await page.getByRole("button", { name: "Apply code", exact: true }).click();
   await waitVisible(page.getByText("10% · -€3.00", { exact: true }));
+  await waitVisible(page.getByText(/Awaiting Super Admin approval/));
+  assert.equal(await page.getByRole("button", {name:"PAYMENT RECEIVED — ACTIVATE",exact:true}).isDisabled(),true,
+    "Staff must not activate a voucher pending Super Admin approval");
+  voucherApproved = true;
+  await page.getByText(/Super Admin approved this voucher/).waitFor({state:"visible",timeout:16000});
+  assert.equal(await page.getByRole("button", {name:"PAYMENT RECEIVED — ACTIVATE",exact:true}).isDisabled(),true,
+    "Normal payment fields are still required after approval");
   await page.getByLabel("Cash").check();
   await waitVisible(page.getByPlaceholder("Payment Staff Name"));
   await page.getByPlaceholder("Payment Staff Name").fill("Browser Staff");
