@@ -27,15 +27,23 @@ test("Unknown Unicode has safe fallback while exact original UTF-8 is preserved"
   assert.ok(output.includes("BGM-Gym-Rules-UTF8-Base64: " + Buffer.from(body, "utf8").toString("base64")));
 });
 
-test("One-time replay is POST-only, authenticated, date-limited and audit-based", () => {
+test("One-time replay requires Super Admin, is POST-only, date-limited and audit-based", () => {
   const code = readFileSync(new URL("../app/api/system/maintenance/replay-welcome-20261111/route.ts", import.meta.url), "utf8");
   assert.match(code, /export async function POST\(/);
   assert.doesNotMatch(code, /export async function GET\(/);
-  assert.match(code, /timingSafeEqual/);
-  assert.match(code, /BGM_ONE_OFF_WELCOME_REPLAY_TOKEN/);
+  assert.match(code, /requireSuperAdmin\(request\)/);
+  assert.doesNotMatch(code, /BGM_ONE_OFF_WELCOME_REPLAY_TOKEN/);
   assert.match(code, /todayMaltaDate\(\) !== REPLAY_DAY/);
   assert.match(code, /\.eq\("application_kind", "new"\)/);
   assert.match(code, /\.eq\("status", "activated"\)/);
   assert.match(code, /membership\.welcome_email\.sent/);
   assert.match(code, /sendWelcomePackagesBestEffort\(app\.id\)/);
+});
+
+test("The Super Admin replay screen requires a real user click, never auto-sends", () => {
+  const code = readFileSync(new URL("../app/staff/admin/welcome-email-recovery/page.tsx", import.meta.url), "utf8");
+  assert.match(code, /onClick={replay}/);
+  assert.match(code, /method: "POST"/);
+  assert.match(code, /credentials: "include"/);
+  assert.match(code, /Send missed welcome emails/);
 });
