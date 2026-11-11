@@ -262,6 +262,59 @@ async function verifyFixture(context, key, expectedSheets) {
   await page.close();
 }
 
+async function verifyReprintAfterPrinterFailure(context) {
+  const page = await context.newPage();
+  const browserErrors = [];
+  page.on("pageerror", (error) => browserErrors.push(error.message));
+  let confirmations = 0;
+
+  await page.route("**/api/system/members/applications/*/print", (route) => {
+    if (route.request().method() === "POST") {
+      assert.deepEqual(route.request().postDataJSON(), { action: "confirm_print" });
+      confirmations += 1;
+      return route.fulfill({ json: { ok: true, confirmedAt: "2026-11-11T12:00:00Z" } });
+    }
+    return route.fulfill({ json: { application: fixtures.single } });
+  });
+
+  await page.goto(`${origin}/staff/applications/single/print`);
+  await page.locator(".bgm-member-a4-sheet").waitFor({ state: "visible" });
+  const firstPrint = page.getByRole("button", { name: "Print Membership", exact: true });
+  await firstPrint.waitFor({ state: "visible" });
+  await page.waitForFunction(() => {
+    const button = Array.from(document.querySelectorAll("button")).find(
+      (candidate) => candidate.textContent?.includes("Print Membership")
+    );
+    return button && !button.disabled;
+  });
+
+  await page.evaluate(() => {
+    window.__testPrintCalls = 0;
+    window.print = () => { window.__testPrintCalls += 1; };
+  });
+
+  assert.equal(await page.getByRole("button", { name: "Reprint Membership", exact: true }).count(), 0);
+  await firstPrint.click();
+  const reprint = page.getByRole("button", { name: "Reprint Membership", exact: true });
+  await reprint.waitFor({ state: "visible" });
+  assert.equal(await reprint.isEnabled(), true, "staff can retry immediately if the printer has no paper");
+  assert.equal(await page.evaluate(() => window.__testPrintCalls), 1);
+
+  await reprint.click();
+  assert.equal(await page.evaluate(() => window.__testPrintCalls), 2);
+  assert.equal(confirmations, 0, "reprinting must not confirm paper was printed");
+  await page.getByRole("button", { name: "CONFIRM PRINTED", exact: true }).click();
+  await page.getByRole("button", { name: "Return to Staff Flow", exact: true }).waitFor({ state: "visible" });
+  assert.equal(confirmations, 1, "confirmation is recorded once");
+
+  assert.equal(await reprint.isEnabled(), true, "reprinting remains possible after print confirmation");
+  await reprint.click();
+  assert.equal(await page.evaluate(() => window.__testPrintCalls), 3);
+  assert.equal(confirmations, 1, "reprint does not record duplicate confirmations");
+  assert.deepEqual(browserErrors, []);
+  await page.close();
+}
+
 async function verifyOverflowIsBlocked(context) {
   const page = await context.newPage();
   const oversized = application("oversized", "student", [participant(1, { under18AtSubmission: true })]);
@@ -292,9 +345,10 @@ try {
   await verifyFixture(context, "sixteen", 1);
   await verifyFixture(context, "mixed", 2);
   await verifyFixture(context, "couples", 2);
+  await verifyReprintAfterPrinterFailure(context);
   await verifyOverflowIsBlocked(context);
 
-  console.log("PASS Chromium PDFs contain one A4 page per member; oversize agreements cannot be printed or confirmed");
+  console.log("PASS Chromium PDF sheets, safe print retry before/after confirmation, and blocked A4 overflow");
 } finally {
   if (browser) await browser.close();
   server.kill("SIGTERM");
