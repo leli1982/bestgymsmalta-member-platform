@@ -3,6 +3,7 @@
 import { formatEuropeanDate, formatEuropeanDateTime } from "@/lib/europeanDate";
 
 import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+import StaffVoucherSelect from "@/components/staff/StaffVoucherSelect";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -1109,7 +1110,7 @@ export default function StaffMembershipReviewModal({
               <section className="rounded-3xl border-2 border-emerald-300 bg-emerald-50 p-5 sm:p-6">
                 <h3 className="text-xl font-black text-zinc-950">Confirm payment received</h3>
                 <p className="mt-1 text-sm text-zinc-600">
-                  Membership rates and discount values are controlled by Super Admin. Staff can only enter an issued discount code.
+                  Membership rates and discount values are controlled by Super Admin. Staff can select an available discount code.
                 </p>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -1139,14 +1140,13 @@ export default function StaffMembershipReviewModal({
                   <label className="text-xs font-black uppercase tracking-wide text-emerald-800">
                     Discount code
                     <div className="mt-1.5 flex gap-2">
-                      <input
+                      <StaffVoucherSelect
                         value={discountCode}
-                        onChange={(event) => {
-                          setDiscountCode(event.target.value.toUpperCase());
+                        onChange={(code) => {
+                          setDiscountCode(code);
                           setDiscountPreview(null);
                         }}
-                        placeholder="Enter Super Admin code"
-                        className="min-w-0 flex-1 rounded-xl border border-emerald-300 bg-white px-3 py-2.5 font-mono font-bold uppercase text-zinc-950 placeholder:text-zinc-400 caret-zinc-950 outline-none"
+                        className="min-w-0 flex-1 rounded-xl border border-emerald-300 bg-white px-3 py-2.5 font-mono font-bold uppercase text-zinc-950 outline-none"
                       />
                       <button
                         type="button"
