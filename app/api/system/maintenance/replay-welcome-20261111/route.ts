@@ -83,9 +83,9 @@ export async function POST(request: NextRequest) {
 
       results.push({
         applicationId: app.id,
-        newlySent: [...intended].filter((recipient) => !already.has(recipient) && nowSent.has(recipient)).length,
-        previouslySent: [...intended].filter((recipient) => already.has(recipient)).length,
-        pending: [...intended].filter((recipient) => !nowSent.has(recipient)).length,
+        newlySent: Array.from(intended).filter((recipient) => !already.has(recipient) && nowSent.has(recipient)).length,
+        previouslySent: Array.from(intended).filter((recipient) => already.has(recipient)).length,
+        pending: Array.from(intended).filter((recipient) => !nowSent.has(recipient)).length,
       });
     }
     return NextResponse.json({
