@@ -192,6 +192,19 @@ export default function StaffApplicationPrint({
           >
             <Printer className="h-4 w-4" /> {printConfirmed ? "Printed" : "Print Membership"}
           </button>
+          {printDialogOpened ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (printFit !== "fits") return;
+                window.print();
+              }}
+              disabled={printFit !== "fits"}
+              className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-5 py-3 text-sm font-black text-zinc-900 disabled:opacity-40"
+            >
+              <Printer className="h-4 w-4" /> Reprint Membership
+            </button>
+          ) : null}
           {printDialogOpened && !printConfirmed ? (
             <button
               type="button"
