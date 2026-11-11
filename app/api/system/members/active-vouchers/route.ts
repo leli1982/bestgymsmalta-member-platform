@@ -15,7 +15,7 @@ type VoucherRow = {
   successful_uses: number;
 };
 
-export function voucherAvailableToday(voucher: VoucherRow, today: string): boolean {
+function voucherAvailableToday(voucher: VoucherRow, today: string): boolean {
   return voucher.active === true &&
     (!voucher.valid_from || voucher.valid_from <= today) &&
     (!voucher.valid_until || voucher.valid_until >= today) &&
