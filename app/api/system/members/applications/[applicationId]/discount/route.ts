@@ -6,6 +6,7 @@ import {
 import { todayMaltaDate } from "@/lib/maltaDate";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
+import { sendVoucherApprovalPush } from "@/lib/voucherApprovalPush";
 
 export const dynamic = "force-dynamic";
 
@@ -110,7 +111,7 @@ export async function POST(
     const discountResult = await supabase
       .from("bgm_discount_codes")
       .select(
-        "id, code, percentage, active, valid_from, valid_until, max_uses, successful_uses"
+        "id, code, percentage, active, valid_from, valid_until, max_uses, successful_uses, requires_verification"
       )
       .eq("code", code)
       .maybeSingle();
@@ -136,6 +137,39 @@ export async function POST(
     const amount = discountAmountCents(basePriceCents, discount.percentage);
     const finalAmount = Math.max(basePriceCents - amount, 0);
 
+    let approvalStatus = "not_required";
+    if (discount.requires_verification) {
+      // Only the database RPC may create a pending request. It serializes with
+      // the activation RPC and deduplicates repeated staff Apply Code clicks.
+      const approvalResult = await supabase.rpc("bgm_request_voucher_approval", {
+        p_application_id: applicationId,
+        p_voucher_code: code,
+        p_system_user_id: auth.context.systemUserId,
+      });
+      if (approvalResult.error) {
+        return NextResponse.json(
+          { error: String(approvalResult.error.message || "Voucher approval could not be requested.") },
+          { status: 409 }
+        );
+      }
+      approvalStatus = String(approvalResult.data?.status || "pending");
+      if (approvalResult.data?.created) {
+        // Persistent Super Admin inbox was written transactionally above.
+        // Push delivery is optional and must never duplicate or rollback requests.
+        try {
+          const gymResult = await supabase.from("bgm_gyms")
+            .select("name").eq("id", application.enrollment_gym_id).maybeSingle();
+          await sendVoucherApprovalPush({
+            requestId: approvalResult.data.id,
+            voucherCode: discount.code,
+            gymName: gymResult.data?.name || application.enrollment_gym_id,
+          });
+        } catch (pushError) {
+          console.error("Voucher approval push unavailable; inbox request retained.", pushError);
+        }
+      }
+    }
+
     return NextResponse.json({
       code: discount.code,
       percentage: discount.percentage,
@@ -144,6 +178,8 @@ export async function POST(
       finalAmountCents: finalAmount,
       currency,
       priceCatalogVersionId,
+      requiresVerification: discount.requires_verification === true,
+      approvalStatus,
     });
   } catch (error) {
     console.error(error);
