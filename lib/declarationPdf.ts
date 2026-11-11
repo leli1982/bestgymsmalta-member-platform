@@ -66,7 +66,7 @@ function toWinAnsi(value: string, title: string) {
       "Ø": "O", "ø": "o", "Œ": "OE", "œ": "oe",
     };
     const visible = malteseLatin[char] ||
-      char.normalize("NFKD").replace(/[\\u0300-\\u036f]/g, "");
+      char.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
     const fallback = Array.from(visible).every((unit) => {
       const point = unit.codePointAt(0) ?? 0;
       return (point >= 0x20 && point <= 0x7e) || (point >= 0xa0 && point <= 0xff);
