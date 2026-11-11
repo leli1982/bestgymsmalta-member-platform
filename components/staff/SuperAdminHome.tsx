@@ -16,6 +16,7 @@ const sections: Section[] = [
   { href: "/staff/bar/reports", label: "Bar reports", description: "Review Bar activity, cash comparisons and totals by gym and date.", icon: FileBarChart2, group: "Operations" },
   { href: "/staff/admin/statistics", label: "Statistics & analytics", description: "Retention, renewals, revenue, gym usage, engagement, busy periods and detailed existing reports.", icon: ChartNoAxesCombined, group: "Management" },
   { href: "/staff/admin/audit-trail", label: "Audit Trail", description: "Review who changed what and when, including staff name, user account, member context and before/after values. Export filtered or complete Excel reports.", icon: ScrollText, group: "Management" },
+  { href: "/staff/admin/voucher-approvals", label: "Voucher Approvals", description: "Approve or reject protected voucher requests from gym staff.", icon: BellRing, group: "Management" },
   { href: "/staff/admin/announcements", label: "Announcements", description: "Publish member news, images and links; schedule, edit or hide announcements.", icon: Megaphone, group: "Management" },
   { href: "/bgm-admin/notifications", label: "Notifications", description: "Manage order alerts, Super Admin push devices and automatic membership-expiry reminders.", icon: BellRing, group: "Management" },
   { href: "/staff/admin/gyms", label: "Gym locations", description: "Add and edit gyms, opening hours, active status, staff access and tablet registration links.", icon: Building2, group: "Management" },
@@ -37,6 +38,7 @@ const sections: Section[] = [
 export default function SuperAdminHome() {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [checking, setChecking] = useState(true);
+  const [voucherPending, setVoucherPending] = useState(0);
   const [error, setError] = useState("");
   useEffect(() => {
     let active = true;
@@ -54,6 +56,20 @@ export default function SuperAdminHome() {
     })();
     return () => { active = false; };
   }, []);
+  useEffect(() => {
+    let active = true;
+    async function refreshVoucherApprovals() {
+      try {
+        const response = await fetch("/api/system/voucher-approvals?countOnly=1",{cache:"no-store"});
+        if (!response.ok) return;
+        const data = await response.json();
+        if (active) setVoucherPending(Number(data.pendingCount || 0));
+      } catch { /* The dedicated inbox remains the source of truth. */ }
+    }
+    void refreshVoucherApprovals();
+    const timer = window.setInterval(() => void refreshVoucherApprovals(),12000);
+    return () => { active=false;window.clearInterval(timer); };
+  }, []);
   if (checking) return <main className="min-h-screen bg-zinc-50 p-8 text-zinc-700">Checking Super Admin access…</main>;
   if (error) return <main className="min-h-screen bg-zinc-50 p-8 text-zinc-900"><p role="alert">{error}</p><a href="/staff" className="text-orange-700 underline">Staff Home</a></main>;
   if (!user?.isSuperAdmin) return <main className="min-h-screen bg-zinc-50 p-8 text-zinc-900"><p>Super Admin access required.</p><a href="/staff" className="text-orange-700 underline">Staff Home</a></main>;
@@ -69,7 +85,7 @@ export default function SuperAdminHome() {
             <div className="flex flex-wrap items-end justify-between gap-2 px-1"><h2 className="text-xl font-black">{group}</h2><p className="text-xs font-semibold text-zinc-500">{group === "Operations" ? "Daily sales and orders" : group === "Management" ? "Gym locations, staff and account access" : "Occasional member and reception actions"}</p></div>
             <div className="grid gap-3 md:grid-cols-2">
               {sections.filter((section) => section.group === group).map(({ href, label, description, icon: Icon }) => (
-                <a key={href} href={href} className="group flex min-h-32 items-start gap-4 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:border-orange-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-700"><Icon className="h-6 w-6"/></span><span className="min-w-0 flex-1"><span className="flex items-start justify-between gap-2 text-lg font-black">{label}<ArrowUpRight className="h-5 w-5 shrink-0 text-orange-700"/></span><span className="mt-2 block text-sm leading-6 text-zinc-600">{description}</span></span></a>
+                <a key={href} href={href} className="group flex min-h-32 items-start gap-4 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:border-orange-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-700"><Icon className="h-6 w-6"/></span><span className="min-w-0 flex-1"><span className="flex items-start justify-between gap-2 text-lg font-black">{label}{href === "/staff/admin/voucher-approvals" && voucherPending > 0 ? <span className="rounded-full bg-orange-600 px-2 py-1 text-xs text-white">{voucherPending} pending</span> : null}<ArrowUpRight className="h-5 w-5 shrink-0 text-orange-700"/></span><span className="mt-2 block text-sm leading-6 text-zinc-600">{description}</span></span></a>
               ))}
             </div>
           </section>
