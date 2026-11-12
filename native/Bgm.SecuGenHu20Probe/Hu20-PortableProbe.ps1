@@ -277,7 +277,10 @@ function Get-TransientTemplate([object]$manager, [int]$width, [int]$height, [int
 }
 
 $sdkPath = (Resolve-Path -LiteralPath $SdkAssembly -ErrorAction Stop).Path
-$nativePath = Join-Path (Split-Path -Parent $sdkPath) 'sgfplib.dll'
+$sdkFolder = Split-Path -Parent $sdkPath
+# Restrict the vendor DLL search path change to this PowerShell process.
+$env:PATH = $sdkFolder + ';' + $env:PATH
+$nativePath = Join-Path $sdkFolder 'sgfplib.dll'
 if (-not (Test-Path -LiteralPath $nativePath -PathType Leaf)) {
   throw 'sgfplib.dll is missing beside the .NET SDK DLL. Restore official SDK x64 files.'
 }
