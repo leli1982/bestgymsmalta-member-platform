@@ -34,6 +34,13 @@ if (-not [Environment]::Is64BitProcess) {
 }
 
 $path = (Resolve-Path -LiteralPath $SdkAssembly -ErrorAction Stop).Path
+$sdkFolder = Split-Path -Parent $path
+if (-not (Test-Path -LiteralPath (Join-Path $sdkFolder 'sgfplib.dll') -PathType Leaf)) {
+  throw 'Missing sgfplib.dll beside the SecuGen .NET SDK. Restore the official x64 runtime files.'
+}
+# Windows' native DLL search needs the vendor DLL directory in PATH for this
+# PowerShell process. Installer-local PATH changes do not persist to new shells.
+$env:PATH = $sdkFolder + ';' + $env:PATH
 $assembly = [System.Reflection.Assembly]::LoadFrom($path)
 $namespace = 'SecuGen.FDxSDKPro.Windows'
 
