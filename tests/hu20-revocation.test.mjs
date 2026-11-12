@@ -1,0 +1,20 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import fs from "node:fs";
+const sql = fs.readFileSync("supabase/migrations/20261112_170000_hu20_test_biometric_revocation.sql","utf8");
+const route = fs.readFileSync("app/api/system/staff-hu20/biometrics/route.ts","utf8");
+const ui=fs.readFileSync("app/staff/admin/staff/terminals/enrollment/page.tsx","utf8");
+test("Super Admin HU20 TEST revocation is authenticated and strips encrypted material atomically", () => {
+ assert.match(route,/requireSuperAdmin\(request\)/g);
+ assert.match(route,/isHu20TestRequestEnabled\(\)/);
+ assert.match(route,/bgm_hu20_test_revoke_biometric/);
+ assert.doesNotMatch(route,/encrypted_template/);
+ assert.match(sql,/SECURITY INVOKER/);
+ assert.match(sql,/encrypted_template=NULL/);
+ assert.match(sql,/template_reference='revoked:'/);
+ assert.match(sql,/staff\.hu20\.biometric\.revoked\.test/);
+ assert.match(sql,/REVOKE ALL ON FUNCTION/);
+ assert.match(sql,/TO service_role/);
+ assert.doesNotMatch(sql,/SECURITY DEFINER/);
+ assert.match(ui,/Revoke and erase TEST fingerprint/);
+});

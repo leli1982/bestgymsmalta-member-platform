@@ -9,6 +9,7 @@ type Enrollment = {
   status: "pending" | "completed" | "cancelled" | "expired";
   created_at: string; expires_at: string;
 };
+type Biometric = { id: string; employee_id: string; enrolled_at: string; active: boolean; status: string };
 type Loaded = {
   ok: boolean; employees: Employee[]; terminals: Terminal[];
   requests: Enrollment[]; error?: string; note?: string;
@@ -16,6 +17,7 @@ type Loaded = {
 
 export default function Hu20TestEnrollmentPage() {
   const [data, setData] = useState<Loaded | null>(null);
+  const [biometrics, setBiometrics] = useState<Biometric[]>([]);
   const [employeeId, setEmployeeId] = useState("");
   const [terminalId, setTerminalId] = useState("");
   const [busy, setBusy] = useState(false);
@@ -27,6 +29,10 @@ export default function Hu20TestEnrollmentPage() {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Cannot load TEST enrollments.");
     setData(result as Loaded);
+    const biometricResponse = await fetch("/api/system/staff-hu20/biometrics", { cache: "no-store" });
+    const biometricsBody = await biometricResponse.json();
+    if (!biometricResponse.ok) throw new Error(biometricsBody.error || "Cannot load biometric status.");
+    setBiometrics(biometricsBody.biometrics || []);
   }, []);
 
   useEffect(() => {
@@ -74,6 +80,23 @@ export default function Hu20TestEnrollmentPage() {
       setError(caught instanceof Error ? caught.message : "Cannot cancel enrollment request.");
     } finally { setBusy(false); }
   }
+  async function revoke(id: string) {
+    if (!window.confirm("Revoke this TEST fingerprint? Encrypted template data will be erased and cannot be recovered.")) return;
+    setBusy(true); setError(""); setMessage("");
+    try {
+      const response = await fetch("/api/system/staff-hu20/biometrics", {
+        method: "PATCH", cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action: "revoke" }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not revoke fingerprint.");
+      setMessage("TEST fingerprint revoked and encrypted template erased.");
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not revoke fingerprint.");
+    } finally { setBusy(false); }
+  }
   return <main className="mx-auto max-w-3xl p-5 text-slate-900">
     <a href="/staff/admin/staff/terminals" className="underline">Back to HU20 terminals</a>
     <h1 className="mt-4 text-2xl font-bold">Supervised HU20 enrollment — TEST</h1>
@@ -116,6 +139,19 @@ export default function Hu20TestEnrollmentPage() {
         </article>
       )}
       {data?.requests.length === 0 && <p className="text-sm text-slate-600">No TEST requests yet.</p>}
+    </div>
+    <h2 className="mt-7 text-xl font-semibold">Active HU20 TEST fingerprint enrollments</h2>
+    <p className="mt-1 text-sm text-slate-600">Only status information is shown here. Fingerprint templates cannot be viewed in the browser.</p>
+    <div className="mt-3 grid gap-3">
+      {biometrics.map(item => <article key={item.id} className="rounded border bg-white p-3">
+        <p className="font-semibold">{employeeNames.get(item.employee_id) || "Employee"}</p>
+        <p className="text-sm">Enrolled: {new Date(item.enrolled_at).toLocaleString("en-MT")}</p>
+        <button type="button" disabled={busy} onClick={() => { void revoke(item.id); }}
+          className="mt-2 rounded border border-red-700 px-3 py-1 text-sm text-red-800 disabled:opacity-50">
+          Revoke and erase TEST fingerprint
+        </button>
+      </article>)}
+      {biometrics.length === 0 && <p className="text-sm text-slate-600">No active TEST fingerprints enrolled.</p>}
     </div>
   </main>;
 }
