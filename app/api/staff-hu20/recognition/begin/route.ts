@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     if ((employees.data || []).length > 8) return fail("TEST roster too large.", 409);
     const people = new Map((employees.data || []).map(employee =>
       [employee.id, [employee.first_name,employee.surname].join(" ")]));
-    const employeeIds = [...people.keys()];
+    const employeeIds = Array.from(people.keys());
     const records = employeeIds.length === 0
       ? { data: [], error: null }
       : await db.from("bgm_staff_biometrics")
