@@ -7,7 +7,7 @@ const script = fs.readFileSync("native/Bgm.SecuGenHu20Probe/Hu20-TerminalCheck.p
 test("HU20 connection helper bootstraps a private same-origin Vercel Share session", () => {
   assert.match(script, /_vercel_share=/);
   assert.match(script, /Read-Host \$promptText -AsSecureString/);
-  assert.match(script, /$webSession = New-Object Microsoft\.PowerShell\.Commands\.WebRequestSession/m);
+  assert.match(script, /\$webSession = New-Object Microsoft\.PowerShell\.Commands\.WebRequestSession/m);
   assert.match(script, /-WebSession \$webSession/g);
   assert.match(script, /\$shareUri\.Host -ne \$baseUri\.Host/);
   assert.match(script, /\$prime\.BaseResponse\.ResponseUri\.Host -ne \$baseUri\.Host/);
