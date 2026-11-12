@@ -157,3 +157,21 @@ the ANSI378 template encrypted under a TEST Preview-only AES-256-GCM key.
 Requires BGM_HU20_ENROLL_UPLOAD_ENABLED=true and BGM_HU20_TEMPLATE_KEY in
 the branch-scoped encrypted Vercel Preview environment.
 Attendance and payroll remain disabled; no biometric file is written locally.
+
+
+## Central fingerprint recognition — TEST diagnostic
+
+Authorise a one-shot, five-minute recognition test on the Super Admin
+HU20 enrollment page. Select the registered TEST terminal.
+Download Hu20-CentralRecognise.ps1 to C:\BGM-HU20 and run:
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\BGM-HU20\Hu20-CentralRecognise.ps1" -BaseUrl "https://YOUR_TEST_PREVIEW.vercel.app" -TerminalId "YOUR_TERMINAL_UUID" -SdkAssembly "C:\BGM-HU20\SecuGen.FDxSDKPro.Windows.dll"
+
+Paste the Vercel Share link and existing terminal secret privately.
+No fingerprint passphrase, employee number or fingerprint file is needed.
+A registered terminal can consume one TEST Super Admin authorisation,
+and receives only fictitious HU20-TEST employee templates.
+Templates stay in transient Windows memory; raw images stay local.
+One unique match is accepted only while the centrally stored biometric
+remains active. The server does not record any attendance or payroll data.
+Vendor NORMAL matching is a smoke test only, not a production threshold.
