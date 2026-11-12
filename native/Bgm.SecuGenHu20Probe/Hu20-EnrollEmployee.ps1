@@ -2,7 +2,8 @@
 <#
   BGM HU20 supervised double-scan TEST central enrollment (v1).
   Works with Vercel-protected Preview deployments using a temporary
-  deployment Share link. No biometric, employee or attendance data is sent.
+  deployment Share link. A biometric ANSI378 template is sent only after
+  two authorised scans match; no attendance or payroll data is recorded.
   Never paste your temporary Share link or terminal secret into chat.
 #>
 [CmdletBinding()]
@@ -48,6 +49,10 @@ function Read-PrivateText([string]$promptText) {
     }
     $secureValue.Dispose()
   }
+}
+
+function Clear-Bytes([byte[]]$value) {
+  if ($null -ne $value) { [Array]::Clear($value, 0, $value.Length) }
 }
 
 function Get-SdkType([System.Reflection.Assembly]$assembly, [string]$name) {
