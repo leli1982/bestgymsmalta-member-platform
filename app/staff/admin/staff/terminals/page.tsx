@@ -62,6 +62,7 @@ export default function Hu20TestTerminalsPage() {
     <main className="mx-auto max-w-3xl p-5 text-slate-900">
       <a href="/staff/admin/staff" className="underline">Back to Staff management</a>
       <h1 className="mt-4 text-2xl font-bold">HU20 Punch Clock terminals — TEST</h1>
+      <p className="mt-2"><a href="/staff/admin/staff/terminals/enrollment" className="font-semibold underline">Supervised TEST enrollment requests</a></p>
       <p className="mt-2 text-sm">Register a gym PC for secure communication tests. Fingerprint attendance and payroll changes remain disabled.</p>
       {error && <p role="alert" className="mt-4 rounded bg-red-100 p-3 text-red-900">{error}</p>}
       <form onSubmit={createTerminal} className="mt-5 grid gap-3 rounded border bg-white p-4">
