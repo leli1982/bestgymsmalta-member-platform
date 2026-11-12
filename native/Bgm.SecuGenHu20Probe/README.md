@@ -103,3 +103,28 @@ When prompted, privately paste the Vercel Share link. The helper establishes a s
 
 ### Vercel alternative alias handling (HU20 TEST helper v2.1)
 The protected Vercel Share button may copy a `*.vercel.app` alias that differs from the immutable deployment URL supplied with `-BaseUrl`. The helper accepts the Share **token** from a valid HTTPS `*.vercel.app` Share URL but uses it **only** against the explicitly pinned TEST `-BaseUrl`. It never visits the pasted link's hostname and never sends the terminal secret there. A token generated for a different deployment will still fail to authenticate; in that case copy the Share link from the exact selected TEST deployment. This relaxation does **not** permit arbitrary external domains or change Vercel protection.
+
+## HU20 Phase 2: local 1:N identification — TEST only
+
+Use Hu20-IdentifyProbe.ps1 with the known-good HU20 x64 SDK and 1-16
+locally encrypted .bgmcred throwaway credentials created with
+Hu20-PortableProbe.ps1. Use your own fingers or consenting test volunteers;
+do not use real employee personal data in this experiment.
+
+PowerShell example (from C:\BGM-HU20):
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\BGM-HU20\Hu20-IdentifyProbe.ps1 -SdkAssembly C:\BGM-HU20\SecuGen.FDxSDKPro.Windows.dll -CredentialDirectory C:\BGM-HU20\test-credentials
+
+The probe requests each credential passphrase privately, loads templates
+temporarily in memory, scans once, then reports NO_MATCH, ONE_MATCH, or
+AMBIGUOUS (refused). Everything is cleared best-effort after the scan.
+A single credential is a basic check; two distinct encrypted credentials
+are needed to exercise actual 1:N recognition.
+
+The server-only lib/hu20BiometricVault.ts now supports TEST-locked,
+AES-256-GCM authenticated template envelopes bound to employee and credential
+IDs. It has deliberately NOT been wired to any enrollment API. Never configure
+central biometric uploads or attendance until Super Admin authorization,
+device-bound credentials, verified employee identity, a DPIA and privacy
+assessment, replay prevention, and threshold calibration have been reviewed.
+Production Supabase and the Member App remain untouched.
