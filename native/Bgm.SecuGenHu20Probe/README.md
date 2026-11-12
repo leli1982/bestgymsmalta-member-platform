@@ -128,3 +128,15 @@ central biometric uploads or attendance until Super Admin authorization,
 device-bound credentials, verified employee identity, a DPIA and privacy
 assessment, replay prevention, and threshold calibration have been reviewed.
 Production Supabase and the Member App remain untouched.
+
+### Read-only TEST enrollment request check (PC2)
+
+After Super Admin creates a pending request at /staff/admin/staff/terminals/enrollment
+for an active employee and the registered HU20 terminal, use:
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\BGM-HU20\Hu20-EnrollmentCheck.ps1" -BaseUrl "https://YOUR_TEST_DEPLOYMENT.vercel.app" -TerminalId "YOUR_TEST_TERMINAL_ID"
+
+Paste the temporary Vercel Share token URL and private terminal secret locally.
+The script fetches ONLY the authorised pending enrollment request. It does not
+scan, transmit, decrypt or upload fingerprints and never records attendance.
+The pending window lasts five minutes; Super Admin can cancel the request.
