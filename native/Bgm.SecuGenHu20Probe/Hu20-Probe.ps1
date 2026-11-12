@@ -63,24 +63,24 @@ $second = $null
 function Get-TransientTemplate([object]$manager, [int]$width, [int]$height, [int]$maxTemplateSize) {
   $raw = [byte[]]::new($width * $height)
   $buffer = [byte[]]::new($maxTemplateSize)
+  $retainBuffer = $false
   try {
     Write-Host 'Place your test finger on the HU20 sensor...'
     Check-SdkResult 'GetImageEx' ($manager.GetImageEx($raw, $CaptureTimeoutMs, 0, $Quality))
     Check-SdkResult 'CreateTemplate' ($manager.CreateTemplate($raw, $buffer))
 
-    $actualSize = 0
-    Check-SdkResult 'GetTemplateSize' ($manager.GetTemplateSize($buffer, [ref]$actualSize))
-    if ($actualSize -le 0 -or $actualSize -gt $maxTemplateSize) {
-      throw "Invalid vendor template size $actualSize."
-    }
-
-    $template = [byte[]]::new($actualSize)
-    [Array]::Copy($buffer, $template, $actualSize)
-    return ,$template
+    # SecuGen's own C# matching example passes the full GetMaxTemplateSize
+    # allocation directly to MatchTemplate. This avoids a PowerShell 5.1
+    # binder error on GetTemplateSize in some SDK .NET Framework wrappers.
+    # The caller owns the buffer and zeroes it after the smoke test.
+    $retainBuffer = $true
+    return ,$buffer
   }
   finally {
     [Array]::Clear($raw, 0, $raw.Length)
-    [Array]::Clear($buffer, 0, $buffer.Length)
+    if (-not $retainBuffer) {
+      [Array]::Clear($buffer, 0, $buffer.Length)
+    }
   }
 }
 
