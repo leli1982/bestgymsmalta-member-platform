@@ -140,3 +140,20 @@ Paste the temporary Vercel Share token URL and private terminal secret locally.
 The script fetches ONLY the authorised pending enrollment request. It does not
 scan, transmit, decrypt or upload fingerprints and never records attendance.
 The pending window lasts five minutes; Super Admin can cancel the request.
+
+
+### Supervised central HU20 TEST enrollment
+After Super Admin authorizes a five-minute enrollment from
+/staff/admin/staff/terminals/enrollment, download Hu20-EnrollEmployee.ps1
+to C:\BGM-HU20 on the registered HU20 Windows test terminal.
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\BGM-HU20\Hu20-EnrollEmployee.ps1" -BaseUrl "https://YOUR_TEST_DEPLOYMENT.vercel.app" -TerminalId "YOUR_TERMINAL_ID" -SdkAssembly "C:\BGM-HU20\SecuGen.FDxSDKPro.Windows.dll"
+
+Paste the Vercel Share link and existing terminal secret only on the PC.
+Confirm the named employee is present. Capture the same finger twice.
+If the captures do not match, enrollment stops with no upload.
+The server only accepts one single-use Super Admin authorization and stores
+the ANSI378 template encrypted under a TEST Preview-only AES-256-GCM key.
+Requires BGM_HU20_ENROLL_UPLOAD_ENABLED=true and BGM_HU20_TEMPLATE_KEY in
+the branch-scoped encrypted Vercel Preview environment.
+Attendance and payroll remain disabled; no biometric file is written locally.
