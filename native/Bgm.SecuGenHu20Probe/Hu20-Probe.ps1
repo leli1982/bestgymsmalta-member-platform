@@ -120,7 +120,8 @@ try {
     if ($Mode -eq 'match') {
       Read-Host 'Remove your finger, then press Enter for the second scan' | Out-Null
       $second = Get-TransientTemplate $manager $width $height $maxTemplateSize
-      $normal = [Enum]::Parse($levelType, 'Normal')
+      # SDK v4.3.1 uses the uppercase enum member NORMAL (value 5).
+      $normal = [Enum]::Parse($levelType, 'NORMAL')
       $matched = $false
       Check-SdkResult 'MatchTemplate' ($manager.MatchTemplate($first, $second, $normal, [ref]$matched))
       if ($matched) {
