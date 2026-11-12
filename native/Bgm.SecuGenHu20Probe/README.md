@@ -82,3 +82,20 @@ The script intentionally stores no template, raw image, attendance event or empl
 - [ ] TEST-only BGM API/punch/attendance integration.
 - [ ] TEST CI, native tests and end-to-end checks.
 - [ ] GDPR compliance gate and explicit production approval.
+
+
+## HU20 TEST Preview: PowerShell and Vercel Authentication (12 Nov 2026)
+
+Vercel protects Preview deployments with Vercel Authentication. Browser login cookies do **not** automatically pass to PowerShell on a second PC. An HTML login page may have caused the earlier terminal check's "Unexpected terminal server response" even though the native sensor and terminal secret were working.
+
+Updated `Hu20-TerminalCheck.ps1` v2 supports a **temporary deployment-scoped Share link**. For the exact TEST deployment, go to Vercel **Deployments → select the HU20 TEST Preview → Share → Anyone with the link → Copy link**. Do **not** disable Vercel Authentication or create a project-wide automation bypass secret solely for this diagnostic. Share links grant temporary access to whoever possesses them; keep them confidential and revoke after testing.
+
+On PC 2, replace `C:\BGM-HU20\Hu20-TerminalCheck.ps1` with the latest file from this feature branch. In Windows PowerShell run (substitute your registered Terminal ID):
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\BGM-HU20\Hu20-TerminalCheck.ps1" -BaseUrl "https://<exact-HU20-TEST-preview>.vercel.app" -TerminalId "<registered-terminal-uuid>"
+```
+
+When prompted, privately paste the Vercel Share link. The helper establishes a same-origin authenticated browser-equivalent cookie session *without sending the terminal secret during redirects*. Next it privately prompts for the terminal secret and issues an HTTPS request to the existing TEST-only `/api/staff-hu20/health` endpoint. It refuses non-JSON/login-page responses and any endpoint response that unexpectedly enables punching.
+
+**The diagnostic does not upload biometrics or record attendance.** Never paste Share links, terminal secrets, `.bgmcred` files, or fingerprints into chat, GitHub or a screenshot. For actual deployments, replace preview sharing with an approved long-term secure terminal API and signed, replay-resistant scanner assertions.
