@@ -26,7 +26,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-if (-not $IsWindows -and $PSVersionTable.PSEdition -eq 'Core') {
+if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
   throw 'This diagnostic requires Windows.'
 }
 if (-not [Environment]::Is64BitProcess) {
