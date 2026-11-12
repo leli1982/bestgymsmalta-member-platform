@@ -41,8 +41,8 @@ BEGIN
    RAISE EXCEPTION 'Cannot enroll on inactive terminal' USING ERRCODE='P0001';
  END IF;
  IF EXISTS (
-   SELECT 1 FROM public.bgm_staff_biometrics
-   WHERE employee_id=v_req.employee_id AND active=true AND status='enrolled'
+   SELECT 1 FROM public.bgm_staff_biometrics AS b
+   WHERE b.employee_id=v_req.employee_id AND b.active=true AND b.status='enrolled'
  ) THEN
    RAISE EXCEPTION 'Employee already has active biometrics' USING ERRCODE='P0001';
  END IF;
