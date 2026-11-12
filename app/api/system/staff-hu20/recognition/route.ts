@@ -80,7 +80,8 @@ export async function POST(request: NextRequest) {
       after_data: { terminalId, expiresAt, testOnly: true, attendanceEnabled: false },
     });
     if (audit.error) {
-      await db.from("bgm_hu20_recognition_tests").delete().eq("id", created.data.id);
+      await db.from("bgm_hu20_recognition_tests")
+        .update({ status: "cancelled" }).eq("id", created.data.id).eq("status", "pending");
       throw audit.error;
     }
     return NextResponse.json({ ok: true, test: created.data }, { status: 201, headers: responseHeaders });
