@@ -99,3 +99,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\BGM-HU20\Hu20-Termin
 When prompted, privately paste the Vercel Share link. The helper establishes a same-origin authenticated browser-equivalent cookie session *without sending the terminal secret during redirects*. Next it privately prompts for the terminal secret and issues an HTTPS request to the existing TEST-only `/api/staff-hu20/health` endpoint. It refuses non-JSON/login-page responses and any endpoint response that unexpectedly enables punching.
 
 **The diagnostic does not upload biometrics or record attendance.** Never paste Share links, terminal secrets, `.bgmcred` files, or fingerprints into chat, GitHub or a screenshot. For actual deployments, replace preview sharing with an approved long-term secure terminal API and signed, replay-resistant scanner assertions.
+
+
+### Vercel alternative alias handling (HU20 TEST helper v2.1)
+The protected Vercel Share button may copy a `*.vercel.app` alias that differs from the immutable deployment URL supplied with `-BaseUrl`. The helper accepts the Share **token** from a valid HTTPS `*.vercel.app` Share URL but uses it **only** against the explicitly pinned TEST `-BaseUrl`. It never visits the pasted link's hostname and never sends the terminal secret there. A token generated for a different deployment will still fail to authenticate; in that case copy the Share link from the exact selected TEST deployment. This relaxation does **not** permit arbitrary external domains or change Vercel protection.
