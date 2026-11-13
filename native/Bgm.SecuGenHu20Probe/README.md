@@ -175,3 +175,17 @@ Templates stay in transient Windows memory; raw images stay local.
 One unique match is accepted only while the centrally stored biometric
 remains active. The server does not record any attendance or payroll data.
 Vendor NORMAL matching is a smoke test only, not a production threshold.
+
+## 13 November 2026 — automatic fictional HU20 TEST kiosk (not production)
+
+The supervised one-click TEST terminal and prior one-approval-per-scan scripts remain unchanged. Automatic testing uses a separate opt-in Windows shortcut; it is not a Windows service, a real staff attendance rollout or a production deployment.
+
+Setup on the existing HU20 Windows 11 PC, C:\BGM-HU20:
+
+1. Keep the known-working official SecuGen DLLs. Download Hu20-AutoKiosk.ps1, Hu20-KIOSK-TEST.cmd and the updated Hu20-StartTestTerminal.ps1 from the same commit of the HU20 feature branch into the existing folder.
+2. In the latest branch-scoped BGM TEST Preview Staff Portal log in as Super Admin. Open Staff → HU20 terminals. In Automatic HU20 kiosk — FICTIONAL TEST ONLY, select the existing registered Tal Qroqq terminal and select Start 10-minute TEST kiosk.
+3. Double-click Hu20-KIOSK-TEST.cmd. The launcher uses its existing local non-secret TEST URL, terminal UUID and SDK path. Prompted Share URL and terminal secret must be typed privately on the Windows PC. The credentials, Share token and fingerprint templates are never written to disk.
+4. The registered reader accepts a consenting fictional TEST finger automatically. Each attempt claims fresh one-time recognition evidence, verifies enrolment/revocation centrally, and records a fictional punch only on a unique match. The tester must remove their finger before another attempt.
+5. At most six claim attempts are allowed in ten minutes; server throttles claims to at least 60 seconds apart. An empty sensor may consume an attempt after the recognition expires. STOP in Super Admin revokes even already-claimed, unconsumed recognition; Ctrl+C stops the local process.
+
+Security boundaries: TEST Supabase project vlvyqdjhzdcxatilbdiv and the preview-only BGM_HU20_KIOSK_TEST_ENABLED flag for branch feature/hu20-biometric-capability. Never enable this flag in Production, never apply migration 20261113_160000 there. Staff Punch Clock on the normal Staff Portal remains disabled. NO real staff or payroll; only HU20-TEST fictional employees. SecuGen NORMAL is a smoke-test matching threshold only. Further work includes anti-spoofing, robust OS-level kiosk provisioning, fail-safe local process management, appropriate vendor threshold calibration, GDPR DPIA, employee consent/privacy assessment and explicit Production approval.
