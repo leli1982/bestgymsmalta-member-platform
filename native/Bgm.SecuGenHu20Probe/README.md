@@ -189,3 +189,31 @@ Setup on the existing HU20 Windows 11 PC, C:\BGM-HU20:
 5. At most six claim attempts are allowed in ten minutes; server throttles claims to at least 60 seconds apart. An empty sensor may consume an attempt after the recognition expires. STOP in Super Admin revokes even already-claimed, unconsumed recognition; Ctrl+C stops the local process.
 
 Security boundaries: TEST Supabase project vlvyqdjhzdcxatilbdiv and the preview-only BGM_HU20_KIOSK_TEST_ENABLED flag for branch feature/hu20-biometric-capability. Never enable this flag in Production, never apply migration 20261113_160000 there. Staff Punch Clock on the normal Staff Portal remains disabled. NO real staff or payroll; only HU20-TEST fictional employees. SecuGen NORMAL is a smoke-test matching threshold only. Further work includes anti-spoofing, robust OS-level kiosk provisioning, fail-safe local process management, appropriate vendor threshold calibration, GDPR DPIA, employee consent/privacy assessment and explicit Production approval.
+
+
+## 13 November 2026 — Full-screen fictional TEST kiosk display (Windows)
+
+The existing native HU20 recognition, TEST attendance APIs, supervised punch test, and database rules have not changed. Automatic mode now has a separate full-screen Windows Forms status display via Hu20-KioskDisplay.ps1. It is a visual layer only; no biometric decisions or punch records are created by this screen.
+
+**Install/update just four files** in the existing C:\BGM-HU20 folder from the same feature-branch commit:
+- Hu20-KioskDisplay.ps1 (new full-screen display, in-process)
+- Hu20-AutoKiosk.ps1 (TEST-only native scanner, updated status reporting)
+- Hu20-StartTestTerminal.ps1 (up-to-date TEST Preview settings and GUI option)
+- Hu20-KIOSK-TEST.cmd (now launches Windows PowerShell -STA in full-screen mode)
+
+Do not reinstall the SecuGen SDK, reenroll the fictional test employee, replace the terminal secret, or change any Production application. The original Hu20-TEST.cmd supervised mode remains unchanged.
+
+Use the latest immutable feature-branch Vercel TEST Preview; the launcher persists allowlisted non-secret settings when the selected Preview origin changes. Never save a Vercel Share token, terminal secret, or biometric data to a file. Start a short (10-minute, maximum-six-scan) TEST kiosk authorisation from the Super Admin terminals panel, then double-click Hu20-KIOSK-TEST.cmd. Type the temporary matching Preview Share link and terminal secret privately in the PowerShell window before the visual display opens.
+
+Status messages:
+- PLACE FINGER — an authorised one-time fictional TEST recognition is ready.
+- REMOVE FINGER — lift the finger to prevent accidental rescan.
+- VERIFYING — local identification is being confirmed by the server.
+- CLOCKED IN / CLOCKED OUT — shown only after central confirmation and a successful fictional TEST attendance response.
+- NOT RECOGNISED — zero or ambiguous local matches, no punch.
+- PLEASE WAIT — central 60-second cooldown or scan window recovery.
+- TEST ENDED / OUT OF SERVICE — no more scans, revoked window, device/network error.
+
+Press ESC to **close the local scanner**, or use Super Admin STOP to **revoke the server-side kiosk window** (ESC alone does not revoke the server window). After a screen close, in-process display assertions prevent the native script from proceeding to a new punch; loss of network or an unexpected SDK error stops scanning. The reader is polled at most 2 seconds per SDK capture during full-screen mode so Windows can process ESC rather than remaining unresponsive through repeated 10-second blocking reads.
+
+This is a physical TEST candidate; automated CI verifies source contracts, API isolation, application builds and regression tests, but cannot validate the actual Windows Form, screen scale, HU20 capture timing or user experience. Normal matching level remains a diagnostic smoke-test threshold; anti-spoofing, security threshold calibration, device trust, managed deployment, GDPR DPIA, worker privacy review and explicit production approval remain blocking work before any live rollout.
