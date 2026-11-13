@@ -1,10 +1,11 @@
 #Requires -Version 5.1
 <#
-  BGM HU20 one-shot central 1:N TEST recognition (v1).
-  Works with Vercel-protected Preview deployments using a temporary
-  deployment Share link. Fictional TEST fingerprint templates are retrieved
-  in transient RAM to match locally. No attendance or payroll event is created.
-  Never paste your temporary Share link or terminal secret into chat.
+  BGM HU20 fictional TEST-only fingerprint punch clock (v1).
+  Uses a Super Admin-authorised one-shot recognition and an independent,
+  separately gated TEST-only attendance transition for fictional employees.
+  Templates remain transient in RAM. This is NOT approved for real staff/payroll.
+  Works with protected Vercel Preview Share links. Never paste terminal secrets
+  or Share links into chat, code, screenshots or logs.
 #>
 [CmdletBinding()]
 param(
