@@ -180,12 +180,19 @@ try {
   }
   Write-Host "Supervised TEST enrollment for: $($result.enrollment.employeeName)."
   Write-Host "Expires at: $($result.enrollment.expiresAt)"
+  $enrollmentExpires = [DateTimeOffset]::Parse([string]$result.enrollment.expiresAt)
+  if ($enrollmentExpires -le [DateTimeOffset]::UtcNow) {
+    throw "TEST enrollment authorization expired before scanning. Request a fresh authorization."
+  }
   $confirmation = Read-Host "Verify employee physically present, then type ENROLL to start"
   if ($confirmation -cne 'ENROLL') {
     Write-Host "Cancelled without capturing biometrics."
     return
   }
 
+  if ($enrollmentExpires -le [DateTimeOffset]::UtcNow) {
+    throw "TEST enrollment authorization expired before HU20 initialization. Request a fresh authorization."
+  }
   $sdkPath = (Resolve-Path -LiteralPath $SdkAssembly -ErrorAction Stop).Path
   $sdkFolder = Split-Path -Parent $sdkPath
   if (-not (Test-Path -LiteralPath (Join-Path $sdkFolder 'sgfplib.dll') -PathType Leaf)) {
@@ -222,6 +229,9 @@ try {
     Write-Host "First test fingerprint capture..."
     $first = Get-TransientTemplate $manager $width $height $maxSize
     [void](Read-Host "Lift your finger; press Enter for the second scan")
+    if ($enrollmentExpires -le [DateTimeOffset]::UtcNow) {
+      throw "TEST enrollment authorization expired between fingerprint captures. No data was uploaded."
+    }
     Write-Host "Second test fingerprint capture..."
     $second = Get-TransientTemplate $manager $width $height $maxSize
     $matched = $false
@@ -230,13 +240,48 @@ try {
     if (-not $matched) {
       throw "The two captures do not match. No biometric data was uploaded."
     }
+    if ($enrollmentExpires -le [DateTimeOffset]::UtcNow) {
+      throw "TEST enrollment authorization expired during fingerprint capture. Both scans matched, but nothing was uploaded. Request a fresh authorization."
+    }
     Write-Host "PASS: Two captures matched. Uploading the template to TEST..."
     $bodyText = @{
       requestId = [string]$result.enrollment.id
       templateFormat = 'ANSI378'
       templateBase64 = [Convert]::ToBase64String($first)
     } | ConvertTo-Json -Compress
-    $posted = Invoke-WebRequest -Uri "$base/api/staff-hu20/enrollments/complete" -Method Post -Headers $headers -WebSession $webSession -UseBasicParsing -TimeoutSec 30 -MaximumRedirection 0 -ContentType 'application/json' -Body $bodyText
+    try {
+      $posted = Invoke-WebRequest -Uri "$base/api/staff-hu20/enrollments/complete" -Method Post -Headers $headers -WebSession $webSession -UseBasicParsing -TimeoutSec 30 -MaximumRedirection 0 -ContentType 'application/json' -Body $bodyText
+    }
+    catch {
+      $statusCode = $null
+      $safeReason = ""
+      if ($_.Exception.Response) {
+        try { $statusCode = [int]$_.Exception.Response.StatusCode } catch {}
+        $errorReader = $null
+        try {
+          $errorStream = $_.Exception.Response.GetResponseStream()
+          if ($null -ne $errorStream) {
+            $errorReader = New-Object System.IO.StreamReader($errorStream)
+            $errorText = $errorReader.ReadToEnd()
+            if ($errorText.Length -lt 4096) {
+              $errorJson = $errorText | ConvertFrom-Json -ErrorAction Stop
+              if ($errorJson.error -is [string] -and $errorJson.error.Length -le 250) {
+                $safeReason = $errorJson.error
+              }
+            }
+          }
+        } catch {}
+        finally { if ($null -ne $errorReader) { $errorReader.Dispose() } }
+      }
+      if ($statusCode -eq 409) {
+        if (-not $safeReason) { $safeReason = "The authorization may have expired, already been used, or been rejected by the server." }
+        throw "Supervised TEST enrollment rejected (HTTP 409): $safeReason. Verify the Super Admin authorization and try again."
+      }
+      if ($null -ne $statusCode) {
+        throw "TEST enrollment upload failed (HTTP $statusCode). No successful enrollment was confirmed."
+      }
+      throw "TEST enrollment could not be completed. No successful enrollment was confirmed. $($_.Exception.Message)"
+    }
     if ([string]$posted.Headers['Content-Type'] -notmatch 'application/json') {
       throw "TEST server did not return JSON. Enrollment is unconfirmed."
     }

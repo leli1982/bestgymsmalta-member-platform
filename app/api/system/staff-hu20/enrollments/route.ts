@@ -8,7 +8,7 @@ import { requireSuperAdmin } from "@/lib/systemAuth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const responseHeaders = { "Cache-Control": "no-store, private, max-age=0" };
-const ttlMillis = 5 * 60 * 1000;
+const ttlMillis = 10 * 60 * 1000;
 
 function errorResponse(message: string, status: number) {
   return NextResponse.json({ ok: false, error: message }, { status, headers: responseHeaders });
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       requests: requests.data || [],
       employees: employees.data || [],
       terminals: terminals.data || [],
-      note: "TEST enrollment requests only; fingerprint uploads are not enabled.",
+      note: "TEST supervised enrollment: authorised scanner uploads only after two matching fingerprint captures.",
     }, { headers: responseHeaders });
   } catch (error) {
     console.error("HU20 enrollment request list failed", error);

@@ -64,7 +64,7 @@ export default function Hu20TestEnrollmentPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Cannot create enrollment request.");
-      setMessage("TEST authorization created for 5 minutes. Fingerprint upload remains disabled.");
+      setMessage("TEST enrollment authorised for 10 minutes. The registered scanner can upload only after two matching fingerprint captures.");
       setEmployeeId("");
       await load();
     } catch (caught) {
@@ -140,7 +140,7 @@ export default function Hu20TestEnrollmentPage() {
   return <main className="mx-auto max-w-3xl p-5 text-slate-900">
     <a href="/staff/admin/staff/terminals" className="underline">Back to HU20 terminals</a>
     <h1 className="mt-4 text-2xl font-bold">Supervised HU20 enrollment — TEST</h1>
-    <p className="mt-2 text-sm">Select an employee and registered HU20 terminal to authorise a five-minute enrollment window. This stage does not scan, upload, or store fingerprints and cannot record attendance.</p>
+    <p className="mt-2 text-sm">Select an employee and registered HU20 terminal to authorise a ten-minute enrollment window. The browser does not capture or store fingerprints; the supervised Windows HU20 scanner uploads only after two matching scans. No attendance is recorded.</p>
     {error && <p role="alert" className="mt-3 rounded bg-red-100 p-3 text-red-900">{error}</p>}
     {message && <p role="status" className="mt-3 rounded bg-blue-50 p-3 text-blue-900">{message}</p>}
     <form className="mt-5 grid gap-4 rounded border bg-white p-4" onSubmit={submit}>
