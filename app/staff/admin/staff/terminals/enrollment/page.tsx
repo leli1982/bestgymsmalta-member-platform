@@ -137,7 +137,7 @@ export default function Hu20TestEnrollmentPage() {
       setError(caught instanceof Error ? caught.message : "Cannot cancel recognition.");
     } finally { setBusy(false); }
   }
-  return <main className="mx-auto max-w-3xl p-5 text-slate-900">
+  return <main className="bgm-admin-light min-h-screen bg-slate-50 p-5 text-slate-900"><div className="mx-auto max-w-3xl">
     <a href="/staff/admin/staff/terminals" className="underline">Back to HU20 terminals</a>
     <h1 className="mt-4 text-2xl font-bold">Supervised HU20 enrollment — TEST</h1>
     <p className="mt-2 text-sm">Select an employee and registered HU20 terminal to authorise a ten-minute enrollment window. The browser does not capture or store fingerprints; the supervised Windows HU20 scanner uploads only after two matching scans. No attendance is recorded.</p>
@@ -224,5 +224,5 @@ export default function Hu20TestEnrollmentPage() {
         {recognitionTests.length === 0 && <p className="text-sm text-slate-600">No recognition tests yet.</p>}
       </div>
     </section>
-  </main>;
+  </div></main>;
 }

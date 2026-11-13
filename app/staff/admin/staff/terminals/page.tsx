@@ -59,7 +59,7 @@ export default function Hu20TestTerminalsPage() {
   const gymNames = new Map((data?.gyms || []).map((gym) => [gym.id, gym.name]));
 
   return (
-    <main className="mx-auto max-w-3xl p-5 text-slate-900">
+    <main className="bgm-admin-light min-h-screen bg-slate-50 p-5 text-slate-900"><div className="mx-auto max-w-3xl">
       <a href="/staff/admin/staff" className="underline">Back to Staff management</a>
       <h1 className="mt-4 text-2xl font-bold">HU20 Punch Clock terminals — TEST</h1>
       <p className="mt-2"><a href="/staff/admin/staff/terminals/enrollment" className="font-semibold underline">Supervised TEST enrollment requests</a></p>
@@ -97,6 +97,6 @@ export default function Hu20TestTerminalsPage() {
         <p className="text-sm">Status: {item.active ? "Active (TEST)" : "Inactive"} · Last connection: {item.last_seen_at ? new Date(item.last_seen_at).toLocaleString("en-MT") : "Not connected"}</p>
         <code className="text-xs">{item.id}</code>
       </article>)}</div>
-    </main>
+    </div></main>
   );
 }

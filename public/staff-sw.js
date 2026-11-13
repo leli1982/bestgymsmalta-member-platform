@@ -1,4 +1,4 @@
-const CACHE_NAME = "bgm-staff-shell-v6";
+const CACHE_NAME = "bgm-staff-shell-v7";
 const AUTH_CACHE_NAME = "bgm-staff-auth-v1";
 const BAR_API_CACHE_NAME = "bgm-staff-bar-api-v1";
 const AUTH_TTL_MS = 24 * 60 * 60 * 1000;
@@ -7,7 +7,7 @@ const STAFF_ROUTES = [
   "/staff/offline",
   "/staff/members/enroll",
   "/staff/bar",
-  "/manifest.json",
+  "/staff-manifest.webmanifest",
   "/bgm-logo.png",
 ];
 
@@ -66,7 +66,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => ![CACHE_NAME, AUTH_CACHE_NAME, BAR_API_CACHE_NAME].includes(key)).map((key) => caches.delete(key)))
+      Promise.all(keys.filter((key) => key.startsWith("bgm-staff-") && ![CACHE_NAME, AUTH_CACHE_NAME, BAR_API_CACHE_NAME].includes(key)).map((key) => caches.delete(key)))
     )
   );
   self.clients.claim();
@@ -190,7 +190,7 @@ self.addEventListener("fetch", (event) => {
   if (
     url.pathname.startsWith("/_next/static/") ||
     url.pathname.startsWith("/icons/") ||
-    url.pathname === "/manifest.json" ||
+    url.pathname === "/staff-manifest.webmanifest" ||
     url.pathname === "/bgm-logo.png"
   ) {
     event.respondWith(
