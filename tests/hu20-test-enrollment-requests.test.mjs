@@ -10,7 +10,7 @@ test("HU20 TEST enrollment requests are Super Admin-only, time-limited and audit
   assert.match(admin, /isHu20TestRequestEnabled/);
   assert.match(admin, /requireSuperAdmin\(request\)/g);
   assert.match(admin, /authorizedOrigin\(request\)/);
-  assert.match(admin, /ttlMillis = 5 \* 60 \* 1000/);
+  assert.match(admin, /ttlMillis = 10 \* 60 \* 1000/);
   assert.match(admin, /"staff\.hu20\.enrollment\.requested"/);
   assert.match(admin, /"staff\.hu20\.enrollment\.cancelled"/);
   assert.match(admin, /eq\("status", "pending"\)/);
