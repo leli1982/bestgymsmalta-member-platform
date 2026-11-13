@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: true, fictionalTestOnly: true, punches: [] }, { headers: responseHeaders });
     }
 
-    const employeeIds = [...new Set(punchRows.map((row) => row.employee_id))];
+    const employeeIds = Array.from(new Set(punchRows.map((row) => row.employee_id)));
     const employees = await db.from("bgm_staff_employees")
       .select("id,first_name,surname")
       .in("id", employeeIds)
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     const sessions = await db.from("bgm_staff_work_sessions")
       .select("id,employee_id,status,clock_in_punch_event_id,clock_out_punch_event_id,clock_in_at,clock_out_at")
-      .in("employee_id", [...new Set(fictionalRows.map((row) => row.employee_id))])
+      .in("employee_id", Array.from(new Set(fictionalRows.map((row) => row.employee_id))))
       .order("clock_in_at", { ascending: false })
       .limit(100);
     if (sessions.error) throw sessions.error;
