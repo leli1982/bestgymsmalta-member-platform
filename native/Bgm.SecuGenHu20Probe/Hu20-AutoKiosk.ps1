@@ -21,7 +21,8 @@ param(
   [int]$Quality = 80,
   [switch]$EnableFictionalTestAttendance,
   [switch]$RepeatApprovedTests,
-  [switch]$AutoKioskTest
+  [switch]$AutoKioskTest,
+  [switch]$FullScreenTest
 )
 
 $ErrorActionPreference = "Stop"
@@ -106,6 +107,7 @@ function Wait-Hu20FingerRemoval([object]$manager, [int]$width, [int]$height) {
   $absentChecks = 0
   try {
     Write-Host "Remove your finger from the HU20 sensor."
+    if ($FullScreenTest) { Show-Hu20KioskStatus -State "remove" }
     while ([DateTimeOffset]::UtcNow -lt $deadline) {
       $result = [int]$manager.GetImageEx($raw, 900, 0, 40)
       if ($result -eq 54) {
@@ -182,8 +184,21 @@ $live = $null
 $manager = $null
 $opened = $false
 $rosterJson = $null
+$displayStarted = $false
 try {
   if ($terminalSecret -notmatch '^[a-fA-F0-9]{64}$') { throw "Terminal secret invalid." }
+  if ($FullScreenTest) {
+    if ([System.Threading.Thread]::CurrentThread.GetApartmentState() -ne [System.Threading.ApartmentState]::STA) {
+      throw "TEST full screen requires Windows PowerShell -STA."
+    }
+    $screenScript = Join-Path $PSScriptRoot "Hu20-KioskDisplay.ps1"
+    if (-not (Test-Path -LiteralPath $screenScript -PathType Leaf)) {
+      throw "Missing Hu20-KioskDisplay.ps1; automatic TEST scanning cannot run invisibly."
+    }
+    . $screenScript
+    Initialize-Hu20KioskDisplay
+    $displayStarted = $true
+  }
   $headers = @{
     "Authorization" = "Bearer $terminalSecret"
     "X-BGM-HU20-Terminal-Id" = $TerminalId
@@ -206,6 +221,7 @@ try {
     $opened = $false
     $rosterJson = $null
     try {
+      if ($FullScreenTest) { Show-Hu20KioskStatus -State "connecting" }
       Write-Host "Requesting Super Admin-authorised TEST recognition session..."
   try {
     $response = Invoke-WebRequest -Uri "$base/api/staff-hu20/recognition/begin" -Method Post -Headers $headers -WebSession $webSession -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 30 -ContentType "application/json" -Body '{}'
@@ -311,6 +327,7 @@ try {
     }
 
     Write-Host "Scan a test finger on the HU20 now (no fingerprint passphrase)."
+    if ($FullScreenTest) { Show-Hu20KioskStatus -State "ready" }
     $live = Get-TransientTemplate $manager $width $height $maxSize $expiry
     Wait-Hu20FingerRemoval $manager $width $height
     $matches = New-Object System.Collections.ArrayList
@@ -426,4 +443,5 @@ finally {
   $terminalSecret = $null
   $headers = $null
   $webSession = $null
+  if ($FullScreenTest -and $displayStarted) { Close-Hu20KioskDisplay }
 }
