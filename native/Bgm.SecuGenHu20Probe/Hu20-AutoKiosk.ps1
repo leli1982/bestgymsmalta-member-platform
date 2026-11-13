@@ -81,11 +81,15 @@ function Get-TransientTemplate([object]$manager, [int]$width, [int]$height, [int
   $keepBuffer = $false
   try {
     Write-Host "KIOSK TEST ready: place your fictional test finger on the HU20 sensor."
-    $result = [int]$manager.GetImageEx($raw, $CaptureTimeoutMs, 0, $Quality)
+    # Short capture intervals let the full-screen display process ESC safely.
+    $pollMs = if ($FullScreenTest) { [Math]::Min($CaptureTimeoutMs, 2000) } else { $CaptureTimeoutMs }
+    $result = [int]$manager.GetImageEx($raw, $pollMs, 0, $Quality)
+    if ($FullScreenTest) { Assert-Hu20KioskDisplay }
     # SecuGen FDx SDK: ERROR_TIME_OUT=54 means no finger. All other errors are fatal.
-    while ($result -eq 54 -and [DateTimeOffset]::UtcNow.AddMilliseconds($CaptureTimeoutMs) -lt $deadline) {
+    while ($result -eq 54 -and [DateTimeOffset]::UtcNow.AddMilliseconds($pollMs) -lt $deadline) {
       Clear-Bytes $raw
-      $result = [int]$manager.GetImageEx($raw, $CaptureTimeoutMs, 0, $Quality)
+      $result = [int]$manager.GetImageEx($raw, $pollMs, 0, $Quality)
+      if ($FullScreenTest) { Assert-Hu20KioskDisplay }
     }
     if ($result -eq 54 -or [DateTimeOffset]::UtcNow -ge $deadline) {
       throw "KIOSK_NO_FINGER_TIMEOUT"
@@ -109,6 +113,7 @@ function Wait-Hu20FingerRemoval([object]$manager, [int]$width, [int]$height) {
     Write-Host "Remove your finger from the HU20 sensor."
     if ($FullScreenTest) { Show-Hu20KioskStatus -State "remove" }
     while ([DateTimeOffset]::UtcNow -lt $deadline) {
+      if ($FullScreenTest) { Assert-Hu20KioskDisplay }
       $result = [int]$manager.GetImageEx($raw, 900, 0, 40)
       if ($result -eq 54) {
         $absentChecks += 1
@@ -350,6 +355,7 @@ try {
       Write-Host "AMBIGUOUS: Multiple templates matched. Identification REJECTED."
     }
   }
+  if ($FullScreenTest) { Show-Hu20KioskStatus -State "verifying" }
   if ($expiry -le [DateTimeOffset]::UtcNow) { throw "Recognition window expired. No result accepted." }
   $resultBody = @{ testId = $testId; result = $outcome; credentialId = $matchedId } | ConvertTo-Json -Compress
   try {
@@ -368,6 +374,7 @@ try {
     # Only after the backend verified the matching biometric and marked its
     # one-time recognition as complete may this optional TEST route be called.
     $testPunchJson = @{ testId = $testId } | ConvertTo-Json -Compress
+    if ($FullScreenTest) { Assert-Hu20KioskDisplay }
     try {
       $testPunchResponse = Invoke-WebRequest -Uri "$base/api/staff-hu20/attendance" -Method Post -Headers $headers -WebSession $webSession -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 30 -ContentType "application/json" -Body $testPunchJson
     }
@@ -382,12 +389,24 @@ try {
       throw "TEST attendance transition was not confirmed."
     }
     Write-Host "FICTIONAL TEST PUNCH: $($testPunch.outcome) at gym $($testPunch.gymId) (event $($testPunch.punchEventId))."
+    if ($FullScreenTest) {
+      switch ([string]$testPunch.outcome) {
+        "clocked_in" { Show-Hu20KioskStatus -State "clock_in" -Person $matchedName }
+        "clocked_out" { Show-Hu20KioskStatus -State "clock_out" -Person $matchedName }
+        default { Show-Hu20KioskStatus -State "cooldown" }
+      }
+      Wait-Hu20KioskUi -Milliseconds 3000
+    }
 
   }
   elseif ($outcome -eq "no_match") {
     Write-Host "PASS: CENTRAL_NO_MATCH; unknown or revoked fingerprint rejected."
+    if ($FullScreenTest) { Show-Hu20KioskStatus -State "rejected"; Wait-Hu20KioskUi -Milliseconds 2000 }
   }
-  else { Write-Host "PASS: CENTRAL_AMBIGUOUS rejected safely." }
+  else {
+    Write-Host "PASS: CENTRAL_AMBIGUOUS rejected safely."
+    if ($FullScreenTest) { Show-Hu20KioskStatus -State "rejected"; Wait-Hu20KioskUi -Milliseconds 2000 }
+  }
   Write-Host "Only a confirmed one-match can create a fictional TEST clock event; NO_MATCH and AMBIGUOUS never punch."
   Write-Host "Security level NORMAL is only for a smoke test, not production."
     }
