@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { formatEuropeanDateTime } from "@/lib/europeanDate";
+import Hu20TestKioskWindowsPanel from "@/components/staff/Hu20TestKioskWindowsPanel";
 
 type Terminal = {
   id: string; gym_id: string; name: string; active: boolean;
@@ -111,6 +112,7 @@ export default function Hu20TestTerminalsPage() {
         <code className="block break-all rounded bg-white p-2">{credential.secret}</code>
         <button onClick={() => setCredential(null)} className="mt-4 rounded bg-slate-900 px-3 py-2 text-white" type="button">I have saved it — hide credential</button>
       </section>}
+      <Hu20TestKioskWindowsPanel terminals={data?.terminals || []} />
       <section className="mt-6 rounded border border-slate-200 bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xl font-semibold">Recent fictional TEST fingerprint punches</h2>

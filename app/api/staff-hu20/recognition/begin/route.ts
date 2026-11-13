@@ -48,10 +48,18 @@ export async function POST(request: NextRequest) {
       !people.has(rec.employee_id))) return fail("Invalid TEST template reference.", 409);
 
     // Atomic single-use claim protects against concurrent/duplicate roster fetches.
-    const claimed = await db.rpc("bgm_hu20_test_claim_recognition", {
-      p_terminal_id: terminal.id,
-    });
-    if (claimed.error?.code === "P0001") return fail("No active Super Admin recognition authorisation.", 409);
+    const kioskMode = request.headers.get("x-bgm-hu20-kiosk-test") === "1";
+    if (kioskMode && (process.env.BGM_HU20_KIOSK_TEST_ENABLED !== "true" ||
+        process.env.BGM_HU20_ATTENDANCE_TEST_ENABLED !== "true")) {
+      return fail("HU20 unattended TEST kiosk unavailable.", 404);
+    }
+    const claimed = await db.rpc(
+      kioskMode ? "bgm_hu20_test_claim_kiosk_recognition" : "bgm_hu20_test_claim_recognition",
+      { p_terminal_id: terminal.id },
+    );
+    if (claimed.error?.code === "P0002" && kioskMode) return fail("TEST kiosk cooldown. Retry later.", 429);
+    if (claimed.error?.code === "P0001") return fail(
+      kioskMode ? "No active fictional TEST kiosk window." : "No active Super Admin recognition authorisation.", 409);
     if (claimed.error) throw claimed.error;
     const session = Array.isArray(claimed.data) ? claimed.data[0] : claimed.data;
     if (!session?.test_id || !session?.valid_until) {
@@ -85,6 +93,7 @@ export async function POST(request: NextRequest) {
       fingerprintMatchingOnTerminal: true,
       attendanceEnabled: false,
       vendorSecurityLevel: "NORMAL_TEST_ONLY",
+      kioskTestOnly: kioskMode,
     }, { headers });
   } catch (error) {
     console.error("HU20 recognition TEST roster failed", error instanceof Error ? error.name : "unknown");
