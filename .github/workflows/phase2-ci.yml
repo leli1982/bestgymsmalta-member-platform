@@ -43,6 +43,26 @@ jobs:
       - name: Run tests
         run: node --experimental-strip-types --test tests/*.test.mjs
 
+      - name: Parse HU20 Windows PowerShell TEST scripts
+        shell: pwsh
+        run: |
+          $paths = @(
+            'native/Bgm.SecuGenHu20Probe/Hu20-StartTestTerminal.ps1'
+            'native/Bgm.SecuGenHu20Probe/Hu20-AutoKiosk.ps1'
+            'native/Bgm.SecuGenHu20Probe/Hu20-KioskDisplay.ps1'
+            'native/Bgm.SecuGenHu20Probe/Hu20-TestPunch.ps1'
+          )
+          foreach ($path in $paths) {
+            $tokens = $null
+            $errorsFound = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$errorsFound) | Out-Null
+            if ($errorsFound.Count -gt 0) {
+              foreach ($item in $errorsFound) { Write-Host "PowerShell syntax failure in ${path}: $($item.Message)" }
+              throw "Invalid PowerShell in $path"
+            }
+            Write-Host "PASS: $path"
+          }
+
       - name: Type check
         run: npx tsc --noEmit
 
