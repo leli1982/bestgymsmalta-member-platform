@@ -19,7 +19,8 @@ param(
   [int]$CaptureTimeoutMs = 10000,
   [ValidateRange(1,100)]
   [int]$Quality = 80,
-  [switch]$EnableFictionalTestAttendance
+  [switch]$EnableFictionalTestAttendance,
+  [switch]$RepeatApprovedTests
 )
 
 $ErrorActionPreference = "Stop"
@@ -154,7 +155,19 @@ try {
     "Accept" = "application/json"
     "Cache-Control" = "no-store"
   }
-  Write-Host "Requesting Super Admin-authorised TEST recognition session..."
+  if ($RepeatApprovedTests) {
+    Write-Host "Supervised TEST terminal mode. One authorisation is needed for EVERY scan."
+    Write-Host "Preview Share access and the terminal secret stay only in this running PowerShell session."
+  }
+  while ($true) {
+    # Never carry fingerprint templates or SDK handles across scan attempts.
+    $templates = New-Object System.Collections.ArrayList
+    $live = $null
+    $manager = $null
+    $opened = $false
+    $rosterJson = $null
+    try {
+      Write-Host "Requesting Super Admin-authorised TEST recognition session..."
   try {
     $response = Invoke-WebRequest -Uri "$base/api/staff-hu20/recognition/begin" -Method Post -Headers $headers -WebSession $webSession -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 30 -ContentType "application/json" -Body '{}'
   }
@@ -318,15 +331,54 @@ try {
   else { Write-Host "PASS: CENTRAL_AMBIGUOUS rejected safely." }
   Write-Host "Only a confirmed one-match can create a fictional TEST clock event; NO_MATCH and AMBIGUOUS never punch."
   Write-Host "Security level NORMAL is only for a smoke test, not production."
+    }
+    catch {
+      if (-not $RepeatApprovedTests) { throw }
+      if ($_.Exception.Message -like "No pending TEST recognition authorization*") {
+        Write-Warning "No new Super Admin approval exists. No scan or attendance event was created."
+      }
+      else {
+        # On all unexpected errors, fail closed instead of silently retrying.
+        Write-Warning "TEST terminal stopped after an unsuccessful scan."
+        throw
+      }
+    }
+    finally {
+      Clear-Bytes $live
+      foreach ($item in $templates) { Clear-Bytes $item.Template }
+      if ($opened -and $null -ne $manager) {
+        try { [void]$manager.CloseDevice() } catch { Write-Warning "Could not close SecuGen device." }
+      }
+      if ($null -ne $manager -and $manager -is [System.IDisposable]) { $manager.Dispose() }
+      # Best-effort cleanup of plaintext roster references before the next scan.
+      $live = $null
+      $templates.Clear()
+      $body = $null
+      $entries = $null
+      $entry = $null
+      $template = $null
+      $encoded = $null
+      $rosterJson = $null
+      $response = $null
+      $confirmation = $null
+      $accepted = $null
+      $matches = $null
+      $testPunchResponse = $null
+      $testPunch = $null
+      $manager = $null
+    }
+    if (-not $RepeatApprovedTests) { break }
+    Write-Host ""
+    Write-Host "Authorise the next recognition in TEST Super Admin before scanning."
+    $choice = Read-Host "Press Enter for another authorised scan, or Q to close"
+    if ($choice.Trim().ToUpperInvariant() -eq "Q") { break }
+    if ($choice.Trim() -ne "") { Write-Host "Unrecognised choice. TEST terminal closed."; break }
+  }
 }
 finally {
-  Clear-Bytes $live
-  foreach ($item in $templates) { Clear-Bytes $item.Template }
-  if ($opened -and $null -ne $manager) {
-    try { [void]$manager.CloseDevice() } catch { Write-Warning "Could not close SecuGen device." }
-  }
-  if ($null -ne $manager -and $manager -is [System.IDisposable]) { $manager.Dispose() }
+  # The terminal secret and Preview Share token are never written to disk.
   $rosterJson = $null
   $terminalSecret = $null
   $headers = $null
+  $webSession = $null
 }
