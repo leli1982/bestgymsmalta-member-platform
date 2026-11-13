@@ -9,7 +9,7 @@ test("one-click HU20 test launcher uses the existing server-verified punch flow"
   assert.match(cmd, /Hu20-StartTestTerminal[.]ps1/);
   assert.match(starter, /Hu20-TestPunch[.]ps1/);
   assert.match(starter, /-EnableFictionalTestAttendance -RepeatApprovedTests/);
-  assert.match(punch, /[[]switch[]][$]RepeatApprovedTests/);
+  assert.match(punch, /\[switch\]\$RepeatApprovedTests/);
   assert.match(punch, /[$]choice = Read-Host/);
   assert.match(punch, /if [(][$]choice[.]Trim[(][)][.]ToUpperInvariant[(][)] -eq "Q"[)]/);
   assert.match(punch, /api[/]staff-hu20[/]recognition[/]begin/);
@@ -22,7 +22,7 @@ test("launcher rejects arbitrary Vercel projects and share token persistence", (
   assert.match(starter, /[$]uri[.]Query -ne ""/);
   assert.match(starter, /[$]uri[.]UserInfo -ne ""/);
   assert.match(starter, /sgfplib[.]dll/);
-  const saved = starter.match(/[[pP]scustomobject]@\{([\s\S]*?)\} \| ConvertTo-Json/);
+  const saved = starter.match(/\[pscustomobject\]@\{([\s\S]*?)\} \| ConvertTo-Json/);
   assert.ok(saved, "Explicit non-secret config settings");
   assert.match(saved[1], /baseUrl = [$]BaseUrl/);
   assert.match(saved[1], /terminalId = [$]TerminalId/);
@@ -33,7 +33,7 @@ test("launcher rejects arbitrary Vercel projects and share token persistence", (
 test("each iteration purges buffers and does not auto-authorise or auto-scan", () => {
   assert.match(punch, /One authorisation is needed for EVERY scan/);
   assert.match(punch, /No pending TEST recognition authorization/);
-  assert.match(punch, /if [(-]not [$]RepeatApprovedTests/);
+  assert.match(punch, /if \(-not \$RepeatApprovedTests/);
   assert.match(punch, /Clear-Bytes [$]live/);
   assert.match(punch, /foreach [(][$]item in [$]templates[)] [\{] Clear-Bytes [$]item[.]Template [\}]/);
   assert.match(punch, /[$]templates[.]Clear[(][)]/);
