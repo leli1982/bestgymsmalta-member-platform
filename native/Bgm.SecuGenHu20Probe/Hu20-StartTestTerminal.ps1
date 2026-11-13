@@ -8,6 +8,7 @@
 [CmdletBinding()]
 param(
   [switch]$Configure,
+  [switch]$AutoKioskTest,
   [string]$BaseUrl,
   [string]$TerminalId,
   [string]$SdkAssembly
@@ -81,5 +82,12 @@ Write-Host "TEST Preview: $BaseUrl"
 Write-Host "A fresh five-minute Super Admin authorisation is required for EACH scan."
 Write-Host "Enter the private Share link and terminal secret only when prompted."
 Write-Host ""
-& $punchPath -BaseUrl $BaseUrl -TerminalId $TerminalId -SdkAssembly $sdkPath -EnableFictionalTestAttendance -RepeatApprovedTests
+if ($AutoKioskTest) {
+  $autoPath = Join-Path $directory "Hu20-AutoKiosk.ps1"
+  if (-not (Test-Path -LiteralPath $autoPath -PathType Leaf)) { throw "Missing HU20 automatic TEST scanner script." }
+  Write-Host "FICTIONAL TEST KIOSK: arm a 10-minute window in Super Admin first."
+  & $autoPath -BaseUrl $BaseUrl -TerminalId $TerminalId -SdkAssembly $sdkPath -EnableFictionalTestAttendance -AutoKioskTest
+} else {
+  & $punchPath -BaseUrl $BaseUrl -TerminalId $TerminalId -SdkAssembly $sdkPath -EnableFictionalTestAttendance -RepeatApprovedTests
+}
 if (-not $?) { throw "Fictional HU20 TEST terminal exited with an error." }

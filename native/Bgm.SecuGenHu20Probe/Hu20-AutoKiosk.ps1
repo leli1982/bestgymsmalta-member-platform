@@ -46,9 +46,6 @@ if (-not $EnableFictionalTestAttendance -or -not $AutoKioskTest -or $RepeatAppro
 if ($base -cnotmatch '^https://bestgymsmalta-member-platform-[a-z0-9-]+-leliapap-2558s-projects[.]vercel[.]app$') {
   throw "Automatic TEST kiosk must use immutable BGM Vercel Preview URL."
 }
-if ($false) {
-  throw 'This separately gated script records fictional TEST clock events. Rerun with -EnableFictionalTestAttendance only after TEST Super Admin approval. Never use real payroll data.'
-}
 
 function Read-PrivateText([string]$promptText) {
   $secureValue = Read-Host $promptText -AsSecureString
