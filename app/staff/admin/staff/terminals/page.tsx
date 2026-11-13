@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatEuropeanDateTime } from "@/lib/europeanDate";
 
 type Terminal = {
   id: string; gym_id: string; name: string; active: boolean;
@@ -10,6 +11,11 @@ type Terminal = {
 type Gym = { id: string; name: string; status: string };
 type ResponseData = { terminals: Terminal[]; gyms: Gym[]; error?: string };
 type Credential = { id: string; name: string; secret: string };
+type TestPunch = {
+  id: string; employeeName: string; action: "in" | "out";
+  gymId: string; terminalId: string; at: string;
+  sessionStatus: string | null; workedMinutes: number | null;
+};
 
 export default function Hu20TestTerminalsPage() {
   const [data, setData] = useState<ResponseData | null>(null);
@@ -18,6 +24,8 @@ export default function Hu20TestTerminalsPage() {
   const [credential, setCredential] = useState<Credential | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [punches, setPunches] = useState<TestPunch[] | null>(null);
+  const [punchError, setPunchError] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -30,7 +38,19 @@ export default function Hu20TestTerminalsPage() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  const loadPunches = useCallback(async () => {
+    try {
+      const response = await fetch("/api/system/staff-hu20/attendance-log", { cache: "no-store" });
+      const body = await response.json();
+      if (!response.ok || body.ok !== true) throw new Error(body.error || "Could not load TEST attendance.");
+      setPunches(body.punches || []);
+      setPunchError("");
+    } catch (caught) {
+      setPunchError(caught instanceof Error ? caught.message : "Could not load TEST attendance.");
+    }
+  }, []);
+
+  useEffect(() => { void load(); void loadPunches(); }, [load, loadPunches]);
 
   async function createTerminal(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -63,7 +83,7 @@ export default function Hu20TestTerminalsPage() {
       <a href="/staff/admin/staff" className="underline">Back to Staff management</a>
       <h1 className="mt-4 text-2xl font-bold">HU20 Punch Clock terminals — TEST</h1>
       <p className="mt-2"><a href="/staff/admin/staff/terminals/enrollment" className="font-semibold underline">Supervised TEST enrollment requests</a></p>
-      <p className="mt-2 text-sm">Register a gym PC for secure communication tests. Fingerprint attendance and payroll changes remain disabled.</p>
+      <p className="mt-2 text-sm">Register a gym PC for secure TEST communication. Only fictional HU20-TEST employees can create TEST fingerprint attendance; normal staff punch clock and live payroll remain disabled.</p>
       {error && <p role="alert" className="mt-4 rounded bg-red-100 p-3 text-red-900">{error}</p>}
       <form onSubmit={createTerminal} className="mt-5 grid gap-3 rounded border bg-white p-4">
         <label className="grid gap-1">Gym
@@ -91,6 +111,24 @@ export default function Hu20TestTerminalsPage() {
         <code className="block break-all rounded bg-white p-2">{credential.secret}</code>
         <button onClick={() => setCredential(null)} className="mt-4 rounded bg-slate-900 px-3 py-2 text-white" type="button">I have saved it — hide credential</button>
       </section>}
+      <section className="mt-6 rounded border border-slate-200 bg-white p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold">Recent fictional TEST fingerprint punches</h2>
+          <button type="button" onClick={() => void loadPunches()} className="rounded border border-slate-300 px-3 py-2 text-sm font-semibold">Refresh punches</button>
+        </div>
+        <p className="mt-1 text-sm text-slate-600">Read-only; shows confirmed HU20 TEST Clock IN/OUT events. No fingerprint templates, credentials or real staff payroll.</p>
+        {punchError && <p role="alert" className="mt-3 rounded bg-red-100 p-3 text-sm text-red-900">{punchError}</p>}
+        {!punchError && punches === null && <p className="mt-3 text-sm">Loading TEST punches…</p>}
+        {!punchError && punches?.length === 0 && <p className="mt-3 text-sm">No fictional TEST punches recorded.</p>}
+        <div className="mt-3 space-y-2">
+          {(punches || []).map((punch) => <article key={punch.id} className="rounded border border-slate-200 p-3 text-sm">
+            <p className="font-semibold">{punch.employeeName} — {punch.action === "in" ? "Clock IN" : "Clock OUT"}</p>
+            <p className="mt-1">{formatEuropeanDateTime(punch.at)} · {gymNames.get(punch.gymId) || punch.gymId}</p>
+            <p className="text-slate-600">Session: {punch.sessionStatus || "Not linked"}{punch.workedMinutes !== null ? ` · ${punch.workedMinutes} minute(s)` : ""}</p>
+          </article>)}
+        </div>
+        <p className="mt-3 text-sm">For full attendance and payroll details, open <a className="font-semibold underline" href="/staff/admin/staff">Staff Management → Timesheets</a>.</p>
+      </section>
       <h2 className="mt-6 text-xl font-semibold">Registered terminals</h2>
       <div className="mt-2 grid gap-2">{(data?.terminals || []).map((item) => <article key={item.id} className="rounded border bg-white p-3">
         <p className="font-semibold">{item.name} — {gymNames.get(item.gym_id) || item.gym_id}</p>
