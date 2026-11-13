@@ -9,12 +9,14 @@
 param(
   [switch]$Configure,
   [switch]$AutoKioskTest,
+  [switch]$FullScreenTest,
   [string]$BaseUrl,
   [string]$TerminalId,
   [string]$SdkAssembly
 )
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
+if ($FullScreenTest -and -not $AutoKioskTest) { throw "-FullScreenTest requires -AutoKioskTest." }
 if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT -or -not [Environment]::Is64BitProcess) {
   throw "Only 64-bit Windows PowerShell on the authorised HU20 TEST PC is supported."
 }
@@ -64,7 +66,14 @@ if (-not [string]::Equals([IO.Path]::GetExtension($sdkPath), ".dll", [StringComp
 if (-not (Test-Path -LiteralPath (Join-Path (Split-Path -Parent $sdkPath) "sgfplib.dll") -PathType Leaf)) {
   throw "Official SDK dependency sgfplib.dll is missing next to the assembly."
 }
-if ($Configure -or -not (Test-Path -LiteralPath $configPath -PathType Leaf)) {
+# Persist only allowlisted non-secret settings when an explicit Preview override
+# differs from the saved version; the next shortcut then uses the same Preview.
+$saveSettings = $Configure -or -not (Test-Path -LiteralPath $configPath -PathType Leaf) -or
+  ($null -ne $config -and
+    ([string]$config.baseUrl -cne $BaseUrl -or
+     [string]$config.terminalId -cne $TerminalId -or
+     [string]$config.sdkAssembly -cne $sdkPath))
+if ($saveSettings) {
   # Explicit allowlist: these are the ONLY settings persisted locally.
   [pscustomobject]@{
     baseUrl = $BaseUrl
@@ -79,14 +88,18 @@ Write-Host " BESTGYMSMALTA | FICTIONAL HU20 TEST TERMINAL (NOT LIVE)"
 Write-Host "============================================================"
 Write-Host "Terminal: $TerminalId"
 Write-Host "TEST Preview: $BaseUrl"
-Write-Host "A fresh five-minute Super Admin authorisation is required for EACH scan."
+if ($AutoKioskTest) {
+  Write-Host "Automatic TEST kiosk: one ten-minute Super Admin window, up to six scans."
+} else {
+  Write-Host "Supervised TEST: one authorisation is needed per scan."
+}
 Write-Host "Enter the private Share link and terminal secret only when prompted."
 Write-Host ""
 if ($AutoKioskTest) {
   $autoPath = Join-Path $directory "Hu20-AutoKiosk.ps1"
   if (-not (Test-Path -LiteralPath $autoPath -PathType Leaf)) { throw "Missing HU20 automatic TEST scanner script." }
   Write-Host "FICTIONAL TEST KIOSK: arm a 10-minute window in Super Admin first."
-  & $autoPath -BaseUrl $BaseUrl -TerminalId $TerminalId -SdkAssembly $sdkPath -EnableFictionalTestAttendance -AutoKioskTest
+  & $autoPath -BaseUrl $BaseUrl -TerminalId $TerminalId -SdkAssembly $sdkPath -EnableFictionalTestAttendance -AutoKioskTest -FullScreenTest:$FullScreenTest
 } else {
   & $punchPath -BaseUrl $BaseUrl -TerminalId $TerminalId -SdkAssembly $sdkPath -EnableFictionalTestAttendance -RepeatApprovedTests
 }
