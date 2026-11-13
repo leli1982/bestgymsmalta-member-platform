@@ -15,7 +15,7 @@ test("Staff and Members are different installable apps with stable entry URLs", 
   assert.equal(member.scope, "/");
   assert.equal(staff.id, "/staff");
   assert.equal(staff.start_url, "/staff");
-  assert.equal(staff.scope, "/staff/");
+  assert.equal(staff.scope, "/staff");
   assert.equal(staff.display, "standalone");
   assert.notEqual(staff.id, member.id);
   assert.match(memberLayout, /manifest:\s*["']\/manifest\.json["']/);

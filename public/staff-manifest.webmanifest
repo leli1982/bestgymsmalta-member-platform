@@ -4,7 +4,7 @@
   "short_name": "BGM Staff",
   "description": "BestGymsMalta staff reception and administration portal.",
   "start_url": "/staff",
-  "scope": "/staff/",
+  "scope": "/staff",
   "display": "standalone",
   "background_color": "#f6f6f6",
   "theme_color": "#fcb415",
