@@ -414,17 +414,31 @@ try {
       $reason = $_.Exception.Message
       if ($reason -eq "KIOSK_WINDOW_FINISHED") {
         Write-Host "No active TEST kiosk window or scans remaining. Stopping."
+        if ($FullScreenTest) {
+          Show-Hu20KioskStatus -State "finished"
+          Wait-Hu20KioskUi -Milliseconds 2500
+        }
         $stopKiosk = $true
       }
       elseif ($reason -eq "KIOSK_COOLDOWN") {
         Write-Host "Waiting for server-side kiosk cooldown..."
-        Start-Sleep -Seconds 10
+        if ($FullScreenTest) {
+          Show-Hu20KioskStatus -State "cooldown"
+          Wait-Hu20KioskUi -Milliseconds 10000
+        } else { Start-Sleep -Seconds 10 }
       }
       elseif ($reason -eq "KIOSK_NO_FINGER_TIMEOUT") {
         Write-Host "No finger before the single-use recognition expired. No attendance."
+        if ($FullScreenTest) { Show-Hu20KioskStatus -State "cooldown" }
       }
       else {
         Write-Warning "Unexpected reader, network or security error. TEST kiosk stopped."
+        if ($FullScreenTest -and $displayStarted) {
+          try {
+            Show-Hu20KioskStatus -State "error"
+            Wait-Hu20KioskUi -Milliseconds 2500
+          } catch {}
+        }
         throw
       }
     }
