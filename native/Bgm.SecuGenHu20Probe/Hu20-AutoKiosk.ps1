@@ -22,7 +22,8 @@ param(
   [switch]$EnableFictionalTestAttendance,
   [switch]$RepeatApprovedTests,
   [switch]$AutoKioskTest,
-  [switch]$FullScreenTest
+  [switch]$FullScreenTest,
+  [switch]$UseProvisionedDevice
 )
 
 $ErrorActionPreference = "Stop"
@@ -139,9 +140,20 @@ function Wait-Hu20FingerRemoval([object]$manager, [int]$width, [int]$height) {
 
 $webSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 Write-Host "BGM HU20 fictional TEST attendance: recognition first, then one atomic punch."
-Write-Host "If the TEST Preview is Vercel-protected, copy its temporary Share link from Vercel > Deployments > Share."
-Write-Host "The link and your terminal secret are entered privately and are not saved."
-$shareLink = Read-PrivateText "Paste temporary Vercel Share link, or press Enter to skip"
+$terminalSecret = $null
+$vercelBypass = $null
+$shareLink = ""
+if ($UseProvisionedDevice) {
+  . (Join-Path $PSScriptRoot "Hu20-DeviceVault.ps1")
+  $vault = Get-Hu20Vault -BaseUrl $base -TerminalId $TerminalId
+  $terminalSecret = [string]$vault.terminalSecret
+  $vercelBypass = [string]$vault.vercelBypass
+  $vault = $null
+  Write-Host "Using the once-provisioned Windows DPAPI TEST credentials (no repeated prompts)."
+} else {
+  Write-Host "If the TEST Preview is Vercel-protected, enter its temporary Share link privately."
+  $shareLink = Read-PrivateText "Paste temporary Vercel Share link, or press Enter to skip"
+}
 try {
   if ($shareLink) {
     $shareUri = $null
@@ -189,7 +201,9 @@ finally {
   $primeUrl = $null
 }
 
-$terminalSecret = Read-PrivateText "Enter the private HU20 terminal secret"
+if (-not $UseProvisionedDevice) {
+  $terminalSecret = Read-PrivateText "Enter the private HU20 terminal secret"
+}
 $headers = $null
 $templates = New-Object System.Collections.ArrayList
 $live = $null
@@ -216,6 +230,9 @@ try {
     "X-BGM-HU20-Terminal-Id" = $TerminalId
     "Accept" = "application/json"
     "Cache-Control" = "no-store"
+  }
+  if ($UseProvisionedDevice) {
+    $headers["x-vercel-protection-bypass"] = $vercelBypass
   }
   if ($RepeatApprovedTests) {
     Write-Host "Supervised TEST terminal mode. One authorisation is needed for EVERY scan."
@@ -542,6 +559,7 @@ finally {
   # The terminal secret and Preview Share token are never written to disk.
   $rosterJson = $null
   $terminalSecret = $null
+  $vercelBypass = $null
   $headers = $null
   $webSession = $null
   if ($FullScreenTest -and $displayStarted) { Close-Hu20KioskDisplay }
