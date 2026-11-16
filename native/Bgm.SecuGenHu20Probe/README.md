@@ -239,3 +239,18 @@ CI now executes synthetic failures using PowerShell itself, in addition to parsi
 Optional supervised physical acceptance checklist on fictional TEST enrollment only: (1) scan a different non-enrolled finger and confirm red NOT RECOGNISED, with no extra attendance event; (2) start a new window, unplug the reader while PLACE FINGER is shown and confirm READER ERROR and scanner exit, then reconnect after stopping the server window; (3) start a new window, disconnect the TEST PC network before fingerprint capture to confirm NETWORK ERROR and no new attendance; (4) confirm ESC closes the display and subsequent start requires the existing Super Admin window/secret, never runs without permission. **Do not deliberately interrupt an attendance POST during physical validation**; if its outcome is unknown, reconcile in Super Admin first.
 
 Production remains blocked pending biometric threshold and spoof resistance evaluation, robust device provisioning, worker consent/privacy review and GDPR DPIA, replay-resistant device trust, resilience tests, and explicit approval.
+
+
+## 16 November 2026 — TEST multi-gym terminal readiness
+
+This stage adds a quota-free authenticated preflight endpoint at /api/staff-hu20/kiosk/preflight; the full-screen display shows the registered gym from the TEST server. A separate Super Admin-only deactivation control invalidates a registered terminal and cancels its active kiosk windows. No database migrations or real staff attendance changes.
+
+**Deployment preparation:** Give every gym PC its own TEST terminal registration, gym association and one-time secret. Never copy credentials, Share tokens or stored fingerprints between gyms. Configure each Windows PC with the official HU20 driver and SDK and matching scripts from one tested commit. The non-secret local JSON can store only the immutable TEST Preview base URL, terminal ID and SDK DLL path. The terminal secret and Vercel Share token must remain transient.
+
+**Startup:** A Super Admin enables a limited fictional TEST window. The scanner calls the read-only preflight before each recognition claim; the server checks active terminal, active gym, unexpired authorisation and remaining attempts without consuming any fingerprint attempt. The registered gym is shown on-screen. The recognition and attendance endpoints independently reauthenticate and enforce TEST-only limits.
+
+**Deactivation and recovery:** If a TEST PC is retired or lost, Super Admin uses Deactivate TEST terminal; the credential stops authenticating and active authorisations are cancelled. There is no reactivation or credential recovery: replacement hardware gets a new terminal ID and secret. ESC ends only the Windows process; Super Admin must STOP the server window. On SDK or network failure the kiosk must stop rather than auto-reconnect; on an uncertain attendance result the administrator must reconcile the punch log before any further scan. These rules remain unchanged.
+
+**Acceptance:** After CI and Preview are READY, update only Hu20-AutoKiosk.ps1 and Hu20-KioskDisplay.ps1 from the same commit (the previously installed Hu20-KioskSafety.ps1 is unchanged). Verify that the server-registered gym is shown correctly without retesting earlier fingerprint and USB cases. Do not deactivate the existing working TEST terminal to try the new control; any such test should use a disposable second TEST registration.
+
+Production blockers remain: reliable managed device provisioning and monitoring, biometric liveness and threshold evaluation, tamper resistance, recovery and security review, employee privacy assessment and GDPR DPIA, explicit production approval. No production rollout is authorised.
