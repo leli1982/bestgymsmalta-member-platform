@@ -36,7 +36,9 @@ if ($uri.Scheme -ne "https" -or $uri.Port -ne 443 -or
     $terminalId -notmatch '^[0-9a-fA-F-]{36}$') { throw "Unexpected BGM TEST Preview or terminal." }
 $existing = Get-Hu20VaultPath
 if ((Test-Path -LiteralPath $existing) -and -not $ReplaceExisting) {
-  Write-Host "PASS: Device credential vault already exists. Secrets were not requested or changed."
+  $existingVault = Get-Hu20Vault -BaseUrl $baseUrl -TerminalId $terminalId
+  $existingVault = $null
+  Write-Host "PASS: Existing encrypted device credentials are valid for this TEST terminal. No prompts."
 } else {
   if ((Test-Path -LiteralPath $existing) -and $ReplaceExisting) {
     if ((Read-Host "Type REPLACE to update this PC's TEST protected credentials") -cne "REPLACE") {
@@ -77,4 +79,16 @@ New-Item -Path $runKey -Force | Out-Null
 Set-ItemProperty -Path $runKey -Name "BGM_HU20_TEST_LocalBridge" -Value $command
 Write-Host "PASS: HU20 TEST local bridge registered for this Windows user's sign-in."
 Write-Host "Only the active Windows user with these DPAPI credentials can run it."
-Write-Host "Start Hu20-LocalBridge.ps1 now, or sign out/in to start automatically."
+# Start the protected local bridge immediately on this PC, once. The
+# HKCU Run registration restarts it on subsequent Windows sign-ins.
+$bridgeArgs = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $bridgePath + '"'
+try {
+  $probe = New-Object System.Net.Sockets.TcpClient
+  $probe.Connect([System.Net.IPAddress]::Loopback,8765)
+  $probe.Close()
+  Write-Host "A local service is already listening on port 8765. Verify the HU20 reader status in Super Admin."
+} catch {
+  Start-Process -FilePath $exe -ArgumentList $bridgeArgs -WindowStyle Hidden
+  Write-Host "PASS: Local TEST reader bridge launched for this Windows user."
+}
+Write-Host "Open a fictional TEST employee in Super Admin and use Enrol Fingerprint."
