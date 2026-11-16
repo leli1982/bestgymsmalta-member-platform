@@ -54,6 +54,25 @@ export default function Hu20TestEnrollmentPage() {
       setEmployeeId(id);
     }
   }, [data?.employees]);
+  // Query value comes from the local Windows reader-check opener. It is only
+  // a UI preference; NEVER use a query parameter as proof of reader access.
+  const [localTerminalMessage, setLocalTerminalMessage] = useState("");
+  useEffect(() => {
+    if (!data?.terminals) return;
+    const suggestedId = new URLSearchParams(window.location.search).get("localTerminalId");
+    if (!suggestedId) {
+      setLocalTerminalMessage("For automatic selection, open this page using the BGM HU20 Local Enrollment shortcut on the reader's Windows PC. Manual selection remains available.");
+      return;
+    }
+    const matched = data.terminals.find(item => item.active && item.id === suggestedId);
+    if (!matched) {
+      setLocalTerminalMessage("The local PC's suggested Terminal ID is not registered and active in this TEST environment. Verify the PC setup, or select a registered terminal manually.");
+      return;
+    }
+    setTerminalId(matched.id);
+    setLocalTerminalMessage("Default selected from this PC's Windows HU20 enrollment opener: " + matched.name + ". This is a convenience preference, not terminal authentication. The supervised enrollment scanner will recheck its credentials and reader.");
+  }, [data?.terminals]);
+
   const employeeNames = useMemo(() => new Map((data?.employees || []).map(
     (employee) => [employee.id, [employee.first_name, employee.surname].join(" ")]
   )), [data?.employees]);
@@ -163,6 +182,7 @@ export default function Hu20TestEnrollmentPage() {
           )}
         </select>
       </label>
+      <p className="rounded border border-slate-200 bg-slate-50 p-3 text-sm" role="status">{localTerminalMessage}</p>
       <label className="grid gap-1">HU20 terminal
         <select className="rounded border p-2" required value={terminalId} onChange={event => setTerminalId(event.target.value)}>
           <option value="">Choose active TEST terminal</option>
