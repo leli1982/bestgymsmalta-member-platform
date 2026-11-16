@@ -47,6 +47,10 @@ if (-not $EnableFictionalTestAttendance -or -not $AutoKioskTest -or $RepeatAppro
 if ($base -cnotmatch '^https://bestgymsmalta-member-platform-[a-z0-9-]+-leliapap-2558s-projects[.]vercel[.]app$') {
   throw "Automatic TEST kiosk must use immutable BGM Vercel Preview URL."
 }
+# Pure, fail-closed fault policy shared by synthetic TEST-only CI drills.
+$safetyPath = Join-Path $PSScriptRoot "Hu20-KioskSafety.ps1"
+if (-not (Test-Path -LiteralPath $safetyPath -PathType Leaf)) { throw "Missing HU20 TEST kiosk safety policy." }
+. $safetyPath
 
 function Read-PrivateText([string]$promptText) {
   $secureValue = Read-Host $promptText -AsSecureString
@@ -73,7 +77,7 @@ function Get-SdkType([System.Reflection.Assembly]$assembly, [string]$name) {
   return $type
 }
 function Check-SdkResult([string]$operation, [object]$value) {
-  if ([int]$value -ne 0) { throw "$operation failed with vendor code $value." }
+  if ([int]$value -ne 0) { throw "KIOSK_DEVICE_ERROR: $operation failed with SecuGen vendor code $value." }
 }
 function Get-TransientTemplate([object]$manager, [int]$width, [int]$height, [int]$maxSize, [DateTimeOffset]$deadline) {
   $raw = [byte[]]::new($width * $height)
@@ -83,12 +87,14 @@ function Get-TransientTemplate([object]$manager, [int]$width, [int]$height, [int
     Write-Host "KIOSK TEST ready: place your fictional test finger on the HU20 sensor."
     # Short capture intervals let the full-screen display process ESC safely.
     $pollMs = if ($FullScreenTest) { [Math]::Min($CaptureTimeoutMs, 2000) } else { $CaptureTimeoutMs }
-    $result = [int]$manager.GetImageEx($raw, $pollMs, 0, $Quality)
+    try { $result = [int]$manager.GetImageEx($raw, $pollMs, 0, $Quality) }
+    catch { throw "KIOSK_DEVICE_ERROR: SecuGen capture failed. Check the HU20 connection." }
     if ($FullScreenTest) { Assert-Hu20KioskDisplay }
     # SecuGen FDx SDK: ERROR_TIME_OUT=54 means no finger. All other errors are fatal.
     while ($result -eq 54 -and [DateTimeOffset]::UtcNow.AddMilliseconds($pollMs) -lt $deadline) {
       Clear-Bytes $raw
-      $result = [int]$manager.GetImageEx($raw, $pollMs, 0, $Quality)
+      try { $result = [int]$manager.GetImageEx($raw, $pollMs, 0, $Quality) }
+      catch { throw "KIOSK_DEVICE_ERROR: SecuGen capture failed. Check the HU20 connection." }
       if ($FullScreenTest) { Assert-Hu20KioskDisplay }
     }
     if ($result -eq 54 -or [DateTimeOffset]::UtcNow -ge $deadline) {
@@ -114,7 +120,8 @@ function Wait-Hu20FingerRemoval([object]$manager, [int]$width, [int]$height) {
     if ($FullScreenTest) { Show-Hu20KioskStatus -State "remove" }
     while ([DateTimeOffset]::UtcNow -lt $deadline) {
       if ($FullScreenTest) { Assert-Hu20KioskDisplay }
-      $result = [int]$manager.GetImageEx($raw, 900, 0, 40)
+      try { $result = [int]$manager.GetImageEx($raw, 900, 0, 40) }
+      catch { throw "KIOSK_DEVICE_ERROR: Finger removal sensor check failed." }
       if ($result -eq 54) {
         $absentChecks += 1
         if ($absentChecks -ge 2) { return }
