@@ -31,6 +31,14 @@ BEGIN
     UPDATE public.bgm_gyms
       SET hu20_punch_clock_enabled=p_enabled, updated_at=now()
       WHERE id=p_gym_id;
+    -- Cancelling active TEST kiosk windows prevents a disabled gym appearing
+    -- authorised in Super Admin. This is in the same transaction as the toggle.
+    IF NOT p_enabled THEN
+      UPDATE public.bgm_hu20_test_kiosk_windows w SET status='cancelled'
+      WHERE w.status='active' AND w.terminal_id IN (
+        SELECT t.id FROM public.bgm_staff_terminals t WHERE t.gym_id=p_gym_id
+      );
+    END IF;
     INSERT INTO public.bgm_audit_log
       (system_user_id, context_gym_id, action_key, entity_type, entity_id, before_data, after_data)
     VALUES (p_actor_system_user_id,p_gym_id,'staff.hu20.gym_rollout.changed.test',

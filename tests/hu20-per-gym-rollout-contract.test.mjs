@@ -15,6 +15,8 @@ test("gym rollout defaults OFF and is audited atomically by Super Admin", () => 
   assert.match(migration,/hu20_punch_clock_enabled boolean NOT NULL DEFAULT false/);
   assert.match(migration,/bgm_hu20_test_set_gym_rollout/);
   assert.match(migration,/FOR UPDATE/);
+  assert.match(migration,/bgm_hu20_test_kiosk_windows/);
+  assert.match(migration,/w\.status=\x27active\x27/);
   assert.match(migration,/staff\.hu20\.gym_rollout\.changed\.test/);
   assert.match(migration,/GRANT EXECUTE ON FUNCTION .* TO service_role/);
   assert.match(migration,/FROM PUBLIC,anon,authenticated/);

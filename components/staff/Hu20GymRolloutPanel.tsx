@@ -19,7 +19,7 @@ export default function Hu20GymRolloutPanel() {
     const enabled = !gym.hu20_punch_clock_enabled;
     if (!window.confirm((enabled ? "ENABLE" : "DISABLE") + " TEST Punch Clock for " + gym.name +
       "? This affects only this gym's Staff Portal and registered fingerprint terminals. " +
-      (enabled ? "Only fictional TEST attendance is allowed." : "In-progress new punches will be blocked."))) return;
+      (enabled ? "Only fictional TEST attendance is allowed." : "Active TEST kiosk authorisations will be cancelled and new punches blocked."))) return;
     setBusy(gym.id); setError(""); setNotice("");
     try {
       const response = await fetch("/api/system/staff-hu20/gym-rollout", {
