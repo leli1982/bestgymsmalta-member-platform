@@ -263,3 +263,31 @@ Run `Hu20-LocalReadiness.ps1` from the HU20 installation folder on each gym Wind
 Example on the PC (no administrator credentials required for the check): `powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\BGM-HU20\Hu20-LocalReadiness.ps1`.
 
 The TEST Super Admin terminals page shows **last authenticated request** and a recent-request count for the preceding 15 minutes, not an online/offline guarantee. Each terminal's timestamp updates when an authenticated recognition request starts and the registration is still active. A kiosk can be closed or disconnected after that request; do not use this contact timestamp to infer scanner or attendance state. Refresh manually for current server data. This adds no biometric data, database columns, credentials or live-employee functionality.
+
+
+## 16 November 2026 — select the connected Super Admin PC's TEST terminal
+
+The Super Admin enrolment form preselects a terminal only when opened by the
+local Windows enrolment shortcut; it never guesses from the last online contact.
+The suggested terminal must already exist and be active in TEST.
+
+On the existing Windows HU20 TEST PC, copy just these two new files from PR #98
+into C:\BGM-HU20: Hu20-OpenLocalEnrollment.ps1 and Hu20-ENROLL-TEST.cmd.
+Keep Hu20-TestTerminal.local.json, Hu20-Probe.ps1, and the working official SDK.
+Do not reinstall the SDK, reset the terminal, regenerate a secret or repeat
+earlier fingerprint tests or Clock IN/OUT tests.
+
+Connect the HU20, close any running kiosk, and double-click Hu20-ENROLL-TEST.cmd.
+It reads this PC's installed non-secret TEST configuration and performs the
+existing SecuGen health diagnostic (SDK Init/OpenDevice/GetDeviceInfo/CloseDevice;
+no fingerprint capture). Only after a PASS it opens the protected Preview
+Super Admin enrolment page with a localTerminalId query parameter.
+
+The query parameter is only a UI hint; it does not authenticate the reader.
+The server separately checks terminal registration, and the supervised scanner
+will authenticate when it handles a real TEST authorisation. A missing or busy
+reader makes the shortcut fail before opening the page. Direct browser access
+still permits manual selection with an explicit warning. No Production change.
+
+The eventual signed Windows installer should include the two new files after
+the remaining hardware, privacy and security gates are approved.
