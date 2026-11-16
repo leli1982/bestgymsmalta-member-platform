@@ -217,3 +217,25 @@ Status messages:
 Press ESC to **close the local scanner**, or use Super Admin STOP to **revoke the server-side kiosk window** (ESC alone does not revoke the server window). After a screen close, in-process display assertions prevent the native script from proceeding to a new punch; loss of network or an unexpected SDK error stops scanning. The reader is polled at most 2 seconds per SDK capture during full-screen mode so Windows can process ESC rather than remaining unresponsive through repeated 10-second blocking reads.
 
 This is a physical TEST candidate; automated CI verifies source contracts, API isolation, application builds and regression tests, but cannot validate the actual Windows Form, screen scale, HU20 capture timing or user experience. Normal matching level remains a diagnostic smoke-test threshold; anti-spoofing, security threshold calibration, device trust, managed deployment, GDPR DPIA, worker privacy review and explicit production approval remain blocking work before any live rollout.
+
+
+## 16 November 2026 — fictional HU20 kiosk fail-closed reliability drills
+
+This TEST-only update adds Hu20-KioskSafety.ps1 (pure failure policy), updates Hu20-AutoKiosk.ps1 and Hu20-KioskDisplay.ps1, and adds Test-Hu20KioskSafety.ps1 (synthetic policy exercises). The normal supervised test launcher, database schema, production code, physical SDK, terminal registration and fictional fingerprint enrollment are unchanged.
+
+**Do not install on the real kiosk until its updated commit passes CI and the TEST Preview is READY.** The native files must all come from the *same* commit. No change of terminal secret or SecuGen SDK is needed. A separate, fresh Vercel Share link is required when the previous temporary one expires.
+
+Safety behaviour (one Super Admin-approved 10-minute window and at most six claims):
+- No match or ambiguous fingerprint: backend confirms recognition rejection; **no** attendance API is called. Show NOT RECOGNISED. Each claim still counts toward the maximum.
+- HU20 disconnected, SDK open/capture/match/removal error: show READER ERROR and **stop**, with no automatic reconnect or attendance transition after failure.
+- Network failure before central recognition is confirmed: show NETWORK ERROR and **stop**, with no attendance attempt.
+- Network failure, unexpected response or timeout **after** requesting an attendance punch: its status is **uncertain** (server may have committed the punch). Show CHECK ATTENDANCE; **stop without retrying or toggling attendance**. A Super Admin must STOP the kiosk, reconcile the TEST punch log, and authorise a *new* window before further physical testing.
+- Escape pressed or display unexpectedly closed: scanner stops; it never runs invisibly. Super Admin STOP is still necessary to revoke the server window, because ESC stops only the local process.
+- Normal 60-second server cooldown or no finger before single-use claim expiry: these are the **only** recoverable wait states, still bounded by the six-claim/10-minute server limits.
+- No background reconnect, persisted credentials, auto-start service, or production rollout.
+
+CI now executes synthetic failures using PowerShell itself, in addition to parsing all native script files and running the web app regression suite. Synthetic tests do not call the HU20 SDK, HTTP APIs, Supabase or Vercel.
+
+Optional supervised physical acceptance checklist on fictional TEST enrollment only: (1) scan a different non-enrolled finger and confirm red NOT RECOGNISED, with no extra attendance event; (2) start a new window, unplug the reader while PLACE FINGER is shown and confirm READER ERROR and scanner exit, then reconnect after stopping the server window; (3) start a new window, disconnect the TEST PC network before fingerprint capture to confirm NETWORK ERROR and no new attendance; (4) confirm ESC closes the display and subsequent start requires the existing Super Admin window/secret, never runs without permission. **Do not deliberately interrupt an attendance POST during physical validation**; if its outcome is unknown, reconcile in Super Admin first.
+
+Production remains blocked pending biometric threshold and spoof resistance evaluation, robust device provisioning, worker consent/privacy review and GDPR DPIA, replay-resistant device trust, resilience tests, and explicit approval.

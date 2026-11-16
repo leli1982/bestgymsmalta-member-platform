@@ -50,6 +50,8 @@ jobs:
             'native/Bgm.SecuGenHu20Probe/Hu20-StartTestTerminal.ps1'
             'native/Bgm.SecuGenHu20Probe/Hu20-AutoKiosk.ps1'
             'native/Bgm.SecuGenHu20Probe/Hu20-KioskDisplay.ps1'
+            'native/Bgm.SecuGenHu20Probe/Hu20-KioskSafety.ps1'
+            'native/Bgm.SecuGenHu20Probe/Test-Hu20KioskSafety.ps1'
             'native/Bgm.SecuGenHu20Probe/Hu20-TestPunch.ps1'
           )
           foreach ($path in $paths) {
@@ -62,6 +64,11 @@ jobs:
             }
             Write-Host "PASS: $path"
           }
+
+      - name: Synthetic HU20 kiosk fail-closed policy test (no reader, no network)
+        shell: pwsh
+        run: |
+          & native/Bgm.SecuGenHu20Probe/Test-Hu20KioskSafety.ps1
 
       - name: Type check
         run: npx tsc --noEmit
