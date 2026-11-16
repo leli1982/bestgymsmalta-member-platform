@@ -99,3 +99,68 @@ export async function POST(request: NextRequest) {
     return responseError("Could not register HU20 TEST terminal.", 500);
   }
 }
+
+
+// Emergency TEST-only terminal deactivation. No reactivation path is offered:
+// replacement hardware must be registered with a NEW one-time secret.
+// Authentication on every recognition/attendance step rejects disabled terminals.
+export async function PATCH(request: NextRequest) {
+  if (!isHu20TestRequestEnabled()) return responseError("HU20 test environment unavailable.", 404);
+  try {
+    const auth = await requireSuperAdmin(request);
+    if (auth.error || !auth.context) return auth.error;
+    if (request.headers.get("origin") !== new URL(request.url).origin) {
+      return responseError("Invalid request origin.", 403);
+    }
+    if (!(request.headers.get("content-type") || "").startsWith("application/json")) {
+      return responseError("JSON body required.", 415);
+    }
+    const raw = await request.text();
+    if (raw.length > 256) return responseError("Request too large.", 413);
+    let body: unknown;
+    try { body = JSON.parse(raw); } catch { return responseError("Invalid JSON.", 400); }
+    if (!body || typeof body !== "object" || Array.isArray(body) ||
+        Object.keys(body).length !== 2 || !("id" in body) || !("action" in body) ||
+        typeof body.id !== "string" || !/^[0-9a-f-]{36}$/i.test(body.id) ||
+        body.action !== "deactivate") {
+      return responseError("Valid TEST terminal deactivation required.", 400);
+    }
+    const db = getSupabaseAdmin();
+    const terminal = await db.from("bgm_staff_terminals")
+      .select("id,name,gym_id,active").eq("id", body.id).maybeSingle();
+    if (terminal.error) throw terminal.error;
+    if (!terminal.data?.active) return responseError("TEST terminal already inactive or missing.", 409);
+    // Disable FIRST: any in-flight request must re-authenticate before an
+    // attendance write, so no scan may succeed after deactivation.
+    const disabled = await db.from("bgm_staff_terminals")
+      .update({ active: false }).eq("id", terminal.data.id).eq("active", true)
+      .select("id,name,gym_id,active").maybeSingle();
+    if (disabled.error) throw disabled.error;
+    if (!disabled.data) return responseError("TEST terminal already inactive.", 409);
+    // Cancel all active kiosk windows, including ones waiting for a finger.
+    const cancelled = await db.from("bgm_hu20_test_kiosk_windows")
+      .update({ status: "cancelled" })
+      .eq("terminal_id", disabled.data.id).eq("status", "active");
+    if (cancelled.error) throw cancelled.error;
+    await writeStaffAudit(auth.context, {
+      actionKey: "staff.hu20.terminal.deactivated.test",
+      entityType: "staff_terminal",
+      entityId: disabled.data.id,
+      contextGymId: disabled.data.gym_id,
+      afterData: {
+        id: disabled.data.id, gymId: disabled.data.gym_id,
+        name: disabled.data.name, active: false, fictionalTestOnly: true,
+      },
+    });
+    return NextResponse.json({
+      ok: true, fictionalTestOnly: true,
+      terminal: { id: disabled.data.id, active: false },
+      windowRevocationRequested: true,
+      replacementRequiresNewCredential: true,
+    }, { headers });
+  } catch (error) {
+    // On audit failure the disabled credential MUST stay disabled.
+    console.error("HU20 TEST terminal deactivation failed", error instanceof Error ? error.name : "unknown");
+    return responseError("Terminal may be disabled; refresh its status before retrying.", 500);
+  }
+}
