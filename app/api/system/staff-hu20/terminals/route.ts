@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { issueHu20TerminalSecret } from "@/lib/hu20TerminalSecurity";
+import { issueHu20TerminalSecret, validHu20TerminalId } from "@/lib/hu20TerminalSecurity";
 import { isHu20TestRequestEnabled } from "@/lib/hu20TerminalServer";
 import { writeStaffAudit } from "@/lib/staffEmploymentApi";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
@@ -121,7 +121,7 @@ export async function PATCH(request: NextRequest) {
     try { body = JSON.parse(raw); } catch { return responseError("Invalid JSON.", 400); }
     if (!body || typeof body !== "object" || Array.isArray(body) ||
         Object.keys(body).length !== 2 || !("id" in body) || !("action" in body) ||
-        typeof body.id !== "string" || !/^[0-9a-f-]{36}$/i.test(body.id) ||
+        typeof body.id !== "string" || !validHu20TerminalId(body.id) ||
         body.action !== "deactivate") {
       return responseError("Valid TEST terminal deactivation required.", 400);
     }
