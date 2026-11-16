@@ -53,6 +53,10 @@ jobs:
             'native/Bgm.SecuGenHu20Probe/Hu20-KioskSafety.ps1',
             'native/Bgm.SecuGenHu20Probe/Hu20-LocalReadiness.ps1'
             'native/Bgm.SecuGenHu20Probe/Hu20-OpenLocalEnrollment.ps1'
+            'native/Bgm.SecuGenHu20Probe/Hu20-DeviceVault.ps1'
+            'native/Bgm.SecuGenHu20Probe/Hu20-ProvisionEasyEnrollment.ps1'
+            'native/Bgm.SecuGenHu20Probe/Hu20-LocalBridge.ps1'
+            'native/Bgm.SecuGenHu20Probe/Hu20-EnrollEmployee.ps1'
             'native/Bgm.SecuGenHu20Probe/Test-Hu20KioskSafety.ps1'
             'native/Bgm.SecuGenHu20Probe/Hu20-TestPunch.ps1'
           )

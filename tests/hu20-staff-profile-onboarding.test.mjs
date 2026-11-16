@@ -13,3 +13,18 @@ test("TEST employee detail directly links to supervised enrollment, never for re
   assert.match(enrollment,/pendingForChosen/);
   assert.match(terminal,/Enable or disable Punch Clock per TEST gym/);
 });
+
+test("Super Admin Staff profile embeds single-click TEST reader workflow after staff creation", () => {
+  const quick = fs.readFileSync("components/staff/Hu20QuickEnrollment.tsx", "utf8");
+  const staffManagement = fs.readFileSync("components/staff/StaffEmployeesAdmin.tsx", "utf8");
+  assert.match(staff, /<Hu20QuickEnrollment employeeId=\{e\.id\}/);
+  assert.match(quick, /127\.0\.0\.1:8765/);
+  assert.match(quick, /readLocalDevice/);
+  assert.match(quick, /fetch\("\/api\/system\/staff-hu20\/enrollments"/);
+  assert.match(quick, /method: "POST"/);
+  assert.match(quick, /employeeId, terminalId: device\.terminalId/);
+  assert.match(quick, /nonce: device\.nonce/);
+  assert.match(quick, /item\.status === "completed"/);
+  assert.match(staffManagement, /setSelectedId\(body\.employee\.id\)/);
+  assert.doesNotMatch(quick, /localStorage|sessionStorage|terminalSecret|vercelBypass|_vercel_share/);
+});
