@@ -3,14 +3,14 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot "Hu20-KioskSafety.ps1")
 $cases = @(
-  @("KIOSK_WINDOW_FINISHED", "end", "finished", $false)
-  @("KIOSK_COOLDOWN", "wait", "cooldown", $false)
-  @("KIOSK_NO_FINGER_TIMEOUT", "retry", "cooldown", $false)
-  @("KIOSK_DEVICE_ERROR: GetImageEx vendor code 7", "halt", "reader_error", $false)
-  @("KIOSK_NETWORK_ERROR: connection reset", "halt", "network_error", $false)
-  @("KIOSK_PUNCH_UNCERTAIN: response missing", "halt", "uncertain", $true)
-  @("KIOSK_DISPLAY_CLOSED: escape", "halt", "closed", $false)
-  @("Unexpected SDK or server exception", "halt", "error", $false)
+  ,@("KIOSK_WINDOW_FINISHED", "end", "finished", $false)
+  ,@("KIOSK_COOLDOWN", "wait", "cooldown", $false)
+  ,@("KIOSK_NO_FINGER_TIMEOUT", "retry", "cooldown", $false)
+  ,@("KIOSK_DEVICE_ERROR: GetImageEx vendor code 7", "halt", "reader_error", $false)
+  ,@("KIOSK_NETWORK_ERROR: connection reset", "halt", "network_error", $false)
+  ,@("KIOSK_PUNCH_UNCERTAIN: response missing", "halt", "uncertain", $true)
+  ,@("KIOSK_DISPLAY_CLOSED: escape", "halt", "closed", $false)
+  ,@("Unexpected SDK or server exception", "halt", "error", $false)
 )
 foreach ($case in $cases) {
   $result = Get-Hu20KioskFailurePolicy -Reason $case[0]
