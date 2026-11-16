@@ -6,7 +6,7 @@
   The URL parameter is a convenience hint, NOT terminal authentication.
 #>
 [CmdletBinding()]
-param([string]$InstallationDirectory = $PSScriptRoot)
+param([string]$InstallationDirectory = "")
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
@@ -14,6 +14,14 @@ Set-StrictMode -Version Latest
 if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT -or
     -not [Environment]::Is64BitProcess) {
   throw "Run from 64-bit Windows PowerShell on the HU20 TEST Windows PC."
+}
+# PowerShell 5.1 may evaluate $PSScriptRoot as empty during parameter defaults.
+# Read the script's own absolute path once invocation is fully initialised.
+if ([string]::IsNullOrWhiteSpace($InstallationDirectory)) {
+  $InstallationDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
+}
+if ([string]::IsNullOrWhiteSpace($InstallationDirectory)) {
+  throw "Cannot resolve the installed BGM-HU20 folder. No enrolment page was opened."
 }
 $root = (Resolve-Path -LiteralPath $InstallationDirectory -ErrorAction Stop).Path
 $configPath = Join-Path $root "Hu20-TestTerminal.local.json"

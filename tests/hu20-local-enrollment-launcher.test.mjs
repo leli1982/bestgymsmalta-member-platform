@@ -31,3 +31,13 @@ test("no reader or installed configuration means no silent last-online fallback"
   assert.doesNotMatch(page, /last_seen_at|sessionStorage\.getItem\("terminal/);
   assert.match(ci, /Hu20-OpenLocalEnrollment\.ps1/);
 });
+
+test("TEST PowerShell 5.1 resolves its own installation folder when no parameter is supplied", () => {
+  assert.match(launcher, /param\(\[string\]\$InstallationDirectory = ""\)/);
+  assert.match(launcher, /IsNullOrWhiteSpace\(\$InstallationDirectory\)/);
+  assert.match(launcher, /Split-Path -Parent \$MyInvocation\.MyCommand\.Path/);
+  assert.match(launcher, /Resolve-Path -LiteralPath \$InstallationDirectory/);
+  assert.ok(launcher.indexOf("Split-Path -Parent $MyInvocation.MyCommand.Path") <
+    launcher.indexOf("Resolve-Path -LiteralPath $InstallationDirectory"));
+  assert.doesNotMatch(launcher, /param\(\[string\]\$InstallationDirectory = \$PSScriptRoot\)/);
+});
