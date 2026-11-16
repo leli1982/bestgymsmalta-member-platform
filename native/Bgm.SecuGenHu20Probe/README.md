@@ -291,3 +291,23 @@ still permits manual selection with an explicit warning. No Production change.
 
 The eventual signed Windows installer should include the two new files after
 the remaining hardware, privacy and security gates are approved.
+
+
+## 16 November 2026 — one-button Super Admin enrollment (new TEST integration)
+
+**Security:** Fictional HU20-TEST employees only. This is not authorised for production/real fingerprints. The existing two-capture matcher, enrollment API, TEST employee guard, terminal authentication, secure template vault, attendance isolation, and per-gym punch-clock controls remain intact.
+
+### Once per authorised Windows account/reader PC (technical setup)
+
+1. Install the official SecuGen HU20 Windows driver and SDK on that PC; keep its unique terminal ID, official SDK DLLs and non-secret Hu20-TestTerminal.local.json. Never copy another gym's secret. Copy the reviewed scripts Hu20-DeviceVault.ps1, Hu20-ProvisionEasyEnrollment.ps1, Hu20-LocalBridge.ps1, and the updated Hu20-EnrollEmployee.ps1 to the same folder. Update the local kiosk scripts to use the same vault.
+2. The Vercel project administrator creates a dedicated **Protection Bypass for Automation** for this TEST PC, ideally separately revocable per terminal. This token bypasses protected Vercel deployments across the same project: keep it private and understand the project-wide access scope. Do not use a short-lived Share link for one-time provisioning. Never put the secret in a command line or installer.
+3. As the authorised Windows user, run Hu20-ProvisionEasyEnrollment.ps1 once. It privately prompts for the existing 64-hex terminal secret and dedicated 32-character Vercel automation-bypass secret, and encrypts both with Windows DPAPI CurrentUser under %LOCALAPPDATA%\BGM-HU20-TEST\device-credentials.dpapi. Plaintext is never persisted to disk or shared in a package.
+4. Provisioning registers the per-user bridge in HKCU\Software\Microsoft\Windows\CurrentVersion\Run and launches it immediately. It binds **only 127.0.0.1:8765** and restarts at sign-in for the same Windows user. It is not a network service.
+5. In the Super Admin staff profile for a fictional TEST employee, click **Enrol Fingerprint** once. The site loads this PC's reader ID from the local bridge; the server creates an audited ten-minute enrollment authorisation; the local agent checks a short-lived one-use nonce, employee and request binding; the person places their finger twice, lifting between captures; and the server encrypts the template. The employee must be physically present and agree.
+6. For the existing TEST kiosk, Super Admin still authorises the kiosk window. Running Hu20-KIOSK-TEST.cmd now reads the same encrypted Windows device credentials without prompting for a Share link or terminal secret. Unprovisioned test machines retain the old manual prompts as a fallback.
+
+**No repeated credentials:** A new immutable Preview deploy does not require the operator to re-enter either secret. Update only the non-secret preview URL in Hu20-TestTerminal.local.json as needed and restart the bridge; the DPAPI vault remains scoped to the authorised Windows user, terminal ID, and BGM TEST project.
+
+**Fail closed:** No valid DPAPI vault, local bridge, registered terminal, authorised TEST employee, native reader or server-side request means no completed enrollment. A wrong employee or expired request is rejected before scanning. No browser fingerprint capture or credential exposure. If a response is uncertain, check the Super Admin enrollment status before retrying.
+
+**Production blockers:** Per-user background Windows helper still requires supervised real-PC acceptance, robust installer signing and provisioning security, biometric threshold and liveness evaluation, staff privacy/consent policy and GDPR DPIA, and explicit release approval. Never put fingerprint data, device secrets, Vercel bypass tokens or DPAPI encrypted vault files in the shared installer, chat, logs or GitHub.
