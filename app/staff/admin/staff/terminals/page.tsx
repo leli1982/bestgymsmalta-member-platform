@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { formatEuropeanDateTime } from "@/lib/europeanDate";
+import { hu20TerminalContactStatus } from "@/lib/hu20TerminalFleet";
 import Hu20TestKioskWindowsPanel from "@/components/staff/Hu20TestKioskWindowsPanel";
 
 type Terminal = {
@@ -28,6 +29,7 @@ export default function Hu20TestTerminalsPage() {
   const [punches, setPunches] = useState<TestPunch[] | null>(null);
   const [punchError, setPunchError] = useState("");
   const [notice, setNotice] = useState("");
+  const [terminalCheckedAt, setTerminalCheckedAt] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -35,6 +37,8 @@ export default function Hu20TestTerminalsPage() {
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "Could not load terminals.");
       setData(body);
+      setTerminalCheckedAt(Date.now());
+      setError("");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not load terminals.");
     }
@@ -109,6 +113,9 @@ export default function Hu20TestTerminalsPage() {
 
   const activeGyms = (data?.gyms || []).filter((gym) => gym.status === "active");
   const gymNames = new Map((data?.gyms || []).map((gym) => [gym.id, gym.name]));
+  const fleet = (data?.terminals || []).filter((terminal) => terminal.active);
+  const recentlyContacted = terminalCheckedAt === null ? 0 : fleet.filter((terminal) =>
+    hu20TerminalContactStatus(terminal.last_seen_at, terminalCheckedAt) === "recent").length;
 
   return (
     <main className="bgm-admin-light min-h-screen bg-slate-50 p-5 text-slate-900"><div className="mx-auto max-w-3xl">
@@ -166,11 +173,20 @@ export default function Hu20TestTerminalsPage() {
         </div>
         <p className="mt-3 text-sm">For full attendance and payroll details, open <a className="font-semibold underline" href="/staff/admin/staff">Staff Management → Timesheets</a>.</p>
       </section>
-      <h2 className="mt-6 text-xl font-semibold">Registered terminals</h2>
-      <p className="mt-1 text-sm text-slate-700">Active TEST terminals: {(data?.terminals || []).filter((item) => item.active).length} · Gyms represented: {new Set((data?.terminals || []).filter((item) => item.active).map((item) => item.gym_id)).size}. Each PC has its own gym-bound credential. Deactivate a retired or lost terminal immediately; there is no credential recovery.</p>
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold">Registered TEST terminals</h2>
+        <button type="button" onClick={() => void load()} disabled={busy}
+          className="rounded border border-slate-300 px-3 py-2 text-sm font-semibold disabled:opacity-50">Refresh terminal contacts</button>
+      </div>
+      <p className="mt-1 text-sm text-slate-700">Active TEST terminals: {fleet.length} · Gyms represented: {new Set(fleet.map((item) => item.gym_id)).size} · Authenticated requests in the last 15 minutes: {recentlyContacted}.</p>
+      <p className="mt-1 text-sm text-slate-600">A recent authenticated request does not prove the scanner is currently running or connected. The server timestamp updates when an authorised TEST recognition begins. Each PC has its own gym-bound credential; deactivate retired or lost terminals.</p>
       <div className="mt-2 grid gap-2">{(data?.terminals || []).map((item) => <article key={item.id} className="rounded border bg-white p-3">
         <p className="font-semibold">{item.name} — {gymNames.get(item.gym_id) || item.gym_id}</p>
-        <p className="text-sm">Status: {item.active ? "Active (TEST)" : "Inactive"} · Last health check: {item.last_seen_at ? new Date(item.last_seen_at).toLocaleString("en-MT") : "Not recorded"}</p>
+        <p className="text-sm">Registration: {item.active ? "Active (TEST)" : "Deactivated"} · Last authenticated request: {item.last_seen_at ? formatEuropeanDateTime(item.last_seen_at) : "Never recorded"}</p>
+        <p className="text-sm">Contact: {terminalCheckedAt === null ? "Not checked" :
+          hu20TerminalContactStatus(item.last_seen_at, terminalCheckedAt) === "recent" ? "Recent request (within 15 minutes)" :
+          hu20TerminalContactStatus(item.last_seen_at, terminalCheckedAt) === "stale" ? "No recent request" :
+          hu20TerminalContactStatus(item.last_seen_at, terminalCheckedAt) === "never" ? "No request recorded" : "Invalid or future timestamp"}</p>
         <code className="block break-all text-xs">{item.id}</code>
         {item.active && <button type="button" disabled={busy}
           onClick={() => void deactivateTerminal(item)}
