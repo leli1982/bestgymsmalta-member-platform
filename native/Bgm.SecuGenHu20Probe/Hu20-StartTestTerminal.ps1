@@ -99,7 +99,18 @@ if ($AutoKioskTest) {
   $autoPath = Join-Path $directory "Hu20-AutoKiosk.ps1"
   if (-not (Test-Path -LiteralPath $autoPath -PathType Leaf)) { throw "Missing HU20 automatic TEST scanner script." }
   Write-Host "FICTIONAL TEST KIOSK: arm a 10-minute window in Super Admin first."
-  & $autoPath -BaseUrl $BaseUrl -TerminalId $TerminalId -SdkAssembly $sdkPath -EnableFictionalTestAttendance -AutoKioskTest -FullScreenTest:$FullScreenTest
+  $vaultScript = Join-Path $directory "Hu20-DeviceVault.ps1"
+  $useVault = $false
+  if (Test-Path -LiteralPath $vaultScript -PathType Leaf) {
+    . $vaultScript
+    if (Test-Path -LiteralPath (Get-Hu20VaultPath) -PathType Leaf) {
+      $record = Get-Hu20Vault -BaseUrl $BaseUrl -TerminalId $TerminalId
+      $record = $null
+      $useVault = $true
+      Write-Host "TEST device securely provisioned: no Share link or secret is needed."
+    }
+  }
+  & $autoPath -BaseUrl $BaseUrl -TerminalId $TerminalId -SdkAssembly $sdkPath -EnableFictionalTestAttendance -AutoKioskTest -FullScreenTest:$FullScreenTest -UseProvisionedDevice:$useVault
 } else {
   & $punchPath -BaseUrl $BaseUrl -TerminalId $TerminalId -SdkAssembly $sdkPath -EnableFictionalTestAttendance -RepeatApprovedTests
 }
