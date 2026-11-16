@@ -245,9 +245,9 @@ try {
     }
     if ($status -eq 409) { throw "KIOSK_WINDOW_FINISHED" }
     if ($status -eq 429) { throw "KIOSK_COOLDOWN" }
-    if ($status -eq 401 -or $status -eq 403) { throw "Terminal secret or Vercel Share access rejected." }
-    if ($status -eq 404) { throw "Central recognition API not enabled on this TEST Preview." }
-    throw "Cannot start TEST recognition. $($_.Exception.Message)"
+    if ($status -eq 401 -or $status -eq 403) { throw "KIOSK_AUTH_ERROR: terminal secret or Vercel access rejected." }
+    if ($status -eq 404) { throw "KIOSK_AUTH_ERROR: recognition API unavailable on selected TEST Preview." }
+    throw "KIOSK_NETWORK_ERROR: recognition request failed. Do not scan while the TEST server is unavailable."
   }
   if ([string]$response.Headers["Content-Type"] -notmatch 'application/json') {
     throw "Expected JSON but got HTML. Check protected Vercel Preview access."
@@ -369,9 +369,11 @@ try {
     $confirmation = Invoke-WebRequest -Uri "$base/api/staff-hu20/recognition/finish" -Method Post -Headers $headers -WebSession $webSession -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 30 -ContentType "application/json" -Body $resultBody
   }
   catch {
-    throw "Central TEST result refused (possibly expired or revoked): $($_.Exception.Message)"
+    throw "KIOSK_NETWORK_ERROR: central recognition not confirmed; no attendance was requested."
   }
-  if ([string]$confirmation.Headers["Content-Type"] -notmatch 'application/json') { throw "Recognition result not confirmed as JSON." }
+  if ([string]$confirmation.Headers["Content-Type"] -notmatch 'application/json') {
+    throw "KIOSK_NETWORK_ERROR: central recognition did not return JSON; no attendance was requested."
+  }
   $accepted = $confirmation.Content | ConvertFrom-Json -ErrorAction Stop
   if ($confirmation.StatusCode -ne 200 -or $accepted.ok -ne $true -or
       $accepted.result -cne $outcome -or $accepted.attendanceEnabled -ne $false -or
@@ -382,18 +384,24 @@ try {
     # one-time recognition as complete may this optional TEST route be called.
     $testPunchJson = @{ testId = $testId } | ConvertTo-Json -Compress
     if ($FullScreenTest) { Assert-Hu20KioskDisplay }
+    if (-not (Test-Hu20KioskCanPunch -Outcome $outcome -CentralConfirmed ($accepted.result -ceq "one_match" -and $accepted.noAttendanceWasRecorded -eq $true) -DisplayReady $true)) {
+      throw "KIOSK_AUTH_ERROR: no centrally confirmed unique fingerprint match; refusing punch."
+    }
     try {
       $testPunchResponse = Invoke-WebRequest -Uri "$base/api/staff-hu20/attendance" -Method Post -Headers $headers -WebSession $webSession -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 30 -ContentType "application/json" -Body $testPunchJson
     }
     catch {
-      throw "Fictional TEST attendance rejected. Check the separate attendance TEST switch, short recognition expiry and terminal state. $($_.Exception.Message)"
+      throw "KIOSK_PUNCH_UNCERTAIN: attendance response was not confirmed. STOP the TEST kiosk and inspect its attendance log before any retry."
     }
-    if ([string]$testPunchResponse.Headers["Content-Type"] -notmatch 'application/json') { throw "Unexpected TEST attendance response." }
-    $testPunch = $testPunchResponse.Content | ConvertFrom-Json -ErrorAction Stop
+    if ([string]$testPunchResponse.Headers["Content-Type"] -notmatch 'application/json') {
+      throw "KIOSK_PUNCH_UNCERTAIN: attendance returned a non-JSON response. STOP kiosk and check TEST attendance log."
+    }
+    try { $testPunch = $testPunchResponse.Content | ConvertFrom-Json -ErrorAction Stop }
+    catch { throw "KIOSK_PUNCH_UNCERTAIN: attendance response was unreadable. Check TEST attendance log." }
     if ($testPunchResponse.StatusCode -ne 200 -or $testPunch.ok -ne $true -or
         $testPunch.fictionalTestOnly -ne $true -or
         @("clocked_in","clocked_out","duplicate_ignored") -cnotcontains [string]$testPunch.outcome) {
-      throw "TEST attendance transition was not confirmed."
+      throw "KIOSK_PUNCH_UNCERTAIN: attendance confirmation invalid. STOP kiosk and check TEST attendance log."
     }
     Write-Host "FICTIONAL TEST PUNCH: $($testPunch.outcome) at gym $($testPunch.gymId) (event $($testPunch.punchEventId))."
     if ($FullScreenTest) {
@@ -453,9 +461,11 @@ try {
       Clear-Bytes $live
       foreach ($item in $templates) { Clear-Bytes $item.Template }
       if ($opened -and $null -ne $manager) {
-        try { [void]$manager.CloseDevice() } catch { Write-Warning "Could not close SecuGen device." }
+        try { [void]$manager.CloseDevice() } catch { Write-Warning "SecuGen reader close failed; no automatic restart." }
       }
-      if ($null -ne $manager -and $manager -is [System.IDisposable]) { $manager.Dispose() }
+      if ($null -ne $manager -and $manager -is [System.IDisposable]) {
+        try { $manager.Dispose() } catch { Write-Warning "SecuGen cleanup failed; no automatic restart." }
+      }
       # Best-effort cleanup of plaintext roster references before the next scan.
       $live = $null
       $templates.Clear()
