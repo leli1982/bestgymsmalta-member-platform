@@ -28,7 +28,7 @@ test("only centrally accepted fictional TEST attendance produces visual punch su
   assert.match(script,/Show-Hu20KioskStatus -State "verifying"/);
   assert.match(script,/Show-Hu20KioskStatus -State "rejected"/);
   assert.match(script,/Show-Hu20KioskStatus -State "finished"/);
-  assert.match(script,/Show-Hu20KioskStatus -State "error"/);
+  assert.match(script,/Show-Hu20KioskStatus -State \$decision[.]Screen/);
   assert.match(display,/CLOCKED IN/);
   assert.match(display,/CLOCKED OUT/);
 });
