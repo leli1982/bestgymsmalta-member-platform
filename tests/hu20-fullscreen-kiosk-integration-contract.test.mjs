@@ -21,7 +21,7 @@ test("full-screen Windows visual mode is only enabled by the separate TEST launc
 
 test("only centrally accepted fictional TEST attendance produces visual punch success",()=>{
   const attendance=script.indexOf('Invoke-WebRequest -Uri "$base/api/staff-hu20/attendance"');
-  const validated=script.indexOf('TEST attendance transition was not confirmed.');
+  const validated=script.indexOf('KIOSK_PUNCH_UNCERTAIN: attendance confirmation invalid.');
   const clockIn=script.indexOf('Show-Hu20KioskStatus -State "clock_in"');
   const clockOut=script.indexOf('Show-Hu20KioskStatus -State "clock_out"');
   assert.ok(attendance>0&&validated>attendance&&clockIn>validated&&clockOut>validated);
