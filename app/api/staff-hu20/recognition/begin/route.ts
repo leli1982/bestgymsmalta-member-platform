@@ -25,6 +25,15 @@ export async function POST(request: NextRequest) {
     const terminal = await authenticateHu20Terminal(request);
     if (!terminal) return fail("Unauthorised terminal.", 401);
     const db = getSupabaseAdmin();
+    // This is an authenticated TEST request, not proof of an always-online PC.
+    // Update the fleet's last contact *before* granting any roster access.
+    // The active guard prevents an already-revoked terminal from reporting healthy.
+    const contact = await db.from("bgm_staff_terminals")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("id", terminal.id).eq("active", true)
+      .select("id").maybeSingle();
+    if (contact.error) throw contact.error;
+    if (!contact.data) return fail("TEST terminal deactivated.", 401);
     const employees = await db.from("bgm_staff_employees")
       .select("id,first_name,surname").eq("active",true)
       .like("id_number","HU20-TEST-%").limit(9);
