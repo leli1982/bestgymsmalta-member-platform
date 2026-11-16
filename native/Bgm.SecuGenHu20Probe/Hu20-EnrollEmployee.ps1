@@ -221,6 +221,9 @@ try {
     throw "Unexpected enrollment response. Stop without scanning."
   }
   if ($null -eq $result.enrollment) {
+    if ($UseProvisionedBridge) {
+      throw "No pending supervised TEST authorization for this PC and employee."
+    }
     Write-Host "No active Super Admin-authorised enrollment for this terminal."
     return
   }
