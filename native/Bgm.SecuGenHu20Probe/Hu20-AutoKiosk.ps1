@@ -234,6 +234,318 @@ try {
     $rosterJson = $null
     try {
       if ($FullScreenTest) { Show-Hu20KioskStatus -State "connecting" }
+      # Read-only terminal/gym preflight. Never consumes a recognition claim.
+      Write-Host "Checking registered TEST gym and Super Admin kiosk window..."
+      try {
+        $preflightResponse = Invoke-WebRequest -Uri "$base/api/staff-hu20/kiosk/preflight" -Method Get -Headers $headers -WebSession $webSession -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 15
+      }
+      catch {
+        $preflightStatus = $null
+        if ($_.Exception.Response) {
+          try { $preflightStatus = [int]$_.Exception.Response.StatusCode } catch {}
+        }
+        if ($preflightStatus -eq 409) { throw "KIOSK_WINDOW_FINISHED" }
+        if ($preflightStatus -eq 401 -or $preflightStatus -eq 403 -or $preflightStatus -eq 404) {
+          throw "KIOSK_AUTH_ERROR: terminal disabled, unauthorised or wrong TEST Preview."
+        }
+        throw "KIOSK_NETWORK_ERROR: TEST terminal and registered gym could not be verified."
+      }
+      if ([string]$preflightResponse.Headers["Content-Type"] -notmatch 'application/json') {
+        throw "KIOSK_AUTH_ERROR: TEST preflight returned unexpected content."
+      }
+      $preflight = $preflightResponse.Content | ConvertFrom-Json -ErrorAction Stop
+      if ($preflightResponse.StatusCode -ne 200 -or $preflight.ok -ne $true -or
+          $preflight.fictionalTestOnly -ne $true -or $preflight.attendanceRecorded -ne $false -or
+          $preflight.recognitionAuthorisationConsumed -ne $false -or
+          $preflight.restartRequiresManualApproval -ne $true -or
+          -not [string]::Equals([string]$preflight.terminal.id, $TerminalId, [StringComparison]::OrdinalIgnoreCase) -or
+          [string]$preflight.terminal.gymId -notmatch '^[A-Za-z0-9_-]{2,120}
+  try {
+    $response = Invoke-WebRequest -Uri "$base/api/staff-hu20/recognition/begin" -Method Post -Headers $headers -WebSession $webSession -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 30 -ContentType "application/json" -Body '{}'
+  }
+  catch {
+    $status = $null
+    if ($_.Exception.Response) {
+      try { $status = [int]$_.Exception.Response.StatusCode } catch {}
+    }
+    if ($status -eq 409) { throw "KIOSK_WINDOW_FINISHED" }
+    if ($status -eq 429) { throw "KIOSK_COOLDOWN" }
+    if ($status -eq 401 -or $status -eq 403) { throw "KIOSK_AUTH_ERROR: terminal secret or Vercel access rejected." }
+    if ($status -eq 404) { throw "KIOSK_AUTH_ERROR: recognition API unavailable on selected TEST Preview." }
+    throw "KIOSK_NETWORK_ERROR: recognition request failed. Do not scan while the TEST server is unavailable."
+  }
+  if ([string]$response.Headers["Content-Type"] -notmatch 'application/json') {
+    throw "Expected JSON but got HTML. Check protected Vercel Preview access."
+  }
+  $rosterJson = $response.Content
+  $body = $rosterJson | ConvertFrom-Json -ErrorAction Stop
+  if ($response.StatusCode -ne 200 -or $body.ok -ne $true -or
+      $body.attendanceEnabled -ne $false -or
+      $body.fingerprintMatchingOnTerminal -ne $true -or
+      $body.vendorSecurityLevel -cne "NORMAL_TEST_ONLY" -or
+      $body.kioskTestOnly -ne $true) {
+    throw "Unexpected TEST roster; recognition aborted."
+  }
+  $testId = [string]$body.testId
+  if ($testId -notmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
+    throw "Invalid recognition test identifier."
+  }
+  $expiry = [DateTimeOffset]::Parse([string]$body.expiresAt)
+  if ($expiry -le [DateTimeOffset]::UtcNow) { throw "Recognition authorisation expired." }
+
+  $entries = @($body.roster | Where-Object { $null -ne $_ })
+  if ($entries.Count -gt 8) { throw "Too many TEST fingerprints." }
+  $seen = New-Object 'System.Collections.Generic.HashSet[string]'
+  foreach ($entry in $entries) {
+    $template = $null
+    try {
+      $credentialId = [string]$entry.credentialId
+      $encoded = [string]$entry.templateBase64
+      if ($credentialId -notmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' -or
+          $entry.templateFormat -cne 'ANSI378' -or
+          $encoded -notmatch '^[A-Za-z0-9+/]+={0,2}$' -or
+          -not $seen.Add($credentialId)) {
+        throw "Invalid or duplicate TEST template metadata."
+      }
+      $template = [Convert]::FromBase64String($encoded)
+      if ($template.Length -lt 64 -or $template.Length -gt 65536 -or
+          [Convert]::ToBase64String($template) -cne $encoded) {
+        throw "Invalid central fingerprint template buffer."
+      }
+      [void]$templates.Add(@{
+        Id = $credentialId
+        Name = [string]$entry.employeeName
+        Template = $template
+      })
+      $template = $null
+    }
+    finally { Clear-Bytes $template }
+  }
+  # Drop JSON references after extracting in-memory buffers; no file is created.
+  $body = $null
+  $response = $null
+  $rosterJson = $null
+  Write-Host "PASS: Central TEST roster loaded: $($templates.Count) active fingerprint(s)."
+
+  $outcome = "no_match"
+  $matchedId = $null
+  $matchedName = $null
+  if ($templates.Count -eq 0) {
+    Write-Host "NO_MATCH: Central TEST roster empty (enrolled fingers revoked or inactive)."
+  }
+  else {
+    $sdkPath = (Resolve-Path -LiteralPath $SdkAssembly -ErrorAction Stop).Path
+    $sdkFolder = Split-Path -Parent $sdkPath
+    if (-not (Test-Path -LiteralPath (Join-Path $sdkFolder "sgfplib.dll") -PathType Leaf)) {
+      throw "Missing native SecuGen DLL next to official SDK assembly."
+    }
+    $env:PATH = $sdkFolder + ";" + $env:PATH
+    $assembly = [System.Reflection.Assembly]::LoadFrom($sdkPath)
+    $managerType = Get-SdkType $assembly "SGFingerPrintManager"
+    $deviceType = Get-SdkType $assembly "SGFPMDeviceName"
+    $infoType = Get-SdkType $assembly "SGFPMDeviceInfoParam"
+    $formatType = Get-SdkType $assembly "SGFPMTemplateFormat"
+    $levelType = Get-SdkType $assembly "SGFPMSecurityLevel"
+    $manager = [System.Activator]::CreateInstance($managerType)
+    Check-SdkResult "Init" ($manager.Init([Enum]::Parse($deviceType, "DEV_AUTO")))
+    Check-SdkResult "OpenDevice" ($manager.OpenDevice(0x255))
+    $opened = $true
+    $info = [System.Activator]::CreateInstance($infoType)
+    Check-SdkResult "GetDeviceInfo" ($manager.GetDeviceInfo($info))
+    $width = [int]$info.ImageWidth
+    $height = [int]$info.ImageHeight
+    if ($width -le 0 -or $height -le 0 -or ($width * $height) -gt 2000000) { throw "Invalid HU20 capture dimensions." }
+    Check-SdkResult "SetTemplateFormat" ($manager.SetTemplateFormat([Enum]::Parse($formatType, "ANSI378")))
+    $maxSize = 0
+    Check-SdkResult "GetMaxTemplateSize" ($manager.GetMaxTemplateSize([ref]$maxSize))
+    if ($maxSize -lt 64 -or $maxSize -gt 65536) { throw "Unsupported HU20 ANSI378 template buffer." }
+    foreach ($item in $templates) {
+      if ($item.Template.Length -ne $maxSize) { throw "Server TEST template incompatible with the local SDK." }
+    }
+
+    Write-Host "Scan a test finger on the HU20 now (no fingerprint passphrase)."
+    if ($FullScreenTest) { Show-Hu20KioskStatus -State "ready" }
+    $live = Get-TransientTemplate $manager $width $height $maxSize $expiry
+    Wait-Hu20FingerRemoval $manager $width $height
+    $matches = New-Object System.Collections.ArrayList
+    foreach ($item in $templates) {
+      $matched = $false
+      Check-SdkResult "MatchTemplate" ($manager.MatchTemplate($item.Template, $live, [Enum]::Parse($levelType, "NORMAL"), [ref]$matched))
+      if ($matched) { [void]$matches.Add($item) }
+    }
+    if ($matches.Count -eq 1) {
+      $outcome = "one_match"
+      $matchedId = [string]$matches[0].Id
+      $matchedName = [string]$matches[0].Name
+      Write-Host "LOCAL_ONE_MATCH: $matchedName. Confirming central revocation status..."
+    }
+    elseif ($matches.Count -eq 0) {
+      Write-Host "NO_MATCH: Unknown finger rejected."
+    }
+    else {
+      $outcome = "ambiguous"
+      Write-Host "AMBIGUOUS: Multiple templates matched. Identification REJECTED."
+    }
+  }
+  if ($FullScreenTest) { Show-Hu20KioskStatus -State "verifying" }
+  if ($expiry -le [DateTimeOffset]::UtcNow) { throw "Recognition window expired. No result accepted." }
+  $resultBody = @{ testId = $testId; result = $outcome; credentialId = $matchedId } | ConvertTo-Json -Compress
+  try {
+    $confirmation = Invoke-WebRequest -Uri "$base/api/staff-hu20/recognition/finish" -Method Post -Headers $headers -WebSession $webSession -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 30 -ContentType "application/json" -Body $resultBody
+  }
+  catch {
+    throw "KIOSK_NETWORK_ERROR: central recognition not confirmed; no attendance was requested."
+  }
+  if ([string]$confirmation.Headers["Content-Type"] -notmatch 'application/json') {
+    throw "KIOSK_NETWORK_ERROR: central recognition did not return JSON; no attendance was requested."
+  }
+  $accepted = $confirmation.Content | ConvertFrom-Json -ErrorAction Stop
+  if ($confirmation.StatusCode -ne 200 -or $accepted.ok -ne $true -or
+      $accepted.result -cne $outcome -or $accepted.attendanceEnabled -ne $false -or
+      $accepted.noAttendanceWasRecorded -ne $true) { throw "Server did not confirm TEST recognition." }
+  if ($outcome -eq "one_match") {
+    Write-Host "PASS: CENTRAL_ONE_MATCH '$matchedName' confirmed in TEST."
+    # Only after the backend verified the matching biometric and marked its
+    # one-time recognition as complete may this optional TEST route be called.
+    $testPunchJson = @{ testId = $testId } | ConvertTo-Json -Compress
+    if ($FullScreenTest) { Assert-Hu20KioskDisplay }
+    if (-not (Test-Hu20KioskCanPunch -Outcome $outcome -CentralConfirmed ($accepted.result -ceq "one_match" -and $accepted.noAttendanceWasRecorded -eq $true) -DisplayReady $true)) {
+      throw "KIOSK_AUTH_ERROR: no centrally confirmed unique fingerprint match; refusing punch."
+    }
+    try {
+      $testPunchResponse = Invoke-WebRequest -Uri "$base/api/staff-hu20/attendance" -Method Post -Headers $headers -WebSession $webSession -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 30 -ContentType "application/json" -Body $testPunchJson
+    }
+    catch {
+      throw "KIOSK_PUNCH_UNCERTAIN: attendance response was not confirmed. STOP the TEST kiosk and inspect its attendance log before any retry."
+    }
+    if ([string]$testPunchResponse.Headers["Content-Type"] -notmatch 'application/json') {
+      throw "KIOSK_PUNCH_UNCERTAIN: attendance returned a non-JSON response. STOP kiosk and check TEST attendance log."
+    }
+    try { $testPunch = $testPunchResponse.Content | ConvertFrom-Json -ErrorAction Stop }
+    catch { throw "KIOSK_PUNCH_UNCERTAIN: attendance response was unreadable. Check TEST attendance log." }
+    if ($testPunchResponse.StatusCode -ne 200 -or $testPunch.ok -ne $true -or
+        $testPunch.fictionalTestOnly -ne $true -or
+        @("clocked_in","clocked_out","duplicate_ignored") -cnotcontains [string]$testPunch.outcome) {
+      throw "KIOSK_PUNCH_UNCERTAIN: attendance confirmation invalid. STOP kiosk and check TEST attendance log."
+    }
+    Write-Host "FICTIONAL TEST PUNCH: $($testPunch.outcome) at gym $($testPunch.gymId) (event $($testPunch.punchEventId))."
+    if ($FullScreenTest) {
+      switch ([string]$testPunch.outcome) {
+        "clocked_in" { Show-Hu20KioskStatus -State "clock_in" -Person $matchedName }
+        "clocked_out" { Show-Hu20KioskStatus -State "clock_out" -Person $matchedName }
+        default { Show-Hu20KioskStatus -State "cooldown" }
+      }
+      Wait-Hu20KioskUi -Milliseconds 3000
+    }
+
+  }
+  elseif ($outcome -eq "no_match") {
+    Write-Host "PASS: CENTRAL_NO_MATCH; unknown or revoked fingerprint rejected."
+    if ($FullScreenTest) { Show-Hu20KioskStatus -State "rejected"; Wait-Hu20KioskUi -Milliseconds 2000 }
+  }
+  else {
+    Write-Host "PASS: CENTRAL_AMBIGUOUS rejected safely."
+    if ($FullScreenTest) { Show-Hu20KioskStatus -State "rejected"; Wait-Hu20KioskUi -Milliseconds 2000 }
+  }
+  Write-Host "Only a confirmed one-match can create a fictional TEST clock event; NO_MATCH and AMBIGUOUS never punch."
+  Write-Host "Security level NORMAL is only for a smoke test, not production."
+    }
+    catch {
+      $reason = $_.Exception.Message
+      $decision = Get-Hu20KioskFailurePolicy -Reason $reason
+      if ($decision.Mode -eq "end") {
+        Write-Host "No active TEST kiosk window or scans remaining. Stopping."
+        if ($FullScreenTest) {
+          Show-Hu20KioskStatus -State "finished"
+          Wait-Hu20KioskUi -Milliseconds 2500
+        }
+        $stopKiosk = $true
+      }
+      elseif ($decision.Mode -eq "wait") {
+        Write-Host "Waiting for server-side kiosk cooldown..."
+        if ($FullScreenTest) {
+          Show-Hu20KioskStatus -State "cooldown"
+          Wait-Hu20KioskUi -Milliseconds 10000
+        } else { Start-Sleep -Seconds 10 }
+      }
+      elseif ($decision.Mode -eq "retry") {
+        Write-Host "No finger before single-use recognition expired. No attendance."
+        if ($FullScreenTest) { Show-Hu20KioskStatus -State "cooldown" }
+      }
+      else {
+        # Unknown SDK/network outcomes always stop. In particular, a lost
+        # attendance response must NEVER auto-retry or toggle a new punch.
+        if ($decision.RequiresAdminReview) {
+          Write-Warning "TEST attendance MAY have been recorded. STOP kiosk in Super Admin, inspect attendance log, and reconcile before a new scan."
+        }
+        elseif ($decision.Screen -eq "reader_error") {
+          Write-Warning "HU20 reader/SDK error: disconnect or driver failure. Stop and check reader before a manually authorised restart."
+        }
+        elseif ($decision.Screen -eq "network_error") {
+          Write-Warning "TEST server/network unavailable. Automatic kiosk stopped; no unattended reconnect."
+        }
+        elseif ($decision.Screen -eq "closed") {
+          Write-Host "ESC closed the TEST kiosk. No further recognition attempts."
+        }
+        else { Write-Warning "Unexpected TEST kiosk error; stopped without automatic restart." }
+        if ($FullScreenTest -and $displayStarted -and $decision.Screen -ne "closed") {
+          try {
+            Show-Hu20KioskStatus -State $decision.Screen
+            Wait-Hu20KioskUi -Milliseconds 3000
+          } catch {}
+        }
+        throw
+      }
+    }
+    finally {
+      Clear-Bytes $live
+      foreach ($item in $templates) { Clear-Bytes $item.Template }
+      if ($opened -and $null -ne $manager) {
+        try { [void]$manager.CloseDevice() } catch { Write-Warning "SecuGen reader close failed; no automatic restart." }
+      }
+      if ($null -ne $manager -and $manager -is [System.IDisposable]) {
+        try { $manager.Dispose() } catch { Write-Warning "SecuGen cleanup failed; no automatic restart." }
+      }
+      # Best-effort cleanup of plaintext roster references before the next scan.
+      $live = $null
+      $templates.Clear()
+      $body = $null
+      $entries = $null
+      $entry = $null
+      $template = $null
+      $encoded = $null
+      $rosterJson = $null
+      $response = $null
+      $confirmation = $null
+      $accepted = $null
+      $matches = $null
+      $testPunchResponse = $null
+      $testPunch = $null
+      $manager = $null
+    }
+    if ($stopKiosk) { break }
+    continue
+  }
+}
+finally {
+  # The terminal secret and Preview Share token are never written to disk.
+  $rosterJson = $null
+  $terminalSecret = $null
+  $headers = $null
+  $webSession = $null
+  if ($FullScreenTest -and $displayStarted) { Close-Hu20KioskDisplay }
+}
+ -or
+          [string]::IsNullOrWhiteSpace([string]$preflight.terminal.gymName) -or
+          [int]$preflight.window.scansRemaining -lt 1 -or
+          [DateTimeOffset]::Parse([string]$preflight.window.expiresAt) -le [DateTimeOffset]::UtcNow) {
+        throw "KIOSK_AUTH_ERROR: terminal, gym or kiosk authorisation failed TEST preflight."
+      }
+      $registeredGym = [string]$preflight.terminal.gymName
+      Write-Host "PASS: TEST terminal registered at $registeredGym."
+      if ($FullScreenTest) { Set-Hu20KioskLocation -GymName $registeredGym }
+      $preflight = $null
+      $preflightResponse = $null
       Write-Host "Requesting Super Admin-authorised TEST recognition session..."
   try {
     $response = Invoke-WebRequest -Uri "$base/api/staff-hu20/recognition/begin" -Method Post -Headers $headers -WebSession $webSession -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 30 -ContentType "application/json" -Body '{}'

@@ -80,6 +80,17 @@ function Assert-Hu20KioskDisplay {
   }
 }
 
+function Set-Hu20KioskLocation {
+  param([Parameter(Mandatory = $true)][string]$GymName)
+  Assert-Hu20KioskDisplay
+  $safeName = ($GymName -replace '[\r\n\t]', ' ').Trim()
+  if ($safeName.Length -gt 40) { $safeName = $safeName.Substring(0,40) }
+  if (-not $safeName) { throw "Registered TEST gym name is empty." }
+  $script:Hu20DetailLabel.Text = "FICTIONAL TEST ONLY | " + $safeName
+  $script:Hu20Display.Refresh()
+  Assert-Hu20KioskDisplay
+}
+
 function Show-Hu20KioskStatus {
   param(
     [ValidateSet("connecting","ready","reading","remove","verifying","clock_in","clock_out","cooldown","rejected","finished","reader_error","network_error","uncertain","error")]
