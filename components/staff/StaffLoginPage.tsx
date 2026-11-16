@@ -92,7 +92,7 @@ function safeHu20EnrollmentReturnPath(): string | null {
         target.pathname !== "/staff/admin/staff/terminals/enrollment" ||
         target.hash) return null;
     const allowedKeys = new Set(["localTerminalId", "employeeId"]);
-    for (const key of target.searchParams.keys()) {
+    for (const key of Array.from(target.searchParams.keys())) {
       if (!allowedKeys.has(key) || target.searchParams.getAll(key).length !== 1) return null;
       const value = target.searchParams.get(key) || "";
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) return null;
