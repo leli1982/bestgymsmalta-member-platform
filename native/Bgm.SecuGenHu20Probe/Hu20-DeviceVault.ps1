@@ -4,6 +4,7 @@
   supervised HU20 bridge. Never bundle this file's encrypted output in a ZIP.
   Works only in the same Windows user profile on the provisioned PC.
 #>
+Add-Type -AssemblyName System.Security
 function Get-Hu20VaultPath {
   if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) { throw "Windows local user profile unavailable." }
   return (Join-Path $env:LOCALAPPDATA "BGM-HU20-TEST\device-credentials.dpapi")
