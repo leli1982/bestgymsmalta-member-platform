@@ -82,7 +82,7 @@ function Assert-Hu20KioskDisplay {
 
 function Show-Hu20KioskStatus {
   param(
-    [ValidateSet("connecting","ready","reading","remove","verifying","clock_in","clock_out","cooldown","rejected","finished","error")]
+    [ValidateSet("connecting","ready","reading","remove","verifying","clock_in","clock_out","cooldown","rejected","finished","reader_error","network_error","uncertain","error")]
     [string]$State,
     [string]$Person = ""
   )
@@ -106,6 +106,9 @@ function Show-Hu20KioskStatus {
     "cooldown" { $main = "PLEASE WAIT"; $detail = "Preparing next permitted scan"; $colour = $muted }
     "rejected" { $main = "NOT RECOGNISED"; $detail = "No attendance recorded"; $colour = $red }
     "finished" { $main = "TEST ENDED"; $detail = "Window expired, stopped or scan budget used"; $colour = $muted }
+    "reader_error" { $main = "READER ERROR"; $detail = "Scanner stopped. Check the HU20 connection"; $colour = $red }
+    "network_error" { $main = "NETWORK ERROR"; $detail = "Scanner stopped. Check the TEST server connection"; $colour = $red }
+    "uncertain" { $main = "CHECK ATTENDANCE"; $detail = "Result uncertain. Ask Super Admin before rescanning"; $colour = $red }
     "error" { $main = "OUT OF SERVICE"; $detail = "Automatic TEST scanning stopped"; $colour = $red }
   }
   if ($detail.Length -gt 90) { $detail = $detail.Substring(0,90) }

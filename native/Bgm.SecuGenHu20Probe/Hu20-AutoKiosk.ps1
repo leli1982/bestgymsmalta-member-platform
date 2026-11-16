@@ -427,7 +427,8 @@ try {
     }
     catch {
       $reason = $_.Exception.Message
-      if ($reason -eq "KIOSK_WINDOW_FINISHED") {
+      $decision = Get-Hu20KioskFailurePolicy -Reason $reason
+      if ($decision.Mode -eq "end") {
         Write-Host "No active TEST kiosk window or scans remaining. Stopping."
         if ($FullScreenTest) {
           Show-Hu20KioskStatus -State "finished"
@@ -435,23 +436,37 @@ try {
         }
         $stopKiosk = $true
       }
-      elseif ($reason -eq "KIOSK_COOLDOWN") {
+      elseif ($decision.Mode -eq "wait") {
         Write-Host "Waiting for server-side kiosk cooldown..."
         if ($FullScreenTest) {
           Show-Hu20KioskStatus -State "cooldown"
           Wait-Hu20KioskUi -Milliseconds 10000
         } else { Start-Sleep -Seconds 10 }
       }
-      elseif ($reason -eq "KIOSK_NO_FINGER_TIMEOUT") {
-        Write-Host "No finger before the single-use recognition expired. No attendance."
+      elseif ($decision.Mode -eq "retry") {
+        Write-Host "No finger before single-use recognition expired. No attendance."
         if ($FullScreenTest) { Show-Hu20KioskStatus -State "cooldown" }
       }
       else {
-        Write-Warning "Unexpected reader, network or security error. TEST kiosk stopped."
-        if ($FullScreenTest -and $displayStarted) {
+        # Unknown SDK/network outcomes always stop. In particular, a lost
+        # attendance response must NEVER auto-retry or toggle a new punch.
+        if ($decision.RequiresAdminReview) {
+          Write-Warning "TEST attendance MAY have been recorded. STOP kiosk in Super Admin, inspect attendance log, and reconcile before a new scan."
+        }
+        elseif ($decision.Screen -eq "reader_error") {
+          Write-Warning "HU20 reader/SDK error: disconnect or driver failure. Stop and check reader before a manually authorised restart."
+        }
+        elseif ($decision.Screen -eq "network_error") {
+          Write-Warning "TEST server/network unavailable. Automatic kiosk stopped; no unattended reconnect."
+        }
+        elseif ($decision.Screen -eq "closed") {
+          Write-Host "ESC closed the TEST kiosk. No further recognition attempts."
+        }
+        else { Write-Warning "Unexpected TEST kiosk error; stopped without automatic restart." }
+        if ($FullScreenTest -and $displayStarted -and $decision.Screen -ne "closed") {
           try {
-            Show-Hu20KioskStatus -State "error"
-            Wait-Hu20KioskUi -Milliseconds 2500
+            Show-Hu20KioskStatus -State $decision.Screen
+            Wait-Hu20KioskUi -Milliseconds 3000
           } catch {}
         }
         throw
