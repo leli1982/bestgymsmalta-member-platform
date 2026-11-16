@@ -17,6 +17,9 @@ test("native scanner requires server-verified gym and window before claiming rec
   const preflight=scanner.indexOf('Invoke-WebRequest -Uri "$base/api/staff-hu20/kiosk/preflight"');
   const claim=scanner.indexOf('Invoke-WebRequest -Uri "$base/api/staff-hu20/recognition/begin"');
   assert.ok(preflight>=0 && claim>preflight);
+  // Prevent accidental duplicate scanner bodies in generated PowerShell files.
+  assert.equal(scanner.match(/api\\/staff-hu20\\/recognition\\/begin/g)?.length, 1);
+  assert.equal(scanner.match(/api\\/staff-hu20\\/kiosk\\/preflight/g)?.length, 1);
   for (const s of ["OrdinalIgnoreCase","preflight.terminal.gymId","preflight.window.scansRemaining -lt 1","preflight.window.expiresAt","Set-Hu20KioskLocation -GymName $registeredGym"]) assert.ok(scanner.includes(s),s);
   assert.match(screen,/function Set-Hu20KioskLocation/);
   assert.match(screen,/FICTIONAL TEST ONLY/);
