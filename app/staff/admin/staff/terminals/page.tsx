@@ -27,6 +27,7 @@ export default function Hu20TestTerminalsPage() {
   const [busy, setBusy] = useState(false);
   const [punches, setPunches] = useState<TestPunch[] | null>(null);
   const [punchError, setPunchError] = useState("");
+  const [notice, setNotice] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -76,6 +77,36 @@ export default function Hu20TestTerminalsPage() {
     }
   }
 
+  async function deactivateTerminal(terminal: Terminal) {
+    if (!window.confirm(
+      "Deactivate TEST terminal '" + terminal.name + "' permanently? " +
+      "Its credential will stop working, active TEST kiosk windows will be cancelled, " +
+      "and any replacement requires a NEW terminal registration and secret.",
+    )) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/system/staff-hu20/terminals", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: terminal.id, action: "deactivate" }),
+        cache: "no-store",
+      });
+      const body = await response.json();
+      if (!response.ok || body.ok !== true || body.terminal?.active !== false) {
+        throw new Error(body.error || "Could not deactivate TEST terminal.");
+      }
+      setNotice("TEST terminal deactivated and server authorisation revoked. Register a new terminal for replacement hardware.");
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not deactivate TEST terminal. Refresh its status.");
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const activeGyms = (data?.gyms || []).filter((gym) => gym.status === "active");
   const gymNames = new Map((data?.gyms || []).map((gym) => [gym.id, gym.name]));
 
@@ -86,6 +117,7 @@ export default function Hu20TestTerminalsPage() {
       <p className="mt-2"><a href="/staff/admin/staff/terminals/enrollment" className="font-semibold underline">Supervised TEST enrollment requests</a></p>
       <p className="mt-2 text-sm">Register a gym PC for secure TEST communication. Only fictional HU20-TEST employees can create TEST fingerprint attendance; normal staff punch clock and live payroll remain disabled.</p>
       {error && <p role="alert" className="mt-4 rounded bg-red-100 p-3 text-red-900">{error}</p>}
+      {notice && <p role="status" className="mt-4 rounded bg-slate-100 p-3 text-slate-900">{notice}</p>}
       <form onSubmit={createTerminal} className="mt-5 grid gap-3 rounded border bg-white p-4">
         <label className="grid gap-1">Gym
           <select required className="rounded border p-2" value={gymId} onChange={(e) => setGymId(e.target.value)}>
@@ -132,10 +164,16 @@ export default function Hu20TestTerminalsPage() {
         <p className="mt-3 text-sm">For full attendance and payroll details, open <a className="font-semibold underline" href="/staff/admin/staff">Staff Management → Timesheets</a>.</p>
       </section>
       <h2 className="mt-6 text-xl font-semibold">Registered terminals</h2>
+      <p className="mt-1 text-sm text-slate-700">Active TEST terminals: {(data?.terminals || []).filter((item) => item.active).length} · Gyms represented: {new Set((data?.terminals || []).filter((item) => item.active).map((item) => item.gym_id)).size}. Each PC has its own gym-bound credential. Deactivate a retired or lost terminal immediately; there is no credential recovery.</p>
       <div className="mt-2 grid gap-2">{(data?.terminals || []).map((item) => <article key={item.id} className="rounded border bg-white p-3">
         <p className="font-semibold">{item.name} — {gymNames.get(item.gym_id) || item.gym_id}</p>
-        <p className="text-sm">Status: {item.active ? "Active (TEST)" : "Inactive"} · Last connection: {item.last_seen_at ? new Date(item.last_seen_at).toLocaleString("en-MT") : "Not connected"}</p>
-        <code className="text-xs">{item.id}</code>
+        <p className="text-sm">Status: {item.active ? "Active (TEST)" : "Inactive"} · Last health check: {item.last_seen_at ? new Date(item.last_seen_at).toLocaleString("en-MT") : "Not recorded"}</p>
+        <code className="block break-all text-xs">{item.id}</code>
+        {item.active && <button type="button" disabled={busy}
+          onClick={() => void deactivateTerminal(item)}
+          className="mt-3 rounded border border-red-600 px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-50">
+          Deactivate TEST terminal
+        </button>}
       </article>)}</div>
     </div></main>
   );
