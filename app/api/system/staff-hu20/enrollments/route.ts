@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         .select("id,employee_id,terminal_id,status,created_at,expires_at,completed_at,cancelled_at")
         .order("created_at", { ascending: false }).limit(50),
       db.from("bgm_staff_employees").select("id,first_name,surname,active")
-        .order("surname").order("first_name"),
+        .like("id_number", "HU20-TEST-%").order("surname").order("first_name"),
       db.from("bgm_staff_terminals").select("id,name,gym_id,active")
         .order("name"),
     ]);
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     await expireRequests();
     const db = getSupabaseAdmin();
     const [employee, terminal, existing] = await Promise.all([
-      db.from("bgm_staff_employees").select("id,active").eq("id", employeeId).maybeSingle(),
+      db.from("bgm_staff_employees").select("id,active,id_number").eq("id", employeeId).maybeSingle(),
       db.from("bgm_staff_terminals").select("id,gym_id,active")
         .eq("id", terminalId).maybeSingle(),
       db.from("bgm_staff_biometrics").select("id")
@@ -86,7 +86,9 @@ export async function POST(request: NextRequest) {
     if (employee.error) throw employee.error;
     if (terminal.error) throw terminal.error;
     if (existing.error) throw existing.error;
-    if (!employee.data?.active) return errorResponse("Employee must be active.", 409);
+    if (!employee.data?.active || !employee.data.id_number?.startsWith("HU20-TEST-")) {
+      return errorResponse("Only active fictional HU20-TEST employees may enrol in TEST.", 409);
+    }
     if (!terminal.data?.active) return errorResponse("TEST terminal is inactive.", 409);
     if ((existing.data || []).length > 0) {
       return errorResponse("Employee already has an active fingerprint. Revoke before re-enrollment.", 409);

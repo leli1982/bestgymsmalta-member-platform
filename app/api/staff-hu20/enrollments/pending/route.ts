@@ -30,9 +30,9 @@ export async function GET(request: NextRequest) {
         { headers });
     }
     const employee = await db.from("bgm_staff_employees")
-      .select("id,first_name,surname,active").eq("id", row.employee_id).maybeSingle();
+      .select("id,first_name,surname,active,id_number").eq("id", row.employee_id).maybeSingle();
     if (employee.error) throw employee.error;
-    if (!employee.data?.active) {
+    if (!employee.data?.active || !employee.data.id_number?.startsWith("HU20-TEST-")) {
       return NextResponse.json({ ok: true, enrollment: null, fingerprintCaptureEnabled: false },
         { headers });
     }

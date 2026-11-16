@@ -51,6 +51,14 @@ export async function POST(request: NextRequest) {
         new Date(pending.data.expires_at).getTime() <= Date.now()) {
       return fail("Enrollment request expired, used or not assigned to terminal.", 409);
     }
+    // Defence in depth: a real employee must never acquire a TEST biometric,
+    // even if an old pending authorisation predates the portal filter.
+    const employee = await db.from("bgm_staff_employees")
+      .select("id,active,id_number").eq("id", pending.data.employee_id).maybeSingle();
+    if (employee.error) throw employee.error;
+    if (!employee.data?.active || !employee.data.id_number?.startsWith("HU20-TEST-")) {
+      return fail("Only active fictional HU20-TEST employees can enrol.", 409);
+    }
     const credentialId = randomUUID();
     const encryptedTemplate = sealHu20Template(template, {
       employeeId: pending.data.employee_id,
