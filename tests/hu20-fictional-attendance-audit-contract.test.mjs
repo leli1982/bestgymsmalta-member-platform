@@ -18,7 +18,7 @@ test("HU20 fictional punch audit is read-only, Super Admin-only, and triple-gate
   assert.match(route, /"Cache-Control": "private, no-store, max-age=0"/);
 });
 
-test("terminal management shows test punches without activating normal staff punch tile", () => {
+test("terminal management shows test punches with staff Punch Clock gated by TEST gym rollout", () => {
   assert.match(ui, /\/api\/system\/staff-hu20\/attendance-log/);
   assert.match(ui, /Recent fictional TEST fingerprint punches/);
   assert.match(ui, /Clock IN/);
@@ -27,5 +27,9 @@ test("terminal management shows test punches without activating normal staff pun
   assert.match(ui, /Staff Management → Timesheets/);
   assert.doesNotMatch(ui, /Fingerprint attendance and payroll changes remain disabled/);
   const staffHome = fs.readFileSync("components/staff/StaffDashboard.tsx", "utf8");
-  assert.match(staffHome, /<Tile label="Punch Clock" icon=\{Clock3\} disabled \/>/);
+  // Punch Clock may be shown only for a TEST gym explicitly enabled by Super Admin.
+  assert.match(staffHome, /punchClockEnabled && <Tile label="Punch Clock"/);
+  const capability = fs.readFileSync("app/api/staff-hu20/portal-capability/route.ts", "utf8");
+  assert.match(capability, /isHu20TestRequestEnabled\(\)/);
+  assert.match(capability, /hu20_punch_clock_enabled === true/);
 });
