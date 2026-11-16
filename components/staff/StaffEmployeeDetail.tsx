@@ -134,6 +134,11 @@ export default function StaffEmployeeDetail({ employeeId, gyms, onChanged, onDel
     {message && <p className="rounded-xl bg-green-50 p-3 text-sm font-bold text-green-800">{message}</p>}
 
     {panel === "Details" && <div className="space-y-5">
+      {e.idNumber.startsWith("HU20-TEST-") && <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm">
+        <strong>Fingerprint Punch Clock — fictional TEST staff</strong>
+        <p className="mt-1">Super Admin can authorise supervised fingerprint enrollment at an assigned HU20 TEST terminal. Real employee biometrics are not supported.</p>
+        <a href={`/staff/admin/staff/terminals/enrollment?employeeId=${encodeURIComponent(e.id)}`} className="mt-2 inline-block font-bold text-orange-800 underline">Manage HU20 TEST fingerprint enrolment</a>
+      </div>}
       <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
         <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-center">
           <div className="mx-auto flex h-40 w-40 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm">

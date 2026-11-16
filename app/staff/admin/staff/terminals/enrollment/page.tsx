@@ -47,12 +47,22 @@ export default function Hu20TestEnrollmentPage() {
       setError(caught instanceof Error ? caught.message : "Cannot load TEST enrollments.");
     });
   }, [load]);
+  useEffect(() => {
+    if (!data?.employees) return;
+    const id = new URLSearchParams(window.location.search).get("employeeId");
+    if (id && data.employees.some((employee) => employee.id === id && employee.active)) {
+      setEmployeeId(id);
+    }
+  }, [data?.employees]);
   const employeeNames = useMemo(() => new Map((data?.employees || []).map(
     (employee) => [employee.id, [employee.first_name, employee.surname].join(" ")]
   )), [data?.employees]);
   const terminalNames = useMemo(() => new Map((data?.terminals || []).map(
     (terminal) => [terminal.id, terminal.name]
   )), [data?.terminals]);
+  const chosenAlreadyEnrolled = biometrics.some(item => item.active && item.employee_id === employeeId);
+  const pendingForChosen = (data?.requests || []).some(item => item.status === "pending" && item.employee_id === employeeId && new Date(item.expires_at).getTime() > Date.now());
+
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true); setError(""); setMessage("");
@@ -140,6 +150,7 @@ export default function Hu20TestEnrollmentPage() {
   return <main className="bgm-admin-light min-h-screen bg-slate-50 p-5 text-slate-900"><div className="mx-auto max-w-3xl">
     <a href="/staff/admin/staff/terminals" className="underline">Back to HU20 terminals</a>
     <h1 className="mt-4 text-2xl font-bold">Supervised HU20 enrollment — TEST</h1>
+    <p className="mt-2 text-sm font-semibold">For fictional HU20-TEST staff only. Create employees in <a href="/staff/admin/staff" className="underline">Super Admin → Staff management</a>, then authorise a fingerprint here.</p>
     <p className="mt-2 text-sm">Select an employee and registered HU20 terminal to authorise a ten-minute enrollment window. The browser does not capture or store fingerprints; the supervised Windows HU20 scanner uploads only after two matching scans. No attendance is recorded.</p>
     {error && <p role="alert" className="mt-3 rounded bg-red-100 p-3 text-red-900">{error}</p>}
     {message && <p role="status" className="mt-3 rounded bg-blue-50 p-3 text-blue-900">{message}</p>}
@@ -160,7 +171,8 @@ export default function Hu20TestEnrollmentPage() {
           )}
         </select>
       </label>
-      <button type="submit" disabled={busy || !employeeId || !terminalId}
+      {(chosenAlreadyEnrolled || pendingForChosen) && <p className="text-sm text-amber-800">{chosenAlreadyEnrolled ? "Fingerprint already enrolled. Revoke it before repeating enrollment." : "An enrollment authorisation is already pending for this employee."}</p>}
+      <button type="submit" disabled={busy || !employeeId || !terminalId || chosenAlreadyEnrolled || pendingForChosen}
         className="rounded bg-slate-900 px-4 py-2 font-semibold text-white disabled:opacity-50">
         {busy ? "Saving…" : "Authorise TEST enrollment"}
       </button>
