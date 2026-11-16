@@ -23,3 +23,13 @@ test("authenticated TEST recognition updates fleet contact before roster access"
   assert.match(ui,/Refresh terminal contacts/);
   assert.match(ui,/A recent authenticated request does not prove/);
 });
+
+test("TEST health ping must reject a terminal deactivated after authentication", () => {
+  const health = fs.readFileSync("app/api/staff-hu20/health/route.ts", "utf8");
+  assert.match(health, /authenticateHu20Terminal\(request\)/);
+  assert.match(health, /\.eq\("active", true\)/);
+  assert.match(health, /\.select\("id"\)\.maybeSingle\(\)/);
+  assert.match(health, /if \(!ping\.data\)/);
+  assert.match(health, /status: 401/);
+  assert.doesNotMatch(health, /encrypted_template|openHu20Template|recordStaffPunch/);
+});
