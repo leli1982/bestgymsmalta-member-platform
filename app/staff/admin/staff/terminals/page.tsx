@@ -179,7 +179,7 @@ export default function Hu20TestTerminalsPage() {
           className="rounded border border-slate-300 px-3 py-2 text-sm font-semibold disabled:opacity-50">Refresh terminal contacts</button>
       </div>
       <p className="mt-1 text-sm text-slate-700">Active TEST terminals: {fleet.length} · Gyms represented: {new Set(fleet.map((item) => item.gym_id)).size} · Authenticated requests in the last 15 minutes: {recentlyContacted}.</p>
-      <p className="mt-1 text-sm text-slate-600">A recent authenticated request does not prove the scanner is currently running or connected. The server timestamp updates when an authorised TEST recognition begins. Each PC has its own gym-bound credential; deactivate retired or lost terminals.</p>
+      <p className="mt-1 text-sm text-slate-600">A recent authenticated request does not prove the scanner is currently running or connected. The server timestamp updates after authenticating an active TEST terminal for a recognition request, even if no kiosk window was authorised. Each PC has its own gym-bound credential; deactivate retired or lost terminals.</p>
       <div className="mt-2 grid gap-2">{(data?.terminals || []).map((item) => <article key={item.id} className="rounded border bg-white p-3">
         <p className="font-semibold">{item.name} — {gymNames.get(item.gym_id) || item.gym_id}</p>
         <p className="text-sm">Registration: {item.active ? "Active (TEST)" : "Deactivated"} · Last authenticated request: {item.last_seen_at ? formatEuropeanDateTime(item.last_seen_at) : "Never recorded"}</p>

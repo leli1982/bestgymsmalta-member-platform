@@ -19,8 +19,12 @@ export async function GET(request: NextRequest) {
     const ping = await db.from("bgm_staff_terminals")
       .update({ last_seen_at: new Date().toISOString() })
       .eq("id", terminal.id)
-      .eq("active", true);
+      .eq("active", true)
+      .select("id").maybeSingle();
     if (ping.error) throw ping.error;
+    if (!ping.data) {
+      return NextResponse.json({ ok: false, error: "TEST terminal deactivated." }, { status: 401, headers });
+    }
     return NextResponse.json({
       ok: true,
       terminal: { id: terminal.id, name: terminal.name, gymId: terminal.gymId },
