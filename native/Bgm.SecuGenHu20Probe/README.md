@@ -254,3 +254,12 @@ This stage adds a quota-free authenticated preflight endpoint at /api/staff-hu20
 **Acceptance:** After CI and Preview are READY, update only Hu20-AutoKiosk.ps1 and Hu20-KioskDisplay.ps1 from the same commit (the previously installed Hu20-KioskSafety.ps1 is unchanged). Verify that the server-registered gym is shown correctly without retesting earlier fingerprint and USB cases. Do not deactivate the existing working TEST terminal to try the new control; any such test should use a disposable second TEST registration.
 
 Production blockers remain: reliable managed device provisioning and monitoring, biometric liveness and threshold evaluation, tamper resistance, recovery and security review, employee privacy assessment and GDPR DPIA, explicit production approval. No production rollout is authorised.
+
+
+## TEST PC local readiness and contact monitoring
+
+Run `Hu20-LocalReadiness.ps1` from the HU20 installation folder on each gym Windows PC. It only checks non-secret configuration, the approved immutable Preview hostname, required scripts, PowerShell syntax and the SecuGen SDK/dependency files. It **does not** open the reader, call a network endpoint, validate a secret, enrol a fingerprint, register a terminal, or punch attendance. A PASS means only local files and configuration passed; an administrator still needs to verify hardware and authorisation with fictional TEST data.
+
+Example on the PC (no administrator credentials required for the check): `powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\BGM-HU20\Hu20-LocalReadiness.ps1`.
+
+The TEST Super Admin terminals page shows **last authenticated request** and a recent-request count for the preceding 15 minutes, not an online/offline guarantee. Each terminal's timestamp updates when an authenticated recognition request starts and the registration is still active. A kiosk can be closed or disconnected after that request; do not use this contact timestamp to infer scanner or attendance state. Refresh manually for current server data. This adds no biometric data, database columns, credentials or live-employee functionality.

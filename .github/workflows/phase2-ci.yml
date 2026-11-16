@@ -50,7 +50,8 @@ jobs:
             'native/Bgm.SecuGenHu20Probe/Hu20-StartTestTerminal.ps1'
             'native/Bgm.SecuGenHu20Probe/Hu20-AutoKiosk.ps1'
             'native/Bgm.SecuGenHu20Probe/Hu20-KioskDisplay.ps1'
-            'native/Bgm.SecuGenHu20Probe/Hu20-KioskSafety.ps1'
+            'native/Bgm.SecuGenHu20Probe/Hu20-KioskSafety.ps1',
+            'native/Bgm.SecuGenHu20Probe/Hu20-LocalReadiness.ps1'
             'native/Bgm.SecuGenHu20Probe/Test-Hu20KioskSafety.ps1'
             'native/Bgm.SecuGenHu20Probe/Hu20-TestPunch.ps1'
           )
