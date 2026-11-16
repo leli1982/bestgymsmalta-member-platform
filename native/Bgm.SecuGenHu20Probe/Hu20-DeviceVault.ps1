@@ -12,9 +12,14 @@ function Get-Hu20VaultEntropy([string]$TerminalId) {
   return [System.Text.Encoding]::UTF8.GetBytes("BGM-HU20-ENROLLMENT-TEST-v1|" + $TerminalId.ToLowerInvariant())
 }
 function Assert-Hu20VaultBinding([object]$Record, [string]$BaseUrl, [string]$TerminalId) {
+  # Vercel creates a different immutable Preview hostname for each commit.
+  # Bind the vault to the same TEST project/team and terminal, not one
+  # ever-changing deployment SHA; do NOT reprovision secrets per deployment.
+  $allowedPreview = '^https://bestgymsmalta-member-platform-[a-z0-9-]+-leliapap-2558s-projects[.]vercel[.]app$'
   if ($null -eq $Record -or [string]$Record.version -cne "1" -or
       [string]$Record.terminalId -cne $TerminalId -or
-      [string]$Record.baseUrl -cne $BaseUrl -or
+      [string]$Record.baseUrl -cnotmatch $allowedPreview -or
+      $BaseUrl -cnotmatch $allowedPreview -or
       [string]$Record.terminalSecret -cnotmatch '^[0-9a-fA-F]{64}$' -or
       [string]$Record.vercelBypass -cnotmatch '^[a-zA-Z0-9]{32}$') {
     throw "The protected HU20 TEST credential record is invalid or belongs to another PC/Preview."
