@@ -26,10 +26,20 @@ export default function Hu20TestEnrollmentPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [superAdminLoginHref, setSuperAdminLoginHref] = useState("");
 
   const load = useCallback(async () => {
     const response = await fetch("/api/system/staff-hu20/enrollments", { cache: "no-store" });
     const result = await response.json();
+    if (response.status === 401) {
+      // Authentication is required before terminal data may be loaded. Keep
+      // the localTerminalId preference through Super Admin login, without
+      // accepting it as proof of a real, registered fingerprint terminal.
+      const returnPath = window.location.pathname + window.location.search;
+      setSuperAdminLoginHref("/staff?returnTo=" + encodeURIComponent(returnPath));
+    } else {
+      setSuperAdminLoginHref("");
+    }
     if (!response.ok) throw new Error(result.error || "Cannot load TEST enrollments.");
     setData(result as Loaded);
     const biometricResponse = await fetch("/api/system/staff-hu20/biometrics", { cache: "no-store" });
@@ -172,6 +182,8 @@ export default function Hu20TestEnrollmentPage() {
     <p className="mt-2 text-sm font-semibold">For fictional HU20-TEST staff only. Create employees in <a href="/staff/admin/staff" className="underline">Super Admin → Staff management</a>, then authorise a fingerprint here.</p>
     <p className="mt-2 text-sm">Select an employee and registered HU20 terminal to authorise a ten-minute enrollment window. The browser does not capture or store fingerprints; the supervised Windows HU20 scanner uploads only after two matching scans. No attendance is recorded.</p>
     {error && <p role="alert" className="mt-3 rounded bg-red-100 p-3 text-red-900">{error}</p>}
+    {superAdminLoginHref && <a className="mt-3 inline-block rounded bg-slate-900 px-4 py-2 font-semibold text-white"
+       href={superAdminLoginHref}>Sign in as Super Admin and return to this HU20 enrolment</a>}
     {message && <p role="status" className="mt-3 rounded bg-blue-50 p-3 text-blue-900">{message}</p>}
     <form className="mt-5 grid gap-4 rounded border bg-white p-4" onSubmit={submit}>
       <label className="grid gap-1">Employee
