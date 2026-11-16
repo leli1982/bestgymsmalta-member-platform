@@ -36,6 +36,13 @@ export async function POST(request: NextRequest) {
       return fail("Valid TEST recognition ID required.", 400);
     }
     const db = getSupabaseAdmin();
+    const gym = await db.from("bgm_gyms")
+      .select("status,hu20_punch_clock_enabled").eq("id", terminal.gymId).maybeSingle();
+    if (gym.error) throw gym.error;
+    if (gym.data?.status !== "active" || gym.data?.hu20_punch_clock_enabled !== true) {
+      return fail("Punch Clock is disabled for this TEST gym.", 409);
+    }
+    // The DB RPC repeats this check and locks the gym row for atomic shutdown.
     const recorded = await db.rpc("bgm_hu20_test_record_attendance", {
       p_test_id: body.testId.trim(),
       p_terminal_id: terminal.id,

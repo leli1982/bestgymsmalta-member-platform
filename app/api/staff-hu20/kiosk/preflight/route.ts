@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     if (!terminal) return fail("TEST terminal inactive or unauthorised.", 401);
     const db = getSupabaseAdmin();
     const [gym, windows] = await Promise.all([
-      db.from("bgm_gyms").select("id,name,status").eq("id", terminal.gymId).maybeSingle(),
+      db.from("bgm_gyms").select("id,name,status,hu20_punch_clock_enabled").eq("id", terminal.gymId).maybeSingle(),
       db.from("bgm_hu20_test_kiosk_windows")
         .select("id,expires_at,scans_used,max_scans")
         .eq("terminal_id", terminal.id).eq("status", "active")
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     ]);
     if (gym.error) throw gym.error;
     if (windows.error) throw windows.error;
-    if (!gym.data || gym.data.status !== "active") return fail("TEST terminal gym is inactive.", 409);
+    if (!gym.data || gym.data.status !== "active" || gym.data.hu20_punch_clock_enabled !== true) return fail("Punch Clock is disabled for this TEST gym.", 409);
     const window = windows.data?.[0];
     if (!window || window.scans_used >= window.max_scans) {
       return fail("No active TEST kiosk window or attempts remaining.", 409);

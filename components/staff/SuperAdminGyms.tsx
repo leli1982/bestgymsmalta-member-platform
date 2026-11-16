@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { buildGymProvisioningIdentity } from "@/lib/gymProvisioningCore";
+import Hu20GymRolloutPanel from "@/components/staff/Hu20GymRolloutPanel";
 
 type Status = "active" | "inactive" | "coming_soon";
 type Gym = {
@@ -226,6 +227,7 @@ export default function SuperAdminGyms() {
             <button type="button" onClick={newGym} className="rounded-xl bg-[#ff5a0a] px-5 py-3 font-black text-white">+ Add new gym</button>
           </div>
         </header>
+        <Hu20GymRolloutPanel />
         {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 font-bold text-red-700">{error}</div>}
         {message && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 font-bold text-emerald-700">{message}</div>}
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(250px,1fr)_minmax(0,2fr)]">

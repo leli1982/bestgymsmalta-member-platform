@@ -34,6 +34,15 @@ export async function POST(request: NextRequest) {
       .select("id").maybeSingle();
     if (contact.error) throw contact.error;
     if (!contact.data) return fail("TEST terminal deactivated.", 401);
+    const kioskMode = request.headers.get("x-bgm-hu20-kiosk-test") === "1";
+    if (kioskMode) {
+      const gym = await db.from("bgm_gyms")
+        .select("status,hu20_punch_clock_enabled").eq("id", terminal.gymId).maybeSingle();
+      if (gym.error) throw gym.error;
+      if (gym.data?.status !== "active" || gym.data?.hu20_punch_clock_enabled !== true) {
+        return fail("Punch Clock is disabled for this TEST gym.", 409);
+      }
+    }
     const employees = await db.from("bgm_staff_employees")
       .select("id,first_name,surname").eq("active",true)
       .like("id_number","HU20-TEST-%").limit(9);
@@ -57,7 +66,6 @@ export async function POST(request: NextRequest) {
       !people.has(rec.employee_id))) return fail("Invalid TEST template reference.", 409);
 
     // Atomic single-use claim protects against concurrent/duplicate roster fetches.
-    const kioskMode = request.headers.get("x-bgm-hu20-kiosk-test") === "1";
     if (kioskMode && (process.env.BGM_HU20_KIOSK_TEST_ENABLED !== "true" ||
         process.env.BGM_HU20_ATTENDANCE_TEST_ENABLED !== "true")) {
       return fail("HU20 unattended TEST kiosk unavailable.", 404);

@@ -71,9 +71,9 @@ export async function POST(request: NextRequest) {
     if (terminal.error) throw terminal.error;
     if (!terminal.data?.active) return fail("TEST terminal is inactive.", 409);
     const gym = await db.from("bgm_gyms")
-      .select("status").eq("id",terminal.data.gym_id).maybeSingle();
+      .select("status,hu20_punch_clock_enabled").eq("id",terminal.data.gym_id).maybeSingle();
     if (gym.error) throw gym.error;
-    if (gym.data?.status !== "active") return fail("TEST terminal gym is inactive.", 409);
+    if (gym.data?.status !== "active" || gym.data?.hu20_punch_clock_enabled !== true) return fail("Punch Clock is disabled for this TEST gym.", 409);
     const expiresAt = new Date(Date.now() + durationMillis).toISOString();
     const created = await db.from("bgm_hu20_test_kiosk_windows").insert({
       terminal_id: terminalId,
