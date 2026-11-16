@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 const r = (path) => fs.readFileSync(path, "utf8");
-const migration = r("supabase/migrations/20261116_150000_hu20_test_per_gym_rollout.sql");
+const migration = r("supabase/test-only/hu20-test-per-gym-rollout.sql");
 const admin = r("app/api/system/staff-hu20/gym-rollout/route.ts");
 const portal = r("app/api/staff-hu20/portal-capability/route.ts");
 const preflight = r("app/api/staff-hu20/kiosk/preflight/route.ts");
