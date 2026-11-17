@@ -54,7 +54,7 @@ export default function Hu20QuickEnrollment({ employeeId, employeeName, active }
   async function startEnrollment() {
     if (!terminalId || state !== "ready" || !active) return;
     setState("enrolling");
-    setMessage("Authorising fingerprint enrolment. Place the same finger, lift it, then place it again.");
+    setMessage("Authorising TEST enrolment. Scan the same finger three times, lifting it fully between placements. The third scan verifies reliability before saving.");
     try {
       const device = await readLocalDevice();
       if (device.terminalId !== terminalId) throw new Error("Local reader identity changed.");
@@ -105,7 +105,7 @@ export default function Hu20QuickEnrollment({ employeeId, employeeName, active }
     <p className="mt-2 font-semibold text-zinc-900" role="status">
       {state === "checking" ? "Checking local HU20…" :
         state === "ready" ? "Connected reader: " + deviceName :
-        state === "enrolling" ? "Enrolling — complete the two fingerprint scans" :
+        state === "enrolling" ? "Enrolling — complete three fingerprint placements" :
         state === "completed" ? "Fingerprint enrolled" : "HU20 helper unavailable"}
     </p>
     {message && <p className="mt-2 text-zinc-800" role="alert">{message}</p>}

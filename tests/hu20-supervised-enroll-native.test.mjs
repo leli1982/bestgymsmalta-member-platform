@@ -30,3 +30,20 @@ test("HU20 capture helper is defined and securely clears images and templates", 
  assert.match(ps, /finally\s*\{\s*Clear-Bytes \$first/);
  assert.match(ps, /Clear-Bytes \$second/);
 });
+
+test("one-click fingerprint enrollment requires a separate third placement before storing initial template", () => {
+ const ps=fs.readFileSync("native/Bgm.SecuGenHu20Probe/Hu20-EnrollEmployee.ps1","utf8");
+ const normalMatch=ps.indexOf('MatchTemplate',ps.indexOf('Write-Host "Second test fingerprint capture..."'));
+ const thirdLift=ps.indexOf('Wait-Hu20FingerLift $manager $width $height', normalMatch);
+ const thirdCapture=ps.indexOf('$verification = Get-TransientTemplate $manager $width $height $maxSize', thirdLift);
+ const firstVerification=ps.indexOf("Check-SdkResult 'VerifyStoredTemplate'", thirdCapture);
+ const secondVerification=ps.indexOf("Check-SdkResult 'VerifySecondCapture'", firstVerification);
+ const upload=ps.indexOf('templateBase64 = [Convert]::ToBase64String($first)',secondVerification);
+ assert.ok(normalMatch>0 && thirdLift>normalMatch && thirdCapture>thirdLift &&
+   firstVerification>thirdCapture && secondVerification>firstVerification && upload>secondVerification);
+ assert.match(ps,/if \(-not \$firstVerified -or -not \$secondVerified\) \{\s*throw /);
+ assert.match(ps,/if \(\$UseProvisionedBridge\) \{/);
+ assert.match(ps,/Clear-Bytes \$verification/);
+ assert.match(ps,/enrollmentExpires -le \[DateTimeOffset\]::UtcNow/);
+ assert.doesNotMatch(ps,/ToBase64String\(\$verification\)/);
+});

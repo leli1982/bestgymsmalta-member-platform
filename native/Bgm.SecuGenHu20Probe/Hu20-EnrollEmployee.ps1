@@ -267,6 +267,7 @@ try {
   $opened = $false
   $first = $null
   $second = $null
+  $verification = $null
   $bodyText = $null
   try {
     Check-SdkResult 'Init' ($manager.Init([Enum]::Parse($deviceType, 'DEV_AUTO')))
@@ -303,10 +304,32 @@ try {
     if (-not $matched) {
       throw "The two captures do not match. No biometric data was uploaded."
     }
+    if ($UseProvisionedBridge) {
+      # A separate third placement must match the template that will actually
+      # be stored. Two back-to-back matching captures alone are not enough
+      # to establish reliable subsequent kiosk recognition.
+      Write-Host "Lift your finger completely; preparing independent TEST verification..."
+      Wait-Hu20FingerLift $manager $width $height
+      if ($enrollmentExpires -le [DateTimeOffset]::UtcNow) {
+        throw "TEST enrolment expired before the independent verification capture. Nothing uploaded."
+      }
+      Write-Host "Final verification: place the same finger again on the HU20 sensor..."
+      $verification = Get-TransientTemplate $manager $width $height $maxSize
+      $firstVerified = $false
+      $secondVerified = $false
+      Check-SdkResult 'VerifyStoredTemplate' ($manager.MatchTemplate(
+        $first, $verification, [Enum]::Parse($levelType, 'NORMAL'), [ref]$firstVerified))
+      Check-SdkResult 'VerifySecondCapture' ($manager.MatchTemplate(
+        $second, $verification, [Enum]::Parse($levelType, 'NORMAL'), [ref]$secondVerified))
+      if (-not $firstVerified -or -not $secondVerified) {
+        throw "The independently placed third fingerprint did not match BOTH initial captures. Nothing uploaded. Try repositioning the finger and enrol again."
+      }
+      Write-Host "PASS: Three fingerprint placements matched using the kiosk's NORMAL matcher."
+    }
     if ($enrollmentExpires -le [DateTimeOffset]::UtcNow) {
       throw "TEST enrollment authorization expired during fingerprint capture. Both scans matched, but nothing was uploaded. Request a fresh authorization."
     }
-    Write-Host "PASS: Two captures matched. Uploading the template to TEST..."
+    Write-Host "PASS: Approved fingerprint captures matched. Uploading the verified template to TEST..."
     $bodyText = @{
       requestId = [string]$result.enrollment.id
       templateFormat = 'ANSI378'
@@ -358,6 +381,7 @@ try {
   finally {
     Clear-Bytes $first
     Clear-Bytes $second
+    Clear-Bytes $verification
     $bodyText = $null
     if ($opened) {
       try { [void]$manager.CloseDevice() }
