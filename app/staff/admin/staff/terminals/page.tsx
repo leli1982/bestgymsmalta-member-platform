@@ -17,7 +17,7 @@ type Credential = { id: string; name: string; secret: string };
 type TestPunch = {
   id: string; employeeName: string; action: "in" | "out";
   gymId: string; terminalId: string; at: string;
-  sessionStatus: string | null; workedMinutes: number | null;
+  sessionStatus: string | null; workedMinutes: number | null; realStaffPilot?: boolean;
 };
 
 export default function Hu20TestTerminalsPage() {
@@ -160,16 +160,16 @@ export default function Hu20TestTerminalsPage() {
       />
       <section className="mt-6 rounded border border-slate-200 bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-semibold">Recent fictional TEST fingerprint punches</h2>
+          <h2 className="text-xl font-semibold">Recent HU20 TEST fingerprint punches</h2>
           <button type="button" onClick={() => void loadPunches()} className="rounded border border-slate-300 px-3 py-2 text-sm font-semibold">Refresh punches</button>
         </div>
-        <p className="mt-1 text-sm text-slate-600">Read-only; shows confirmed HU20 TEST Clock IN/OUT events. No fingerprint templates, credentials or real staff payroll.</p>
+        <p className="mt-1 text-sm text-slate-600">Read-only; shows fictional TEST and authorised real-staff pilot IN/OUT. No fingerprint templates, credentials or live payroll.</p>
         {punchError && <p role="alert" className="mt-3 rounded bg-red-100 p-3 text-sm text-red-900">{punchError}</p>}
         {!punchError && punches === null && <p className="mt-3 text-sm">Loading TEST punches…</p>}
         {!punchError && punches?.length === 0 && <p className="mt-3 text-sm">No fictional TEST punches recorded.</p>}
         <div className="mt-3 space-y-2">
           {(punches || []).map((punch) => <article key={punch.id} className="rounded border border-slate-200 p-3 text-sm">
-            <p className="font-semibold">{punch.employeeName} — {punch.action === "in" ? "Clock IN" : "Clock OUT"}</p>
+            <p className="font-semibold">{punch.employeeName} {punch.realStaffPilot ? "(staff TEST pilot)" : "(fictional TEST)"} — {punch.action === "in" ? "Clock IN" : "Clock OUT"}</p>
             <p className="mt-1">{formatEuropeanDateTime(punch.at)} · {gymNames.get(punch.gymId) || punch.gymId}</p>
             <p className="text-slate-600">Session: {punch.sessionStatus || "Not linked"}{punch.workedMinutes !== null ? ` · ${punch.workedMinutes} minute(s)` : ""}</p>
           </article>)}

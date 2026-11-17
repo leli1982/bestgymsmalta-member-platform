@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateHu20Terminal, isHu20TestRequestEnabled } from "@/lib/hu20TerminalServer";
 import { validHu20TerminalId } from "@/lib/hu20TerminalSecurity";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { hu20RealStaffPilotEnabled } from "@/lib/hu20RealStaffPilot";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     // RPC confirms credential is still enrolled/active at completion time:
     // revoked templates cannot be accepted even if a scan began earlier.
     const db = getSupabaseAdmin();
-    const recorded = await db.rpc("bgm_hu20_test_finish_recognition", {
+    const recorded = await db.rpc(hu20RealStaffPilotEnabled() ? "bgm_hu20_pilot_finish_recognition" : "bgm_hu20_test_finish_recognition", {
       p_test_id: testId,
       p_terminal_id: terminal.id,
       p_result: outcome,

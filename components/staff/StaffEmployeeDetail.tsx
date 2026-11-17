@@ -5,6 +5,7 @@ import { Camera, Clock3, Euro, Fingerprint, Save, Trash2, Upload, UserRound, Use
 import StaffTimesheetsAdmin from "@/components/staff/StaffTimesheetsAdmin";
 import Hu20QuickEnrollment from "@/components/staff/Hu20QuickEnrollment";
 import Hu20RealStaffReadiness from "@/components/staff/Hu20RealStaffReadiness";
+import Hu20PilotStaffActivation from "@/components/staff/Hu20PilotStaffActivation";
 import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
 import { formatEuropeanDate } from "@/lib/europeanDate";
 import { normaliseStaffPhoto } from "@/lib/staffPhotoClient";
@@ -136,6 +137,7 @@ export default function StaffEmployeeDetail({ employeeId, gyms, onChanged, onDel
     {message && <p className="rounded-xl bg-green-50 p-3 text-sm font-bold text-green-800">{message}</p>}
 
     {panel === "Details" && <div className="space-y-5">
+      {!e.idNumber.startsWith("HU20-TEST-") && <Hu20PilotStaffActivation employeeId={e.id} active={e.active} employeeName={e.firstName + " " + e.surname} />}
       {!e.idNumber.startsWith("HU20-TEST-") && <Hu20RealStaffReadiness
         active={e.active} homeGymId={e.homeGymId}
         hasHourlyRate={e.currentHourlyRateCents !== null}

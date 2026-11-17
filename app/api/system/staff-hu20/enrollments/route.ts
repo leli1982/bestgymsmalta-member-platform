@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isHu20TestRequestEnabled } from "@/lib/hu20TerminalServer";
+import { hu20RealStaffPilotEnabled } from "@/lib/hu20RealStaffPilot";
 import { validHu20TerminalId } from "@/lib/hu20TerminalSecurity";
 import { writeStaffAudit } from "@/lib/staffEmploymentApi";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
@@ -45,10 +46,23 @@ export async function GET(request: NextRequest) {
     if (requests.error) throw requests.error;
     if (employees.error) throw employees.error;
     if (terminals.error) throw terminals.error;
+    let pilotEmployees: typeof employees.data = [];
+    if (hu20RealStaffPilotEnabled()) {
+      const allowed = await db.from("bgm_hu20_real_staff_pilot")
+        .select("employee_id").eq("enabled", true).limit(9);
+      if (allowed.error) throw allowed.error;
+      const ids = (allowed.data || []).map((row) => row.employee_id);
+      if (ids.length > 0) {
+        const people = await db.from("bgm_staff_employees")
+          .select("id,first_name,surname,active").in("id", ids).eq("active", true);
+        if (people.error) throw people.error;
+        pilotEmployees = people.data || [];
+      }
+    }
     return NextResponse.json({
       ok: true,
       requests: requests.data || [],
-      employees: employees.data || [],
+      employees: [...(employees.data || []), ...(pilotEmployees || [])],
       terminals: terminals.data || [],
       note: "TEST supervised enrollment: authorised scanner uploads only after two matching fingerprint captures.",
     }, { headers: responseHeaders });
@@ -86,17 +100,25 @@ export async function POST(request: NextRequest) {
     if (employee.error) throw employee.error;
     if (terminal.error) throw terminal.error;
     if (existing.error) throw existing.error;
-    if (!employee.data?.active || !employee.data.id_number?.startsWith("HU20-TEST-")) {
-      return errorResponse("Only active fictional HU20-TEST employees may enrol in TEST.", 409);
+    const fictional = employee.data?.id_number?.startsWith("HU20-TEST-") === true;
+    if (!employee.data?.active) return errorResponse("Employee inactive.", 409);
+    if (!fictional) {
+      if (!hu20RealStaffPilotEnabled()) return errorResponse("Real-staff pilot disabled.", 409);
+      const pilot = await db.from("bgm_hu20_real_staff_pilot")
+        .select("enabled").eq("employee_id",employeeId).eq("enabled",true).maybeSingle();
+      if (pilot.error) throw pilot.error;
+      if (!pilot.data) return errorResponse("Super Admin pilot authorisation required.", 409);
     }
     if (!terminal.data?.active) return errorResponse("TEST terminal is inactive.", 409);
     if ((existing.data || []).length > 0) {
       return errorResponse("Employee already has an active fingerprint. Revoke before re-enrollment.", 409);
     }
-    const gym = await db.from("bgm_gyms").select("status")
+    const gym = await db.from("bgm_gyms").select("status,hu20_punch_clock_enabled")
       .eq("id", terminal.data.gym_id).maybeSingle();
     if (gym.error) throw gym.error;
     if (gym.data?.status !== "active") return errorResponse("Terminal gym must be active.", 409);
+    if (!fictional && gym.data?.hu20_punch_clock_enabled !== true)
+      return errorResponse("Enable the TEST gym switch before a real-staff pilot.", 409);
 
     const created = await db.from("bgm_hu20_enrollment_requests").insert({
       employee_id: employeeId,
@@ -104,7 +126,7 @@ export async function POST(request: NextRequest) {
       initiated_by_system_user_id: auth.context.systemUserId,
       status: "pending",
       expires_at: new Date(Date.now() + ttlMillis).toISOString(),
-      metadata: { scope: "test", template_upload_enabled: false },
+      metadata: { scope: fictional ? "test" : "real_staff_pilot", template_upload_enabled: false },
     }).select("id,employee_id,terminal_id,status,expires_at").single();
     if (created.error?.code === "23505") return errorResponse("An enrollment request is already pending for this employee.", 409);
     if (created.error) throw created.error;

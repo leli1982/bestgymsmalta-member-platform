@@ -13,6 +13,7 @@ export default function Hu20TestKioskWindowsPanel({ terminals }: { terminals: Te
   const [windows, setWindows] = useState<Window[]>([]);
   const [selectedTerminal, setSelectedTerminal] = useState("");
   const [available, setAvailable] = useState<boolean | null>(null);
+  const [realPilot, setRealPilot] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -23,6 +24,7 @@ export default function Hu20TestKioskWindowsPanel({ terminals }: { terminals: Te
       const result = await response.json();
       if (!response.ok || result.fictionalTestOnly !== true) throw new Error(result.error || "Cannot load TEST kiosk windows.");
       setWindows(result.windows || []);
+      setRealPilot(result.realStaffPilotEnabled === true);
       setAvailable(true);
       setError("");
     } catch (caught) {
@@ -36,7 +38,7 @@ export default function Hu20TestKioskWindowsPanel({ terminals }: { terminals: Te
   async function send(action: "start" | "stop", id: string) {
     if (!id) { setError("Select a TEST terminal."); return; }
     if (!window.confirm(action === "start"
-      ? "Enable fictional TEST automatic fingerprint scanning for 10 minutes (maximum 6 scans)? Normal staff payroll stays disabled."
+      ? (realPilot ? "Authorise supervised TEST pilot fingerprint scanning for 10 minutes (maximum 6 scans)? This is NOT production payroll." : "Enable fictional TEST automatic fingerprint scanning for 10 minutes (maximum 6 scans)? Normal staff payroll stays disabled.")
       : "Stop this TEST kiosk immediately? Any in-progress scan will be rejected.")) return;
     setBusy(true); setError(""); setMessage("");
     try {
@@ -60,8 +62,8 @@ export default function Hu20TestKioskWindowsPanel({ terminals }: { terminals: Te
   }
 
   return <section className="mt-6 rounded border-2 border-indigo-300 bg-white p-4">
-    <h2 className="text-xl font-semibold">Automatic HU20 kiosk — FICTIONAL TEST ONLY</h2>
-    <p className="mt-2 text-sm text-slate-700">A Super Admin can authorise one registered Windows TEST terminal for 10 minutes or 6 recognition attempts, whichever comes first. Each attempt is one-time, terminal-bound, recorded and revocable. No real employees, live payroll or normal Staff Punch Clock.</p>
+    <h2 className="text-xl font-semibold">{realPilot ? "Automatic HU20 kiosk — controlled staff TEST pilot" : "Automatic HU20 kiosk — FICTIONAL TEST ONLY"}</h2>
+    <p className="mt-2 text-sm text-slate-700">A Super Admin can authorise one registered Windows TEST terminal for 10 minutes or 6 recognition attempts, whichever comes first. Each attempt is one-time, terminal-bound, recorded and revocable. {realPilot ? "Only individually authorised employees may join this TEST pilot; never use it as production payroll." : "No real employees, live payroll or normal Staff Punch Clock."}</p>
     {available === false && <p className="mt-3 text-sm">Automatic kiosk testing is disabled on this Preview.</p>}
     {error && <p role="alert" className="mt-3 rounded bg-red-100 p-3 text-sm text-red-800">{error}</p>}
     {message && <p className="mt-3 rounded bg-green-50 p-3 text-sm font-semibold text-green-900">{message}</p>}

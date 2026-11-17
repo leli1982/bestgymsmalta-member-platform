@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateHu20Terminal, isHu20TestRequestEnabled } from "@/lib/hu20TerminalServer";
 import { validHu20TerminalId } from "@/lib/hu20TerminalSecurity";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { hu20RealStaffPilotEnabled } from "@/lib/hu20RealStaffPilot";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
       return fail("Punch Clock is disabled for this TEST gym.", 409);
     }
     // The DB RPC repeats this check and locks the gym row for atomic shutdown.
-    const recorded = await db.rpc("bgm_hu20_test_record_attendance", {
+    const recorded = await db.rpc(hu20RealStaffPilotEnabled() ? "bgm_hu20_pilot_record_attendance" : "bgm_hu20_test_record_attendance", {
       p_test_id: body.testId.trim(),
       p_terminal_id: terminal.id,
     });
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
       throw new Error("Invalid fictional TEST attendance outcome.");
     }
     return NextResponse.json({
-      ok: true, fictionalTestOnly: true,
+      ok: true, testOnly: true,
       outcome: result.outcome,
       employeeId: result.result_employee_id,
       sessionId: result.result_session_id,

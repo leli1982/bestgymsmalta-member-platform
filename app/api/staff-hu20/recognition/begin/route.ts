@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateHu20Terminal, isHu20TestRequestEnabled } from "@/lib/hu20TerminalServer";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { openHu20Template } from "@/lib/hu20BiometricVault";
+import { hu20RealStaffPilotEnabled } from "@/lib/hu20RealStaffPilot";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,12 +44,28 @@ export async function POST(request: NextRequest) {
         return fail("Punch Clock is disabled for this TEST gym.", 409);
       }
     }
+    const pilotRoster = kioskMode && hu20RealStaffPilotEnabled();
     const employees = await db.from("bgm_staff_employees")
-      .select("id,first_name,surname").eq("active",true)
+      .select("id,first_name,surname,id_number").eq("active",true)
       .like("id_number","HU20-TEST-%").limit(9);
     if (employees.error) throw employees.error;
-    if ((employees.data || []).length > 8) return fail("TEST roster too large.", 409);
-    const people = new Map((employees.data || []).map(employee =>
+    let allowedPilot: typeof employees.data = [];
+    if (pilotRoster) {
+      const permissions = await db.from("bgm_hu20_real_staff_pilot")
+        .select("employee_id").eq("enabled",true).limit(9);
+      if (permissions.error) throw permissions.error;
+      const ids = (permissions.data || []).map((item) => item.employee_id);
+      if (ids.length > 0) {
+        const real = await db.from("bgm_staff_employees")
+          .select("id,first_name,surname,id_number").in("id",ids).eq("active",true);
+        if (real.error) throw real.error;
+        allowedPilot = (real.data || []).filter((person) =>
+          !person.id_number.startsWith("HU20-TEST-"));
+      }
+    }
+    const rosterEmployees = [...(employees.data || []), ...(allowedPilot || [])];
+    if (rosterEmployees.length > 8) return fail("TEST pilot roster too large (maximum 8).", 409);
+    const people = new Map(rosterEmployees.map(employee =>
       [employee.id, [employee.first_name,employee.surname].join(" ")]));
     const employeeIds = Array.from(people.keys());
     const records = employeeIds.length === 0

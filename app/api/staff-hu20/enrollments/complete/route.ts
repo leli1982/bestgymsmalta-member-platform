@@ -4,6 +4,7 @@ import { isHu20TestRequestEnabled, authenticateHu20Terminal } from "@/lib/hu20Te
 import { validHu20TerminalId } from "@/lib/hu20TerminalSecurity";
 import { sealHu20Template } from "@/lib/hu20BiometricVault";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { hu20RealStaffPilotEnabled } from "@/lib/hu20RealStaffPilot";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
     const db = getSupabaseAdmin();
     const pending = await db.from("bgm_hu20_enrollment_requests")
-      .select("id,employee_id,terminal_id,status,expires_at")
+      .select("id,employee_id,terminal_id,status,expires_at,metadata")
       .eq("id", requestId).maybeSingle();
     if (pending.error) throw pending.error;
     if (!pending.data || pending.data.terminal_id !== terminal.id ||
@@ -56,8 +57,15 @@ export async function POST(request: NextRequest) {
     const employee = await db.from("bgm_staff_employees")
       .select("id,active,id_number").eq("id", pending.data.employee_id).maybeSingle();
     if (employee.error) throw employee.error;
-    if (!employee.data?.active || !employee.data.id_number?.startsWith("HU20-TEST-")) {
-      return fail("Only active fictional HU20-TEST employees can enrol.", 409);
+    const fictional = employee.data?.id_number?.startsWith("HU20-TEST-") === true;
+    const pilotScope = pending.data.metadata?.scope === "real_staff_pilot";
+    if (!employee.data?.active || (!fictional && (!pilotScope || !hu20RealStaffPilotEnabled())))
+      return fail("Employee is not eligible for this enrollment.", 409);
+    if (!fictional) {
+      const approval = await db.from("bgm_hu20_real_staff_pilot")
+        .select("employee_id").eq("employee_id",employee.data.id).eq("enabled",true).maybeSingle();
+      if (approval.error) throw approval.error;
+      if (!approval.data) return fail("Real staff pilot authorisation revoked.",409);
     }
     const credentialId = randomUUID();
     const encryptedTemplate = sealHu20Template(template, {
@@ -65,7 +73,7 @@ export async function POST(request: NextRequest) {
       credentialId,
       templateFormat: "ANSI378",
     }, process.env);
-    const completed = await db.rpc("bgm_hu20_test_complete_enrollment", {
+    const completed = await db.rpc(fictional ? "bgm_hu20_test_complete_enrollment" : "bgm_hu20_pilot_complete_enrollment", {
       p_request_id: requestId,
       p_terminal_id: terminal.id,
       p_credential_id: credentialId,
@@ -85,7 +93,7 @@ export async function POST(request: NextRequest) {
       enrollmentRequestId: requestId,
       biometricId: credentialId,
       attendanceEnabled: false,
-      message: "Encrypted HU20 TEST biometric enrollment completed.",
+      message: fictional ? "Encrypted fictional TEST biometric enrollment completed." : "Encrypted real-staff TEST pilot biometric enrollment completed.",
     }, { status: 201, headers });
   } catch (error) {
     // No raw template, request body, encryption key or terminal secret in logs.
