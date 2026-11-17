@@ -44,6 +44,6 @@ test("two matching TEST scans reuse encrypted vault without legacy credential pr
   assert.match(scanner, /Wait-Hu20FingerLift \$manager \$width \$height/);
   assert.match(scanner, /if \(\$UseProvisionedBridge\) \{/);
   assert.match(scanner, /if \(-not \$UseProvisionedBridge\)/);
-  assert.match(scanner, /Two captures matched/);
+  assert.match(scanner, /Three fingerprint placements matched/);
   assert.match(scanner, /attendanceEnabled -ne \$false/);
 });
