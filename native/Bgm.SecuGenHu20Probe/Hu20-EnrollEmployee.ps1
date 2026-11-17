@@ -238,8 +238,12 @@ try {
   if ($enrollmentExpires -le [DateTimeOffset]::UtcNow) {
     throw "TEST enrollment authorization expired before scanning. Request a fresh authorization."
   }
+  $displayStarted=$false
   if ($UseProvisionedBridge) {
-    Write-Host "TEST Super Admin authorisation verified. Place the same finger twice."
+    Write-Host "TEST Super Admin authorisation verified. Follow the visible three-scan progress screen."
+    . (Join-Path $PSScriptRoot "Hu20-EnrollmentDisplay.ps1")
+    Initialize-Hu20EnrollmentScreen
+    $displayStarted=$true
   } else {
     $confirmation = Read-Host "Verify employee physically present, then type ENROLL to start"
     if ($confirmation -cne 'ENROLL') {
@@ -286,10 +290,13 @@ try {
     if ($maxSize -lt 64 -or $maxSize -gt 65536) { throw "Invalid ANSI378 template buffer size." }
 
     Write-Host "First test fingerprint capture..."
+    if ($displayStarted) { Set-Hu20EnrollmentScreen -Stage "scan1" }
     $first = Get-TransientTemplate $manager $width $height $maxSize
     if ($UseProvisionedBridge) {
       Write-Host "Lift your finger now. A second capture will start automatically."
+      Set-Hu20EnrollmentScreen -Stage "remove1"
       Wait-Hu20FingerLift $manager $width $height
+      Set-Hu20EnrollmentScreen -Stage "scan2"
     } else {
       [void](Read-Host "Lift your finger; press Enter for the second scan")
     }
@@ -309,7 +316,9 @@ try {
       # be stored. Two back-to-back matching captures alone are not enough
       # to establish reliable subsequent kiosk recognition.
       Write-Host "Lift your finger completely; preparing independent TEST verification..."
+      Set-Hu20EnrollmentScreen -Stage "remove2"
       Wait-Hu20FingerLift $manager $width $height
+      Set-Hu20EnrollmentScreen -Stage "scan3"
       if ($enrollmentExpires -le [DateTimeOffset]::UtcNow) {
         throw "TEST enrolment expired before the independent verification capture. Nothing uploaded."
       }
@@ -329,6 +338,7 @@ try {
     if ($enrollmentExpires -le [DateTimeOffset]::UtcNow) {
       throw "TEST enrollment authorization expired during fingerprint capture. Both scans matched, but nothing was uploaded. Request a fresh authorization."
     }
+    if ($displayStarted) { Set-Hu20EnrollmentScreen -Stage "saving" }
     Write-Host "PASS: Approved fingerprint captures matched. Uploading the verified template to TEST..."
     $bodyText = @{
       requestId = [string]$result.enrollment.id
@@ -377,6 +387,19 @@ try {
     }
     Write-Host "PASS: Fingerprint enrolled once in TEST and encrypted on server."
     Write-Host "No biometric file saved to the PC, and no attendance/payroll event was recorded."
+    if ($displayStarted) {
+      Set-Hu20EnrollmentScreen -Stage "success"
+      Wait-Hu20EnrollmentScreen -Milliseconds 3000
+    }
+  }
+  catch {
+    if ($displayStarted) {
+      try {
+        Set-Hu20EnrollmentScreen -Stage "failure"
+        Wait-Hu20EnrollmentScreen -Milliseconds 3500
+      } catch {}
+    }
+    throw
   }
   finally {
     Clear-Bytes $first
@@ -388,6 +411,7 @@ try {
       catch { Write-Warning "CloseDevice failed." }
     }
     if ($manager -is [System.IDisposable]) { $manager.Dispose() }
+    if ($displayStarted) { Close-Hu20EnrollmentScreen }
   }
 }
 finally {
