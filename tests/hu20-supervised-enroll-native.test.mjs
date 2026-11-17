@@ -47,3 +47,16 @@ test("one-click fingerprint enrollment requires a separate third placement befor
  assert.match(ps,/enrollmentExpires -le \[DateTimeOffset\]::UtcNow/);
  assert.doesNotMatch(ps,/ToBase64String\(\$verification\)/);
 });
+
+test("TEST enrollment progress screen is closed in scanner cleanup after SDK error",()=>{
+ const ps=fs.readFileSync("native/Bgm.SecuGenHu20Probe/Hu20-EnrollEmployee.ps1","utf8");
+ assert.match(ps,/\. \(Join-Path \$PSScriptRoot "Hu20-EnrollmentDisplay.ps1"\)/);
+ assert.match(ps,/Initialize-Hu20EnrollmentScreen/);
+ assert.match(ps,/Set-Hu20EnrollmentScreen -Stage "scan1"/);
+ assert.match(ps,/Set-Hu20EnrollmentScreen -Stage "remove1"/);
+ assert.match(ps,/Set-Hu20EnrollmentScreen -Stage "scan2"/);
+ assert.match(ps,/Set-Hu20EnrollmentScreen -Stage "remove2"/);
+ assert.match(ps,/Set-Hu20EnrollmentScreen -Stage "scan3"/);
+ assert.match(ps,/Set-Hu20EnrollmentScreen -Stage "failure"/);
+ assert.match(ps,/Close-Hu20EnrollmentScreen/);
+});

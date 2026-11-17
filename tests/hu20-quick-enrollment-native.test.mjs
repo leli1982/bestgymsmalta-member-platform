@@ -47,3 +47,28 @@ test("two matching TEST scans reuse encrypted vault without legacy credential pr
   assert.match(scanner, /Three fingerprint placements matched/);
   assert.match(scanner, /attendanceEnabled -ne \$false/);
 });
+
+test("one-click TEST UI shows live Windows visual prompts and safely exposes pending request cancellation",()=>{
+  const screen=r("Hu20-EnrollmentDisplay.ps1");
+  assert.match(screen,/Initialize-Hu20EnrollmentScreen/);
+  assert.match(screen,/Set-Hu20EnrollmentScreen/);
+  assert.match(screen,/PLACE FINGER/);
+  assert.match(screen,/REMOVE FINGER/);
+  assert.match(screen,/SCAN 1 OF 3/);
+  assert.match(screen,/SCAN 2 OF 3/);
+  assert.match(screen,/SCAN 3 OF 3/);
+  assert.match(screen,/ENROLLED/);
+  assert.match(screen,/NOT ENROLLED/);
+  assert.match(screen,/\.Show\(\)/);
+  assert.match(screen,/\.TopMost = \$true/);
+  assert.doesNotMatch(screen,/Invoke-WebRequest|GetImageEx|CreateTemplate|Set-Content|Out-File|terminalSecret|templateBase64|vercelBypass/);
+  assert.match(scanner,/Initialize-Hu20EnrollmentScreen/);
+  for (const phase of ["scan1","remove1","scan2","remove2","scan3","saving","success","failure"]) {
+    assert.ok(scanner.includes('Set-Hu20EnrollmentScreen -Stage "'+phase+'"'),phase);
+  }
+  assert.match(scanner,/Close-Hu20EnrollmentScreen/);
+  assert.match(ui,/Cancel pending TEST request/);
+  assert.match(ui,/action: "cancel"/);
+  assert.match(ui,/pendingRequestId/);
+  assert.match(ui,/Date\.parse\(req\.expires_at\) > Date\.now\(\)/);
+});

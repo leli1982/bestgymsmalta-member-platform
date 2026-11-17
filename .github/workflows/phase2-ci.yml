@@ -57,6 +57,7 @@ jobs:
             'native/Bgm.SecuGenHu20Probe/Hu20-ProvisionEasyEnrollment.ps1'
             'native/Bgm.SecuGenHu20Probe/Hu20-LocalBridge.ps1'
             'native/Bgm.SecuGenHu20Probe/Hu20-EnrollEmployee.ps1'
+            'native/Bgm.SecuGenHu20Probe/Hu20-EnrollmentDisplay.ps1'
             'native/Bgm.SecuGenHu20Probe/Test-Hu20KioskSafety.ps1'
             'native/Bgm.SecuGenHu20Probe/Hu20-TestPunch.ps1'
           )
