@@ -241,9 +241,6 @@ try {
   $displayStarted=$false
   if ($UseProvisionedBridge) {
     Write-Host "TEST Super Admin authorisation verified. Follow the visible three-scan progress screen."
-    . (Join-Path $PSScriptRoot "Hu20-EnrollmentDisplay.ps1")
-    Initialize-Hu20EnrollmentScreen
-    $displayStarted=$true
   } else {
     $confirmation = Read-Host "Verify employee physically present, then type ENROLL to start"
     if ($confirmation -cne 'ENROLL') {
@@ -274,6 +271,11 @@ try {
   $verification = $null
   $bodyText = $null
   try {
+    if ($UseProvisionedBridge) {
+      . (Join-Path $PSScriptRoot "Hu20-EnrollmentDisplay.ps1")
+      Initialize-Hu20EnrollmentScreen
+      $displayStarted=$true
+    }
     Check-SdkResult 'Init' ($manager.Init([Enum]::Parse($deviceType, 'DEV_AUTO')))
     Check-SdkResult 'OpenDevice' ($manager.OpenDevice(0x255))
     $opened = $true
