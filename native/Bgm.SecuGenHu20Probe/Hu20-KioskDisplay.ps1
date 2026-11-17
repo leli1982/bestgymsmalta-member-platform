@@ -26,6 +26,7 @@ function Initialize-Hu20KioskDisplay {
   Add-Type -AssemblyName System.Drawing
   [System.Windows.Forms.Application]::EnableVisualStyles()
   $script:Hu20DisplayClosed = $false
+  $script:Hu20RealStaffPilot = $false
   $script:Hu20Display = New-Object System.Windows.Forms.Form
   $script:Hu20Display.Text = "BestGymsMalta | HU20 FICTIONAL TEST"
   $script:Hu20Display.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::None
@@ -80,13 +81,29 @@ function Assert-Hu20KioskDisplay {
   }
 }
 
+function Set-Hu20KioskMode {
+  param([Parameter(Mandatory = $true)][bool]$Enabled)
+  Assert-Hu20KioskDisplay
+  $script:Hu20RealStaffPilot = $Enabled
+  if ($Enabled) {
+    $script:Hu20Display.Text = "BestGymsMalta | HU20 STAFF PILOT TEST"
+    $script:Hu20FooterLabel.Text = "STAFF PILOT TEST  |  NOT PRODUCTION  |  ESC closes the scanner"
+    $script:Hu20PersonLabel.Text = "AUTHORISED STAFF PILOT"
+  } else {
+    $script:Hu20Display.Text = "BestGymsMalta | HU20 FICTIONAL TEST"
+    $script:Hu20FooterLabel.Text = "HU20 TEST  |  No real employee punches  |  ESC closes the scanner"
+    $script:Hu20PersonLabel.Text = "FICTIONAL TEST ONLY"
+  }
+  $script:Hu20Display.Refresh()
+}
+
 function Set-Hu20KioskLocation {
   param([Parameter(Mandatory = $true)][string]$GymName)
   Assert-Hu20KioskDisplay
   $safeName = ($GymName -replace '[\r\n\t]', ' ').Trim()
   if ($safeName.Length -gt 40) { $safeName = $safeName.Substring(0,40) }
   if (-not $safeName) { throw "Registered TEST gym name is empty." }
-  $script:Hu20DetailLabel.Text = "FICTIONAL TEST ONLY | " + $safeName
+  $script:Hu20DetailLabel.Text = $(if ($script:Hu20RealStaffPilot) { "STAFF PILOT TEST | " } else { "FICTIONAL TEST ONLY | " }) + $safeName
   $script:Hu20Display.Refresh()
   Assert-Hu20KioskDisplay
 }
@@ -104,7 +121,7 @@ function Show-Hu20KioskStatus {
   $red = [System.Drawing.Color]::FromArgb(246,113,115)
   $muted = [System.Drawing.Color]::FromArgb(161,175,194)
   $main = "CONNECTING"
-  $detail = "FICTIONAL TEST ONLY"
+  $detail = if ($script:Hu20RealStaffPilot) { "STAFF PILOT TEST — NOT PRODUCTION" } else { "FICTIONAL TEST ONLY" }
   $colour = $amber
   switch ($State) {
     "connecting" { $main = "CONNECTING"; $detail = "Checking TEST kiosk approval" }

@@ -85,7 +85,7 @@ function Get-TransientTemplate([object]$manager, [int]$width, [int]$height, [int
   $buffer = [byte[]]::new($maxSize)
   $keepBuffer = $false
   try {
-    Write-Host "KIOSK TEST ready: place your fictional test finger on the HU20 sensor."
+    Write-Host "KIOSK TEST ready: place an enrolled and authorised TEST finger on the HU20 sensor."
     # Short capture intervals let the full-screen display process ESC safely.
     $pollMs = if ($FullScreenTest) { [Math]::Min($CaptureTimeoutMs, 2000) } else { $CaptureTimeoutMs }
     try { $result = [int]$manager.GetImageEx($raw, $pollMs, 0, $Quality) }
@@ -139,7 +139,7 @@ function Wait-Hu20FingerRemoval([object]$manager, [int]$width, [int]$height) {
 }
 
 $webSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-Write-Host "BGM HU20 fictional TEST attendance: recognition first, then one atomic punch."
+Write-Host "BGM HU20 TEST attendance: recognition first, then one atomic punch."
 $terminalSecret = $null
 $vercelBypass = $null
 $shareLink = ""
@@ -239,7 +239,7 @@ try {
     Write-Host "Preview Share access and the terminal secret stay only in this running PowerShell session."
   }
   $headers["X-BGM-HU20-Kiosk-Test"] = "1"
-  Write-Host "Fictional TEST automatic scanner: start a 10-minute Super Admin kiosk window first."
+  Write-Host "HU20 TEST automatic scanner: start a 10-minute Super Admin kiosk window first."
   Write-Host "Stop via Ctrl+C or the Super Admin STOP button. No real employees allowed."
   while ($true) {
     $stopKiosk = $false
@@ -271,8 +271,10 @@ try {
         throw "KIOSK_AUTH_ERROR: TEST preflight returned unexpected content."
       }
       $preflight = $preflightResponse.Content | ConvertFrom-Json -ErrorAction Stop
+      $fictionalMode = ($preflight.fictionalTestOnly -eq $true -and $preflight.realStaffPilot -eq $false)
+      $pilotMode = ($preflight.realStaffPilot -eq $true -and $preflight.fictionalTestOnly -eq $false)
       if ($preflightResponse.StatusCode -ne 200 -or $preflight.ok -ne $true -or
-          $preflight.fictionalTestOnly -ne $true -or $preflight.attendanceRecorded -ne $false -or
+          -not ($fictionalMode -xor $pilotMode) -or $preflight.attendanceRecorded -ne $false -or
           $preflight.recognitionAuthorisationConsumed -ne $false -or
           $preflight.restartRequiresManualApproval -ne $true -or
           -not ([string]::Equals([string]$preflight.terminal.id, $TerminalId, [StringComparison]::OrdinalIgnoreCase)) -or
@@ -284,7 +286,10 @@ try {
       }
       $registeredGym = [string]$preflight.terminal.gymName
       Write-Host "PASS: TEST terminal registered at $registeredGym."
-      if ($FullScreenTest) { Set-Hu20KioskLocation -GymName $registeredGym }
+      if ($FullScreenTest) {
+        Set-Hu20KioskMode -Enabled $pilotMode
+        Set-Hu20KioskLocation -GymName $registeredGym
+      }
       $preflight = $null
       $preflightResponse = $null
       Write-Host "Requesting Super Admin-authorised TEST recognition session..."

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateHu20Terminal, isHu20TestRequestEnabled } from "@/lib/hu20TerminalServer";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { hu20RealStaffPilotEnabled } from "@/lib/hu20RealStaffPilot";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,7 +42,8 @@ export async function GET(request: NextRequest) {
     }
     return NextResponse.json({
       ok: true,
-      fictionalTestOnly: true,
+      fictionalTestOnly: !hu20RealStaffPilotEnabled(),
+      realStaffPilot: hu20RealStaffPilotEnabled(),
       terminal: { id: terminal.id, name: terminal.name, gymId: terminal.gymId, gymName: gym.data.name },
       window: { expiresAt: window.expires_at, scansRemaining: window.max_scans - window.scans_used },
       recognitionAuthorisationConsumed: false,

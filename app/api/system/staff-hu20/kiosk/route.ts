@@ -3,6 +3,7 @@ import { isHu20TestRequestEnabled } from "@/lib/hu20TerminalServer";
 import { validHu20TerminalId } from "@/lib/hu20TerminalSecurity";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSuperAdmin } from "@/lib/systemAuth";
+import { hu20RealStaffPilotEnabled } from "@/lib/hu20RealStaffPilot";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,7 +41,8 @@ export async function GET(request: NextRequest) {
       .select("id,terminal_id,status,created_at,expires_at,scans_used,max_scans")
       .order("created_at", { ascending: false }).limit(30);
     if (result.error) throw result.error;
-    return NextResponse.json({ ok: true, fictionalTestOnly: true, windows: result.data || [] }, { headers });
+    return NextResponse.json({ ok: true, fictionalTestOnly: !hu20RealStaffPilotEnabled(),
+      realStaffPilotEnabled: hu20RealStaffPilotEnabled(), windows: result.data || [] }, { headers });
   } catch (error) {
     console.error("HU20 TEST kiosk window listing failed", error instanceof Error ? error.name : "unknown");
     return fail("Cannot load TEST kiosk windows.", 500);
@@ -87,14 +89,16 @@ export async function POST(request: NextRequest) {
       action_key: "staff.hu20.kiosk.started.test",
       entity_type: "staff_hu20_test_kiosk_window",
       entity_id: created.data.id,
-      after_data: { terminalId, expiresAt, maxScans, fictionalTestOnly: true },
+      after_data: { terminalId, expiresAt, maxScans, fictionalTestOnly: !hu20RealStaffPilotEnabled(),
+        realStaffPilot: hu20RealStaffPilotEnabled() },
     });
     if (audit.error) {
       await db.from("bgm_hu20_test_kiosk_windows")
         .update({ status: "cancelled" }).eq("id", created.data.id).eq("status", "active");
       throw audit.error;
     }
-    return NextResponse.json({ ok: true, fictionalTestOnly: true, window: created.data }, { status: 201, headers });
+    return NextResponse.json({ ok: true, fictionalTestOnly: !hu20RealStaffPilotEnabled(),
+      realStaffPilotEnabled: hu20RealStaffPilotEnabled(), window: created.data }, { status: 201, headers });
   } catch (error) {
     console.error("HU20 TEST kiosk authorisation failed", error instanceof Error ? error.name : "unknown");
     return fail("Unable to authorise TEST kiosk.", 500);
