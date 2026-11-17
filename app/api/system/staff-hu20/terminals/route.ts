@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       db.from("bgm_staff_terminals")
         .select("id, gym_id, name, active, vendor, model, created_at, last_seen_at")
         .order("created_at", { ascending: false }),
-      db.from("bgm_gyms").select("id, name, status").order("name"),
+      db.from("bgm_gyms").select("id, name, status, hu20_punch_clock_enabled").order("name"),
     ]);
     if (terminals.error) throw terminals.error;
     if (gyms.error) throw gyms.error;
