@@ -39,8 +39,8 @@ export default function Hu20RealStaffReadiness({
     return () => { mounted = false; };
   }, []);
 
-  // The TEST API is intentionally 404 on Production. This component never
-  // starts real employee enrolment, capture, biometric upload or attendance.
+  // TEST API is 404 in Production. This checklist does not trigger biometric
+  // activity; a separate individual Super Admin pilot authorisation is required.
   if (status === "hidden") return null;
 
   const homeGym = inventory?.gyms.find((gym) => gym.id === homeGymId);
@@ -58,9 +58,9 @@ export default function Hu20RealStaffReadiness({
     aria-label="Real staff HU20 pilot readiness — no biometric capture">
     <h3 className="font-black text-slate-900">HU20 real-staff onboarding — preparation only</h3>
     <p className="mt-1 text-slate-700">
-      This is a read-only administrative checklist. Real employee fingerprint enrolment,
-      recognition and automatic biometric attendance remain blocked in TEST and Production.
-      Do not scan a real employee's finger.
+      This is a read-only administrative checklist. The separate real-staff fingerprint
+      pilot requires individual Super Admin authorisation and the isolated TEST environment.
+      Production biometric attendance remains disabled.
     </p>
     {status === "loading" && <p className="mt-2 text-slate-700">Checking TEST terminal inventory…</p>}
     {status === "error" && <p className="mt-2 text-red-700" role="alert">
