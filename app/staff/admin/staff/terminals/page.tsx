@@ -4,13 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import { formatEuropeanDateTime } from "@/lib/europeanDate";
 import { hu20TerminalContactStatus } from "@/lib/hu20TerminalFleet";
 import Hu20TestKioskWindowsPanel from "@/components/staff/Hu20TestKioskWindowsPanel";
+import Hu20RolloutReadinessPanel from "@/components/staff/Hu20RolloutReadinessPanel";
 
 type Terminal = {
   id: string; gym_id: string; name: string; active: boolean;
   vendor: string | null; model: string | null;
   created_at: string; last_seen_at: string | null;
 };
-type Gym = { id: string; name: string; status: string };
+type Gym = { id: string; name: string; status: string; hu20_punch_clock_enabled: boolean };
 type ResponseData = { terminals: Terminal[]; gyms: Gym[]; error?: string };
 type Credential = { id: string; name: string; secret: string };
 type TestPunch = {
@@ -152,6 +153,7 @@ export default function Hu20TestTerminalsPage() {
         <code className="block break-all rounded bg-white p-2">{credential.secret}</code>
         <button onClick={() => setCredential(null)} className="mt-4 rounded bg-slate-900 px-3 py-2 text-white" type="button">I have saved it — hide credential</button>
       </section>}
+      {data && <Hu20RolloutReadinessPanel gyms={data.gyms} terminals={data.terminals} checkedAt={terminalCheckedAt} />}
       <Hu20TestKioskWindowsPanel
         key={(data?.terminals || []).map((terminal) => terminal.id + ":" + terminal.active).join("|")}
         terminals={data?.terminals || []}
