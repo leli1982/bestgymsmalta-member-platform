@@ -137,7 +137,7 @@ export default function StaffEmployeeDetail({ employeeId, gyms, onChanged, onDel
     {message && <p className="rounded-xl bg-green-50 p-3 text-sm font-bold text-green-800">{message}</p>}
 
     {panel === "Details" && <div className="space-y-5">
-      {!e.idNumber.startsWith("HU20-TEST-") && <Hu20PilotStaffActivation employeeId={e.id} active={e.active} />}
+      {!e.idNumber.startsWith("HU20-TEST-") && <Hu20PilotStaffActivation employeeId={e.id} active={e.active} employeeName={e.firstName + " " + e.surname} />}
       {!e.idNumber.startsWith("HU20-TEST-") && <Hu20RealStaffReadiness
         active={e.active} homeGymId={e.homeGymId}
         hasHourlyRate={e.currentHourlyRateCents !== null}

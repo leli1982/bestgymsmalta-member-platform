@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Hu20QuickEnrollment from "@/components/staff/Hu20QuickEnrollment";
 
-export default function Hu20PilotStaffActivation({employeeId,active}:{
-  employeeId:string;active:boolean;
+export default function Hu20PilotStaffActivation({employeeId,active,employeeName}:{
+  employeeId:string;active:boolean;employeeName:string;
 }) {
   const [enabled,setEnabled]=useState(false);
   const [mode,setMode]=useState<"loading"|"hidden"|"ready"|"error">("loading");
@@ -50,6 +51,9 @@ export default function Hu20PilotStaffActivation({employeeId,active}:{
         className="mt-3 rounded-lg border border-indigo-600 bg-white px-3 py-2 font-bold disabled:opacity-40">
         {busy?"Saving…":enabled?"Disable and revoke fingerprint pilot":"Authorise employee for TEST pilot"}
       </button>
+      {enabled && active && <div className="mt-4">
+        <Hu20QuickEnrollment employeeId={employeeId} employeeName={employeeName} active={active} mode="real-pilot" />
+      </div>}
     </>}
   </section>;
 }

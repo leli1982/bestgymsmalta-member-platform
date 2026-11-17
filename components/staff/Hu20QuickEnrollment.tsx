@@ -6,7 +6,7 @@ import { Fingerprint } from "lucide-react";
 const BRIDGE = "http://127.0.0.1:8765";
 const BRIDGE_HEADERS = { "X-BGM-HU20-Bridge": "v1" };
 type LocalDevice = { ok: true; testOnly: true; terminalId: string; nonce: string };
-type Props = { employeeId: string; employeeName: string; active: boolean };
+type Props = { employeeId: string; employeeName: string; active: boolean; mode?: "fictional" | "real-pilot" };
 
 async function readLocalDevice(): Promise<LocalDevice> {
   const response = await fetch(BRIDGE + "/status", {
@@ -22,7 +22,7 @@ async function readLocalDevice(): Promise<LocalDevice> {
   return data as LocalDevice;
 }
 
-export default function Hu20QuickEnrollment({ employeeId, employeeName, active }: Props) {
+export default function Hu20QuickEnrollment({ employeeId, employeeName, active, mode = "fictional" }: Props) {
   const [deviceName, setDeviceName] = useState("");
   const [terminalId, setTerminalId] = useState("");
   const [pendingRequestId, setPendingRequestId] = useState("");
@@ -128,7 +128,7 @@ export default function Hu20QuickEnrollment({ employeeId, employeeName, active }
 
   return <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm">
     <div className="flex items-center gap-2 font-black text-zinc-900">
-      <Fingerprint className="h-5 w-5 text-orange-700" /> Enrol Fingerprint — fictional TEST only
+      <Fingerprint className="h-5 w-5 text-orange-700" /> {mode === "real-pilot" ? "Enrol Fingerprint — authorised real staff TEST pilot" : "Enrol Fingerprint — fictional TEST only"}
     </div>
     <p className="mt-1 text-zinc-700">
       The reader attached to this PC is selected automatically. No terminal dropdown,
@@ -154,8 +154,10 @@ export default function Hu20QuickEnrollment({ employeeId, employeeName, active }
     {state === "offline" && <button type="button" onClick={() => void checkDevice()}
       className="ml-3 mt-3 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 font-bold">Check reader</button>}
     <p className="mt-3 text-xs text-zinc-600">
-      The employee must be present and agree before capture. Only active fictional HU20-TEST
-      employees can enrol. Fingerprint templates are never shown in this browser.
+      The employee must be present for supervised capture. {mode === "real-pilot"
+        ? "Only employees individually authorised by Super Admin for the isolated TEST pilot can enrol."
+        : "Only active fictional HU20-TEST employees can enrol."}
+      {" "}Fingerprint templates are never shown in this browser.
     </p>
     <a href={"/staff/admin/staff/terminals/enrollment?employeeId=" + encodeURIComponent(employeeId)}
       className="mt-2 inline-block font-bold text-orange-800 underline">

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateHu20Terminal, isHu20TestRequestEnabled } from "@/lib/hu20TerminalServer";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { hu20RealStaffPilotEnabled } from "@/lib/hu20RealStaffPilot";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
     }
     const db = getSupabaseAdmin();
     const pending = await db.from("bgm_hu20_enrollment_requests")
-      .select("id,employee_id,expires_at")
+      .select("id,employee_id,expires_at,metadata")
       .eq("terminal_id", terminal.id)
       .eq("status", "pending")
       .gt("expires_at", new Date().toISOString())
@@ -32,7 +33,15 @@ export async function GET(request: NextRequest) {
     const employee = await db.from("bgm_staff_employees")
       .select("id,first_name,surname,active,id_number").eq("id", row.employee_id).maybeSingle();
     if (employee.error) throw employee.error;
-    if (!employee.data?.active || !employee.data.id_number?.startsWith("HU20-TEST-")) {
+    const fictional = employee.data?.id_number?.startsWith("HU20-TEST-") === true;
+    let eligible = fictional;
+    if (!fictional && employee.data?.active && row.metadata?.scope === "real_staff_pilot" && hu20RealStaffPilotEnabled()) {
+      const pilot = await db.from("bgm_hu20_real_staff_pilot")
+        .select("employee_id").eq("employee_id",employee.data.id).eq("enabled",true).maybeSingle();
+      if (pilot.error) throw pilot.error;
+      eligible = Boolean(pilot.data);
+    }
+    if (!employee.data?.active || !eligible) {
       return NextResponse.json({ ok: true, enrollment: null, fingerprintCaptureEnabled: false },
         { headers });
     }
