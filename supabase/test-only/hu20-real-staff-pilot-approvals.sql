@@ -28,7 +28,7 @@ BEGIN
     RAISE EXCEPTION 'Not an eligible active real employee' USING ERRCODE='P0001';
   END IF;
   IF NOT EXISTS(SELECT 1 FROM public.bgm_system_users
-    WHERE id=p_actor_system_user_id) THEN
+    WHERE id=p_actor_system_user_id AND active=true AND (is_super_admin=true OR role='super_admin')) THEN
     RAISE EXCEPTION 'Unknown administrator' USING ERRCODE='P0001';
   END IF;
   INSERT INTO public.bgm_hu20_real_staff_pilot
@@ -42,7 +42,8 @@ BEGIN
     -- Disable blocks future recognition, and immediately removes stored
     -- encrypted biometric material. Historical attendance records remain.
     UPDATE public.bgm_staff_biometrics
-      SET active=false, status='revoked', encrypted_template=NULL, revoked_at=now()
+      SET active=false, status='revoked', encrypted_template=NULL, revoked_at=now(),
+          template_reference='revoked:'||id::text
       WHERE employee_id=p_employee_id AND active=true AND status='enrolled';
     UPDATE public.bgm_hu20_enrollment_requests
       SET status='cancelled', cancelled_at=now()
