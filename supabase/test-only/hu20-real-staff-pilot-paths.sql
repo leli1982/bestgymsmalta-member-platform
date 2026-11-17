@@ -73,7 +73,7 @@ BEGIN
    'enrollmentRequestId',p_request_id,'templateFormat','ANSI378','testOnly',true,'realStaffPilot',true));
  RETURN QUERY SELECT v_bio,v_req.employee_id;
 END;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.bgm_hu20_pilot_finish_recognition(p_test_id uuid, p_terminal_id uuid, p_result text, p_biometric_id uuid)
  RETURNS TABLE(test_id uuid, result text)
@@ -117,7 +117,7 @@ BEGIN
        'matchedBiometricId',p_biometric_id,'testOnly',true,'attendanceEnabled',false));
   RETURN QUERY SELECT r.id,p_result;
 END;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.bgm_hu20_pilot_record_attendance(p_test_id uuid, p_terminal_id uuid)
  RETURNS TABLE(outcome text, result_employee_id uuid, result_session_id uuid, result_punch_event_id uuid, result_gym_id text)
@@ -214,7 +214,7 @@ BEGIN
   RETURN QUERY SELECT v_punch.outcome::text, v_employee_id, v_punch.result_session_id,
     v_punch.result_punch_event_id, v_gym_id;
 END;
-$function$
+$function$;
 
 REVOKE ALL ON FUNCTION public.bgm_hu20_pilot_complete_enrollment(uuid,uuid,uuid,text) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.bgm_hu20_pilot_complete_enrollment(uuid,uuid,uuid,text) TO service_role;
