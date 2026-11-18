@@ -132,7 +132,7 @@ export default function Hu20QuickEnrollment({ employeeId, employeeName, active, 
 
   return <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm">
     <div className="flex items-center gap-2 font-black text-zinc-900">
-      <Fingerprint className="h-5 w-5 text-orange-700" /> {mode === "real-pilot" ? "Fingerprint enrollment — staff TEST pilot" : "Fingerprint enrollment — fictional TEST"}
+      <Fingerprint className="h-5 w-5 text-orange-700" /> {mode === "real-pilot" ? "Fingerprint enrollment — staff TEST pilot" : "Fingerprint enrollment — fictional TEST only"}
     </div>
     <p className="mt-1 text-zinc-700">
       This PC selects its registered scanner automatically. Staff members do not enter PINs,
