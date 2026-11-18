@@ -59,9 +59,57 @@ function Split({ title, values }: { title: string; values: MoneySplit }) {
   );
 }
 
+
+function PrintableEndOfDay({ report }: { report: Report }) {
+  const splits = [
+    { title: "New memberships", value: report.memberships },
+    { title: "Renewals", value: report.renewals },
+  ];
+  return (
+    <article className="bgm-eod-print-only" aria-label="A4 End of Day report">
+      <div className="bgm-eod-print-header">
+        <div><strong>BESTGYMSMALTA</strong><h1>END OF DAY REPORT</h1></div>
+        <div className="bgm-eod-print-meta"><strong>{report.gymName}</strong><div>{displayDate(report.businessDate)}</div><div>Staff: {report.staffName}</div></div>
+      </div>
+      <table className="bgm-eod-print-money">
+        <thead><tr><th>Revenue source</th><th>Cash</th><th>Card</th><th>Other</th><th>Total</th></tr></thead>
+        <tbody>
+          {splits.map(({ title, value }) => <tr key={title}>
+            <th>{title}</th><td>{formatBarEuro(value.cashCents)}</td><td>{formatBarEuro(value.cardCents)}</td><td>{formatBarEuro(value.otherCents)}</td>
+            <td><strong>{formatBarEuro(value.cashCents + value.cardCents + value.otherCents)}</strong></td>
+          </tr>)}
+          <tr><th>Bar sales</th><td colSpan={3}></td><td><strong>{formatBarEuro(report.barSalesCents)}</strong></td></tr>
+        </tbody>
+      </table>
+      <div className="bgm-eod-print-columns">
+        <section><h2>Bar items</h2>
+          {report.barItems.length ? <table><tbody>{report.barItems.map((item, i) => <tr key={i}><td>{item.itemName} × {item.quantity}</td><td>{formatBarEuro(item.lineTotalCents)}</td></tr>)}</tbody></table> : <p>None</p>}
+        </section>
+        <div>
+          <section><h2>Voucher reimbursements (included above)</h2>
+            {report.vouchers.length ? <table><tbody>{report.vouchers.map((item, i) => <tr key={i}><td>{item.voucherCode} × {item.quantity}</td><td>{formatBarEuro(item.reimbursementTotalCents)}</td></tr>)}</tbody></table> : <p>None</p>}
+          </section>
+          <section><h2>Expenses</h2>
+            {report.expenses.length ? <table><tbody>{report.expenses.map((item, i) => <tr key={item.id || i}><td>{item.description}</td><td>{formatBarEuro(item.amountCents)}</td></tr>)}</tbody></table> : <p>None</p>}
+          </section>
+        </div>
+      </div>
+      <table className="bgm-eod-print-totals"><tbody>
+        <tr><th>Gross income</th><td>{formatBarEuro(report.grossCents)}</td></tr>
+        <tr><th>Expenses</th><td>- {formatBarEuro(report.expensesTotalCents)}</td></tr>
+        <tr className="bgm-eod-print-grand"><th>END OF DAY TOTAL</th><td>{formatBarEuro(report.dailyTotalCents)}</td></tr>
+      </tbody></table>
+      <p className="bgm-eod-print-footer">Report reference: {report.id} · Submitted {new Date(report.submittedAt).toLocaleString("en-GB", { timeZone: "Europe/Malta" })}</p>
+    </article>
+  );
+}
+
 function SubmittedReport({ report }: { report: Report }) {
   return (
-    <div className="space-y-5">
+    <div>
+      <PrintableEndOfDay report={report} />
+      <div className="bgm-eod-screen-report space-y-5">
+      <button type="button" onClick={() => window.print()} className="w-full rounded-xl bg-[#ff5a0a] px-4 py-3 text-sm font-black text-zinc-950">PRINT / REPRINT A4 END OF DAY</button>
       <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
         <p className="text-xs font-black uppercase tracking-widest">End of Day submitted</p>
         <p className="mt-2 text-2xl font-black">{report.gymName} · {displayDate(report.businessDate)}</p>
@@ -76,6 +124,7 @@ function SubmittedReport({ report }: { report: Report }) {
       </section>
       <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm"><h2 className="text-xl font-black">Expenses</h2><div className="mt-3 space-y-2">{report.expenses.length ? report.expenses.map((expense, index) => <div key={expense.id || index} className="flex justify-between gap-3 text-sm"><span>{expense.description}</span><strong>{formatBarEuro(expense.amountCents)}</strong></div>) : <p className="text-sm text-zinc-500">No expenses.</p>}</div></section>
       <section className="rounded-3xl bg-zinc-950 p-5 text-white"><div className="flex justify-between"><span>Gross</span><strong>{formatBarEuro(report.grossCents)}</strong></div><div className="mt-2 flex justify-between"><span>Expenses</span><strong>- {formatBarEuro(report.expensesTotalCents)}</strong></div><div className="mt-4 flex justify-between border-t border-zinc-700 pt-4 text-2xl font-black"><span>End of Day Total</span><span className="text-orange-400">{formatBarEuro(report.dailyTotalCents)}</span></div></section>
+      </div>
     </div>
   );
 }
@@ -137,7 +186,8 @@ export default function EndOfDayPage() {
   const finalCents = grossCents - expenseState.total;
 
   async function submit() {
-    if (!staffName.trim() || expenseState.invalid) return;
+    if (!staffName.trim()) { setError("Enter the Staff Name before submitting End of Day."); return; }
+    if (expenseState.invalid) { setError("Complete each expense description and positive amount before submitting."); return; }
     setSubmitting(true);
     setError("");
     try {
@@ -200,7 +250,8 @@ export default function EndOfDayPage() {
           <label className="block text-sm font-black">Staff Name <span className="text-red-600">*</span>
             <input aria-label="End of Day Staff Name" value={staffName} onChange={(event) => setStaffName(event.target.value)} maxLength={120} className="mt-2 block w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base" placeholder="Enter your name" />
           </label>
-          <button type="button" onClick={() => void submit()} disabled={submitting || !staffName.trim() || expenseState.invalid}
+          {error && <p role="alert" aria-live="assertive" className="mt-4 rounded-xl border-2 border-red-500 bg-red-50 p-3 text-sm font-black text-red-900">{error}</p>}
+          <button type="button" onClick={() => void submit()} disabled={submitting}
             className="mt-4 w-full rounded-2xl bg-[#ff5a0a] px-5 py-4 text-lg font-black text-white disabled:opacity-40">
             {submitting ? "SUBMITTING…" : "SUBMIT END OF DAY"}
           </button>
