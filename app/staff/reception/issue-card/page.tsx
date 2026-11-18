@@ -2,7 +2,8 @@ import IssueNewCardPanel from "@/components/staff/IssueNewCardPanel";
 
 export const dynamic = "force-dynamic";
 
-export default function IssueNewCardPage() {
+export default async function IssueNewCardPage({ searchParams }: { searchParams: Promise<{ memberNumber?: string }> }) {
+  const { memberNumber = "" } = await searchParams;
   return (
     <main className="min-h-screen bg-zinc-100 px-4 py-8 text-zinc-900 sm:px-8">
       <div className="mx-auto max-w-4xl space-y-5">
@@ -14,7 +15,7 @@ export default function IssueNewCardPage() {
           </div>
           <a href="/staff/reception" className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-bold">Back to Reception</a>
         </header>
-        <IssueNewCardPanel />
+        <IssueNewCardPanel initialMemberNumber={memberNumber} />
       </div>
     </main>
   );
