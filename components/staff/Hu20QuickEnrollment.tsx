@@ -125,8 +125,10 @@ export default function Hu20QuickEnrollment({ employeeId, employeeName, active, 
       // A failed local capture often leaves a pending server authorisation.
       // Read its status and offer a single-click cancellation, rather than
       // stranding Super Admin with a hidden pending request.
-      setMessage(detail + " Check the TEST enrollment status before trying again.");
+      // Refresh the request status first; otherwise checkDevice clears the
+      // error when the reader is ready and Super Admin sees no explanation.
       await checkDevice();
+      setMessage(detail + " Check the TEST enrollment status before trying again.");
     }
   }
 
