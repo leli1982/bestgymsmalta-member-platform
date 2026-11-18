@@ -1160,12 +1160,11 @@ export default function MembershipEnrollmentPage() {
               </p>
             </section>
 
+            {error && <p role="alert" aria-live="assertive" className="rounded-xl border-2 border-red-500 bg-red-50 p-4 text-sm font-black text-red-900">{error}</p>}
+            {kind === "renewal" && renewalSelections.length !== expectedParticipants && <p role="status" className="rounded-xl border border-amber-400 bg-amber-50 p-3 text-sm font-bold text-amber-900">Select {expectedParticipants === 2 ? "both members" : "the member"} before submitting.</p>}
             <button
-              disabled={
-                submitting ||
-                (kind === "renewal" && renewalSelections.length !== expectedParticipants)
-              }
-              className="w-full rounded-2xl bg-zinc-900 px-5 py-4 text-base font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={submitting || (kind === "renewal" && renewalSelections.length !== expectedParticipants)}
+              className="w-full rounded-2xl bg-[#ff5a0a] px-5 py-4 text-lg font-black text-zinc-950 shadow-lg transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {submitting ? "Saving application…" : "SUBMIT MEMBERSHIP APPLICATION"}
             </button>
