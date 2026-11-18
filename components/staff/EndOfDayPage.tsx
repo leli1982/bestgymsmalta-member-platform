@@ -197,8 +197,9 @@ export default function EndOfDayPage() {
         body: JSON.stringify({ staffName: staffName.trim(), expenses: expenseState.prepared }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Could not submit End of Day.");
+      if (!response.ok || !payload.report?.id) throw new Error(payload.error || "Could not confirm the End of Day submission.");
       setData((current) => current ? { ...current, submitted: true, report: payload.report } : current);
+      window.dispatchEvent(new Event("bgm:end-of-day-submitted"));
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Could not submit End of Day.");
     } finally {
