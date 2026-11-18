@@ -34,6 +34,7 @@ export type SystemPermissionKey = (typeof SYSTEM_PERMISSION_KEYS)[number];
 export const GYM_STAFF_PERMISSIONS = [
   "members.view",
   "members.create",
+  "members.edit",
   "members.renew",
   "members.photos.view",
   "members.photos.capture",

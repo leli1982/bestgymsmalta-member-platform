@@ -22,7 +22,7 @@ type Candidate = {
   officialPhotoPath?: string | null;
 };
 
-export default function IssueNewCardPanel() {
+export default function IssueNewCardPanel({ initialMemberNumber = "" }: { initialMemberNumber?: string }) {
   const [user, setUser] = useState<SystemUser | null>(null);
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [gymId, setGymId] = useState("");
@@ -55,6 +55,26 @@ export default function IssueNewCardPanel() {
     }
     void load();
   }, []);
+
+  useEffect(() => {
+    const number = initialMemberNumber.trim();
+    if (!number) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch("/api/system/members/search?q=" + encodeURIComponent(number) + "&status=all&limit=10", { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not load selected member.");
+        const selected = (Array.isArray(data.candidates) ? data.candidates : []).find((candidate: Candidate) =>
+          candidate.memberNumber?.toUpperCase() === number.toUpperCase());
+        if (!selected) throw new Error("Member number not found. Search manually below.");
+        if (!cancelled) { setMember(selected); setCandidates([]); setQuery(""); }
+      } catch (caught) {
+        if (!cancelled) setError(caught instanceof Error ? caught.message : "Could not load selected member.");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [initialMemberNumber]);
 
   const canReplace = Boolean(
     user?.isSuperAdmin || user?.permissions.includes("cards.replace")
@@ -209,7 +229,8 @@ export default function IssueNewCardPanel() {
             </label>
           </div>
           <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">Issue New Card changes the card only. It does not renew or extend the membership.</p>
-          <button type="button" disabled={busy || !barcode.trim() || (!user.isSuperAdmin && staffName.trim().length < 2)} onClick={() => void replaceCard()} className="mt-4 w-full rounded-xl bg-orange-500 px-5 py-3 font-black text-white disabled:opacity-40">{busy ? "Issuing…" : "Issue New Card"}</button>
+          {error && <p role="alert" aria-live="assertive" className="mt-4 rounded-xl border-2 border-red-500 bg-red-50 p-3 text-sm font-black text-red-900">{error}</p>}
+          <button type="button" disabled={busy} onClick={() => void replaceCard()} className="mt-4 w-full rounded-xl bg-orange-500 px-5 py-3 font-black text-white disabled:opacity-40">{busy ? "Issuing…" : "Issue New Card"}</button>
         </section>
       )}
     </div>

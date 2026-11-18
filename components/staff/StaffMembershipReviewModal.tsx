@@ -643,7 +643,7 @@ export default function StaffMembershipReviewModal({
       setActiveConfirmation({ activatedAt });
       setPaymentPrompt(false);
       await onChanged();
-      window.setTimeout(() => onClose(), 1800);
+      // Keep the activation confirmation open until staff finish or print the updated form.
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -679,6 +679,11 @@ export default function StaffMembershipReviewModal({
           <p className="mt-4 text-sm font-semibold text-zinc-500">
             {formatMalta(activeConfirmation.activatedAt)}
           </p>
+          {application?.kind === "new" && <>
+            <p className="mt-4 text-sm text-zinc-600">The permanent BGM member number has now been assigned. Print an updated copy for the member records; the original signed application remains unchanged.</p>
+            <a target="_blank" rel="noopener noreferrer" href={`/staff/applications/${encodeURIComponent(applicationId)}/print`} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#ff5a0a] px-4 py-3 text-base font-black text-zinc-950"><Printer className="h-5 w-5" /> PRINT APPLICATION WITH BGM NUMBER</a>
+          </>}
+          <button type="button" onClick={onClose} className="mt-4 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 font-black text-zinc-800">FINISH</button>
         </div>
       </div>
     );
@@ -1239,6 +1244,7 @@ export default function StaffMembershipReviewModal({
             )}
 
             <div className="sticky bottom-0 z-10 -mx-5 -mb-5 border-t border-zinc-200 bg-white/95 p-4 backdrop-blur sm:-mx-6 sm:-mb-6 sm:p-5">
+              {error && <p role="alert" aria-live="assertive" className="mb-3 rounded-xl border-2 border-red-500 bg-red-50 p-3 text-sm font-black text-red-900">{error}</p>}
               {dirty && (
                 <p className="mb-3 flex items-center gap-2 text-xs font-bold text-orange-700">
                   <Save className="h-4 w-4" />

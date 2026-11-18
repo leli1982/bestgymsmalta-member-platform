@@ -154,6 +154,8 @@ export default function StaffApplicationPrint({
     );
   }
 
+  const activatedCopy = Boolean(application.activatedAt);
+
   return (
     <main ref={printRootRef} className="print-root bg-zinc-100 py-6 text-zinc-950 print:bg-white print:py-0">
       <style jsx global>{`
@@ -187,10 +189,10 @@ export default function StaffApplicationPrint({
               setPrintDialogOpened(true);
               window.print();
             }}
-            disabled={printConfirmed || printFit !== "fits"}
+            disabled={(!activatedCopy && printConfirmed) || printFit !== "fits"}
             className="inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-black text-white disabled:opacity-40"
           >
-            <Printer className="h-4 w-4" /> {printConfirmed ? "Printed" : "Print Membership"}
+            <Printer className="h-4 w-4" /> {activatedCopy ? "Print Membership (Activated Copy)" : printConfirmed ? "Printed" : "Print Membership"}
           </button>
           {printDialogOpened ? (
             <button
@@ -205,7 +207,7 @@ export default function StaffApplicationPrint({
               <Printer className="h-4 w-4" /> Reprint Membership
             </button>
           ) : null}
-          {printDialogOpened && !printConfirmed ? (
+          {printDialogOpened && !printConfirmed && !activatedCopy ? (
             <button
               type="button"
               onClick={() => void confirmPrinted()}
@@ -215,7 +217,7 @@ export default function StaffApplicationPrint({
               {confirmingPrint ? "Confirming…" : "CONFIRM PRINTED"}
             </button>
           ) : null}
-          {printConfirmed ? (
+          {(printConfirmed || activatedCopy) ? (
             <button
               type="button"
               onClick={() => window.close()}

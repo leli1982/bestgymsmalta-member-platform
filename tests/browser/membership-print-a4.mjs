@@ -274,7 +274,9 @@ async function verifyReprintAfterPrinterFailure(context) {
       confirmations += 1;
       return route.fulfill({ json: { ok: true, confirmedAt: "2026-11-11T12:00:00Z" } });
     }
-    return route.fulfill({ json: { application: fixtures.single } });
+    // Printing confirmation belongs to the original pre-activation form;
+    // an activated duplicate is printable without a second confirmation POST.
+    return route.fulfill({ json: { application: { ...fixtures.single, status: "awaiting_payment", activatedAt: null } } });
   });
 
   await page.goto(`${origin}/staff/applications/single/print`);

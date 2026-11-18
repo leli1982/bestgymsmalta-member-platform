@@ -533,6 +533,7 @@ function StaffNewMembershipEnrollment({ memberNumber }: { memberNumber: string }
           gym={config.gym}
           config={config}
           staffPhotoPolicy="optional"
+          externalError={error}
           onSubmit={submitRegistration}
         />
       ) : null}

@@ -145,7 +145,7 @@ export default function StaffDashboard({ user, onLogout }: Props) {
         {membersOpen && (
           <div className="mt-5">
             <div className="mb-3 flex justify-end"><button type="button" onClick={() => setMembersOpen(false)} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-bold text-zinc-600 shadow-sm hover:bg-zinc-50"><X className="h-4 w-4" /> Close Members</button></div>
-            <StaffMemberBrowser focusToken={memberFocusToken} canRenew={canRenewMembership} />
+            <StaffMemberBrowser focusToken={memberFocusToken} canRenew={canRenewMembership} canEdit={can("members.edit")} isSuperAdmin={user.isSuperAdmin} />
           </div>
         )}
       </div>

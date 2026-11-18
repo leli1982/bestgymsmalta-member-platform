@@ -73,11 +73,11 @@ try {
   await page.getByLabel("Guardian email").fill("guardian@example.test");
   await page.getByLabel("Guardian address").fill("Test Street");
   await page.getByRole("button", { name: "SUBMIT MEMBERSHIP APPLICATION" }).click();
-  await page.getByText(/guardian consent, complete guardian details and confirmation/).waitFor();
+  await page.getByRole("alert").filter({ hasText: /guardian consent, complete guardian details and confirmation/ }).waitFor();
   assert.equal(submitted, null, "Submission must be blocked until the guardian has reviewed the declaration");
   await page.getByRole("checkbox", { name: /I confirm that the parent \/ legal guardian has reviewed/ }).check();
   await page.getByRole("button", { name: "SUBMIT MEMBERSHIP APPLICATION" }).click();
-  await page.getByText("Browser test intentionally stops before saving.").waitFor();
+  await page.getByRole("alert").filter({ hasText: "Browser test intentionally stops before saving." }).waitFor();
   assert.equal(submitted.guardianDeclarationVersionId, "guardian-v3-test");
   assert.equal(submitted.participants.length, 1);
   assert.equal(submitted.participants[0].existingMemberId, "existing-minor-test");
