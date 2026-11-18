@@ -35,5 +35,5 @@ test("Existing access core still denies expired, inactive and wrong-gym scans", 
   assert.match(source, /result: "restricted_gym", granted: false/);
   assert.match(source, /result: "granted", granted: true/);
   const scan=read("app/api/system/barcode/scan/route.ts");
-  assert.match(scan, /recordCheckin/);
+  assert.match(scan, /recordCanonicalCheckin/);
 });
