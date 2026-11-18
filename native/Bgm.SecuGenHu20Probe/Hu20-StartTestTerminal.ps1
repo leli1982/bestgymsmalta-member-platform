@@ -10,6 +10,7 @@ param(
   [switch]$Configure,
   [switch]$AutoKioskTest,
   [switch]$FullScreenTest,
+  [switch]$RecognitionDiagnostic,
   [string]$BaseUrl,
   [string]$TerminalId,
   [string]$SdkAssembly
@@ -17,6 +18,9 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 if ($FullScreenTest -and -not $AutoKioskTest) { throw "-FullScreenTest requires -AutoKioskTest." }
+if ($RecognitionDiagnostic -and (-not $AutoKioskTest -or $FullScreenTest -or $Configure)) {
+  throw "TEST recognition diagnostic requires -AutoKioskTest, no full-screen, and an existing configuration."
+}
 if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT -or -not [Environment]::Is64BitProcess) {
   throw "Only 64-bit Windows PowerShell on the authorised HU20 TEST PC is supported."
 }
@@ -110,7 +114,7 @@ if ($AutoKioskTest) {
       Write-Host "TEST device securely provisioned: no Share link or secret is needed."
     }
   }
-  & $autoPath -BaseUrl $BaseUrl -TerminalId $TerminalId -SdkAssembly $sdkPath -EnableFictionalTestAttendance -AutoKioskTest -FullScreenTest:$FullScreenTest -UseProvisionedDevice:$useVault
+  & $autoPath -BaseUrl $BaseUrl -TerminalId $TerminalId -SdkAssembly $sdkPath -EnableFictionalTestAttendance -AutoKioskTest -FullScreenTest:$FullScreenTest -UseProvisionedDevice:$useVault -RecognitionDiagnostic:$RecognitionDiagnostic
 } else {
   & $punchPath -BaseUrl $BaseUrl -TerminalId $TerminalId -SdkAssembly $sdkPath -EnableFictionalTestAttendance -RepeatApprovedTests
 }
