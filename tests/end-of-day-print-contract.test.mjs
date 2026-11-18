@@ -9,10 +9,12 @@ test("End of Day mounts a print bridge that prints only after a fresh successful
   const bridge = read("components/staff/EndOfDayPrintBridge.tsx");
 
   assert.match(page, /EndOfDayPrintBridge/);
-  assert.match(bridge, /End of Day submitted/);
-  assert.match(bridge, /MutationObserver/);
-  assert.match(bridge, /previousSubmitted/);
-  assert.match(bridge, /!previousSubmitted\.current/);
+  const flow = read("components/staff/EndOfDayPage.tsx");
+  assert.match(bridge, /bgm:end-of-day-submitted/);
+  assert.match(bridge, /window\.addEventListener/);
   assert.match(bridge, /window\.print\(\)/);
+  assert.doesNotMatch(bridge, /MutationObserver/);
+  assert.match(flow, /!response\.ok \|\| !payload\.report\?\.id/);
+  assert.match(flow, /window\.dispatchEvent\(new Event\("bgm:end-of-day-submitted"\)\)/);
   assert.match(bridge, /@media print/);
 });
