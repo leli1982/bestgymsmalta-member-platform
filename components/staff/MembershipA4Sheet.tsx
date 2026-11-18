@@ -317,7 +317,7 @@ export default function MembershipA4Sheet({
 
         <section className="bgm-print-section">
           <div className="bgm-print-grid bgm-print-grid-4">
-            <Info label="Member number" value={participant.memberNumber} />
+            <Info label="Member number" value={participant.memberNumber || (application.kind === "new" && !application.activatedAt ? "Assigned on activation" : null)} />
             <Info label="Card number" value={participant.barcode} />
             <Info label="Membership type" value={application.membershipType} />
             <Info label="Duration" value={application.durationKey.replaceAll("_", " ")} />
