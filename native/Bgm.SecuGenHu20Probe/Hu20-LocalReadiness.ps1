@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 <#
-  HU20 TEST PC LOCAL READINESS — safe inventory checks only.
+  HU20 TEST PC LOCAL READINESS - safe inventory checks only.
   Does not contact any service, scan a finger, open the reader,
   persist credentials or launch the kiosk. It cannot authorise attendance.
   Run on each Windows PC before supervised fictional TEST provisioning.
