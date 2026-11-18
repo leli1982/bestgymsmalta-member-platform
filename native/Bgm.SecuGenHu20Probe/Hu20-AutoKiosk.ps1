@@ -23,7 +23,8 @@ param(
   [switch]$RepeatApprovedTests,
   [switch]$AutoKioskTest,
   [switch]$FullScreenTest,
-  [switch]$UseProvisionedDevice
+  [switch]$UseProvisionedDevice,
+  [switch]$RecognitionDiagnostic
 )
 
 $ErrorActionPreference = "Stop"
@@ -48,6 +49,19 @@ if (-not $EnableFictionalTestAttendance -or -not $AutoKioskTest -or $RepeatAppro
 if ($base -cnotmatch '^https://bestgymsmalta-member-platform-[a-z0-9-]+-leliapap-2558s-projects[.]vercel[.]app$') {
   throw "Automatic TEST kiosk must use immutable BGM Vercel Preview URL."
 }
+if ($RecognitionDiagnostic -and ($FullScreenTest -or -not $UseProvisionedDevice)) {
+  throw "Recognition diagnostic requires the provisioned TEST reader in console-only mode."
+}
+# This diagnostic only runs inside the existing 10-minute Super Admin
+# TEST kiosk window. It NEVER requests an attendance punch.
+$script:Hu20DiagnosticImageQuality = $null
+$diagnosticSamples = 0
+$diagnosticMatches = 0
+$diagnosticNoMatches = 0
+$diagnosticAmbiguous = 0
+$diagnosticQualitySum = 0
+$diagnosticQualityCount = 0
+$diagnosticMaxSamples = 5
 # Pure, fail-closed fault policy shared by synthetic TEST-only CI drills.
 $safetyPath = Join-Path $PSScriptRoot "Hu20-KioskSafety.ps1"
 if (-not (Test-Path -LiteralPath $safetyPath -PathType Leaf)) { throw "Missing HU20 TEST kiosk safety policy." }
@@ -102,6 +116,21 @@ function Get-TransientTemplate([object]$manager, [int]$width, [int]$height, [int
       throw "KIOSK_NO_FINGER_TIMEOUT"
     }
     Check-SdkResult 'GetImageEx' $result
+    if ($RecognitionDiagnostic) {
+      $script:Hu20DiagnosticImageQuality = $null
+      $measuredQuality = 0
+      try {
+        # Official SecuGen SDK 0-100 quality measurement; do not retain image.
+        $qualityCode = [int]$manager.GetImageQuality($width, $height, $raw, [ref]$measuredQuality)
+        if ($qualityCode -eq 0 -and $measuredQuality -ge 0 -and $measuredQuality -le 100) {
+          $script:Hu20DiagnosticImageQuality = $measuredQuality
+        }
+      } catch {
+        # Quality is informative only. Unsupported SDK metrics must never
+        # weaken capture quality or biometric matching rules.
+        $script:Hu20DiagnosticImageQuality = $null
+      }
+    }
     Check-SdkResult 'CreateTemplate' ($manager.CreateTemplate($raw, $buffer))
     $keepBuffer = $true
     return ,$buffer
@@ -240,7 +269,11 @@ try {
   }
   $headers["X-BGM-HU20-Kiosk-Test"] = "1"
   Write-Host "HU20 TEST automatic scanner: start a 10-minute Super Admin kiosk window first."
-  Write-Host "Stop via Ctrl+C or the Super Admin STOP button. No real employees allowed."
+  if ($RecognitionDiagnostic) {
+    Write-Host "RECOGNITION-ONLY DIAGNOSTIC: 5 scans maximum, NEVER creates Clock IN/OUT."
+    Write-Host "Quality and match results appear on screen ONLY. No file or biometric image is saved."
+  }
+  Write-Host "Stop via Ctrl+C or the Super Admin STOP button. Authorised TEST only."
   while ($true) {
     $stopKiosk = $false
     # Never carry fingerprint templates or SDK handles across scan attempts.
@@ -399,7 +432,13 @@ try {
 
     Write-Host "Scan a test finger on the HU20 now (no fingerprint passphrase)."
     if ($FullScreenTest) { Show-Hu20KioskStatus -State "ready" }
+    $diagnosticCaptureMs = $null
+    if ($RecognitionDiagnostic) { $diagnosticStopwatch = [System.Diagnostics.Stopwatch]::StartNew() }
     $live = Get-TransientTemplate $manager $width $height $maxSize $expiry
+    if ($RecognitionDiagnostic) {
+      $diagnosticStopwatch.Stop()
+      $diagnosticCaptureMs = $diagnosticStopwatch.ElapsedMilliseconds
+    }
     Wait-Hu20FingerRemoval $manager $width $height
     $matches = New-Object System.Collections.ArrayList
     foreach ($item in $templates) {
@@ -411,7 +450,11 @@ try {
       $outcome = "one_match"
       $matchedId = [string]$matches[0].Id
       $matchedName = [string]$matches[0].Name
-      Write-Host "LOCAL_ONE_MATCH: $matchedName. Confirming central revocation status..."
+      if ($RecognitionDiagnostic) {
+        Write-Host "LOCAL_ONE_MATCH: uniquely matched without displaying employee identity."
+      } else {
+        Write-Host "LOCAL_ONE_MATCH: $matchedName. Confirming central revocation status..."
+      }
     }
     elseif ($matches.Count -eq 0) {
       Write-Host "NO_MATCH: Unknown finger rejected."
@@ -438,6 +481,9 @@ try {
       $accepted.result -cne $outcome -or $accepted.attendanceEnabled -ne $false -or
       $accepted.noAttendanceWasRecorded -ne $true) { throw "Server did not confirm TEST recognition." }
   if ($outcome -eq "one_match") {
+    if ($RecognitionDiagnostic) {
+      Write-Host "PASS: CENTRAL_ONE_MATCH confirmed; no attendance event requested."
+    } else {
     Write-Host "PASS: CENTRAL_ONE_MATCH '$matchedName' confirmed in TEST."
     # Only after the backend verified the matching biometric and marked its
     # one-time recognition as complete may this optional TEST route be called.
@@ -473,6 +519,7 @@ try {
       }
       Wait-Hu20KioskUi -Milliseconds 3000
     }
+    } # End attendance branch; RecognitionDiagnostic cannot reach punch API.
 
   }
   elseif ($outcome -eq "no_match") {
@@ -483,8 +530,29 @@ try {
     Write-Host "PASS: CENTRAL_AMBIGUOUS rejected safely."
     if ($FullScreenTest) { Show-Hu20KioskStatus -State "rejected"; Wait-Hu20KioskUi -Milliseconds 2000 }
   }
-  Write-Host "Only a confirmed one-match can create an authorised TEST clock event; NO_MATCH and AMBIGUOUS never punch."
-  Write-Host "Security level NORMAL is only for a smoke test, not production."
+  if ($RecognitionDiagnostic) {
+    $diagnosticSamples += 1
+    switch ($outcome) {
+      "one_match" { $diagnosticMatches += 1 }
+      "no_match" { $diagnosticNoMatches += 1 }
+      "ambiguous" { $diagnosticAmbiguous += 1 }
+    }
+    $qualityText = "unavailable"
+    if ($null -ne $script:Hu20DiagnosticImageQuality) {
+      $qualityText = "$($script:Hu20DiagnosticImageQuality)/100"
+      $diagnosticQualitySum += [int]$script:Hu20DiagnosticImageQuality
+      $diagnosticQualityCount += 1
+    }
+    $captureText = if ($null -ne $diagnosticCaptureMs) { "$diagnosticCaptureMs ms" } else { "unavailable" }
+    Write-Host "DIAGNOSTIC $diagnosticSamples/$diagnosticMaxSamples | image quality: $qualityText | capture: $captureText | recognition: $outcome | attendance: NOT REQUESTED."
+    if ($diagnosticSamples -ge $diagnosticMaxSamples) {
+      Write-Host "Five recognition-only samples completed. Diagnostic stops now."
+      $stopKiosk = $true
+    }
+  } else {
+    Write-Host "Only a confirmed one-match can create an authorised TEST clock event; NO_MATCH and AMBIGUOUS never punch."
+    Write-Host "Security level NORMAL is only for a smoke test, not production."
+  }
     }
     catch {
       $reason = $_.Exception.Message
@@ -564,6 +632,19 @@ try {
   }
 }
 finally {
+  if ($RecognitionDiagnostic) {
+    $averageQuality = if ($diagnosticQualityCount -gt 0) {
+      [Math]::Round($diagnosticQualitySum / $diagnosticQualityCount, 1)
+    } else { "unavailable" }
+    Write-Host "HU20 TEST recognition-only summary:"
+    Write-Host "  Completed scans: $diagnosticSamples / $diagnosticMaxSamples"
+    Write-Host "  Unique matches: $diagnosticMatches"
+    Write-Host "  No matches: $diagnosticNoMatches"
+    Write-Host "  Ambiguous/rejected: $diagnosticAmbiguous"
+    Write-Host "  Mean SDK image quality (0-100): $averageQuality"
+    Write-Host "  Attendance punches requested: ZERO (enforced by separate code path)"
+    Write-Host "  No images/templates/quality diagnostics saved to disk."
+  }
   # The terminal secret and Preview Share token are never written to disk.
   $rosterJson = $null
   $terminalSecret = $null
