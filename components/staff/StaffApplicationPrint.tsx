@@ -192,7 +192,7 @@ export default function StaffApplicationPrint({
             disabled={(!activatedCopy && printConfirmed) || printFit !== "fits"}
             className="inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-black text-white disabled:opacity-40"
           >
-            <Printer className="h-4 w-4" /> {activatedCopy ? "Print Activated Copy" : printConfirmed ? "Printed" : "Print Membership"}
+            <Printer className="h-4 w-4" /> {activatedCopy ? "Print Membership (Activated Copy)" : printConfirmed ? "Printed" : "Print Membership"}
           </button>
           {printDialogOpened ? (
             <button
