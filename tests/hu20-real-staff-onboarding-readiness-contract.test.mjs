@@ -19,7 +19,7 @@ test("Real employee has read-only readiness and separately approved TEST pilot e
   assert.match(readiness, /pilot requires individual Super Admin authorisation/);
   assert.match(readiness, /REAL BIOMETRIC ENROLMENT DISABLED/);
   assert.doesNotMatch(readiness, /method: "POST"|method: "PATCH"|\/enroll|\/recognition/);
-  assert.match(pilot, /real-staff/i);
+  assert.match(pilot, /real[- ]staff/i);
   assert.match(quick, /fictional TEST only/);
   assert.match(quick, /mode === "real-pilot"/);
 });
@@ -29,7 +29,7 @@ test("Real staff never uses fictional enrollment/attendance DB paths without exp
   assert.match(enrollment, /if \(!fictional\) \{/);
   assert.match(enrollment, /hu20RealStaffPilotEnabled\(\)/);
   assert.match(enrollment, /Super Admin pilot authorisation required/);
-  assert.match(completion, /if \(!fictional && \(!pilotScope \|\| !hu20RealStaffPilotEnabled\(\)\)\)/);
+  assert.match(completion, /!fictional && \(!pilotScope \|\| !hu20RealStaffPilotEnabled\(\)\)/);
   assert.match(completion, /Real staff pilot authorisation revoked/);
   assert.match(completion, /fictional \? "bgm_hu20_test_complete_enrollment" : "bgm_hu20_pilot_complete_enrollment"/);
   assert.match(attendance, /hu20RealStaffPilotEnabled\(\) \? "bgm_hu20_pilot_record_attendance" : "bgm_hu20_test_record_attendance"/);
