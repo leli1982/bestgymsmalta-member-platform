@@ -22,7 +22,11 @@ export default function Hu20TestKioskWindowsPanel({ terminals }: { terminals: Te
       const response = await fetch("/api/system/staff-hu20/kiosk", { cache: "no-store" });
       if (response.status === 404) { setAvailable(false); return; }
       const result = await response.json();
-      if (!response.ok || result.fictionalTestOnly !== true) throw new Error(result.error || "Cannot load TEST kiosk windows.");
+      if (!response.ok || result.ok !== true ||
+          !((result.fictionalTestOnly === true && result.realStaffPilotEnabled === false) ||
+            (result.fictionalTestOnly === false && result.realStaffPilotEnabled === true))) {
+        throw new Error(result.error || "Cannot load TEST kiosk windows.");
+      }
       setWindows(result.windows || []);
       setRealPilot(result.realStaffPilotEnabled === true);
       setAvailable(true);
@@ -51,7 +55,7 @@ export default function Hu20TestKioskWindowsPanel({ terminals }: { terminals: Te
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Could not update TEST kiosk.");
       setMessage(action === "start"
-        ? "Fictional TEST kiosk approved for 10 minutes. On the Windows TEST PC, run Hu20-KIOSK-TEST.cmd."
+        ? (realPilot ? "Controlled staff TEST pilot approved for 10 minutes. On the authorised Windows PC, run the updated Hu20-KIOSK-TEST.cmd." : "Fictional TEST kiosk approved for 10 minutes. On the Windows TEST PC, run Hu20-KIOSK-TEST.cmd.")
         : "TEST kiosk stopped. Further claims and unconsumed recognitions are blocked.");
       await load();
     } catch (caught) {
@@ -88,7 +92,7 @@ export default function Hu20TestKioskWindowsPanel({ terminals }: { terminals: Te
           <button type="button" disabled={busy} onClick={() => void send("stop", item.id)} className="rounded bg-red-700 px-3 py-2 font-semibold text-white disabled:opacity-50">Stop TEST kiosk now</button>
         </article>)}
       </div>
-      <p className="mt-3 text-xs text-slate-600">Use Hu20-KIOSK-TEST.cmd only on the authorised HU20 Windows PC. Stop the session from here or press Ctrl+C on the PC. Fingerprint matching remains NORMAL_TEST_ONLY and must not be used for real staff.</p>
+      <p className="mt-3 text-xs text-slate-600">Use the updated Hu20-KIOSK-TEST.cmd only on the authorised HU20 Windows PC. Stop the session here or press ESC on the PC. {realPilot ? "Controlled individual-authorisation staff pilot in isolated TEST only — no Production attendance." : "FICTIONAL TEST only — no real staff."} Fingerprint matching remains NORMAL_TEST_ONLY.</p>
     </>}
   </section>;
 }

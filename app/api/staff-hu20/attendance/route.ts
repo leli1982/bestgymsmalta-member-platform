@@ -58,6 +58,8 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({
       ok: true, testOnly: true,
+      fictionalTestOnly: !hu20RealStaffPilotEnabled(),
+      realStaffPilot: hu20RealStaffPilotEnabled(),
       outcome: result.outcome,
       employeeId: result.result_employee_id,
       sessionId: result.result_session_id,
