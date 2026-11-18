@@ -34,7 +34,7 @@ BEGIN
   INSERT INTO public.bgm_hu20_real_staff_pilot
     (employee_id, enabled, changed_by_system_user_id, changed_at)
   VALUES (p_employee_id, p_enabled, p_actor_system_user_id, now())
-  ON CONFLICT (employee_id) DO UPDATE
+  ON CONFLICT ON CONSTRAINT bgm_hu20_real_staff_pilot_pkey DO UPDATE
     SET enabled=excluded.enabled,
         changed_by_system_user_id=excluded.changed_by_system_user_id,
         changed_at=now();
