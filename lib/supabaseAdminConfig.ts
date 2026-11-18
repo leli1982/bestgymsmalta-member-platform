@@ -9,6 +9,7 @@ const TEST_ONLY_PREVIEW_BRANCHES = new Set([
   "feature/tablet-enrollment-membership-settings",
   "feature/launch-member-reconciliation",
   "feature/protected-developer-account",
+  "feature/hu20-biometric-capability",
 ]);
 
 export function resolveSupabaseAdminConfig(env: SupabaseAdminEnvironment) {

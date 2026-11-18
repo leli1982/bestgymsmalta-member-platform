@@ -76,6 +76,33 @@ function loadOfflineSession(expectedGymId: string | null): SystemUser | null {
   }
 }
 
+
+/**
+ * After an HU20 TEST Super Admin sign-in, return only to the exact local
+ * enrolment page. Never redirect to arbitrary locations supplied by a query.
+ * Terminal IDs are preference hints, NOT proof of reader identity.
+ */
+function safeHu20EnrollmentReturnPath(): string | null {
+  if (typeof window === "undefined") return null;
+  const requested = new URLSearchParams(window.location.search).get("returnTo");
+  if (!requested) return null;
+  try {
+    const target = new URL(requested, window.location.origin);
+    if (target.origin !== window.location.origin ||
+        target.pathname !== "/staff/admin/staff/terminals/enrollment" ||
+        target.hash) return null;
+    const allowedKeys = new Set(["localTerminalId", "employeeId"]);
+    for (const key of Array.from(target.searchParams.keys())) {
+      if (!allowedKeys.has(key) || target.searchParams.getAll(key).length !== 1) return null;
+      const value = target.searchParams.get(key) || "";
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) return null;
+    }
+    return target.pathname + target.search;
+  } catch {
+    return null;
+  }
+}
+
 export default function StaffLoginPage({ expectedGym }: { expectedGym?: ExpectedGym }) {
   const [user, setUser] = useState<SystemUser | null>(null);
   const [offlineMode, setOfflineMode] = useState(false);
@@ -107,6 +134,15 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
         clearOfflineSession();
         window.location.replace("/manager");
         return;
+      }
+      // A Super Admin may arrive here from the connected HU20 PC's
+      // protected enrolment deep link. Preserve that specific TEST destination.
+      if (!expectedGym && sessionUser?.isSuperAdmin) {
+        const returnPath = safeHu20EnrollmentReturnPath();
+        if (returnPath) {
+          window.location.replace(returnPath);
+          return;
+        }
       }
       if (
         expectedGym &&
@@ -168,6 +204,13 @@ export default function StaffLoginPage({ expectedGym }: { expectedGym?: Expected
         clearOfflineSession();
         window.location.replace("/manager");
         return;
+      }
+      if (!expectedGym && data.user?.isSuperAdmin) {
+        const returnPath = safeHu20EnrollmentReturnPath();
+        if (returnPath) {
+          window.location.replace(returnPath);
+          return;
+        }
       }
       if (
         expectedGym &&

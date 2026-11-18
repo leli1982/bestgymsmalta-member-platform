@@ -30,7 +30,12 @@ test("normal staff home exposes only daily operational tiles", () => {
   for (const label of ["Members", "New Member", "Renew", "Waiting", "Reception Tools", "Sundries", "Bar", "Punch Clock"]) {
     assert.match(source, new RegExp(`label=["']${label.replace("/", "\\/")}["']`));
   }
-  assert.match(source, /Punch Clock[\s\S]*disabled/);
+  // The tile is absent unless the signed-in gym's server-side TEST flag is true.
+  assert.match(source, /punchClockEnabled && <Tile label="Punch Clock"/);
+  assert.match(source, /fetch\("\/api\/staff-hu20\/portal-capability"/);
+  const capability = read("app/api/staff-hu20/portal-capability/route.ts");
+  assert.match(capability, /isHu20TestRequestEnabled\(\)/);
+  assert.match(capability, /getSystemContext\(request\)/);
   assert.doesNotMatch(source, /label=["']Offline Roster["']/);
   assert.doesNotMatch(source, /label=["']Analytics["']/);
   assert.doesNotMatch(source, /label=["']System Users["']/);

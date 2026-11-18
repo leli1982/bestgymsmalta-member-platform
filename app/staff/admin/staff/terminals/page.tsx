@@ -1,0 +1,202 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { formatEuropeanDateTime } from "@/lib/europeanDate";
+import { hu20TerminalContactStatus } from "@/lib/hu20TerminalFleet";
+import Hu20TestKioskWindowsPanel from "@/components/staff/Hu20TestKioskWindowsPanel";
+import Hu20RolloutReadinessPanel from "@/components/staff/Hu20RolloutReadinessPanel";
+
+type Terminal = {
+  id: string; gym_id: string; name: string; active: boolean;
+  vendor: string | null; model: string | null;
+  created_at: string; last_seen_at: string | null;
+};
+type Gym = { id: string; name: string; status: string; hu20_punch_clock_enabled: boolean };
+type ResponseData = { terminals: Terminal[]; gyms: Gym[]; error?: string };
+type Credential = { id: string; name: string; secret: string };
+type TestPunch = {
+  id: string; employeeName: string; action: "in" | "out";
+  gymId: string; terminalId: string; at: string;
+  sessionStatus: string | null; workedMinutes: number | null; realStaffPilot?: boolean;
+};
+
+export default function Hu20TestTerminalsPage() {
+  const [data, setData] = useState<ResponseData | null>(null);
+  const [gymId, setGymId] = useState("");
+  const [name, setName] = useState("");
+  const [credential, setCredential] = useState<Credential | null>(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [punches, setPunches] = useState<TestPunch[] | null>(null);
+  const [punchError, setPunchError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [terminalCheckedAt, setTerminalCheckedAt] = useState<number | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const response = await fetch("/api/system/staff-hu20/terminals", { cache: "no-store" });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Could not load terminals.");
+      setData(body);
+      setTerminalCheckedAt(Date.now());
+      setError("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not load terminals.");
+    }
+  }, []);
+
+  const loadPunches = useCallback(async () => {
+    try {
+      const response = await fetch("/api/system/staff-hu20/attendance-log", { cache: "no-store" });
+      const body = await response.json();
+      if (!response.ok || body.ok !== true) throw new Error(body.error || "Could not load TEST attendance.");
+      setPunches(body.punches || []);
+      setPunchError("");
+    } catch (caught) {
+      setPunchError(caught instanceof Error ? caught.message : "Could not load TEST attendance.");
+    }
+  }, []);
+
+  useEffect(() => { void load(); void loadPunches(); }, [load, loadPunches]);
+
+  async function createTerminal(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setCredential(null);
+    setError("");
+    try {
+      const response = await fetch("/api/system/staff-hu20/terminals", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gymId, name }),
+        cache: "no-store",
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Could not register terminal.");
+      setCredential({ id: body.terminal.id, name: body.terminal.name, secret: body.terminalSecret });
+      setName("");
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not register terminal.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deactivateTerminal(terminal: Terminal) {
+    if (!window.confirm(
+      "Deactivate TEST terminal '" + terminal.name + "' permanently? " +
+      "Its credential will stop working, active TEST kiosk windows will be cancelled, " +
+      "and any replacement requires a NEW terminal registration and secret.",
+    )) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/system/staff-hu20/terminals", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: terminal.id, action: "deactivate" }),
+        cache: "no-store",
+      });
+      const body = await response.json();
+      if (!response.ok || body.ok !== true || body.terminal?.active !== false) {
+        throw new Error(body.error || "Could not deactivate TEST terminal.");
+      }
+      setNotice("TEST terminal deactivated and server authorisation revoked. Register a new terminal for replacement hardware.");
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not deactivate TEST terminal. Refresh its status.");
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const activeGyms = (data?.gyms || []).filter((gym) => gym.status === "active");
+  const gymNames = new Map((data?.gyms || []).map((gym) => [gym.id, gym.name]));
+  const fleet = (data?.terminals || []).filter((terminal) => terminal.active);
+  const recentlyContacted = terminalCheckedAt === null ? 0 : fleet.filter((terminal) =>
+    hu20TerminalContactStatus(terminal.last_seen_at, terminalCheckedAt) === "recent").length;
+
+  return (
+    <main className="bgm-admin-light min-h-screen bg-slate-50 p-5 text-slate-900"><div className="mx-auto max-w-3xl">
+      <a href="/staff/admin/staff" className="underline">Back to Staff management</a>
+      <h1 className="mt-4 text-2xl font-bold">HU20 Punch Clock terminals — TEST</h1>
+      <p className="mt-2"><a href="/staff/admin/gyms" className="font-semibold underline">Enable or disable Punch Clock per TEST gym</a></p>
+      <p className="mt-2"><a href="/staff/admin/staff/terminals/enrollment" className="font-semibold underline">Supervised TEST enrollment requests</a></p>
+      <p className="mt-2 text-sm">Register a gym PC for isolated TEST communication. Fictional HU20-TEST employees and individually Super Admin-approved real-staff TEST pilot employees are separately gated. Production biometric attendance remains disabled.</p>
+      {error && <p role="alert" className="mt-4 rounded bg-red-100 p-3 text-red-900">{error}</p>}
+      {notice && <p role="status" className="mt-4 rounded bg-slate-100 p-3 text-slate-900">{notice}</p>}
+      <form onSubmit={createTerminal} className="mt-5 grid gap-3 rounded border bg-white p-4">
+        <label className="grid gap-1">Gym
+          <select required className="rounded border p-2" value={gymId} onChange={(e) => setGymId(e.target.value)}>
+            <option value="">Select active TEST gym</option>
+            {activeGyms.map((gym) => <option key={gym.id} value={gym.id}>{gym.name}</option>)}
+          </select>
+        </label>
+        <label className="grid gap-1">Terminal label
+          <input required minLength={3} maxLength={100} className="rounded border p-2" value={name}
+            onChange={(e) => setName(e.target.value)} placeholder="Kirkop reception PC 1"/>
+        </label>
+        <button disabled={busy || activeGyms.length === 0}
+          className="rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50" type="submit">
+          {busy ? "Registering…" : "Register TEST terminal"}
+        </button>
+        {activeGyms.length === 0 && <p className="text-sm">Add an active gym to TEST before registering a terminal.</p>}
+      </form>
+      {credential && <section className="mt-5 rounded border-2 border-amber-400 bg-amber-50 p-4">
+        <h2 className="font-bold">One-time terminal credential — save securely now</h2>
+        <p className="mt-2 text-sm">This secret will not be shown again. Do not paste it into chat, screenshots, email or the shared USB installer.</p>
+        <p className="mt-3 text-sm">Terminal ID</p>
+        <code className="block break-all rounded bg-white p-2">{credential.id}</code>
+        <p className="mt-3 text-sm">Terminal secret</p>
+        <code className="block break-all rounded bg-white p-2">{credential.secret}</code>
+        <button onClick={() => setCredential(null)} className="mt-4 rounded bg-slate-900 px-3 py-2 text-white" type="button">I have saved it — hide credential</button>
+      </section>}
+      {data && <Hu20RolloutReadinessPanel gyms={data.gyms} terminals={data.terminals} checkedAt={terminalCheckedAt} />}
+      <Hu20TestKioskWindowsPanel
+        key={(data?.terminals || []).map((terminal) => terminal.id + ":" + terminal.active).join("|")}
+        terminals={data?.terminals || []}
+      />
+      <section className="mt-6 rounded border border-slate-200 bg-white p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold">Recent HU20 TEST fingerprint punches</h2>
+          <button type="button" onClick={() => void loadPunches()} className="rounded border border-slate-300 px-3 py-2 text-sm font-semibold">Refresh punches</button>
+        </div>
+        <p className="mt-1 text-sm text-slate-600">Read-only; shows fictional TEST and authorised real-staff pilot IN/OUT. No fingerprint templates, credentials or live payroll.</p>
+        {punchError && <p role="alert" className="mt-3 rounded bg-red-100 p-3 text-sm text-red-900">{punchError}</p>}
+        {!punchError && punches === null && <p className="mt-3 text-sm">Loading TEST punches…</p>}
+        {!punchError && punches?.length === 0 && <p className="mt-3 text-sm">No fictional TEST punches recorded.</p>}
+        <div className="mt-3 space-y-2">
+          {(punches || []).map((punch) => <article key={punch.id} className="rounded border border-slate-200 p-3 text-sm">
+            <p className="font-semibold">{punch.employeeName} {punch.realStaffPilot ? "(staff TEST pilot)" : "(fictional TEST)"} — {punch.action === "in" ? "Clock IN" : "Clock OUT"}</p>
+            <p className="mt-1">{formatEuropeanDateTime(punch.at)} · {gymNames.get(punch.gymId) || punch.gymId}</p>
+            <p className="text-slate-600">Session: {punch.sessionStatus || "Not linked"}{punch.workedMinutes !== null ? ` · ${punch.workedMinutes} minute(s)` : ""}</p>
+          </article>)}
+        </div>
+        <p className="mt-3 text-sm">For full attendance and payroll details, open <a className="font-semibold underline" href="/staff/admin/staff">Staff Management → Timesheets</a>.</p>
+      </section>
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold">Registered TEST terminals</h2>
+        <button type="button" onClick={() => void load()} disabled={busy}
+          className="rounded border border-slate-300 px-3 py-2 text-sm font-semibold disabled:opacity-50">Refresh terminal contacts</button>
+      </div>
+      <p className="mt-1 text-sm text-slate-700">Active TEST terminals: {fleet.length} · Gyms represented: {new Set(fleet.map((item) => item.gym_id)).size} · Authenticated requests in the last 15 minutes: {recentlyContacted}.</p>
+      <p className="mt-1 text-sm text-slate-600">A recent authenticated request does not prove the scanner is currently running or connected. The server timestamp updates after authenticating an active TEST terminal for a recognition request, even if no kiosk window was authorised. Each PC has its own gym-bound credential; deactivate retired or lost terminals.</p>
+      <div className="mt-2 grid gap-2">{(data?.terminals || []).map((item) => <article key={item.id} className="rounded border bg-white p-3">
+        <p className="font-semibold">{item.name} — {gymNames.get(item.gym_id) || item.gym_id}</p>
+        <p className="text-sm">Registration: {item.active ? "Active (TEST)" : "Deactivated"} · Last authenticated request: {item.last_seen_at ? formatEuropeanDateTime(item.last_seen_at) : "Never recorded"}</p>
+        <p className="text-sm">Contact: {terminalCheckedAt === null ? "Not checked" :
+          hu20TerminalContactStatus(item.last_seen_at, terminalCheckedAt) === "recent" ? "Recent request (within 15 minutes)" :
+          hu20TerminalContactStatus(item.last_seen_at, terminalCheckedAt) === "stale" ? "No recent request" :
+          hu20TerminalContactStatus(item.last_seen_at, terminalCheckedAt) === "never" ? "No request recorded" : "Invalid or future timestamp"}</p>
+        <code className="block break-all text-xs">{item.id}</code>
+        {item.active && <button type="button" disabled={busy}
+          onClick={() => void deactivateTerminal(item)}
+          className="mt-3 rounded border border-red-600 px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-50">
+          Deactivate TEST terminal
+        </button>}
+      </article>)}</div>
+    </div></main>
+  );
+}

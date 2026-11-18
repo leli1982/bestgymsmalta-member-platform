@@ -4,14 +4,17 @@ import test from "node:test";
 
 const read = (path) => fs.readFileSync(path, "utf8");
 
-test("Super Admin exposes Staff payroll management while Staff Punch Clock stays disabled", () => {
+test("Super Admin exposes Staff payroll management while Staff Punch Clock remains TEST-gated", () => {
   const admin = read("components/staff/SuperAdminHome.tsx");
   const staff = read("components/staff/StaffDashboard.tsx");
   const payroll = read("components/staff/StaffEmployeesAdmin.tsx");
 
   assert.match(admin, /href: "\/staff\/admin\/staff"/);
   assert.match(admin, /Manage staff employment, pay configuration, attendance and payroll/);
-  assert.match(staff, /<Tile label="Punch Clock" icon=\{Clock3\} disabled \/>/);
+  assert.match(staff, /punchClockEnabled && <Tile label="Punch Clock"/);
+  const capability = read("app/api/staff-hu20/portal-capability/route.ts");
+  assert.match(capability, /isHu20TestRequestEnabled\(\)/);
+  assert.match(capability, /hu20_punch_clock_enabled === true/);
   assert.doesNotMatch(payroll, /StaffTerminalsAdmin/);
   assert.doesNotMatch(payroll, /Punch Clock Terminals/);
 });

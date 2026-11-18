@@ -49,7 +49,7 @@ export type StaffTimesheetAllocation = StaffTimesheetInputSegment & {
   clockOutGymName: string | null;
 };
 
-export type StaffTimesheetOpenAllocation = {
+export type StaffTimesheetUnsegmentedAllocation = {
   id: string;
   sessionId: string;
   workDate: string;
@@ -63,14 +63,14 @@ export type StaffTimesheetOpenAllocation = {
   status: string;
   attentionCode: string | null;
   clockInAt: string;
-  clockOutAt: null;
+  clockOutAt: string | null;
   clockInGymName: string | null;
-  clockOutGymName: null;
+  clockOutGymName: string | null;
 };
 
 export type StaffTimesheetDay = {
   date: string;
-  allocations: Array<StaffTimesheetAllocation | StaffTimesheetOpenAllocation>;
+  allocations: Array<StaffTimesheetAllocation | StaffTimesheetUnsegmentedAllocation>;
   workedMinutes: number;
   payCents: number;
   normalPayCents: number;
@@ -213,7 +213,7 @@ export function buildStaffTimesheetEmployeeReport(
     const workDate = todayMaltaDate(new Date(session.clockInAt));
     const day = ensureDay(workDate);
     day.allocations.push({
-      id: `open:${session.id}`,
+      id: `unsegmented:${session.id}`,
       sessionId: session.id,
       workDate,
       workedMinutes: null,
@@ -226,9 +226,9 @@ export function buildStaffTimesheetEmployeeReport(
       status: session.status,
       attentionCode: session.attentionCode ?? null,
       clockInAt: session.clockInAt,
-      clockOutAt: null,
+      clockOutAt: session.clockOutAt,
       clockInGymName: session.clockInGymName,
-      clockOutGymName: null,
+      clockOutGymName: session.clockOutGymName,
     });
   }
 

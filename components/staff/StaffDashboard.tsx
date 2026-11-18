@@ -80,7 +80,18 @@ export default function StaffDashboard({ user, onLogout }: Props) {
   const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>(user.gymId ? "connecting" : "disabled");
   const [memberFocusToken, setMemberFocusToken] = useState(0);
   const [membersOpen, setMembersOpen] = useState(false);
+  const [punchClockEnabled, setPunchClockEnabled] = useState(false);
 
+  useEffect(() => {
+    let active = true;
+    setPunchClockEnabled(false);
+    if (!user.gymId) return;
+    void fetch("/api/staff-hu20/portal-capability", { cache: "no-store" })
+      .then(async (res) => res.ok ? res.json() : null)
+      .then((body) => { if (active) setPunchClockEnabled(body?.punchClockEnabled === true); })
+      .catch(() => { if (active) setPunchClockEnabled(false); });
+    return () => { active = false; };
+  }, [user.gymId]);
   const can = useCallback((permission: string) => user.isSuperAdmin || user.permissions.includes(permission), [user.isSuperAdmin, user.permissions]);
   const signalQueueRefresh = useCallback(() => setQueueRefreshToken((value) => value + 1), []);
 
@@ -134,7 +145,7 @@ export default function StaffDashboard({ user, onLogout }: Props) {
           <Tile label="Sundries" icon={Boxes} href="/staff/sundries" disabled={!can("orders.sundries.submit")} />
           <Tile label="Bar" icon={Beer} href="/staff/bar" disabled={!can("orders.bar.submit")} />
           {!user.isSuperAdmin && <Tile label="End of Day" icon={ClipboardList} href="/staff/end-of-day" disabled={!can("end_of_day.submit")} />}
-          <Tile label="Punch Clock" icon={Clock3} disabled />
+          {punchClockEnabled && <Tile label="Punch Clock" icon={Clock3} href="/staff/punch-clock" />}
           {user.isSuperAdmin && <Tile label="Super Admin" icon={LayoutDashboard} href="/staff/admin" />}
           {user.isSuperAdmin && <Tile label="Operations" icon={ClipboardList} href="/staff/operations" />}
           {user.isSuperAdmin && <Tile label="Membership Settings" icon={Settings2} href="/staff/membership-settings" />}
