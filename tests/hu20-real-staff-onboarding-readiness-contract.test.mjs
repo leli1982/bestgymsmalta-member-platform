@@ -17,7 +17,7 @@ test("Real employee has read-only readiness and separately approved TEST pilot e
   assert.match(profile, /<Hu20QuickEnrollment employeeId=\{e\.id\}/);
   assert.match(readiness, /response\.status === 404/);
   assert.match(readiness, /pilot requires individual Super Admin authorisation/);
-  assert.match(readiness, /REAL BIOMETRIC ENROLMENT DISABLED/);
+  assert.match(readiness, /PRODUCTION BIOMETRIC ENROLMENT DISABLED/);\n  assert.match(readiness, /Advanced: readiness & privacy checklist/);
   assert.doesNotMatch(readiness, /method: "POST"|method: "PATCH"|\/enroll|\/recognition/);
   assert.match(pilot, /A Super Admin must activate each real employee separately/);
   assert.match(quick, /fictional TEST only/);
