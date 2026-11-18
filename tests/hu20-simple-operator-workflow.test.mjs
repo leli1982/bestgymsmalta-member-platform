@@ -58,3 +58,13 @@ test("Operator punch clock screen never pretends to capture fingerprints in the 
   assert.match(native, /NOT PRODUCTION/);
   assert.doesNotMatch(native, /Invoke-RestMethod|HttpListener|GetImage|MatchTemplate/);
 });
+
+test("Super Admin kiosk defaults to the current PC's provisioned reader without codes", () => {
+  const panel = read("components/staff/Hu20TestKioskWindowsPanel.tsx");
+  assert.match(panel, /127\.0\.0\.1:8765\/status/);
+  assert.match(panel, /device\?\.ok !== true \|\| device\?\.testOnly !== true/);
+  assert.match(panel, /terminals\.find\(item => item\.active && item\.id === device\.terminalId\)/);
+  assert.match(panel, /setSelectedTerminal\(match\.id\)/);
+  assert.match(panel, /selected automatically from the installed HU20 service/);
+  assert.doesNotMatch(panel, /terminalSecret|vercelBypass|_vercel_share|localStorage|sessionStorage/);
+});
