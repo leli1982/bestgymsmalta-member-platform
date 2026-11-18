@@ -1,6 +1,8 @@
 "use client";
 
 import { formatEuropeanDate } from "@/lib/europeanDate";
+import { getGrantedRenewalDaysRemaining } from "@/lib/staffScanRenewalCore";
+import StaffScanRenewalBanner from "@/components/staff/StaffScanRenewalBanner";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import OfficialMemberPhotoCapture from "@/components/staff/OfficialMemberPhotoCapture";
@@ -253,7 +255,8 @@ export default function BarcodeReceptionPage() {
       }
 
       if (view.autoResetMs && !scan.member?.photoRequired) {
-        resetTimer.current = setTimeout(resetScanner, view.autoResetMs);
+        const renewalDays = getGrantedRenewalDaysRemaining(scan.granted, scan.member?.membershipExpiry);
+        resetTimer.current = setTimeout(resetScanner, renewalDays !== null ? 8000 : view.autoResetMs);
       }
     } catch {
       setError("Could not reach the barcode scan service.");
@@ -316,8 +319,9 @@ export default function BarcodeReceptionPage() {
         ? { ...baseView, title: "CARD NOT ACTIVE" }
         : baseView;
     const success = view.severity === "success";
+    const renewalDaysRemaining = getGrantedRenewalDaysRemaining(result.granted, result.member?.membershipExpiry);
     const needsPhoto = Boolean(result.granted && result.member && (result.member.photoRequired || photoLoadFailed));
-    const backgroundClass = success ? "bg-green-600" : "bg-red-600";
+    const backgroundClass = success ? renewalDaysRemaining !== null ? "bg-orange-500" : "bg-green-600" : "bg-red-600";
     const titleClass = success ? "text-green-600" : "text-red-600";
 
     return (
@@ -334,7 +338,10 @@ export default function BarcodeReceptionPage() {
             )}
           </div>
 
-          {Boolean(result.cardMatches?.length) && <CardConflictCards members={result.cardMatches || []} scanId={result.scanId} />}
+          {renewalDaysRemaining !== null && result.member?.membershipExpiry && (
+             <StaffScanRenewalBanner daysRemaining={renewalDaysRemaining} expiryDate={result.member.membershipExpiry} />
+           )}
+           {Boolean(result.cardMatches?.length) && <CardConflictCards members={result.cardMatches || []} scanId={result.scanId} />}
           {result.result === "ambiguous_card" && !result.cardMatches?.length && (result.legacyMatches || []).length > 0 && (
             <div className="mt-8 rounded-2xl border-4 border-red-200 bg-red-50 p-5">
               <p className="text-center text-2xl font-black text-red-700">

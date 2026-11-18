@@ -1,6 +1,8 @@
 "use client";
 
 import { formatEuropeanDate } from "@/lib/europeanDate";
+import { getGrantedRenewalDaysRemaining } from "@/lib/staffScanRenewalCore";
+import StaffScanRenewalBanner from "@/components/staff/StaffScanRenewalBanner";
 
 import { useEffect, useRef, useState } from "react";
 import { Barcode, CheckCircle2, XCircle } from "lucide-react";
@@ -160,7 +162,8 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
         window.setTimeout(() => playTone("warning"), 220);
       }
       if (scan.granted && !scan.member?.photoRequired) {
-        resetTimer.current = window.setTimeout(reset, 3500);
+        const dueDays = getGrantedRenewalDaysRemaining(scan.granted, scan.member?.membershipExpiry);
+        resetTimer.current = window.setTimeout(reset, dueDays !== null ? 8000 : 3500);
       }
     } catch {
       setError("Could not reach the barcode scan service.");
@@ -177,6 +180,7 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
   }, [canScan]);
 
   if (!canScan) return null;
+  const renewalDaysRemaining = getGrantedRenewalDaysRemaining(result?.granted || false, result?.member?.membershipExpiry);
 
   return (
     <>
@@ -234,7 +238,7 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
       {result && (
         <div
           className={`fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto p-3 sm:items-center sm:p-4 ${
-            result.granted ? "bg-emerald-600" : "bg-red-600"
+            result.granted ? renewalDaysRemaining !== null ? "bg-orange-500" : "bg-emerald-600" : "bg-red-600"
           }`}
           role="dialog"
           aria-modal="true"
@@ -254,7 +258,10 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
               {resultTitle(result)}
             </h2>
 
-            {Boolean(result.cardMatches?.length) && <CardConflictCards members={result.cardMatches || []} scanId={result.scanId} />}
+            {renewalDaysRemaining !== null && result.member?.membershipExpiry && (
+               <StaffScanRenewalBanner daysRemaining={renewalDaysRemaining} expiryDate={result.member.membershipExpiry} />
+             )}
+             {Boolean(result.cardMatches?.length) && <CardConflictCards members={result.cardMatches || []} scanId={result.scanId} />}
             {result.result === "ambiguous_card" && !result.cardMatches?.length && (result.legacyMatches || []).length > 0 && (
               <div className="mx-auto mt-6 max-w-xl rounded-2xl border-2 border-red-200 bg-red-50 p-4 text-left">
                 <p className="text-sm font-black uppercase tracking-wide text-red-700">

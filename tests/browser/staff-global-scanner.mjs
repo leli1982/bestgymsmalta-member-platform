@@ -28,6 +28,12 @@ const user = {
   ],
 };
 
+// Use the gym's Malta calendar date so this test remains valid year-round.
+const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Malta", day: "2-digit", month: "2-digit", year: "numeric" }).formatToParts(new Date());
+const part = type => parts.find(item => item.type === type)?.value;
+const today = [part("year"), part("month"), part("day")].join("-");
+const expiresInSixDays = new Date(Date.parse(today + "T00:00:00Z") + 6 * 86_400_000).toISOString().slice(0, 10);
+
 let browser;
 try {
   await mkdir(artifacts, { recursive: true });
@@ -63,7 +69,7 @@ try {
   await context.route("**/api/system/barcode/scan", (route) => {
     assert.equal(route.request().method(), "POST");
     const code = route.request().postDataJSON().membershipNumber;
-    assert.ok(["BGM0000123", "BGM0000999", "BGM0000777", "X06956", "59060154"].includes(code));
+    assert.ok(["BGM0000123", "BGM0000999", "BGM0000777", "BGM0000240", "X06956", "59060154"].includes(code));
     scans++;
     const granted = code !== "BGM0000999";
     return route.fulfill({
@@ -76,7 +82,7 @@ try {
           fullName: granted ? "Active Member" : "Expired Member",
           memberNumber: code,
           status: granted ? "active" : "expired",
-          membershipExpiry: granted ? "2027-12-31" : "2025-01-01",
+          membershipExpiry: code === "BGM0000240" ? expiresInSixDays : granted ? "2027-12-31" : "2025-01-01",
           enrollmentGymName: "Birkirkara",
           legacyGym: "Mosta",
           photoRequired: false,
@@ -113,6 +119,20 @@ try {
   assert.equal(await name.inputValue(), "Maria Borg");
   assert.equal(await name.evaluate((input) => document.activeElement === input), true,
     "Normal granted access must auto-close and restore Staff input focus");
+
+  // Authorised but expiring within a week: orange is a staff-only sales prompt.
+  await name.focus();
+  await sendConfiguredScan("BGM0000240");
+  const renewal = page.getByRole("dialog", { name: "ACCESS GRANTED" });
+  await renewal.waitFor({ state: "visible", timeout: 15000 });
+  assert.ok((await renewal.getAttribute("class")).includes("bg-orange-500"),
+    "granted renewal-due card should show orange background");
+  await renewal.getByTestId("staff-renewal-due-banner").waitFor();
+  await renewal.getByText(/EXPIRES IN 6 DAYS/).waitFor();
+  await renewal.getByText(/ACCESS GRANTED. Please offer this member a renewal/).waitFor();
+  await page.screenshot({ path: artifacts + "/sundries-granted-renewal-orange.png" });
+  await renewal.getByRole("button", { name: /Close \/ Return to Staff Task/ }).click();
+  assert.equal(await name.inputValue(), "Maria Borg", "Renewal cue preserves Staff input");
 
   const sundriesQuantity = page.getByRole("spinbutton", { name: "Toilet paper quantity" });
   await sundriesQuantity.fill("4");
@@ -281,7 +301,7 @@ try {
   assert.equal(await barTotal.textContent(), totalBeforeNumericScans,
     "Bar quantity must remain editable after scanning");
 
-  assert.equal(scans, 9, "Every submitted scan must be verified exactly once");
+  assert.equal(scans, 10, "Every submitted scan must be verified exactly once");
   assert.deepEqual(pageErrors, [], "Global scanner must not trigger browser errors");
   console.log("PASS global scanner preserves Sundries and live Bar controls while verifying cards");
 } finally {

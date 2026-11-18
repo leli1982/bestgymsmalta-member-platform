@@ -3,6 +3,8 @@
 import { formatEuropeanDate } from "@/lib/europeanDate";
 import { evaluateOfflineRosterMember } from "@/lib/offlineAccessCore";
 import { todayMaltaDate } from "@/lib/maltaDate";
+import { getGrantedRenewalDaysRemaining } from "@/lib/staffScanRenewalCore";
+import StaffScanRenewalBanner from "@/components/staff/StaffScanRenewalBanner";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -53,6 +55,7 @@ type AccessResult = {
  */
 const SCANNER_PREFIX = "F9";
 const GRANTED_AUTO_CLOSE_MS = 3500;
+const GRANTED_RENEWAL_AUTO_CLOSE_MS = 8000;
 
 type ScannerEditable = HTMLInputElement | HTMLTextAreaElement;
 type EditableBurst = {
@@ -347,7 +350,10 @@ export default function StaffGlobalScanner() {
     if (normalGrantedResult) {
       resultResetTimer.current = window.setTimeout(
         closeResult,
-        GRANTED_AUTO_CLOSE_MS
+        getGrantedRenewalDaysRemaining(
+          Boolean(result?.granted && !result?.offline),
+          result?.member?.membershipExpiry,
+        ) !== null ? GRANTED_RENEWAL_AUTO_CLOSE_MS : GRANTED_AUTO_CLOSE_MS
       );
     }
 
@@ -506,7 +512,11 @@ export default function StaffGlobalScanner() {
   const granted = Boolean(result?.granted);
   const problem = Boolean(networkError);
   const offlineLookup = networkError.startsWith("OFFLINE LOOKUP");
-  const color = problem ? "bg-amber-600" : granted ? "bg-emerald-600" : "bg-red-600";
+  const renewalDaysRemaining = getGrantedRenewalDaysRemaining(
+    Boolean(result?.granted && !result?.offline),
+    result?.member?.membershipExpiry,
+  );
+  const color = problem ? "bg-amber-600" : granted ? renewalDaysRemaining !== null ? "bg-orange-500" : "bg-emerald-600" : "bg-red-600";
 
   return (
     <>
@@ -583,6 +593,9 @@ export default function StaffGlobalScanner() {
             <h2 className={`mt-2 text-3xl font-black sm:text-5xl ${granted ? "text-emerald-700" : "text-red-700"}`}>
               {heading(result)}
             </h2>
+            {renewalDaysRemaining !== null && result.member?.membershipExpiry && (
+              <StaffScanRenewalBanner daysRemaining={renewalDaysRemaining} expiryDate={result.member.membershipExpiry} />
+            )}
             {result.offline && (
               <p className="mx-auto mt-3 max-w-3xl rounded-2xl bg-amber-50 p-3 text-sm font-black text-amber-900">
                 OFFLINE CACHED ACCESS — evaluated from the last saved roster using today&apos;s Malta date. No live check-in has been recorded.
