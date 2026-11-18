@@ -121,7 +121,7 @@ function Show-Hu20KioskStatus {
   $red = [System.Drawing.Color]::FromArgb(246,113,115)
   $muted = [System.Drawing.Color]::FromArgb(161,175,194)
   $main = "CONNECTING"
-  $detail = if ($script:Hu20RealStaffPilot) { "STAFF PILOT TEST — NOT PRODUCTION" } else { "FICTIONAL TEST ONLY" }
+  $detail = if ($script:Hu20RealStaffPilot) { "STAFF PILOT TEST - NOT PRODUCTION" } else { "FICTIONAL TEST ONLY" }
   $colour = $amber
   switch ($State) {
     "connecting" { $main = "CONNECTING"; $detail = "Checking TEST kiosk approval" }
