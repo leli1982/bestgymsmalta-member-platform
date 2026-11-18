@@ -19,7 +19,7 @@ test("Real employee has read-only readiness and separately approved TEST pilot e
   assert.match(readiness, /pilot requires individual Super Admin authorisation/);
   assert.match(readiness, /REAL BIOMETRIC ENROLMENT DISABLED/);
   assert.doesNotMatch(readiness, /method: "POST"|method: "PATCH"|\/enroll|\/recognition/);
-  assert.match(pilot, /real[- ]staff/i);
+  assert.match(pilot, /A Super Admin must activate each real employee separately/);
   assert.match(quick, /fictional TEST only/);
   assert.match(quick, /mode === "real-pilot"/);
 });
