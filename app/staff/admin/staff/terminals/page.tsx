@@ -124,7 +124,7 @@ export default function Hu20TestTerminalsPage() {
       <h1 className="mt-4 text-2xl font-bold">HU20 Punch Clock terminals — TEST</h1>
       <p className="mt-2"><a href="/staff/admin/gyms" className="font-semibold underline">Enable or disable Punch Clock per TEST gym</a></p>
       <p className="mt-2"><a href="/staff/admin/staff/terminals/enrollment" className="font-semibold underline">Supervised TEST enrollment requests</a></p>
-      <p className="mt-2 text-sm">Register a gym PC for secure TEST communication. Only fictional HU20-TEST employees can create TEST fingerprint attendance; normal staff punch clock and live payroll remain disabled.</p>
+      <p className="mt-2 text-sm">Register a gym PC for isolated TEST communication. Fictional HU20-TEST employees and individually Super Admin-approved real-staff TEST pilot employees are separately gated. Production biometric attendance remains disabled.</p>
       {error && <p role="alert" className="mt-4 rounded bg-red-100 p-3 text-red-900">{error}</p>}
       {notice && <p role="status" className="mt-4 rounded bg-slate-100 p-3 text-slate-900">{notice}</p>}
       <form onSubmit={createTerminal} className="mt-5 grid gap-3 rounded border bg-white p-4">
