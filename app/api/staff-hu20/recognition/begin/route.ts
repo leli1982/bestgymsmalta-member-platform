@@ -128,6 +128,7 @@ export async function POST(request: NextRequest) {
       attendanceEnabled: false,
       vendorSecurityLevel: "NORMAL_TEST_ONLY",
       kioskTestOnly: kioskMode,
+      realStaffPilot: pilotRoster,
     }, { headers });
   } catch (error) {
     console.error("HU20 recognition TEST roster failed", error instanceof Error ? error.name : "unknown");

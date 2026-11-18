@@ -1,7 +1,7 @@
 @echo off
 setlocal
-title BestGymsMalta - HU20 AUTOMATIC FICTIONAL TEST KIOSK
-echo HU20 AUTOMATIC TEST KIOSK ONLY - NOT FOR LIVE STAFF
+title BestGymsMalta - HU20 AUTOMATIC CONTROLLED TEST KIOSK
+echo HU20 SUPERVISED TEST ONLY - NOT PRODUCTION. MODE VERIFIED BY SERVER.
 echo First arm a 10-minute TEST kiosk from Staff Super Admin.
 echo ESC closes the fullscreen TEST display. STOP in Super Admin revokes the window.
 echo Private credentials are requested before the fullscreen display opens.

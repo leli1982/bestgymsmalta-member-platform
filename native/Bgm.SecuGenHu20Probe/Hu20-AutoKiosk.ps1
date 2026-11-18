@@ -316,7 +316,8 @@ try {
       $body.attendanceEnabled -ne $false -or
       $body.fingerprintMatchingOnTerminal -ne $true -or
       $body.vendorSecurityLevel -cne "NORMAL_TEST_ONLY" -or
-      $body.kioskTestOnly -ne $true) {
+      $body.kioskTestOnly -ne $true -or
+      $body.realStaffPilot -ne $pilotMode) {
     throw "Unexpected TEST roster; recognition aborted."
   }
   $testId = [string]$body.testId
@@ -457,11 +458,13 @@ try {
     try { $testPunch = $testPunchResponse.Content | ConvertFrom-Json -ErrorAction Stop }
     catch { throw "KIOSK_PUNCH_UNCERTAIN: attendance response was unreadable. Check TEST attendance log." }
     if ($testPunchResponse.StatusCode -ne 200 -or $testPunch.ok -ne $true -or
-        $testPunch.fictionalTestOnly -ne $true -or
+        $testPunch.testOnly -ne $true -or
+        $testPunch.fictionalTestOnly -ne $fictionalMode -or
+        $testPunch.realStaffPilot -ne $pilotMode -or
         @("clocked_in","clocked_out","duplicate_ignored") -cnotcontains [string]$testPunch.outcome) {
       throw "KIOSK_PUNCH_UNCERTAIN: attendance confirmation invalid. STOP kiosk and check TEST attendance log."
     }
-    Write-Host "FICTIONAL TEST PUNCH: $($testPunch.outcome) at gym $($testPunch.gymId) (event $($testPunch.punchEventId))."
+    Write-Host "$(if ($pilotMode) { 'STAFF PILOT TEST PUNCH' } else { 'FICTIONAL TEST PUNCH' }): $($testPunch.outcome) at gym $($testPunch.gymId) (event $($testPunch.punchEventId))."
     if ($FullScreenTest) {
       switch ([string]$testPunch.outcome) {
         "clocked_in" { Show-Hu20KioskStatus -State "clock_in" -Person $matchedName }
@@ -480,7 +483,7 @@ try {
     Write-Host "PASS: CENTRAL_AMBIGUOUS rejected safely."
     if ($FullScreenTest) { Show-Hu20KioskStatus -State "rejected"; Wait-Hu20KioskUi -Milliseconds 2000 }
   }
-  Write-Host "Only a confirmed one-match can create a fictional TEST clock event; NO_MATCH and AMBIGUOUS never punch."
+  Write-Host "Only a confirmed one-match can create an authorised TEST clock event; NO_MATCH and AMBIGUOUS never punch."
   Write-Host "Security level NORMAL is only for a smoke test, not production."
     }
     catch {
