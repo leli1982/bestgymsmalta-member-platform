@@ -2,31 +2,24 @@
 
 import { useEffect, useRef } from "react";
 
-const SUBMITTED_MARKER = "End of Day submitted";
+const SUBMITTED_EVENT = "bgm:end-of-day-submitted";
 
 export default function EndOfDayPrintBridge() {
-  const previousSubmitted = useRef(false);
   const printed = useRef(false);
 
   useEffect(() => {
-    const isSubmitted = () => document.body.textContent?.includes(SUBMITTED_MARKER) ?? false;
-
-    // Establish the initial state so reopening an already-submitted report does not auto-print.
-    previousSubmitted.current = isSubmitted();
-
-    const observer = new MutationObserver(() => {
-      const submitted = isSubmitted();
-
-      if (submitted && !previousSubmitted.current && !printed.current) {
-        printed.current = true;
-        window.setTimeout(() => window.print(), 0);
-      }
-
-      previousSubmitted.current = submitted;
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-    return () => observer.disconnect();
+    // Only a successful POST dispatches this event. Loading a previously
+    // submitted report or refreshing the page must NEVER open a print dialog.
+    const onSuccess = () => {
+      if (printed.current) return;
+      printed.current = true;
+      // Give React time to render the submitted report before printing it.
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => window.print());
+      });
+    };
+    window.addEventListener(SUBMITTED_EVENT, onSuccess);
+    return () => window.removeEventListener(SUBMITTED_EVENT, onSuccess);
   }, []);
 
   return (
