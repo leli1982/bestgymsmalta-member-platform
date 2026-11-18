@@ -12,6 +12,7 @@ type Window = {
 export default function Hu20TestKioskWindowsPanel({ terminals }: { terminals: Terminal[] }) {
   const [windows, setWindows] = useState<Window[]>([]);
   const [selectedTerminal, setSelectedTerminal] = useState("");
+  const [detectedLocalName, setDetectedLocalName] = useState("");
   const [available, setAvailable] = useState<boolean | null>(null);
   const [realPilot, setRealPilot] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -36,6 +37,27 @@ export default function Hu20TestKioskWindowsPanel({ terminals }: { terminals: Te
     }
   }, []);
   useEffect(() => { void load(); }, [load]);
+
+  // A provisioned Windows HU20 service identifies THIS PC. Never infer a
+  // terminal from its last_seen timestamp or send terminal credentials to UI.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8765/status", {
+          method: "GET", headers: { "X-BGM-HU20-Bridge": "v1" }, cache: "no-store",
+        });
+        const device = await response.json();
+        if (!response.ok || device?.ok !== true || device?.testOnly !== true) return;
+        const match = terminals.find(item => item.active && item.id === device.terminalId);
+        if (match && !cancelled) {
+          setSelectedTerminal(match.id);
+          setDetectedLocalName(match.name);
+        }
+      } catch { /* Admin may be on a different PC. Use the named terminal selector. */ }
+    })();
+    return () => { cancelled = true; };
+  }, [terminals]);
 
   const active = windows.filter((w) => w.status === "active" && Date.parse(w.expires_at) > Date.now());
   const terminalNames = new Map(terminals.map((t) => [t.id, t.name]));
@@ -72,8 +94,9 @@ export default function Hu20TestKioskWindowsPanel({ terminals }: { terminals: Te
     {error && <p role="alert" className="mt-3 rounded bg-red-100 p-3 text-sm text-red-800">{error}</p>}
     {message && <p className="mt-3 rounded bg-green-50 p-3 text-sm font-semibold text-green-900">{message}</p>}
     {available && <>
+      {detectedLocalName && <p data-testid="hu20-current-pc-terminal" className="mt-4 rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-bold text-green-900">This PC: {detectedLocalName} — selected automatically from the installed HU20 service.</p>}
       <div className="mt-4 flex flex-wrap items-end gap-2">
-        <label className="grid min-w-[220px] gap-1 text-sm font-semibold">TEST terminal
+        <label className="grid min-w-[220px] gap-1 text-sm font-semibold">Installed TEST terminal
           <select value={selectedTerminal} onChange={(e) => setSelectedTerminal(e.target.value)} className="rounded border p-2">
             <option value="">Select registered terminal</option>
             {terminals.filter((t) => t.active).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
