@@ -55,7 +55,7 @@ function Initialize-Hu20KioskDisplay {
   $white = [System.Drawing.Color]::FromArgb(242,245,249)
   $muted = [System.Drawing.Color]::FromArgb(161,175,194)
   $amber = [System.Drawing.Color]::FromArgb(253,179,36)
-  $script:Hu20TitleLabel = New-Hu20ScreenLabel "BESTGYMSMALTA" 30 $white $true
+  $script:Hu20TitleLabel = New-Hu20ScreenLabel "BESTGYMSMALTA | STAFF PUNCH CLOCK" 30 $white $true
   $script:Hu20DetailLabel = New-Hu20ScreenLabel "AUTOMATIC FINGERPRINT TERMINAL" 24 $muted $true
   $script:Hu20StateLabel = New-Hu20ScreenLabel "CONNECTING" 62 $amber $true
   $script:Hu20PersonLabel = New-Hu20ScreenLabel "FICTIONAL TEST ONLY" 30 $white $false
@@ -125,8 +125,8 @@ function Show-Hu20KioskStatus {
   $colour = $amber
   switch ($State) {
     "connecting" { $main = "CONNECTING"; $detail = "Checking TEST kiosk approval" }
-    "ready" { $main = "PLACE FINGER"; $detail = "Touch the HU20 sensor once" }
-    "reading" { $main = "READING"; $detail = "Checking fingerprint" }
+    "ready" { $main = "PLACE FINGER"; $detail = "Touch the scanner - no code or button needed" }
+    "reading" { $main = "READING"; $detail = "Keep your finger on the scanner" }
     "remove" { $main = "REMOVE FINGER"; $detail = "Lift your finger from the sensor" }
     "verifying" { $main = "VERIFYING"; $detail = "Confirming central TEST recognition" }
     "clock_in" { $main = "CLOCKED IN"; $detail = $Person; $colour = $green }
@@ -140,6 +140,15 @@ function Show-Hu20KioskStatus {
     "error" { $main = "OUT OF SERVICE"; $detail = "Automatic TEST scanning stopped"; $colour = $red }
   }
   if ($detail.Length -gt 90) { $detail = $detail.Substring(0,90) }
+  # Visual feedback only. Only the server and native recognition routine
+  # determine whether an attendance event was actually recorded.
+  $script:Hu20Display.BackColor = if ($State -in @("clock_in","clock_out")) {
+    [System.Drawing.Color]::FromArgb(10,63,45)
+  } elseif ($State -in @("rejected","reader_error","network_error","uncertain","error")) {
+    [System.Drawing.Color]::FromArgb(83,24,30)
+  } else {
+    [System.Drawing.Color]::FromArgb(12,18,29)
+  }
   $script:Hu20StateLabel.Text = $main
   $script:Hu20StateLabel.ForeColor = $colour
   $script:Hu20PersonLabel.Text = $detail
