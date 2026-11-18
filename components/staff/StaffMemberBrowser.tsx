@@ -41,6 +41,7 @@ type Props = {
   focusToken?: number;
   canRenew?: boolean;
   canEdit?: boolean;
+  isSuperAdmin?: boolean;
 };
 
 const FILTERS: Array<{ key: Filter; label: string }> = [
@@ -60,7 +61,7 @@ function statusLabel(classification: Classification) {
   return "INACTIVE";
 }
 
-export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, canEdit = false }: Props) {
+export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, canEdit = false, isSuperAdmin = false }: Props) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [members, setMembers] = useState<StaffMember[]>([]);
@@ -300,9 +301,9 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, c
             </dl>
 
             {canEdit && (
-              <a href={`/staff/admin/members/${encodeURIComponent(selected.id)}`}
+              <a href={isSuperAdmin ? `/staff/admin/members/${encodeURIComponent(selected.id)}` : `/staff/members/${encodeURIComponent(selected.id)}/edit`}
                 className="mt-5 flex w-full items-center justify-center rounded-2xl border border-orange-300 bg-orange-50 px-5 py-4 text-base font-black text-orange-800 hover:bg-orange-100">
-                EDIT MEMBER DETAILS
+                EDIT MEMBER / REPLACE CARD
               </a>
             )}
             {canRenew && selected.memberNumber && (
