@@ -54,9 +54,9 @@ export default function Hu20RealStaffReadiness({
     { label: "Home gym has a registered TEST terminal", passed: homeTerminalCount > 0 },
   ];
 
-  return <section className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-sm"
-    aria-label="Real staff HU20 pilot readiness — no biometric capture">
-    <h3 className="font-black text-slate-900">HU20 real-staff onboarding — preparation only</h3>
+  return <details className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-sm"
+    aria-label="Advanced HU20 TEST enrollment readiness and privacy checklist">
+    <summary className="cursor-pointer font-black text-slate-900">Advanced: readiness & privacy checklist</summary>
     <p className="mt-1 text-slate-700">
       This is a read-only administrative checklist. The separate real-staff fingerprint
       pilot requires individual Super Admin authorisation and the isolated TEST environment.
@@ -91,7 +91,7 @@ export default function Hu20RealStaffReadiness({
       Super Admin manual attendance remains available under Staff Management → Timesheets.
     </p>
     <p className="mt-2 text-xs font-bold text-slate-900">
-      REAL BIOMETRIC ENROLMENT DISABLED — no fingerprint capture button is available.
+      PRODUCTION BIOMETRIC ENROLMENT DISABLED — any TEST pilot capture is individually authorised and isolated.
     </p>
-  </section>;
+  </details>;
 }
