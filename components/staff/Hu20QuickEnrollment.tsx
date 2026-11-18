@@ -6,7 +6,7 @@ import { Fingerprint } from "lucide-react";
 const BRIDGE = "http://127.0.0.1:8765";
 const BRIDGE_HEADERS = { "X-BGM-HU20-Bridge": "v1" };
 type LocalDevice = { ok: true; testOnly: true; terminalId: string; nonce: string };
-type Props = { employeeId: string; employeeName: string; active: boolean; mode?: "fictional" | "real-pilot" };
+type Props = { employeeId: string; employeeName: string; active: boolean; mode?: "fictional" | "real-pilot"; onAuthorize?: () => Promise<void> };
 
 async function readLocalDevice(): Promise<LocalDevice> {
   const response = await fetch(BRIDGE + "/status", {
@@ -22,7 +22,7 @@ async function readLocalDevice(): Promise<LocalDevice> {
   return data as LocalDevice;
 }
 
-export default function Hu20QuickEnrollment({ employeeId, employeeName, active, mode = "fictional" }: Props) {
+export default function Hu20QuickEnrollment({ employeeId, employeeName, active, mode = "fictional", onAuthorize }: Props) {
   const [deviceName, setDeviceName] = useState("");
   const [terminalId, setTerminalId] = useState("");
   const [pendingRequestId, setPendingRequestId] = useState("");
@@ -49,14 +49,14 @@ export default function Hu20QuickEnrollment({ employeeId, employeeName, active, 
       setPendingRequestId(pending?.id || "");
       if (pending) {
         setState("pending");
-        setMessage("An earlier TEST enrollment is still pending. Cancel that authorization here before starting a new scan.");
+        setMessage("A previous fingerprint enrollment was not finished. Cancel it below to start again.");
       } else {
         setState("ready");
         setMessage("");
       }
     } catch {
       setState("offline");
-      setMessage("The HU20 local helper is not ready on this PC. One-time device setup is required; no passwords or Share links should be entered here.");
+      setMessage("No configured HU20 reader service was found on this PC. Connect the reader and ask your installer to complete the one-time PC setup. Super Admin never needs scanner codes or passwords.");
     }
   }, [active, employeeId]);
 
@@ -86,7 +86,11 @@ export default function Hu20QuickEnrollment({ employeeId, employeeName, active, 
     setMessage("The Windows progress window will now open. Follow PLACE FINGER and REMOVE FINGER for scans 1, 2 and 3. Keep the kiosk closed.");
     try {
       const device = await readLocalDevice();
-      if (device.terminalId !== terminalId) throw new Error("Local reader identity changed.");
+      if (device.terminalId !== terminalId) throw new Error("The connected reader is not the one registered to this PC.");
+      // The same explicit Super Admin click can individually approve this
+      // employee for the isolated TEST pilot before requesting capture.
+      // The server still verifies approval independently at every stage.
+      if (mode === "real-pilot" && onAuthorize) await onAuthorize();
       const approved = await fetch("/api/system/staff-hu20/enrollments", {
         method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store",
         body: JSON.stringify({ employeeId, terminalId: device.terminalId }),
@@ -128,18 +132,18 @@ export default function Hu20QuickEnrollment({ employeeId, employeeName, active, 
 
   return <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm">
     <div className="flex items-center gap-2 font-black text-zinc-900">
-      <Fingerprint className="h-5 w-5 text-orange-700" /> {mode === "real-pilot" ? "Enrol Fingerprint — authorised real staff TEST pilot" : "Enrol Fingerprint — fictional TEST only"}
+      <Fingerprint className="h-5 w-5 text-orange-700" /> {mode === "real-pilot" ? "Fingerprint enrollment — staff TEST pilot" : "Fingerprint enrollment — fictional TEST"}
     </div>
     <p className="mt-1 text-zinc-700">
-      The reader attached to this PC is selected automatically. No terminal dropdown,
-      console commands, Vercel Share links or terminal-secret prompts during enrolment.
+      This PC selects its registered scanner automatically. Staff members do not enter PINs,
+      scanner IDs or technical codes. Ask the employee to be present for three fingerprint placements.
     </p>
     <p className="mt-2 font-semibold text-zinc-900" role="status">
       {state === "checking" ? "Checking local HU20…" :
-        state === "ready" ? "Connected reader: " + deviceName :
-        state === "pending" ? "Previous enrollment pending — " + deviceName :
+        state === "ready" ? "Reader service ready on this PC: " + deviceName :
+        state === "pending" ? "Previous enrollment needs attention — " + deviceName :
         state === "enrolling" ? "Follow the Windows PLACE/REMOVE FINGER window" :
-        state === "completed" ? "Fingerprint enrolled" : "HU20 helper unavailable"}
+        state === "completed" ? "Fingerprint enrolled" : "Reader service not configured on this PC"}
     </p>
     {message && <p className="mt-2 text-zinc-800" role="alert">{message}</p>}
     <button type="button" onClick={() => void startEnrollment()} disabled={state !== "ready" || !active}
@@ -161,7 +165,7 @@ export default function Hu20QuickEnrollment({ employeeId, employeeName, active, 
     </p>
     <a href={"/staff/admin/staff/terminals/enrollment?employeeId=" + encodeURIComponent(employeeId)}
       className="mt-2 inline-block font-bold text-orange-800 underline">
-      Manage HU20 TEST enrolment and status
+      Advanced enrollment assistance (installer only)
     </a>
   </div>;
 }
