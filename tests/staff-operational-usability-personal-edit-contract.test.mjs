@@ -94,7 +94,8 @@ test("End of Day print is one A4-oriented ink-saving summary after success, with
   assert.match(eod, /additional bar items: see digital report/);
   assert.match(bridge, /size: A4 portrait/);
   assert.match(bridge, /print-color-adjust: economy/);
-  assert.match(bridge, /submitted && !previousSubmitted\.current/);
+  assert.match(bridge, /bgm:end-of-day-submitted/);
+  assert.doesNotMatch(bridge, /MutationObserver/);
 });
 
 test("BGM member number appears on reprinted application only after activation", () => {
