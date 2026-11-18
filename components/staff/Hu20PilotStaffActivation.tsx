@@ -85,7 +85,7 @@ export default function Hu20PilotStaffActivation({employeeId,active,employeeName
       </div>
       {enabled&&<button type="button" onClick={()=>void revoke()} disabled={busy}
         className="mt-4 rounded-xl border border-red-300 bg-white px-4 py-2 text-sm font-bold text-red-800 disabled:opacity-50">
-        {busy?"Disabling…":"Disable fingerprint and revoke"}
+        {busy?"Disabling…":"Disable and revoke fingerprint pilot"}
       </button>}
     </>}
   </section>;
