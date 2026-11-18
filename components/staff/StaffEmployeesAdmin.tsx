@@ -90,7 +90,7 @@ export default function StaffEmployeesAdmin() {
         initialEmploymentType:create.initialEmploymentType, employmentTypeEffectiveFrom:create.employmentTypeEffectiveFrom,
       }) });
       const body = await response.json(); if (!response.ok) throw new Error(body.error || "Could not create staff employee.");
-      setCreate(blankCreate); setShowCreate(false); setMessage("Staff employee created."); await load(); setSelectedId(body.employee.id);
+      setCreate(blankCreate); setShowCreate(false); setMessage("Staff details saved. Continue below with Enrol Fingerprint on the employee profile."); await load(); setSelectedId(body.employee.id);
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not create staff employee."); }
     finally { setBusy(false); }
   }
@@ -102,7 +102,7 @@ export default function StaffEmployeesAdmin() {
     <div className="mx-auto max-w-[1500px] space-y-5">
       <header className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-7">
         <a href="/staff/admin" className="inline-flex items-center gap-2 text-sm font-black text-orange-700"><ArrowLeft className="h-4 w-4"/> Super Admin</a>
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-widest text-orange-700">Management</p><h1 className="mt-1 text-3xl font-black">Staff</h1><p className="mt-2 text-sm text-zinc-600">Employment records, pay configuration, attendance and payroll. Staff Portal logins remain separate. Fingerprint Punch Clock remains inactive until hardware setup is complete.</p></div><UsersRound className="h-12 w-12 text-orange-600"/></div>
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-widest text-orange-700">Management</p><h1 className="mt-1 text-3xl font-black">Staff</h1><p className="mt-2 text-sm text-zinc-600">Employment records, pay configuration, attendance and payroll. Staff Portal logins remain separate. TEST fingerprint setup is guided from each employee profile and the local Windows HU20 kiosk records attendance only when separately authorised.</p></div><UsersRound className="h-12 w-12 text-orange-600"/></div>
       </header>
 
       <nav className="flex flex-wrap gap-2 rounded-2xl border border-zinc-200 bg-white p-2 shadow-sm" aria-label="Staff management areas">
@@ -119,7 +119,7 @@ export default function StaffEmployeesAdmin() {
         {!selectedId && <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-black">Employees</h2><p className="text-sm text-zinc-500">{filtered.length} of {data?.employees.length || 0} staff records</p></div><button onClick={()=>setShowCreate(!showCreate)} className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-sm font-black text-white"><Plus className="h-4 w-4"/>Add staff</button></div>
 
-          {showCreate && <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50/40 p-4"><h3 className="font-black">New staff employee</h3><div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {showCreate && <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50/40 p-4"><h3 className="font-black text-lg">Step 1 — Add staff details</h3><p className="mt-1 text-sm text-zinc-600">Enter the employee details and save. The employee profile opens automatically with the next step: Enrol Fingerprint, using the reader registered to this PC.</p><div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <Field label="First name"><input className="field" value={create.firstName} onChange={e=>setCreate({...create,firstName:e.target.value})}/></Field>
             <Field label="Surname"><input className="field" value={create.surname} onChange={e=>setCreate({...create,surname:e.target.value})}/></Field>
             <Field label="ID card"><input className="field" value={create.idNumber} onChange={e=>setCreate({...create,idNumber:e.target.value})}/></Field>
@@ -131,7 +131,7 @@ export default function StaffEmployeesAdmin() {
             <Field label="Rate Effective from"><EuropeanDateInput value={create.rateEffectiveFrom} onValueChange={rateEffectiveFrom=>setCreate({...create,rateEffectiveFrom})} className="field" ariaLabel="Rate effective from"/></Field>
             <Field label="Employment type"><select className="field" value={create.initialEmploymentType} onChange={e=>setCreate({...create,initialEmploymentType:e.target.value})}><option value="full_time">Full Time</option><option value="part_time">Part Time</option></select></Field>
             <Field label="Employment Effective from"><EuropeanDateInput value={create.employmentTypeEffectiveFrom} onValueChange={employmentTypeEffectiveFrom=>setCreate({...create,employmentTypeEffectiveFrom})} className="field" ariaLabel="Employment effective from"/></Field>
-          </div><div className="mt-4 flex gap-2"><button disabled={busy} onClick={()=>void createEmployee()} className="rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">Create employee</button><button onClick={()=>setShowCreate(false)} className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-black">Cancel</button></div></div>}
+          </div><div className="mt-4 flex gap-2"><button disabled={busy} onClick={()=>void createEmployee()} className="rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">Save staff &amp; continue to fingerprint</button><button onClick={()=>setShowCreate(false)} className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-black">Cancel</button></div></div>}
 
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <Field label="Search"><div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400"/><input value={filters.q} onChange={e=>setFilters({...filters,q:e.target.value})} className="field pl-9" placeholder="Name, ID, email…"/></div></Field>
