@@ -254,9 +254,9 @@ export default function EndOfDayPage() {
           {error && <p role="alert" aria-live="assertive" className="mt-4 rounded-xl border-2 border-red-500 bg-red-50 p-3 text-sm font-black text-red-900">{error}</p>}
           <button type="button" onClick={() => void submit()} disabled={submitting}
             className="mt-4 w-full rounded-2xl bg-[#ff5a0a] px-5 py-4 text-lg font-black text-white disabled:opacity-40">
-            {submitting ? "SUBMITTING…" : "SUBMIT END OF DAY"}
+            {submitting ? "PRINT + SUBMIT IN PROGRESS…" : "PRINT + SUBMIT"}
           </button>
-          <p className="mt-2 text-center text-xs font-semibold text-zinc-500">Submitting closes the current financial period. Any sales after this submission begin the next End of Day period.</p>
+          <p className="mt-2 text-center text-xs font-semibold text-zinc-500">PRINT + SUBMIT closes the current financial period and opens the A4 print dialog after successful submission. Sales afterwards belong to the next period.</p>
         </section>
       </div>
     </main>
