@@ -6,6 +6,7 @@ import StaffEmployeeDetail from "@/components/staff/StaffEmployeeDetail";
 import StaffPublicHolidaysAdmin from "@/components/staff/StaffPublicHolidaysAdmin";
 import StaffTimesheetsAdmin from "@/components/staff/StaffTimesheetsAdmin";
 import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+import { todayMaltaDate } from "@/lib/maltaDate";
 
 type Gym = { id: string; name: string; status?: string };
 type Employee = {
@@ -20,7 +21,7 @@ type Area = "Employees" | "Timesheets" | "Public Holidays";
 
 const blankCreate = {
   firstName: "", surname: "", idNumber: "", address: "", mobile: "", email: "", homeGymId: "",
-  initialHourlyRate: "", rateEffectiveFrom: "", initialEmploymentType: "full_time", employmentTypeEffectiveFrom: "",
+  initialHourlyRate: "", rateEffectiveFrom: todayMaltaDate(), initialEmploymentType: "full_time", employmentTypeEffectiveFrom: todayMaltaDate(),
 };
 
 function eur(cents: number | null) {
@@ -119,7 +120,7 @@ export default function StaffEmployeesAdmin() {
         {!selectedId && <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-black">Employees</h2><p className="text-sm text-zinc-500">{filtered.length} of {data?.employees.length || 0} staff records</p></div><button onClick={()=>setShowCreate(!showCreate)} className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-sm font-black text-white"><Plus className="h-4 w-4"/>Add staff</button></div>
 
-          {showCreate && <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50/40 p-4"><h3 className="font-black text-lg">Step 1 — Add staff details</h3><p className="mt-1 text-sm text-zinc-600">Enter the employee details and save. The employee profile opens automatically with the next step: Enrol Fingerprint, using the reader registered to this PC.</p><div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {showCreate && <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50/40 p-4"><h3 className="font-black text-lg">Step 1 — Add staff details</h3><p className="mt-1 text-sm text-zinc-600">Enter the employee details and save. The employee profile opens automatically with the next step: Enrol Fingerprint, using the reader registered to this PC. Employment dates default to today and can be changed.</p><div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <Field label="First name"><input className="field" value={create.firstName} onChange={e=>setCreate({...create,firstName:e.target.value})}/></Field>
             <Field label="Surname"><input className="field" value={create.surname} onChange={e=>setCreate({...create,surname:e.target.value})}/></Field>
             <Field label="ID card"><input className="field" value={create.idNumber} onChange={e=>setCreate({...create,idNumber:e.target.value})}/></Field>
