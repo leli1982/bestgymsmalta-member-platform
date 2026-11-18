@@ -83,14 +83,14 @@ function PrintableEndOfDay({ report }: { report: Report }) {
       </table>
       <div className="bgm-eod-print-columns">
         <section><h2>Bar items</h2>
-          {report.barItems.length ? <table><tbody>{report.barItems.map((item, i) => <tr key={i}><td>{item.itemName} × {item.quantity}</td><td>{formatBarEuro(item.lineTotalCents)}</td></tr>)}</tbody></table> : <p>None</p>}
+          {report.barItems.length ? <><table><tbody>{report.barItems.slice(0, 12).map((item, i) => <tr key={i}><td>{item.itemName.slice(0, 72)} × {item.quantity}</td><td>{formatBarEuro(item.lineTotalCents)}</td></tr>)}</tbody></table>{report.barItems.length > 12 && <p>+{report.barItems.length - 12} additional bar items: see digital report.</p>}</> : <p>None</p>}
         </section>
         <div>
           <section><h2>Voucher reimbursements (included above)</h2>
-            {report.vouchers.length ? <table><tbody>{report.vouchers.map((item, i) => <tr key={i}><td>{item.voucherCode} × {item.quantity}</td><td>{formatBarEuro(item.reimbursementTotalCents)}</td></tr>)}</tbody></table> : <p>None</p>}
+            {report.vouchers.length ? <><table><tbody>{report.vouchers.slice(0, 8).map((item, i) => <tr key={i}><td>{item.voucherCode.slice(0, 72)} × {item.quantity}</td><td>{formatBarEuro(item.reimbursementTotalCents)}</td></tr>)}</tbody></table>{report.vouchers.length > 8 && <p>+{report.vouchers.length - 8} additional vouchers: see digital report.</p>}</> : <p>None</p>}
           </section>
           <section><h2>Expenses</h2>
-            {report.expenses.length ? <table><tbody>{report.expenses.map((item, i) => <tr key={item.id || i}><td>{item.description}</td><td>{formatBarEuro(item.amountCents)}</td></tr>)}</tbody></table> : <p>None</p>}
+            {report.expenses.length ? <><table><tbody>{report.expenses.slice(0, 12).map((item, i) => <tr key={item.id || i}><td>{item.description.slice(0, 72)}</td><td>{formatBarEuro(item.amountCents)}</td></tr>)}</tbody></table>{report.expenses.length > 12 && <p>+{report.expenses.length - 12} additional expenses: see digital report.</p>}</> : <p>None</p>}
           </section>
         </div>
       </div>
