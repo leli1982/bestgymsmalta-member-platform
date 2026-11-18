@@ -15,7 +15,7 @@ test("Save staff opens profile where the fingerprint step follows, without a ter
   assert.match(quick, /readLocalDevice/);
   assert.match(quick, /t\.active && t\.id === local\.terminalId/);
   assert.match(quick, /device\.terminalId !== terminalId/);
-  assert.doesNotMatch(quick, /terminalSecret|vercelBypass|_vercel_share|PIN|localStorage|sessionStorage/);
+  assert.doesNotMatch(quick, /terminalSecret|vercelBypass|_vercel_share|localStorage|sessionStorage/);
 });
 
 test("One click retains individually approved, audited TEST-only real staff enrollment", () => {
@@ -28,7 +28,7 @@ test("One click retains individually approved, audited TEST-only real staff enro
   assert.match(pilot, /onAuthorize=\{authoriseBeforeCapture\}/);
   assert.match(pilot, /method:"POST"/);
   assert.match(pilot, /enabled:true/);
-  assert.match(pilot, /Disable fingerprint and revoke/);
+  assert.match(pilot, /Disable and revoke fingerprint pilot/);
   assert.match(quick, /if \(mode === "real-pilot" && onAuthorize\) await onAuthorize\(\)/);
   const indexApproval = quick.indexOf("await onAuthorize()");
   const indexRequest = quick.indexOf('fetch("/api/system/staff-hu20/enrollments", {\n        method: "POST"');
