@@ -6,7 +6,7 @@ import { Fingerprint } from "lucide-react";
 const BRIDGE = "http://127.0.0.1:8765";
 const BRIDGE_HEADERS = { "X-BGM-HU20-Bridge": "v1" };
 type LocalDevice = { ok: true; testOnly: true; terminalId: string; nonce: string };
-type Props = { employeeId: string; employeeName: string; active: boolean; mode?: "fictional" | "real-pilot"; onAuthorize?: () => Promise<void> };
+type Props = { employeeId: string; employeeName: string; active: boolean; mode?: "fictional" | "real-pilot"; onAuthorize?: () => Promise<void>; refreshToken?: number };
 
 async function readLocalDevice(): Promise<LocalDevice> {
   const response = await fetch(BRIDGE + "/status", {
@@ -22,16 +22,42 @@ async function readLocalDevice(): Promise<LocalDevice> {
   return data as LocalDevice;
 }
 
-export default function Hu20QuickEnrollment({ employeeId, employeeName, active, mode = "fictional", onAuthorize }: Props) {
+export default function Hu20QuickEnrollment({ employeeId, employeeName, active, mode = "fictional", onAuthorize, refreshToken = 0 }: Props) {
   const [deviceName, setDeviceName] = useState("");
   const [terminalId, setTerminalId] = useState("");
   const [pendingRequestId, setPendingRequestId] = useState("");
-  const [state, setState] = useState<"checking" | "ready" | "pending" | "offline" | "enrolling" | "completed">("checking");
+  const [state, setState] = useState<"checking" | "ready" | "pending" | "enrolled" | "offline" | "enrolling" | "completed">("checking");
   const [message, setMessage] = useState("");
 
   const checkDevice = useCallback(async () => {
     if (!active) { setState("offline"); return; }
     setState("checking");
+    // Check the employee's active fingerprint first. An enrolled employee
+    // should not be offered a second capture, even when the local reader is offline.
+    try {
+      const response = await fetch(
+        "/api/system/staff-hu20/biometrics?employeeId=" + encodeURIComponent(employeeId),
+        { cache: "no-store" }
+      );
+      if (!response.ok) throw new Error("Fingerprint status unavailable.");
+      const body = await response.json();
+      if (body.ok !== true || !Array.isArray(body.biometrics)) {
+        throw new Error("Unexpected fingerprint status response.");
+      }
+      if (body.biometrics.some((item: { employee_id: string; active: boolean; status: string }) =>
+        item.employee_id === employeeId && item.active === true && item.status === "enrolled"
+      )) {
+        setTerminalId("");
+        setPendingRequestId("");
+        setState("enrolled");
+        setMessage("This employee already has an active TEST fingerprint. No new enrollment is needed. Use the audited revocation controls before replacing a fingerprint.");
+        return;
+      }
+    } catch {
+      setState("offline");
+      setMessage("Cannot verify this employee's TEST fingerprint status. Enrollment is disabled until the TEST server is available.");
+      return;
+    }
     try {
       const local = await readLocalDevice();
       const response = await fetch("/api/system/staff-hu20/enrollments", { cache: "no-store" });
@@ -60,7 +86,7 @@ export default function Hu20QuickEnrollment({ employeeId, employeeName, active, 
     }
   }, [active, employeeId]);
 
-  useEffect(() => { void checkDevice(); }, [checkDevice]);
+  useEffect(() => { void checkDevice(); }, [checkDevice, refreshToken]);
 
   async function cancelPendingEnrollment() {
     if (!pendingRequestId || state !== "pending") return;
@@ -144,6 +170,7 @@ export default function Hu20QuickEnrollment({ employeeId, employeeName, active, 
       {state === "checking" ? "Checking local HU20…" :
         state === "ready" ? "Reader service ready on this PC: " + deviceName :
         state === "pending" ? "Previous enrollment needs attention — " + deviceName :
+        state === "enrolled" ? "Fingerprint already enrolled in TEST" :
         state === "enrolling" ? "Follow the Windows PLACE/REMOVE FINGER window" :
         state === "completed" ? "Fingerprint enrolled" : "Reader service not configured on this PC"}
     </p>
@@ -152,6 +179,8 @@ export default function Hu20QuickEnrollment({ employeeId, employeeName, active, 
       className="mt-3 rounded-xl bg-orange-600 px-4 py-2.5 font-black text-white disabled:cursor-not-allowed disabled:opacity-50">
       {state === "enrolling" ? "Enrolling…" : "Enrol Fingerprint"}
     </button>
+    {state === "enrolled" && <button type="button" onClick={() => void checkDevice()}
+      className="ml-3 mt-3 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 font-bold">Refresh fingerprint status</button>}
     {state === "pending" && <button type="button"
       onClick={() => void cancelPendingEnrollment()}
       className="ml-3 mt-3 rounded-xl border border-amber-700 bg-white px-4 py-2.5 font-bold text-amber-900">
