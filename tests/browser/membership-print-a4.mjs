@@ -113,6 +113,15 @@ function application(id, membershipType, participants) {
 
 const fixtures = {
   single: application("single", "single", [participant(1)]),
+  preactivation: {
+    ...application("preactivation", "single", [participant(1, {
+      memberId: null,
+      memberNumber: "BGM123456",
+    })]),
+    status: "awaiting_payment",
+    activatedAt: null,
+    paymentReceivedAt: null,
+  },
   student: application("student", "student", [
     participant(1, {
       dateOfBirth: "2011-01-15",
@@ -235,6 +244,11 @@ async function verifyFixture(context, key, expectedSheets) {
     assert.equal(measurement.overflow, "hidden");
   }
 
+  if (key === "preactivation") {
+    await sheets.getByText("BGM123456", { exact: true }).waitFor();
+    await sheets.getByText("BGM member number (reserved)", { exact: true }).waitFor();
+    assert.equal(await sheets.getByText("Assigned on activation").count(), 0);
+  }
   if (key === "couples" || key === "mixed") assert.equal(measurements.length, 2);
   const guardianDeclarationCount = await sheets.locator(".bgm-declaration-title").filter({ hasText: "Guardian Declaration" }).count();
   if (key === "student" || key === "sixteen") assert.equal(guardianDeclarationCount, 1, "all under-18 applicants include guardian consent");
@@ -341,16 +355,26 @@ try {
   await waitForServer();
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1200, height: 900 } });
+  // The print page now prepares a genuine permanent number before GET print.
+  // Simulate a single idempotent reservation; no backend writes in browser CI.
+  let reservedCalls = 0;
+  await context.route("**/api/system/members/applications/*/reserve-numbers", (route) => {
+    assert.equal(route.request().method(), "POST");
+    reservedCalls += 1;
+    return route.fulfill({ json: { ok: true, reserved: { newReservations: 0 } } });
+  });
 
   await verifyFixture(context, "single", 1);
+  await verifyFixture(context, "preactivation", 1);
   await verifyFixture(context, "student", 1);
   await verifyFixture(context, "sixteen", 1);
   await verifyFixture(context, "mixed", 2);
   await verifyFixture(context, "couples", 2);
   await verifyReprintAfterPrinterFailure(context);
   await verifyOverflowIsBlocked(context);
+  assert.equal(reservedCalls, 8, "Each print attempt must confirm number preparation.");
 
-  console.log("PASS Chromium PDF sheets, safe print retry before/after confirmation, and blocked A4 overflow");
+  console.log("PASS Chromium PDF sheets, reserved pre-activation BGM number, print retry and blocked A4 overflow");
 } finally {
   if (browser) await browser.close();
   server.kill("SIGTERM");
