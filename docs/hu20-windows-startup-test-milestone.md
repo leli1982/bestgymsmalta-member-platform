@@ -6,6 +6,8 @@
 
 - A technician performs **one-time setup**, linking each Windows PC to its named registered terminal and gym with the existing encrypted **CurrentUser DPAPI vault**. This step still needs a privately entered terminal secret and dedicated Vercel Automation Bypass, performed **by the installer only**. Super Admin and staff never see or enter those values.
 - The local enrollment bridge already starts at the configured Windows user's sign-in.
+- Staff Portal's **Punch Clock** browser page is now explicitly an **instructions/status page**, never a replacement for the native fingerprint kiosk. Its localhost check proves the configured service exists, **not** that a USB reader is connected or an approved TEST window is open. The genuine Windows full-screen kiosk alone shows actionable PLACE FINGER / CLOCKED IN / CLOCKED OUT states after approval.
+- The technician's existing `Hu20-KIOSK-TEST.cmd` shortcut now requires a valid **DPAPI-provisioned** PC (the `-RequireProvisionedDevice` guard). It will fail closed if credentials/configuration are unavailable, rather than asking staff for technical credentials or Share links.
 - **New opt-in:** after technician approval, `Hu20-KioskWatch.ps1` starts in the background at sign-in and makes **read-only**, terminal-authenticated checks for an active, unexpired **TEST** kiosk window.
 - Without a separately approved Super Admin 10-minute window the watcher remains in standby. A disabled gym has no punch clock. No finger is captured or attendance recorded by the watcher.
 - A **new** approved window opens the existing full-screen Windows HU20 kiosk. The existing kiosk independently checks all terminal, gym, employee, recognition, cooldown and attendance guards.
