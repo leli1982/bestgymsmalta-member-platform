@@ -51,7 +51,7 @@ switch ($Action) {
     # allowlisted TEST origin and read-only server preflight first.
     & $watcher -CheckOnly
     if (-not $?) { throw 'HU20 TEST safe preflight failed; startup not installed.' }
-    $command='"'+$exe+'" -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "'+$watcher+'" -StartupDelaySeconds 30'
+    $command='"'+$exe+'" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File "'+$watcher+'" -StartupDelaySeconds 30'
     if ($old -and $old -cne $command -and -not $ReplaceExisting) {
       throw 'An existing HU20 kiosk startup entry differs. Inspect it before using -ReplaceExisting.'
     }
