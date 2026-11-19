@@ -64,6 +64,16 @@ test("startup is technician opt-in, HKCU scoped and reversible, never changes re
   assert.match(provisioning, /BGM_HU20_TEST_LocalBridge/);
 });
 
+test("Windows PowerShell syntax check runs without starting the reader or modifying installation", () => {
+  const check = read(base + "Hu20-WindowsStartupParseCheck.ps1");
+  const cmd = read(base + "Hu20-CHECK-STARTUP-SCRIPTS-TEST.cmd");
+  assert.match(check, /Language\.Parser\]::ParseFile/);
+  assert.match(check, /Hu20-KioskWatch\.ps1/);
+  assert.match(check, /Hu20-ManageKioskStartup\.ps1/);
+  assert.match(cmd, /Hu20-WindowsStartupParseCheck\.ps1/);
+  assert.doesNotMatch(check, /Start-Process|Set-ItemProperty|Remove-ItemProperty|GetImageEx|Invoke-WebRequest/);
+});
+
 test("Windows watcher remains strictly TEST; no automatic Production activation or attendance", () => {
   assert.match(watch, /TEST/);
   assert.match(watch, /'X-BGM-HU20-Kiosk-Test'='1'/);
