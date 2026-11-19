@@ -60,3 +60,10 @@ test("reservation is never guessed by scanning current max member number", () =>
   assert.match(sql, /v_user\.gym_id is distinct from v_app\.enrollment_gym_id/);
   assert.match(sql, /jsonb_build_object\('newReservations',v_new_count/);
 });
+
+test("Preview branch is explicitly limited to TEST Supabase; Production cannot be used accidentally", () => {
+  const config = read("lib/supabaseAdminConfig.ts");
+  assert.match(config, /feature\/reserved-member-number-on-first-print/);
+  assert.match(config, /BGM TEST-only Preview: Supabase configuration does not point exclusively to TEST/);
+  assert.match(config, /TEST_ONLY_PREVIEW_BRANCHES\.has\(process\.env\.VERCEL_GIT_COMMIT_REF/);
+});
