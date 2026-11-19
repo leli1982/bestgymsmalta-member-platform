@@ -44,6 +44,9 @@ if (-not $Configure -and (Test-Path -LiteralPath $configPath -PathType Leaf)) {
 if (-not $BaseUrl -and $config) { $BaseUrl = [string]$config.baseUrl }
 if (-not $TerminalId -and $config) { $TerminalId = [string]$config.terminalId }
 if (-not $SdkAssembly -and $config) { $SdkAssembly = [string]$config.sdkAssembly }
+if ($RequireProvisionedDevice -and (-not $BaseUrl -or -not $TerminalId -or -not $SdkAssembly)) {
+  throw "The kiosk PC is missing its approved TEST terminal configuration. Ask the installer; do not enter codes."
+}
 if (-not $BaseUrl) { $BaseUrl = Read-Host "Exact BGM HU20 TEST Preview origin (no Share token)" }
 if (-not $TerminalId) { $TerminalId = Read-Host "Existing registered TEST Terminal ID" }
 if (-not $SdkAssembly) {
@@ -99,7 +102,11 @@ if ($AutoKioskTest) {
 } else {
   Write-Host "Supervised TEST: one authorisation is needed per scan."
 }
-Write-Host "Enter the private Share link and terminal secret only when prompted."
+if ($RequireProvisionedDevice) {
+  Write-Host "Using the securely provisioned PC; no Share link or device secret is requested."
+} else {
+  Write-Host "Enter the private Share link and terminal secret only when prompted."
+}
 Write-Host ""
 if ($AutoKioskTest) {
   $autoPath = Join-Path $directory "Hu20-AutoKiosk.ps1"
