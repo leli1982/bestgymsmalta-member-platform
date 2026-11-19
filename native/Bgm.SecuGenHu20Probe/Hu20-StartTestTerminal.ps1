@@ -9,6 +9,7 @@
 param(
   [switch]$Configure,
   [switch]$AutoKioskTest,
+  [switch]$RequireProvisionedDevice,
   [switch]$FullScreenTest,
   [switch]$RecognitionDiagnostic,
   [string]$BaseUrl,
@@ -18,6 +19,7 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 if ($FullScreenTest -and -not $AutoKioskTest) { throw "-FullScreenTest requires -AutoKioskTest." }
+if ($RequireProvisionedDevice -and -not $AutoKioskTest) { throw "-RequireProvisionedDevice requires a supervised TEST kiosk." }
 if ($RecognitionDiagnostic -and (-not $AutoKioskTest -or $FullScreenTest -or $Configure)) {
   throw "TEST recognition diagnostic requires -AutoKioskTest, no full-screen, and an existing configuration."
 }
@@ -113,6 +115,9 @@ if ($AutoKioskTest) {
       $useVault = $true
       Write-Host "TEST device securely provisioned: no Share link or secret is needed."
     }
+  }
+  if ($RequireProvisionedDevice -and -not $useVault) {
+    throw "No valid provisioned TEST credential for this PC. Cannot launch an unattended kiosk or request codes from staff."
   }
   & $autoPath -BaseUrl $BaseUrl -TerminalId $TerminalId -SdkAssembly $sdkPath -EnableFictionalTestAttendance -AutoKioskTest -FullScreenTest:$FullScreenTest -UseProvisionedDevice:$useVault -RecognitionDiagnostic:$RecognitionDiagnostic
 } else {
