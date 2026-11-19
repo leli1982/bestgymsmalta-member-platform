@@ -56,18 +56,23 @@ export default function StaffPunchClockInformation() {
           <p className="mt-2 text-sm text-zinc-200">Ask Super Admin to enable the TEST pilot for this gym. No fingerprint attendance can be recorded here while it is off.</p>
         </div> :
         <>
-          <div className="mt-8 rounded-3xl border border-emerald-400/30 bg-[#142f31] p-6 text-center sm:p-9">
-            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-3xl bg-emerald-400/10">
-              <Fingerprint className="h-14 w-14 text-emerald-200" aria-hidden="true"/>
+          <div className="mt-8 rounded-3xl border border-white/20 bg-[#172537] p-6 text-center sm:p-9">
+            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-3xl bg-white/10">
+              <Fingerprint className="h-14 w-14 text-orange-200" aria-hidden="true"/>
             </div>
-            <p className="mt-5 text-xs font-black uppercase tracking-widest text-emerald-200">Windows fingerprint kiosk</p>
-            <h2 className="mt-2 text-3xl font-black sm:text-5xl">PLACE FINGER</h2>
+            <p className="mt-5 text-xs font-black uppercase tracking-widest text-orange-200">Staff instructions — not the scanner</p>
+            <h2 className="mt-2 text-3xl font-black sm:text-4xl">USE THE WINDOWS KIOSK</h2>
             <p className="mx-auto mt-3 max-w-lg text-base text-zinc-200">
-              Use the HU20 reader connected to your gym's Windows kiosk.
-              The kiosk automatically recognises the employee and confirms CLOCKED IN or CLOCKED OUT.
+              After Super Admin approves a TEST window, the installed Windows kiosk opens and displays
+              <strong> PLACE FINGER</strong>. Place an enrolled finger on that physical reader.
+              The Windows kiosk then shows CLOCKED IN or CLOCKED OUT once the server confirms attendance.
             </p>
             <p className="mt-4 text-sm font-bold text-white">
               No PIN, barcode, employee code or manual IN/OUT selection is required.
+            </p>
+            <p role="note" className="mt-3 text-sm text-amber-200">
+              This browser is an information screen. An installed HU20 service alone does not mean the
+              physical scanner is plugged in or an approved kiosk window is running.
             </p>
           </div>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -94,7 +99,8 @@ export default function StaffPunchClockInformation() {
                   service==="configured"?"Configured HU20 service detected on this PC":"No configured HU20 service detected on this PC"}
               </p>
               <p className="text-xs text-zinc-300">
-                This checks the local helper only. Fingerprint capture and attendance are handled by the installed Windows kiosk.
+                This checks the local helper only—not hardware availability or an active TEST scan window.
+                Fingerprint capture and attendance are handled by the installed Windows kiosk.
               </p>
             </div>
           </div>
