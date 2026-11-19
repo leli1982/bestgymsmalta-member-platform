@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
       fictionalTestOnly: !hu20RealStaffPilotEnabled(),
       realStaffPilot: hu20RealStaffPilotEnabled(),
       terminal: { id: terminal.id, name: terminal.name, gymId: terminal.gymId, gymName: gym.data.name },
-      window: { expiresAt: window.expires_at, scansRemaining: window.max_scans - window.scans_used },
+      window: { id: window.id, expiresAt: window.expires_at, scansRemaining: window.max_scans - window.scans_used },
       recognitionAuthorisationConsumed: false,
       attendanceRecorded: false,
       restartRequiresManualApproval: true,
