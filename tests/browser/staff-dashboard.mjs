@@ -499,26 +499,27 @@ try {
   await page.getByRole("button", { name: "PAYMENT RECEIVED", exact: true }).click();
   await waitVisible(page.getByText("Base Price", { exact: true }));
   await waitVisible(page.getByText("Saved application price confirmed.", { exact: true }));
-  assert.equal(await page.getByText("€30.00", { exact: true }).count(), 2);
+  const paymentPanel = page.getByRole("heading", { name: "Confirm payment received" }).locator("..");
+  assert.equal(await paymentPanel.getByText("€30.00", { exact: true }).count(), 2);
 
   // Regression from the real Staff recording: changing duration used to keep
   // the old €30 displayed until the form was saved. It must now show €90.
   const duration = page.getByRole("combobox", { name: "Duration" });
   await duration.selectOption("3_months");
   await waitVisible(page.getByText("Updated published price for this membership. Reapply any discount.", { exact: true }));
-  assert.equal(await page.getByText("€90.00", { exact: true }).count(), 2);
+  assert.equal(await paymentPanel.getByText("€90.00", { exact: true }).count(), 2);
   assert.equal(await page.getByLabel("Expiry date").inputValue(), "15/12/2026");
   await page.screenshot({ path: artifacts + "/payment-updated-duration-90.png", fullPage: true });
 
   // An unavailable duration is never silently quoted at the old price.
   await duration.selectOption("6_months");
   await waitVisible(page.getByText("This membership duration is not available at a published price.", { exact: true }));
-  assert.equal(await page.getByText("€90.00", { exact: true }).count(), 0);
+  assert.equal(await paymentPanel.getByText("€90.00", { exact: true }).count(), 0);
 
   // Restore the original selection for the established voucher + activation flow.
   await duration.selectOption("1_month");
   await waitVisible(page.getByText("Saved application price confirmed.", { exact: true }));
-  assert.equal(await page.getByText("€30.00", { exact: true }).count(), 2);
+  assert.equal(await paymentPanel.getByText("€30.00", { exact: true }).count(), 2);
   assert.equal(await page.getByLabel("Expiry date").inputValue(), "15/10/2026");
   const voucherSelect = page.getByRole("combobox", { name: "Discount code" });
   await waitVisible(voucherSelect);
