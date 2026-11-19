@@ -16,11 +16,18 @@ export async function GET(request: NextRequest) {
   try {
     const auth = await requireSuperAdmin(request);
     if (auth.error || !auth.context) return auth.error;
+    const employeeId = new URL(request.url).searchParams.get("employeeId");
+    if (employeeId !== null && !validHu20TerminalId(employeeId)) {
+      return fail("Invalid TEST employee ID.", 400);
+    }
     const db = getSupabaseAdmin();
-    const data = await db.from("bgm_staff_biometrics")
+    // Allow the Super Admin profile to check this exact employee, rather than
+    // relying on the first 100 globally enrolled fingerprints.
+    const query = db.from("bgm_staff_biometrics")
       .select("id,employee_id,status,active,enrolled_at")
       .eq("adapter_key", "secugen-hu20-ansi378-v1")
-      .eq("active", true).eq("status", "enrolled")
+      .eq("active", true).eq("status", "enrolled");
+    const data = await (employeeId ? query.eq("employee_id", employeeId) : query)
       .order("enrolled_at", { ascending: false }).limit(100);
     if (data.error) throw data.error;
     return NextResponse.json({ ok: true, biometrics: data.data || [] }, { headers });
