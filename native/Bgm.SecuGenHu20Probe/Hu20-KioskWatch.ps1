@@ -7,7 +7,7 @@
  cannot relaunch the same window. No staff PIN, scanner code or Share link.
 #>
 [CmdletBinding()]
-param([ValidateRange(5,60)][int]$PollSeconds=10,[switch]$CheckOnly)
+param([ValidateRange(5,60)][int]$PollSeconds=10,[ValidateRange(0,120)][int]$StartupDelaySeconds=0,[switch]$CheckOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT -or -not [Environment]::Is64BitProcess) {
@@ -79,6 +79,10 @@ try {
     $last=$null
   }
   Write-Host 'HU20 TEST watcher ready. Waiting for a NEW Super Admin kiosk approval.'
+  if (-not $CheckOnly -and $StartupDelaySeconds -gt 0) {
+    # Give the Windows network and user session time to initialise at logon.
+    Start-Sleep -Seconds $StartupDelaySeconds
+  }
   while ($true) {
     $result=$null
     try {
