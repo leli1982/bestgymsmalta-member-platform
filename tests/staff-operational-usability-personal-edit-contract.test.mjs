@@ -98,13 +98,20 @@ test("End of Day print is one A4-oriented ink-saving summary after success, with
   assert.doesNotMatch(bridge, /MutationObserver/);
 });
 
-test("BGM member number appears on reprinted application only after activation", () => {
+test("BGM member number appears on the first reserved copy and remains available for activated reprints", () => {
   const printable = read("lib/printableMembershipApplication.ts");
   const review = read("components/staff/StaffMembershipReviewModal.tsx");
   const print = read("components/staff/StaffApplicationPrint.tsx");
   const sheet = read("components/staff/MembershipA4Sheet.tsx");
-  assert.match(printable, /memberNumber: member\?\.member_number \|\| null/);
-  assert.match(review, /PRINT APPLICATION WITH BGM NUMBER/);
+  assert.match(printable, /memberNumber: member\?\.member_number \|\| \(!application\.activated_at/);
+  assert.match(print, /reserve-numbers/);
+  assert.match(sheet, /BGM member number \(reserved\)/);
+  assert.doesNotMatch(sheet, /Assigned on activation/);
+  // First print already includes the reserved number. The final activation
+  // screen must offer FINISH, not a redundant second printing instruction.
+  assert.doesNotMatch(review, /PRINT APPLICATION WITH BGM NUMBER/);
+  assert.doesNotMatch(review, /Print an updated copy for the member records/);
+  assert.match(review, />FINISH<\/button>/);
+  // Keep the underlying activated-copy print layout available for legacy forms.
   assert.match(print, /activatedCopy = Boolean\(application\.activatedAt\)/);
-  assert.match(sheet, /Assigned on activation/);
 });

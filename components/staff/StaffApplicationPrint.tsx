@@ -21,18 +21,35 @@ export default function StaffApplicationPrint({
 
   useEffect(() => {
     let cancelled = false;
-    fetch(
-      `/api/system/members/applications/${encodeURIComponent(applicationId)}/print`,
-      {
-        cache: "no-store",
-        credentials: "same-origin",
+    // This is an explicit print preparation, never a guessed 'next number'.
+    // The server reserves genuine BGM numbers before issuing a first copy.
+    void (async () => {
+      const reservation = await fetch(
+        `/api/system/members/applications/${encodeURIComponent(applicationId)}/reserve-numbers`,
+        { method: "POST", cache: "no-store", credentials: "same-origin" },
+      );
+      const reserved = await reservation.json();
+      if (!reservation.ok || reserved.ok !== true) {
+        throw new Error(reserved.error || "Could not reserve a BGM number. Printing is blocked.");
       }
-    )
-      .then(async (response) => {
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Could not prepare form.");
-        if (!cancelled) setApplication(data.application);
-      })
+
+      const response = await fetch(
+        `/api/system/members/applications/${encodeURIComponent(applicationId)}/print`,
+        { cache: "no-store", credentials: "same-origin" },
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not prepare form.");
+
+      // Do not let a new membership form show a placeholder instead of an
+      // assigned number. Renewals already use the existing member's number.
+      if (data.application?.kind === "new" && !data.application.activatedAt &&
+          (data.application.participants || []).some(
+            (participant: { memberNumber?: string | null }) => !participant.memberNumber,
+          )) {
+        throw new Error("A BGM member number is missing. Do not print this form.");
+      }
+      if (!cancelled) setApplication(data.application);
+    })()
       .catch((requestError) => {
         if (!cancelled) {
           setError(
