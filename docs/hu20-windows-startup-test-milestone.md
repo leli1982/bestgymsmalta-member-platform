@@ -12,6 +12,10 @@
 - Each approved window UUID is saved **before launch**, so ESC, a reboot or an uncertain punch cannot silently relaunch the **same** window. An SDK/network/authentication problem stops the watcher instead of causing repeated automatic clock-in/out attempts.
 - After a normally completed window, it returns to standby awaiting a different, explicitly approved window. Staff place a finger when that supervised window is open; no codes or manual IN/OUT selection.
 
+## Read-only Windows syntax precheck
+
+Before enabling startup on any Windows PC, the technician can double-click `Hu20-CHECK-STARTUP-SCRIPTS-TEST.cmd`. It uses the actual Windows PowerShell 5.1 parser and does not start the kiosk, scan a fingerprint, install anything or touch credentials. The expected final line is `STARTUP SCRIPT PARSE CHECK PASS`.
+
 ## Technician-only scripts, installed after review
 
 - `Hu20-ManageKioskStartup.ps1 -Action Status` — view whether this Windows user's TEST watcher is registered; no hardware or server operations
