@@ -107,7 +107,11 @@ test("BGM member number appears on the first reserved copy and remains available
   assert.match(print, /reserve-numbers/);
   assert.match(sheet, /BGM member number \(reserved\)/);
   assert.doesNotMatch(sheet, /Assigned on activation/);
-  // Keep the post-activation duplicate for old membership applications.
-  assert.match(review, /PRINT APPLICATION WITH BGM NUMBER/);
+  // First print already includes the reserved number. The final activation
+  // screen must offer FINISH, not a redundant second printing instruction.
+  assert.doesNotMatch(review, /PRINT APPLICATION WITH BGM NUMBER/);
+  assert.doesNotMatch(review, /Print an updated copy for the member records/);
+  assert.match(review, />FINISH<\/button>/);
+  // Keep the underlying activated-copy print layout available for legacy forms.
   assert.match(print, /activatedCopy = Boolean\(application\.activatedAt\)/);
 });
