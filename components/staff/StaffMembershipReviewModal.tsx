@@ -6,6 +6,8 @@ import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
 import StaffVoucherSelect from "@/components/staff/StaffVoucherSelect";
 import StaffVoucherApprovalStatus from "@/components/staff/StaffVoucherApprovalStatus";
 import type { VoucherApprovalStatus } from "@/lib/voucherApprovalCore";
+import { calculateMembershipExpiry } from "@/lib/membershipEnrollmentCore";
+import type { MembershipDurationKey } from "@/lib/membershipSettingsCore";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -88,6 +90,15 @@ type Application = {
   reviewedBySystemUserId: string | null;
   printConfirmedAt: string | null;
   participants: Participant[];
+};
+
+type PricePreview = {
+  membershipType: string;
+  durationKey: string;
+  basePriceCents: number;
+  currency: string;
+  priceCatalogVersionId: string;
+  source: "saved" | "current";
 };
 
 type Props = {
@@ -183,6 +194,8 @@ export default function StaffMembershipReviewModal({
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "other" | "">("");
   const [paymentOtherText, setPaymentOtherText] = useState("");
   const [discountCode, setDiscountCode] = useState("");
+  const [pricePreview, setPricePreview] = useState<(PricePreview & { snapshotKey: string }) | null>(null);
+  const [pricePreviewError, setPricePreviewError] = useState<{ key: string; message: string } | null>(null);
   const [discountPreview, setDiscountPreview] = useState<{
     code: string;
     percentage: number;
@@ -240,6 +253,62 @@ export default function StaffMembershipReviewModal({
   }, [scanParticipantId, manualEntry]);
 
   const dirty = Boolean(form && original && JSON.stringify(form) !== original);
+  const priceSelectionKey = form ? form.membershipType + ":" + form.durationKey : "";
+  const priceSnapshotKey = application
+    ? String(application.priceCatalogVersionId || "") + ":" + String(application.basePriceCents ?? "")
+    : "";
+  const priceReady = Boolean(
+    form && application && pricePreview &&
+    pricePreview.membershipType === form.membershipType &&
+    pricePreview.durationKey === form.durationKey &&
+    pricePreview.snapshotKey === priceSnapshotKey
+  );
+  const quotedBaseCents = priceReady ? pricePreview!.basePriceCents : null;
+  const displayedPriceError = pricePreviewError?.key === priceSelectionKey
+    ? pricePreviewError.message : "";
+
+  // A changed selection previews the published scoped price; unchanged choices
+  // preserve the saved historical price. Stale responses must never authorize
+  // payment or put an old amount back on the screen.
+  useEffect(() => {
+    if (!application || !form) return;
+    const controller = new AbortController();
+    const selectionKey = form.membershipType + ":" + form.durationKey;
+    const snapshotKey = String(application.priceCatalogVersionId || "") + ":" +
+      String(application.basePriceCents ?? "");
+    setPricePreview(null);
+    setPricePreviewError(null);
+    void (async () => {
+      try {
+        const query = new URLSearchParams({
+          membershipType: form.membershipType,
+          durationKey: form.durationKey,
+        });
+        const response = await fetch(
+          `/api/system/members/applications/${encodeURIComponent(applicationId)}/price-preview?${query}`,
+          { cache: "no-store", credentials: "same-origin", signal: controller.signal },
+        );
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not confirm the membership price.");
+        if (data.membershipType !== form.membershipType ||
+            data.durationKey !== form.durationKey ||
+            !Number.isSafeInteger(data.basePriceCents) || data.basePriceCents < 0 ||
+            typeof data.currency !== "string" || !data.priceCatalogVersionId) {
+          throw new Error("An invalid price was returned. Do not take payment.");
+        }
+        if (!controller.signal.aborted) setPricePreview({ ...data, snapshotKey });
+      } catch (caught) {
+        if (!controller.signal.aborted) setPricePreviewError({
+          key: selectionKey,
+          message: caught instanceof Error ? caught.message : "Could not confirm the membership price.",
+        });
+      }
+    })();
+    return () => controller.abort();
+  }, [
+    applicationId, application?.id, application?.basePriceCents,
+    application?.priceCatalogVersionId, form?.membershipType, form?.durationKey,
+  ]);
   const needsReview = Boolean(
     application?.source === "tablet" && !application.reviewedBySystemUserId
   );
@@ -325,7 +394,23 @@ export default function StaffMembershipReviewModal({
     field: "membershipType" | "durationKey" | "startDate" | "expiryDate",
     value: string
   ) {
-    setForm((current) => (current ? { ...current, [field]: value } : current));
+    setForm((current) => {
+      if (!current) return current;
+      if (field === "durationKey") {
+        let expiryDate = current.expiryDate;
+        try {
+          expiryDate = calculateMembershipExpiry(current.startDate, value as MembershipDurationKey);
+        } catch {
+          // Keep invalid dates visible for existing server-side validation.
+        }
+        return { ...current, durationKey: value, expiryDate };
+      }
+      return { ...current, [field]: value };
+    });
+    if (field === "durationKey" || field === "membershipType") {
+      // Voucher previews are tied to the previously saved price snapshot.
+      setDiscountPreview(null);
+    }
   }
 
   function updateParticipant(
@@ -567,6 +652,10 @@ export default function StaffMembershipReviewModal({
       setError("");
       return;
     }
+    if (!priceReady) {
+      setError("Confirm the updated membership price before applying a discount code.");
+      return;
+    }
     if (!(await saveReviewIfDirty())) return;
     setActing(true);
     setError("");
@@ -606,6 +695,10 @@ export default function StaffMembershipReviewModal({
       setError("Print and confirm the membership form before taking payment.");
       return;
     }
+    if (!priceReady) {
+      setError("The selected membership price is not confirmed. Do not take payment until it updates.");
+      return;
+    }
     if (!allReady || !staffName.trim() || !paymentMethod) return;
     if (!guardianSignoffReady) {
       setError("Confirm guardian attendance and signature on the printed form before taking payment.");
@@ -624,6 +717,23 @@ export default function StaffMembershipReviewModal({
     setActing(true);
     setError("");
     try {
+      // A saved review may reprice when a new catalog is published mid-flow.
+      // Require staff to review any resulting change before recording payment.
+      const query = new URLSearchParams({
+        membershipType: form!.membershipType, durationKey: form!.durationKey,
+      });
+      const confirmation = await fetch(
+        `/api/system/members/applications/${encodeURIComponent(applicationId)}/price-preview?${query}`,
+        { cache: "no-store", credentials: "same-origin" },
+      );
+      const confirmed = await confirmation.json();
+      if (!confirmation.ok || !Number.isSafeInteger(confirmed.basePriceCents)) {
+        throw new Error(confirmed.error || "Could not reconfirm the payment amount.");
+      }
+      if (confirmed.basePriceCents !== quotedBaseCents) {
+        await loadDetail();
+        throw new Error("The membership price has changed. Review the new total before confirming payment.");
+      }
       const response = await fetch("/api/system/members/enroll", {
         method: "POST",
         credentials: "same-origin",
@@ -1130,8 +1240,8 @@ export default function StaffMembershipReviewModal({
                   <Summary
                     label="Base Price"
                     value={formatMoney(
-                      discountPreview?.basePriceCents ?? application.basePriceCents,
-                      discountPreview?.currency ?? application.currency
+                      quotedBaseCents,
+                      priceReady ? pricePreview!.currency : application.currency
                     )}
                   />
                   <Summary
@@ -1143,11 +1253,20 @@ export default function StaffMembershipReviewModal({
                   <Summary
                     label="Final Total"
                     value={formatMoney(
-                      discountPreview?.finalAmountCents ?? application.basePriceCents,
-                      discountPreview?.currency ?? application.currency
+                      priceReady
+                        ? discountPreview?.finalAmountCents ?? quotedBaseCents
+                        : null,
+                      priceReady ? pricePreview!.currency : application.currency
                     )}
                   />
                 </div>
+                <p role="status" aria-live="polite" className={`mt-3 text-sm font-bold ${priceReady ? "text-emerald-800" : "text-red-800"}`}>
+                  {priceReady
+                    ? pricePreview?.source === "saved"
+                      ? "Saved application price confirmed."
+                      : "Updated published price for this membership. Reapply any discount."
+                    : displayedPriceError || "Checking the selected membership price… Payment is temporarily disabled."}
+                </p>
 
                 <div className="mt-4">
                   <label className="text-xs font-black uppercase tracking-wide text-emerald-800">
@@ -1164,7 +1283,7 @@ export default function StaffMembershipReviewModal({
                       <button
                         type="button"
                         onClick={() => void applyDiscountCode()}
-                        disabled={acting || !discountCode.trim()}
+                        disabled={acting || !priceReady || !discountCode.trim()}
                         className="rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-black text-white disabled:opacity-40"
                       >
                         Apply code
@@ -1229,6 +1348,7 @@ export default function StaffMembershipReviewModal({
                   <button
                     disabled={
                       acting ||
+                      !priceReady ||
                       !staffName.trim() ||
                       !paymentMethod ||
                       (paymentMethod === "other" && !paymentOtherText.trim()) ||
