@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Clock3, Download, Mail, Printer, RefreshCw, Wrench, X } from "lucide-react";
 import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
 import { todayMaltaDate } from "@/lib/maltaDate";
+import { maltaAttendanceWallTimeToIso } from "@/lib/staffAttendanceMaltaTime";
 import { formatEuropeanDate, formatEuropeanDateTime } from "@/lib/europeanDate";
 import type { StaffTimesheetEmployeeReport } from "@/lib/staffTimesheetReport";
 
@@ -41,12 +42,6 @@ function currentMaltaTime() {
   const read = (type:string) => parts.find(part=>part.type===type)?.value || "00";
   return `${read("hour")}:${read("minute")}`;
 }
-function localDateTimeToIso(date:string, time:string) {
-  const parsed = new Date(`${date}T${time}:00`);
-  if (Number.isNaN(parsed.getTime())) return "";
-  return parsed.toISOString();
-}
-
 export default function StaffTimesheetsAdmin({ employeeId = "", embedded = false, focus = "payroll" }: Props) {
   const today = useMemo(() => todayMaltaDate(), []);
   const [filters, setFilters] = useState<Filters>({ fromDate:`${today.slice(0,7)}-01`, toDate:today, employeeId, homeGymId:"", workedGymId:"", status:"" });
@@ -110,8 +105,9 @@ export default function StaffTimesheetsAdmin({ employeeId = "", embedded = false
     if (!gymId) { setError("Choose a gym for the Manual Punch."); return; }
     if (!date || !time) { setError("Punch date and Punch time are required."); return; }
     if (!reason.trim()) { setError("A reason is mandatory for every Manual Punch."); return; }
-    const punchAt = localDateTimeToIso(date, time);
-    if (!punchAt) { setError("Enter a valid Punch date and Punch time."); return; }
+    let punchAt: string;
+    try { punchAt = maltaAttendanceWallTimeToIso(date, time); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : "Invalid Malta attendance time."); return; }
     setBusy(true); setError(""); setMessage("");
     try {
       const response = await fetch("/api/system/staff-attendance/manual-punch", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ employeeId:targetEmployee, gymId, punchAt, reason:reason.trim() }) });
@@ -135,9 +131,14 @@ export default function StaffTimesheetsAdmin({ employeeId = "", embedded = false
     if (!inDate || !inTime) { setError("Correct IN date and Correct IN time are required."); return; }
     if ((outDate && !outTime) || (!outDate && outTime)) { setError("Enter both Correct OUT date and Correct OUT time, or leave both blank for an open session."); return; }
     if (!reason.trim()) { setError("A reason is mandatory for every attendance correction."); return; }
-    const clockInAt = localDateTimeToIso(inDate, inTime);
-    const clockOutAt = outDate && outTime ? localDateTimeToIso(outDate, outTime) : null;
-    if (!clockInAt || (outDate && outTime && !clockOutAt)) { setError("Enter valid correction dates and times."); return; }
+    let clockInAt: string;
+    let clockOutAt: string | null;
+    try {
+      clockInAt = maltaAttendanceWallTimeToIso(inDate, inTime);
+      clockOutAt = outDate && outTime ? maltaAttendanceWallTimeToIso(outDate, outTime) : null;
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Invalid Malta attendance time."); return;
+    }
     setBusy(true); setError(""); setMessage("");
     try {
       const response = await fetch(`/api/system/staff-attendance/sessions/${encodeURIComponent(session.id)}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ clockInAt, clockOutAt, reason:reason.trim(), reviewMidnight:Boolean(session.attentionCode) }) });
