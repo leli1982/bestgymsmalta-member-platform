@@ -182,6 +182,11 @@ try {
 
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1024, height: 768 } });
+  await context.route(`**/api/system/members/applications/${applicationId}/reserve-numbers`, (route) => {
+    assert.equal(route.request().method(), "POST");
+    return route.fulfill({ json: { ok: true, reserved: { newReservations: 0 } } });
+  });
+
   await context.route(`**/api/system/members/applications/${applicationId}/print`, (route) => {
     if (route.request().method() === "POST") {
       assert.deepEqual(route.request().postDataJSON(), { action: "confirm_print" });
@@ -206,7 +211,8 @@ try {
           participants: detail.participants.map((participant) => ({
             ...participant,
             memberId: null,
-            memberNumber: null,
+            // Actual BGM number reserved before this first printed agreement.
+            memberNumber: "BGM15000",
             barcode: cardAssigned ? "CARD-12345" : null,
             photoUrl: null,
           })),
