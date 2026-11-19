@@ -6,7 +6,7 @@ import { Fingerprint } from "lucide-react";
 const BRIDGE = "http://127.0.0.1:8765";
 const BRIDGE_HEADERS = { "X-BGM-HU20-Bridge": "v1" };
 type LocalDevice = { ok: true; testOnly: true; terminalId: string; nonce: string };
-type Props = { employeeId: string; employeeName: string; active: boolean; mode?: "fictional" | "real-pilot"; onAuthorize?: () => Promise<void> };
+type Props = { employeeId: string; employeeName: string; active: boolean; mode?: "fictional" | "real-pilot"; onAuthorize?: () => Promise<void>; refreshToken?: number };
 
 async function readLocalDevice(): Promise<LocalDevice> {
   const response = await fetch(BRIDGE + "/status", {
@@ -22,7 +22,7 @@ async function readLocalDevice(): Promise<LocalDevice> {
   return data as LocalDevice;
 }
 
-export default function Hu20QuickEnrollment({ employeeId, employeeName, active, mode = "fictional", onAuthorize }: Props) {
+export default function Hu20QuickEnrollment({ employeeId, employeeName, active, mode = "fictional", onAuthorize, refreshToken = 0 }: Props) {
   const [deviceName, setDeviceName] = useState("");
   const [terminalId, setTerminalId] = useState("");
   const [pendingRequestId, setPendingRequestId] = useState("");
@@ -86,7 +86,7 @@ export default function Hu20QuickEnrollment({ employeeId, employeeName, active, 
     }
   }, [active, employeeId]);
 
-  useEffect(() => { void checkDevice(); }, [checkDevice]);
+  useEffect(() => { void checkDevice(); }, [checkDevice, refreshToken]);
 
   async function cancelPendingEnrollment() {
     if (!pendingRequestId || state !== "pending") return;
