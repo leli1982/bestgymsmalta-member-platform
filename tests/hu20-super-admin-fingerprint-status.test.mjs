@@ -29,3 +29,13 @@ test("Super Admin staff profile checks enrolled state before offering local capt
   assert.match(ui, /Cannot verify this employee's TEST fingerprint status/);
   assert.doesNotMatch(ui, /terminalSecret|vercelBypass|_vercel_share|localStorage|sessionStorage/);
 });
+
+test("Revoking a real-staff TEST pilot immediately refreshes fingerprint status", () => {
+  const pilot = read("components/staff/Hu20PilotStaffActivation.tsx");
+  const quick = read("components/staff/Hu20QuickEnrollment.tsx");
+  assert.match(pilot, /setFingerprintStatusRevision\(value => value \+ 1\)/);
+  assert.match(pilot, /refreshToken=\{fingerprintStatusRevision\}/);
+  assert.match(quick, /useEffect\(\(\) => \{ void checkDevice\(\); \}, \[checkDevice, refreshToken\]\)/);
+  assert.match(pilot, /enabled:false/);
+  assert.match(pilot, /Disable and revoke fingerprint pilot/);
+});
