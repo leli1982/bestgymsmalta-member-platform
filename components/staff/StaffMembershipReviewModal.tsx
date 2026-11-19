@@ -789,10 +789,7 @@ export default function StaffMembershipReviewModal({
           <p className="mt-4 text-sm font-semibold text-zinc-500">
             {formatMalta(activeConfirmation.activatedAt)}
           </p>
-          {application?.kind === "new" && <>
-            <p className="mt-4 text-sm text-zinc-600">The permanent BGM member number has now been assigned. Print an updated copy for the member records; the original signed application remains unchanged.</p>
-            <a target="_blank" rel="noopener noreferrer" href={`/staff/applications/${encodeURIComponent(applicationId)}/print`} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#ff5a0a] px-4 py-3 text-base font-black text-zinc-950"><Printer className="h-5 w-5" /> PRINT APPLICATION WITH BGM NUMBER</a>
-          </>}
+          
           <button type="button" onClick={onClose} className="mt-4 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 font-black text-zinc-800">FINISH</button>
         </div>
       </div>
