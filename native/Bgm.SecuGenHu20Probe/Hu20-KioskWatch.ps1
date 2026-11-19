@@ -140,7 +140,7 @@ try {
     }
     $lastId=$newId
     $exe=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
-    $args='-NoProfile -STA -ExecutionPolicy Bypass -File "'+$starter+'" -AutoKioskTest -FullScreenTest'
+    $args='-NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -File "'+$starter+'" -AutoKioskTest -FullScreenTest -RequireProvisionedDevice'
     Write-Host 'Super Admin window approved. Opening the TEST fingerprint kiosk.'
     $child=Start-Process -FilePath $exe -ArgumentList $args -Wait -PassThru
     if ($null -eq $child -or $child.ExitCode -ne 0) {
