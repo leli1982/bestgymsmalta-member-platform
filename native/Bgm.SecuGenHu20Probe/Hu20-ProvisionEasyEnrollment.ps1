@@ -6,7 +6,7 @@
   printed, sent to GitHub, logged, stored in plain JSON or shared in a ZIP.
 #>
 [CmdletBinding()]
-param([switch]$ReplaceExisting)
+param([switch]$ReplaceExisting,[switch]$EnableKioskStartup)
 $ErrorActionPreference="Stop"
 Set-StrictMode -Version Latest
 if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT -or
@@ -90,5 +90,15 @@ try {
 } catch {
   Start-Process -FilePath $exe -ArgumentList $bridgeArgs -WindowStyle Hidden
   Write-Host "PASS: Local TEST reader bridge launched for this Windows user."
+}
+if ($EnableKioskStartup) {
+  # Separate, opt-in TEST kiosk startup. Never enable automatically for an
+  # existing working installation merely because enrollment bridge is installed.
+  $manager=Join-Path $root "Hu20-ManageKioskStartup.ps1"
+  if (-not (Test-Path -LiteralPath $manager -PathType Leaf)) {
+    throw "Optional HU20 kiosk startup manager is missing. Existing setup preserved."
+  }
+  & $manager -Action Enable
+  if (-not $?) { throw "Optional TEST kiosk startup was not confirmed." }
 }
 Write-Host "Open a fictional TEST employee in Super Admin and use Enrol Fingerprint."
