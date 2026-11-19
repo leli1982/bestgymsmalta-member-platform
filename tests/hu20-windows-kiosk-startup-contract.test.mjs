@@ -68,7 +68,9 @@ test("Windows watcher remains strictly TEST; no automatic Production activation 
   assert.match(watch, /TEST/);
   assert.match(watch, /'X-BGM-HU20-Kiosk-Test'='1'/);
   assert.match(watch, /VERCEL|bestgymsmalta-member-platform-/i);
-  assert.match(watch, /-AutoKioskTest -FullScreenTest/);
+  assert.match(watch, /-AutoKioskTest -FullScreenTest -RequireProvisionedDevice/);
+  assert.match(read(base + "Hu20-StartTestTerminal.ps1"), /if \(\$RequireProvisionedDevice -and -not \$useVault\)/);
+  assert.match(manage, /-NonInteractive/);
   assert.doesNotMatch(watch, /(?:bestgymsmalta-member-platform\.vercel\.app|jsuolemirhivqhjbjetv|https:\/\/bestgymsmalta\.com)/);
   assert.doesNotMatch(manage, /\/api\/staff-hu20\/attendance|member_password|terminalSecret\s*=/);
 });
