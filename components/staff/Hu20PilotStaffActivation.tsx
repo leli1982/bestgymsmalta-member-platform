@@ -8,6 +8,7 @@ export default function Hu20PilotStaffActivation({employeeId,active,employeeName
   employeeId:string;active:boolean;employeeName:string;
 }) {
   const [enabled,setEnabled]=useState(false);
+  const [fingerprintStatusRevision,setFingerprintStatusRevision]=useState(0);
   const [mode,setMode]=useState<"loading"|"hidden"|"ready"|"error">("loading");
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState("");
@@ -55,6 +56,7 @@ export default function Hu20PilotStaffActivation({employeeId,active,employeeName
       });
       const json=await response.json();
       if(!response.ok||json.ok!==true||json.pilotEnabled!==false)throw Error(json.error||"Revocation could not be confirmed.");
+      setFingerprintStatusRevision(value => value + 1);
       await load();
     }catch(e){setError(e instanceof Error?e.message:"Pilot revocation failed.");}
     finally{setBusy(false);}
@@ -81,7 +83,8 @@ export default function Hu20PilotStaffActivation({employeeId,active,employeeName
       <p className="mt-3 text-sm font-bold text-zinc-700">TEST employee permission: {enabled?"Approved":"Requires confirmation when enrolling"}</p>
       <div className="mt-4">
         <Hu20QuickEnrollment employeeId={employeeId} employeeName={employeeName}
-          active={active&&!busy} mode="real-pilot" onAuthorize={authoriseBeforeCapture}/>
+          active={active&&!busy} mode="real-pilot" onAuthorize={authoriseBeforeCapture}
+          refreshToken={fingerprintStatusRevision}/>
       </div>
       {enabled&&<button type="button" onClick={()=>void revoke()} disabled={busy}
         className="mt-4 rounded-xl border border-red-300 bg-white px-4 py-2 text-sm font-bold text-red-800 disabled:opacity-50">
