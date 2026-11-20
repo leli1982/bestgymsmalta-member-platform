@@ -67,8 +67,8 @@ export default function MemberActivityStats() {
 
   if (!member) {
     return (
-      <section className="rounded-[2rem] border border-[#fcb415]/30 bg-[#fcb415]/10 p-5">
-        <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+      <section className="rounded-[2rem] border border-[#ffb400]/30 bg-[#ffb400]/10 p-5">
+        <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
           Member Stats
         </p>
         <h2 className="mt-2 text-2xl font-black text-white">
@@ -80,7 +80,7 @@ export default function MemberActivityStats() {
         </p>
         <a
           href="/member-login"
-          className="mt-5 flex items-center justify-center rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+          className="mt-5 flex items-center justify-center rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-black"
         >
           Login / Activate
         </a>
@@ -90,7 +90,7 @@ export default function MemberActivityStats() {
 
   return (
     <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-      <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+      <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
         Member Stats
       </p>
 
@@ -100,7 +100,7 @@ export default function MemberActivityStats() {
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-          <QrCode className="text-[#fcb415]" size={22} strokeWidth={3} />
+          <QrCode className="text-[#ffb400]" size={22} strokeWidth={3} />
           <p className="mt-3 text-2xl font-black text-white">
             {stats.totalCheckins}
           </p>
@@ -110,7 +110,7 @@ export default function MemberActivityStats() {
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-          <Medal className="text-[#fcb415]" size={22} strokeWidth={3} />
+          <Medal className="text-[#ffb400]" size={22} strokeWidth={3} />
           <p className="mt-3 text-2xl font-black text-white">
             {stats.passportStamps}
           </p>

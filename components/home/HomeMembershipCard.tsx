@@ -26,11 +26,11 @@ export default function HomeMembershipCard() {
 
   if (!member) {
     return (
-      <section className="rounded-[2rem] border border-[#fcb415]/30 bg-[#fcb415]/10 p-5">
+      <section className="rounded-[2rem] border border-[#ffb400]/30 bg-[#ffb400]/10 p-5">
         <div className="flex items-center gap-3">
-          <CreditCard className="text-[#fcb415]" size={26} strokeWidth={3} />
+          <CreditCard className="text-[#ffb400]" size={26} strokeWidth={3} />
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
               Membership Card
             </p>
             <h2 className="mt-1 text-2xl font-black text-white">
@@ -45,7 +45,7 @@ export default function HomeMembershipCard() {
 
         <a
           href="/member-login"
-          className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+          className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-black"
         >
           <LogIn size={17} strokeWidth={3} />
           Login / Activate
@@ -59,14 +59,14 @@ export default function HomeMembershipCard() {
     : "Active member";
 
   return (
-    <section className="relative overflow-hidden rounded-[2rem] border border-[#fcb415]/35 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black p-5 shadow-2xl">
-      <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[#fcb415]/25 blur-3xl" />
-      <div className="absolute -bottom-20 left-8 h-44 w-44 rounded-full bg-[#fcb415]/10 blur-3xl" />
+    <section className="relative overflow-hidden rounded-[2rem] border border-[#ffb400]/35 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black p-5 shadow-2xl">
+      <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[#ffb400]/25 blur-3xl" />
+      <div className="absolute -bottom-20 left-8 h-44 w-44 rounded-full bg-[#ffb400]/10 blur-3xl" />
 
       <div className="relative">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
               Digital Membership Card
             </p>
 
@@ -105,7 +105,7 @@ export default function HomeMembershipCard() {
 
           <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="text-[#fcb415]" size={20} strokeWidth={3} />
+              <ShieldCheck className="text-[#ffb400]" size={20} strokeWidth={3} />
               <p className="text-xs font-black uppercase tracking-[.16em] text-white">
                 Valid
               </p>
@@ -116,7 +116,7 @@ export default function HomeMembershipCard() {
           </div>
         </div>
 
-        <div className="mt-5 rounded-2xl border border-[#fcb415]/25 bg-[#fcb415]/10 p-4">
+        <div className="mt-5 rounded-2xl border border-[#ffb400]/25 bg-[#ffb400]/10 p-4">
           <p className="text-xs font-bold leading-5 text-white/60">
             Show this card at reception when needed. Your passport and check-ins
             are connected to this member account.
