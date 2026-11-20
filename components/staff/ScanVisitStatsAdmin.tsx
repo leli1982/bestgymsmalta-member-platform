@@ -48,7 +48,7 @@ function BarRows({
                   <span className="shrink-0 tabular-nums">{fmt.format(row.visits)} {row.visits === 1 ? "visit" : "visits"}</span>
                 </span>
                 <span className="mt-2 block h-3 overflow-hidden rounded-full bg-zinc-200" aria-hidden="true">
-                  <span className="block h-full rounded-full bg-[#ff5a0a]" style={{ width: (row.visits / max * 100) + "%" }}/>
+                  <span className="block h-full rounded-full bg-[#ffb400]" style={{ width: (row.visits / max * 100) + "%" }}/>
                 </span>
                 <span className="mt-1 block text-left text-xs font-semibold text-zinc-500">{fmt.format(row.uniqueMembers)} distinct {row.uniqueMembers === 1 ? "member" : "members"}{onSelect ? " · View enrollment breakdown →" : ""}</span>
               </>
@@ -88,7 +88,7 @@ function TimeBars({
               className={"flex min-w-9 flex-col items-center justify-end gap-1 " + (maxPoints ? "flex-1" : "")}>
               <span className="text-[10px] font-black tabular-nums">{point.visits || ""}</span>
               <div className="flex h-28 w-full items-end rounded-t-lg bg-zinc-100">
-                <div className="w-full rounded-t-lg bg-[#ff5a0a]" style={{ height: (point.visits / max * 100) + "%" }}/>
+                <div className="w-full rounded-t-lg bg-[#ffb400]" style={{ height: (point.visits / max * 100) + "%" }}/>
               </div>
               <span className="text-[10px] font-bold text-zinc-600">{point.label}</span>
             </div>
