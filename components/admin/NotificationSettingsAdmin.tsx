@@ -283,7 +283,7 @@ export default function NotificationSettingsAdmin() {
 
               <div className="mt-4 flex flex-wrap gap-3">
                 {!pushSubscribed ? (
-                  <button type="button" disabled={pushBusy || !settings.pushEnabled} onClick={enablePush} className="rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-white disabled:opacity-40">
+                  <button type="button" disabled={pushBusy || !settings.pushEnabled} onClick={enablePush} className="rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-zinc-950 disabled:opacity-40">
                     {pushBusy ? "Enabling…" : "Enable Push on This Device"}
                   </button>
                 ) : (

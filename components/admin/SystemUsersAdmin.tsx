@@ -204,7 +204,7 @@ export default function SystemUsersAdmin({
           {role === "gym_staff" && <div className="mt-4"><GymStaffAccessSummary/></div>}
           {role === "gym_manager" && <p className="mt-4 rounded-xl bg-blue-50 p-4 text-sm font-bold text-blue-800">Gym Managers can view New Membership, Renewal and total membership figures only for assigned gyms. They do not receive operational Staff or Super Admin permissions.</p>}
           {role === "super_admin" && <p className="mt-4 rounded-xl bg-orange-50 p-4 text-sm font-bold text-orange-800">Super Admin accounts have unrestricted BGM management access. Only assign this role to trusted people.</p>}
-          <button type="submit" disabled={saving || loading || (role === "gym_manager" && managerGymIds.length === 0)} className="mt-5 rounded-xl bg-[#ff5a0a] px-5 py-3 font-black text-white disabled:opacity-50">Create login</button>
+          <button type="submit" disabled={saving || loading || (role === "gym_manager" && managerGymIds.length === 0)} className="mt-5 rounded-xl bg-[#ffb400] px-5 py-3 font-black text-zinc-950 disabled:opacity-50">Create login</button>
         </form>}
 
         <section className="space-y-3" aria-label="Existing logins">
