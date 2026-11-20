@@ -56,7 +56,36 @@ test("only Super Admin can manage the dashboard image", () => {
   const page = read("app/staff/admin/member-dashboard-image/page.tsx");
   assert.match(nav, /href: "\/staff\/admin\/member-dashboard-image"/);
   assert.match(page, /session\?\.user\?\.isSuperAdmin/);
-  assert.match(page, /Publish dashboard image/);
+  assert.match(page, /Publish image & position/);
+  assert.match(page, /Save image position/);
   assert.match(page, /Restore original image/);
   assert.match(page, /Preview — not yet published/);
+});
+
+
+test("dashboard image positioning is stored separately from uploaded artwork", () => {
+  const schema = read("supabase/migrations/20261120_163000_member_dashboard_hero_position.sql");
+  const model = read("lib/memberHeroPosition.ts");
+  const admin = read("app/api/system/admin/member-home-hero/route.ts");
+  const member = read("components/home/VisualHomeHero.tsx");
+  const ui = read("app/staff/admin/member-dashboard-image/page.tsx");
+  const lookup = read("lib/memberDashboardHero.ts");
+  assert.match(schema, /ADD COLUMN IF NOT EXISTS position_x/);
+  assert.match(schema, /ADD COLUMN IF NOT EXISTS position_y/);
+  assert.match(schema, /BETWEEN 0 AND 100/);
+  assert.match(model, /parseMemberHeroPosition/);
+  assert.match(admin, /export async function PATCH/);
+  assert.match(admin, /position_x: position.x/);
+  assert.match(admin, /position_y: position.y/);
+  assert.match(admin, /request\.headers\.get\("origin"\)/);
+  assert.match(admin, /requireSuperAdmin\(request\)/);
+  assert.match(lookup, /select\("image_path, position_x, position_y, updated_at"\)/);
+  assert.match(member, /backgroundPosition/);
+  assert.match(ui, /setPointerCapture/);
+  assert.match(ui, /onPointerDown=\{pointerDown\}/);
+  assert.match(ui, /overflowX/);
+  assert.match(ui, /overflowY/);
+  assert.match(ui, /method: "PATCH"/);
+  assert.match(ui, /method: "POST"/);
+  assert.match(ui, /Save image position/);
 });
