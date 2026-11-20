@@ -810,7 +810,7 @@ export default function StoryCreator() {
       <section className="rounded-[2rem] border border-zinc-200 bg-white p-3 shadow-sm">
         <div className="flex items-center justify-between gap-3 px-1 pb-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.24em] text-[#ffb400]">
+            <p className="text-[10px] font-black uppercase tracking-[.24em] text-primary">
               Story Studio
             </p>
             <h2 className="mt-1 text-lg font-black text-zinc-950">
@@ -833,7 +833,7 @@ export default function StoryCreator() {
               type="button"
               onClick={shareStory}
               disabled={busy}
-              className="flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-4 py-2.5 text-xs font-black text-zinc-950 shadow-lg shadow-orange-200 disabled:opacity-60"
+              className="flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-xs font-black text-zinc-950 shadow-lg shadow-orange-200 disabled:opacity-60"
             >
               <Share2 size={16} strokeWidth={3} />
               Share
@@ -851,11 +851,11 @@ export default function StoryCreator() {
                 : "linear-gradient(135deg, rgba(255,180,0,.22), rgba(0,0,0,.95))",
             }}
           >
-            <div className="absolute inset-4 rounded-[1.45rem] border-2 border-[#ffb400]/70" />
+            <div className="absolute inset-4 rounded-[1.45rem] border-2 border-primary/70" />
 
             {badge.trim() ? (
               <div className="absolute right-6 top-6 rounded-full bg-black/40 px-3 py-2 backdrop-blur-md">
-                <p className="text-[8px] font-black uppercase tracking-[.2em] text-[#ffb400]">
+                <p className="text-[8px] font-black uppercase tracking-[.2em] text-primary">
                   {badge}
                 </p>
               </div>
@@ -873,7 +873,7 @@ export default function StoryCreator() {
                   onPointerUp={handleLayerPointerUp}
                   onPointerCancel={handleLayerPointerUp}
                   className={`absolute touch-none select-none cursor-grab rounded-xl active:cursor-grabbing ${
-                    active ? "ring-2 ring-[#ffb400]" : ""
+                    active ? "ring-2 ring-primary" : ""
                   }`}
                   style={{
                     left: `${layer.x}%`,
@@ -910,7 +910,7 @@ export default function StoryCreator() {
 
                   {active ? (
                     <>
-                      <span className="pointer-events-none absolute -inset-2 rounded-xl border-2 border-[#ffb400]" />
+                      <span className="pointer-events-none absolute -inset-2 rounded-xl border-2 border-primary" />
 
                       <button
                         type="button"
@@ -921,7 +921,7 @@ export default function StoryCreator() {
                         onPointerMove={moveHandleTransform}
                         onPointerUp={endHandleTransform}
                         onPointerCancel={endHandleTransform}
-                        className="absolute -right-4 -top-4 flex h-9 w-9 touch-none items-center justify-center rounded-full border border-black/40 bg-[#ffb400] text-sm font-black text-black shadow-xl"
+                        className="absolute -right-4 -top-4 flex h-9 w-9 touch-none items-center justify-center rounded-full border border-black/40 bg-primary text-sm font-black text-black shadow-xl"
                       >
                         ↻
                       </button>
@@ -935,7 +935,7 @@ export default function StoryCreator() {
                         onPointerMove={moveHandleTransform}
                         onPointerUp={endHandleTransform}
                         onPointerCancel={endHandleTransform}
-                        className="absolute -bottom-4 -right-4 flex h-9 w-9 touch-none items-center justify-center rounded-full border border-black/40 bg-[#ffb400] text-sm font-black text-black shadow-xl"
+                        className="absolute -bottom-4 -right-4 flex h-9 w-9 touch-none items-center justify-center rounded-full border border-black/40 bg-primary text-sm font-black text-black shadow-xl"
                       >
                         ↔
                       </button>
@@ -963,7 +963,7 @@ export default function StoryCreator() {
 
             <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
               <div>
-                <p className="text-[8px] font-black uppercase tracking-[.2em] text-[#ffb400]">
+                <p className="text-[8px] font-black uppercase tracking-[.2em] text-primary">
                   Be the best... Beat the rest
                 </p>
                 <p className="mt-1 text-[9px] font-bold uppercase tracking-[.16em] text-white/45">
@@ -971,7 +971,7 @@ export default function StoryCreator() {
                 </p>
               </div>
 
-              <ChevronRight className="text-[#ffb400]" size={20} strokeWidth={3} />
+              <ChevronRight className="text-primary" size={20} strokeWidth={3} />
             </div>
           </div>
         </div>
@@ -988,7 +988,7 @@ export default function StoryCreator() {
         >
           <div className="sticky top-0 z-10 -mx-1 mb-4 flex items-center justify-between bg-white px-1 pb-2">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[.22em] text-[#ffb400]">
+              <p className="text-[10px] font-black uppercase tracking-[.22em] text-primary">
                 {activeTool === "photo"
                   ? "Photo"
                   : activeTool === "text"
@@ -1023,7 +1023,7 @@ export default function StoryCreator() {
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
-                className="flex items-center justify-center gap-2 rounded-2xl bg-[#ffb400] px-4 py-4 text-sm font-black text-zinc-950"
+                className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-sm font-black text-zinc-950"
               >
                 <Camera size={18} strokeWidth={3} />
                 Take Photo
@@ -1061,7 +1061,7 @@ export default function StoryCreator() {
                 <input
                   value={badge}
                   onChange={(event) => setBadge(event.target.value)}
-                  className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-950 outline-none focus:border-[#ffb400] focus:ring-2 focus:ring-orange-100"
+                  className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-950 outline-none focus:border-primary focus:ring-2 focus:ring-orange-100"
                 />
               </label>
 
@@ -1073,7 +1073,7 @@ export default function StoryCreator() {
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder="Optional"
-                  className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-950 outline-none placeholder:text-zinc-400 focus:border-[#ffb400] focus:ring-2 focus:ring-orange-100"
+                  className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-950 outline-none placeholder:text-zinc-400 focus:border-primary focus:ring-2 focus:ring-orange-100"
                 />
               </label>
 
@@ -1086,7 +1086,7 @@ export default function StoryCreator() {
                   onChange={(event) => setSubtitle(event.target.value)}
                   rows={2}
                   placeholder="Optional"
-                  className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold leading-5 text-zinc-950 outline-none placeholder:text-zinc-400 focus:border-[#ffb400] focus:ring-2 focus:ring-orange-100"
+                  className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold leading-5 text-zinc-950 outline-none placeholder:text-zinc-400 focus:border-primary focus:ring-2 focus:ring-orange-100"
                 />
               </label>
             </div>
@@ -1135,7 +1135,7 @@ export default function StoryCreator() {
                       <button
                         type="button"
                         onClick={resetSelectedLayer}
-                        className="rounded-full bg-[#ffb400] px-3 py-2 text-[10px] font-black text-zinc-950"
+                        className="rounded-full bg-primary px-3 py-2 text-[10px] font-black text-zinc-950"
                       >
                         Reset
                       </button>
@@ -1224,12 +1224,12 @@ export default function StoryCreator() {
                 }}
                 className={`relative min-h-[135px] min-w-[132px] overflow-hidden rounded-[1.5rem] border p-3 text-left ${
                   selectedTemplateId === ""
-                    ? "border-[#ffb400] bg-orange-50 ring-2 ring-orange-100"
+                    ? "border-primary bg-orange-50 ring-2 ring-orange-100"
                     : "border-zinc-200 bg-zinc-50"
                 }`}
               >
                 <div className="flex min-h-[105px] flex-col justify-between">
-                  <span className="w-fit rounded-full bg-[#ffb400] px-2.5 py-1 text-[8px] font-black uppercase tracking-[.14em] text-zinc-950">
+                  <span className="w-fit rounded-full bg-primary px-2.5 py-1 text-[8px] font-black uppercase tracking-[.14em] text-zinc-950">
                     Clean
                   </span>
                   <div>
@@ -1252,7 +1252,7 @@ export default function StoryCreator() {
                     }}
                     className={`relative min-h-[135px] min-w-[132px] overflow-hidden rounded-[1.5rem] border bg-cover bg-center p-3 text-left ${
                       active
-                        ? "border-[#ffb400] ring-2 ring-orange-200"
+                        ? "border-primary ring-2 ring-orange-200"
                         : "border-white/10"
                     }`}
                     style={{
@@ -1260,7 +1260,7 @@ export default function StoryCreator() {
                     }}
                   >
                     <div className="flex min-h-[105px] flex-col justify-between">
-                      <span className="w-fit rounded-full bg-[#ffb400] px-2.5 py-1 text-[8px] font-black uppercase tracking-[.14em] text-black">
+                      <span className="w-fit rounded-full bg-primary px-2.5 py-1 text-[8px] font-black uppercase tracking-[.14em] text-black">
                         {template.badge}
                       </span>
                       <div>
@@ -1286,7 +1286,7 @@ export default function StoryCreator() {
           type="button"
           onClick={() => setActiveTool(activeTool === "photo" ? null : "photo")}
           className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-2.5 text-[10px] font-black ${
-            activeTool === "photo" ? "bg-[#ffb400] text-white" : "text-zinc-600"
+            activeTool === "photo" ? "bg-primary text-white" : "text-zinc-600"
           }`}
         >
           <ImagePlus size={19} strokeWidth={3} />
@@ -1298,7 +1298,7 @@ export default function StoryCreator() {
           type="button"
           onClick={() => setActiveTool(activeTool === "text" ? null : "text")}
           className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-2.5 text-[10px] font-black ${
-            activeTool === "text" ? "bg-[#ffb400] text-white" : "text-zinc-600"
+            activeTool === "text" ? "bg-primary text-white" : "text-zinc-600"
           }`}
         >
           <Type size={19} strokeWidth={3} />
@@ -1310,7 +1310,7 @@ export default function StoryCreator() {
           type="button"
           onClick={() => setActiveTool(activeTool === "stickers" ? null : "stickers")}
           className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-2.5 text-[10px] font-black ${
-            activeTool === "stickers" ? "bg-[#ffb400] text-white" : "text-zinc-600"
+            activeTool === "stickers" ? "bg-primary text-white" : "text-zinc-600"
           }`}
         >
           <Sparkles size={19} strokeWidth={3} />
@@ -1322,7 +1322,7 @@ export default function StoryCreator() {
           type="button"
           onClick={() => setActiveTool(activeTool === "templates" ? null : "templates")}
           className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-2.5 text-[10px] font-black ${
-            activeTool === "templates" ? "bg-[#ffb400] text-white" : "text-zinc-600"
+            activeTool === "templates" ? "bg-primary text-white" : "text-zinc-600"
           }`}
         >
           <Layers size={19} strokeWidth={3} />
