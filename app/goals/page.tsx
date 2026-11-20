@@ -6,10 +6,10 @@ export default function GoalsPage() {
     <AppShell theme="light">
       <div data-member-surface="goals-light" className="space-y-6 text-zinc-950">
         <section className="relative overflow-hidden rounded-[2rem] bg-zinc-950 p-6 shadow-xl">
-          <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ff5a0a]/25 blur-3xl" />
+          <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ffb400]/25 blur-3xl" />
           <div className="relative flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[.25em] text-[#ff5a0a]">
+              <p className="text-xs font-black uppercase tracking-[.25em] text-[#ffb400]">
                 Fitness Goals
               </p>
               <h1 className="mt-3 text-4xl font-black leading-tight text-white">
@@ -20,7 +20,7 @@ export default function GoalsPage() {
                 the best version of yourself.
               </p>
             </div>
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#ff5a0a] text-white">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#ffb400] text-zinc-950">
               <Target size={28} strokeWidth={3} />
             </div>
           </div>
@@ -28,11 +28,11 @@ export default function GoalsPage() {
 
         <section className="rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-sm">
           <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-[#ff5a0a]">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-[#ffb400]">
               <Dumbbell size={27} strokeWidth={3} />
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-[.22em] text-[#ff5a0a]">
+              <p className="text-xs font-black uppercase tracking-[.22em] text-[#ffb400]">
                 Current goal
               </p>
               <h2 className="mt-2 text-2xl font-black text-zinc-950">
