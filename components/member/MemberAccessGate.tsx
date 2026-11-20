@@ -23,6 +23,7 @@ const PUBLIC_PREFIXES = [
   "/member-login",
   "/member-activate",
   "/member-reset-password",
+  "/reset-password", // Public emailed token flow; users must not need a session.
   "/legacy-activate",
   "/join",
   "/staff",

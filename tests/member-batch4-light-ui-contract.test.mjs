@@ -96,3 +96,19 @@ test("Legacy login receives the light BGM entry treatment without changing its d
   assert.match(source, /bg-\[#f6f6f6\]/);
   assert.match(source, /bg-white/);
 });
+
+test("Password-reset token route remains public to signed-out members", () => {
+  const gate = readFileSync(join(root, "components/member/MemberAccessGate.tsx"), "utf8");
+  const resetPage = readFileSync(resetRoutePath, "utf8");
+  const forgotPassword = readFileSync(join(root, "app/api/member/auth/forgot-password/route.ts"), "utf8");
+
+  // The emailed reset path must be exempted from the member-session redirect.
+  assert.match(gate, /const PUBLIC_PREFIXES = \[[\s\S]*?"\/reset-password"[\s\S]*?\]/);
+  assert.match(gate, /return PUBLIC_PREFIXES\.some/);
+  assert.match(resetPage, /token=\{String\(params\.token \|\| ""\)\}/);
+  assert.match(forgotPassword, /resetLink = .*reset-password\?token=/);
+
+  // Private member tools must remain outside the public-route exemptions.
+  const publicRouteBlock = gate.match(/const PUBLIC_PREFIXES = \[([\s\S]*?)\];/)?.[1] || "";
+  assert.doesNotMatch(publicRouteBlock, /"\/progress"|"\/passport"|"\/card"/);
+});
