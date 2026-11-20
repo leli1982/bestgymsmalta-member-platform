@@ -79,7 +79,7 @@ export default function SuperAdminHome() {
       <div className="mx-auto max-w-6xl space-y-6">
         <header className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-7">
           <a href="/staff" className="inline-flex items-center gap-2 text-sm font-black text-orange-700"><ArrowLeft className="h-4 w-4"/> Staff Home</a>
-          <div className="mt-5 flex items-center gap-4"><span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#ff5a0a] text-white"><Dumbbell className="h-9 w-9"/></span><div><p className="text-xs font-black uppercase tracking-widest text-orange-700">BestGymsMalta management</p><h1 className="mt-1 text-3xl font-black tracking-tight">Super Admin</h1><p className="mt-1 text-sm text-zinc-600">Welcome, {user.displayName}. Choose a management area below.</p></div></div>
+          <div className="mt-5 flex items-center gap-4"><span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#ffb400] text-zinc-950"><Dumbbell className="h-9 w-9"/></span><div><p className="text-xs font-black uppercase tracking-widest text-orange-700">BestGymsMalta management</p><h1 className="mt-1 text-3xl font-black tracking-tight">Super Admin</h1><p className="mt-1 text-sm text-zinc-600">Welcome, {user.displayName}. Choose a management area below.</p></div></div>
         </header>
         {(["Operations", "Management", "Membership Tools"] as const).map((group) => (
           <section key={group} aria-label={group} className="space-y-3">

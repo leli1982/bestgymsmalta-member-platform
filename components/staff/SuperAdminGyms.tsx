@@ -17,7 +17,7 @@ type Gym = {
 const emptyGym: Gym = {
   id: "", name: "", shortName: "", status: "active", city: "", address: "",
   openingHours: "", phone: "", email: "", latitude: "", longitude: "", logo: "",
-  virtualTourUrl: "", accentColor: "#fcb415", facilities: [], classes: [],
+  virtualTourUrl: "", accentColor: "#ffb400", facilities: [], classes: [],
   featuredEquipment: [], notes: "", sortOrder: 999,
 };
 const inputClass = "mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-zinc-950";
@@ -223,7 +223,7 @@ export default function SuperAdminGyms() {
           <a href="/staff/admin" className="font-bold text-orange-700">← Super Admin</a>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <div><h1 className="text-3xl font-black">Gym locations</h1><p className="mt-1 text-sm text-zinc-600">Add, edit, activate or deactivate gyms. Staff and tablet links are generated automatically from each new gym's name.</p></div>
-            <button type="button" onClick={newGym} className="rounded-xl bg-[#ff5a0a] px-5 py-3 font-black text-white">+ Add new gym</button>
+            <button type="button" onClick={newGym} className="rounded-xl bg-[#ffb400] px-5 py-3 font-black text-zinc-950">+ Add new gym</button>
           </div>
         </header>
         {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 font-bold text-red-700">{error}</div>}
@@ -303,7 +303,7 @@ export default function SuperAdminGyms() {
               <label className="block text-sm font-bold">Featured equipment (comma separated)<textarea aria-label="Gym featured equipment" value={equipment} onChange={(event) => setEquipment(event.target.value)} rows={2} className={inputClass}/></label>
               <label className="block text-sm font-bold">Notes<textarea aria-label="Gym notes" value={form.notes} onChange={(event) => update({ notes: event.target.value })} rows={2} className={inputClass}/></label>
               <div className="flex flex-wrap gap-3">
-                <button type="submit" disabled={saving || uploading || !form.name.trim() || (creating && !preview)} className="rounded-xl bg-[#ff5a0a] px-6 py-3 font-black text-white disabled:opacity-40">{saving ? "Saving…" : creating ? "Add gym and create addresses" : "Save gym details"}</button>
+                <button type="submit" disabled={saving || uploading || !form.name.trim() || (creating && !preview)} className="rounded-xl bg-[#ffb400] px-6 py-3 font-black text-zinc-950 disabled:opacity-40">{saving ? "Saving…" : creating ? "Add gym and create addresses" : "Save gym details"}</button>
                 {!creating && form.status !== "active" && <button type="button" disabled={saving} onClick={() => void deleteGym()} className="rounded-xl border border-red-300 bg-red-50 px-5 py-3 font-black text-red-700 disabled:opacity-40">Permanently delete unlinked gym</button>}
               </div>
               <p className="text-xs text-zinc-500">For a gym with staff or historical member data, mark it inactive instead of deleting it. This preserves records and disables its staff and tablet access.</p>
