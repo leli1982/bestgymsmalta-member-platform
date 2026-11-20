@@ -341,7 +341,7 @@ export default function MemberLoginPage() {
   if (checkingSession) {
     return (
       <section data-member-surface="member-account-light" className="rounded-[2rem] border border-zinc-200 bg-white p-6 text-zinc-950 shadow-sm" aria-live="polite">
-        <RefreshCw className="animate-spin text-[#ffb400]" size={24} />
+        <RefreshCw className="animate-spin text-primary" size={24} />
         <h1 className="mt-4 text-xl font-black">Checking your session…</h1>
         <p className="mt-2 text-sm font-bold text-zinc-500">Loading your member account securely.</p>
       </section>
@@ -356,17 +356,17 @@ export default function MemberLoginPage() {
           style={{ backgroundImage: "linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.88)), linear-gradient(135deg, rgba(255,180,0,.22), rgba(0,0,0,.72)), url('/visuals/account.jpg')" }}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/20 to-black/85" />
-          <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ffb400]/25 blur-3xl" />
+          <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-primary/25 blur-3xl" />
           <div className="relative flex min-h-[280px] flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="rounded-full border border-white/15 bg-black/35 px-4 py-2 text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400] backdrop-blur-md">Member Account</span>
+              <span className="rounded-full border border-white/15 bg-black/35 px-4 py-2 text-[10px] font-black uppercase tracking-[.25em] text-primary backdrop-blur-md">Member Account</span>
               <img src="/bgm-logo.png" alt="BestGymsMalta" className="h-14 w-14 object-contain drop-shadow-xl" />
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-[.24em] text-[#ffb400]">Welcome back</p>
+              <p className="text-xs font-black uppercase tracking-[.24em] text-primary">Welcome back</p>
               <h1 className="mt-3 text-4xl font-black leading-tight text-white">{member.fullName || member.username}</h1>
               <div className="mt-5 inline-flex items-center gap-3 rounded-[1.4rem] border border-white/15 bg-black/35 p-3 pr-5 backdrop-blur-md">
-                <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${active ? "bg-[#ffb400] text-white" : "bg-red-500/20 text-red-100"}`}>
+                <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${active ? "bg-primary text-white" : "bg-red-500/20 text-red-100"}`}>
                   <BadgeCheck size={23} strokeWidth={3} />
                 </div>
                 <div>
@@ -380,8 +380,8 @@ export default function MemberLoginPage() {
 
         <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-[#ffb400]"><CreditCard size={24} strokeWidth={3} /></div>
-            <div><p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">Membership Details</p><h2 className="mt-1 text-2xl font-black">Your BGM profile</h2></div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-primary"><CreditCard size={24} strokeWidth={3} /></div>
+            <div><p className="text-[10px] font-black uppercase tracking-[.25em] text-primary">Membership Details</p><h2 className="mt-1 text-2xl font-black">Your BGM profile</h2></div>
           </div>
           <div className="mt-5 grid gap-3">
             <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"><p className="text-xs font-black uppercase tracking-[.18em] text-zinc-400">Member Number</p><p className="mt-1 text-lg font-black">{member.memberNumber || "Not set"}</p></div>
@@ -392,8 +392,8 @@ export default function MemberLoginPage() {
 
         <section className="rounded-[2rem] border border-orange-200 bg-orange-50 p-5">
           <div className="flex items-start gap-3">
-            <ShieldCheck className="mt-0.5 shrink-0 text-[#ffb400]" size={25} strokeWidth={3} />
-            <div><p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">App Access</p><h2 className="mt-1 text-2xl font-black">Your app is activated</h2><p className="mt-3 text-sm font-bold leading-6 text-zinc-600">This device is linked to your BGM member account. Your passport, progress photos, trainer plan and app activity are saved against your profile.</p></div>
+            <ShieldCheck className="mt-0.5 shrink-0 text-primary" size={25} strokeWidth={3} />
+            <div><p className="text-[10px] font-black uppercase tracking-[.25em] text-primary">App Access</p><h2 className="mt-1 text-2xl font-black">Your app is activated</h2><p className="mt-3 text-sm font-bold leading-6 text-zinc-600">This device is linked to your BGM member account. Your passport, progress photos, trainer plan and app activity are saved against your profile.</p></div>
           </div>
         </section>
 
@@ -401,15 +401,15 @@ export default function MemberLoginPage() {
 
         <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-[#ffb400]"><Smartphone size={24} strokeWidth={3} /></div>
-            <div><p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">Member Tools</p><h2 className="mt-1 text-2xl font-black">Open your app tools</h2></div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-primary"><Smartphone size={24} strokeWidth={3} /></div>
+            <div><p className="text-[10px] font-black uppercase tracking-[.25em] text-primary">Member Tools</p><h2 className="mt-1 text-2xl font-black">Open your app tools</h2></div>
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3">
             {quickLinks.map((item) => {
               const Icon = item.icon;
               return (
                 <a key={item.href} href={item.href} className="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 transition hover:bg-orange-50">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#ffb400] text-zinc-950"><Icon size={22} strokeWidth={3} /></div>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-zinc-950"><Icon size={22} strokeWidth={3} /></div>
                   <h3 className="mt-4 text-lg font-black">{item.label}</h3>
                   <p className="mt-1 text-xs font-bold leading-5 text-zinc-500">{item.description}</p>
                 </a>
@@ -439,14 +439,14 @@ export default function MemberLoginPage() {
         style={{ backgroundImage: "linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.88)), linear-gradient(135deg, rgba(255,180,0,.22), rgba(0,0,0,.72)), url('/visuals/account.jpg')" }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/20 to-black/85" />
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ffb400]/25 blur-3xl" />
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-primary/25 blur-3xl" />
         <div className="relative flex min-h-[250px] flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="rounded-full border border-white/15 bg-black/35 px-4 py-2 text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400] backdrop-blur-md">BestGymsMalta</span>
+            <span className="rounded-full border border-white/15 bg-black/35 px-4 py-2 text-[10px] font-black uppercase tracking-[.25em] text-primary backdrop-blur-md">BestGymsMalta</span>
             <img src="/bgm-logo.png" alt="BestGymsMalta" className="h-14 w-14 object-contain drop-shadow-xl" />
           </div>
           <div>
-            <p className="text-xs font-black uppercase tracking-[.24em] text-[#ffb400]">Member Access</p>
+            <p className="text-xs font-black uppercase tracking-[.24em] text-primary">Member Access</p>
             <h1 className="mt-3 text-4xl font-black leading-tight text-white">Your BGM account</h1>
             <p className="mt-3 max-w-xs text-sm font-bold leading-6 text-white/65">Login or activate your app account using your BGM membership details.</p>
           </div>
@@ -465,31 +465,31 @@ export default function MemberLoginPage() {
 
         {mode === "login" ? (
           <form onSubmit={handleLogin} className="mt-5 grid gap-4">
-            <div className="flex items-center gap-3"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-[#ffb400]"><Lock size={24} strokeWidth={3} /></div><div><p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">Login</p><h2 className="mt-1 text-2xl font-black">Access your account</h2></div></div>
+            <div className="flex items-center gap-3"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-primary"><Lock size={24} strokeWidth={3} /></div><div><p className="text-[10px] font-black uppercase tracking-[.25em] text-primary">Login</p><h2 className="mt-1 text-2xl font-black">Access your account</h2></div></div>
             <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">Username or Membership Number</span><div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3"><User className="text-zinc-400" size={18} strokeWidth={3} /><input value={loginUsername} onChange={(event) => setLoginUsername(event.target.value)} placeholder="Username or BGM1000" className="w-full bg-transparent text-sm font-bold text-zinc-950 outline-none placeholder:text-zinc-400" /></div></label>
             <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">Password</span><div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3"><KeyRound className="text-zinc-400" size={18} strokeWidth={3} /><input type="password" value={loginPassword} onChange={(event) => setLoginPassword(event.target.value)} placeholder="Your password" className="w-full bg-transparent text-sm font-bold text-zinc-950 outline-none placeholder:text-zinc-400" /></div></label>
-            <button type="button" onClick={() => { setMode("forgot"); setError(""); setForgotMessage(""); }} className="-mt-1 w-fit text-sm font-black text-[#ffb400]">Forgot password?</button>
-            <button type="submit" disabled={loading} className="flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950 shadow-lg shadow-orange-100 disabled:opacity-60">{loading ? <><RefreshCw size={17} strokeWidth={3} className="animate-spin" />Logging in…</> : <>Login<ChevronRight size={17} strokeWidth={3} /></>}</button>
+            <button type="button" onClick={() => { setMode("forgot"); setError(""); setForgotMessage(""); }} className="-mt-1 w-fit text-sm font-black text-primary">Forgot password?</button>
+            <button type="submit" disabled={loading} className="flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-4 text-sm font-black text-zinc-950 shadow-lg shadow-orange-100 disabled:opacity-60">{loading ? <><RefreshCw size={17} strokeWidth={3} className="animate-spin" />Logging in…</> : <>Login<ChevronRight size={17} strokeWidth={3} /></>}</button>
           </form>
         ) : mode === "forgot" ? (
           <form onSubmit={handleForgotPassword} className="grid gap-4">
-            <div className="flex items-center gap-3"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-[#ffb400]"><Mail size={24} strokeWidth={3} /></div><div><p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">Forgot Password</p><h2 className="mt-1 text-2xl font-black">Reset your password</h2></div></div>
+            <div className="flex items-center gap-3"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-primary"><Mail size={24} strokeWidth={3} /></div><div><p className="text-[10px] font-black uppercase tracking-[.25em] text-primary">Forgot Password</p><h2 className="mt-1 text-2xl font-black">Reset your password</h2></div></div>
             <p className="text-sm font-bold leading-6 text-zinc-500">Enter your permanent BGM membership number and registered email address. If those details match, we will send you a secure reset link.</p>
             {forgotMessage ? <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm font-bold leading-6 text-zinc-700">{forgotMessage}</div> : null}
             <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">Membership Number</span><div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3"><CreditCard className="text-zinc-400" size={18} strokeWidth={3} /><input value={forgotMemberNumber} onChange={(event) => setForgotMemberNumber(event.target.value)} placeholder="BGM1000" autoCapitalize="characters" className="w-full bg-transparent text-sm font-bold text-zinc-950 outline-none placeholder:text-zinc-400" /></div></label>
             <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">Registered Email</span><div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3"><Mail className="text-zinc-400" size={18} strokeWidth={3} /><input type="email" value={forgotEmail} onChange={(event) => setForgotEmail(event.target.value)} placeholder="Your membership email" className="w-full bg-transparent text-sm font-bold text-zinc-950 outline-none placeholder:text-zinc-400" /></div></label>
-            <button type="submit" disabled={loading} className="flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950 shadow-lg shadow-orange-100 disabled:opacity-60">{loading ? <><RefreshCw size={17} strokeWidth={3} className="animate-spin" />Sending…</> : <>Send Reset Link<ChevronRight size={17} strokeWidth={3} /></>}</button>
+            <button type="submit" disabled={loading} className="flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-4 text-sm font-black text-zinc-950 shadow-lg shadow-orange-100 disabled:opacity-60">{loading ? <><RefreshCw size={17} strokeWidth={3} className="animate-spin" />Sending…</> : <>Send Reset Link<ChevronRight size={17} strokeWidth={3} /></>}</button>
             <button type="button" onClick={() => { setMode("login"); setError(""); setForgotMessage(""); }} className="rounded-full border border-zinc-200 bg-white px-5 py-4 text-sm font-black text-zinc-700">Back to Login</button>
           </form>
         ) : (
           <form onSubmit={handleActivate} className="mt-5 grid gap-4">
-            <div className="flex items-center gap-3"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-[#ffb400]"><ShieldCheck size={24} strokeWidth={3} /></div><div><p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">Activate</p><h2 className="mt-1 text-2xl font-black">Link your membership</h2></div></div>
+            <div className="flex items-center gap-3"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-primary"><ShieldCheck size={24} strokeWidth={3} /></div><div><p className="text-[10px] font-black uppercase tracking-[.25em] text-primary">Activate</p><h2 className="mt-1 text-2xl font-black">Link your membership</h2></div></div>
             <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">Member Number</span><div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3"><CreditCard className="text-zinc-400" size={18} strokeWidth={3} /><input value={memberNumber} onChange={(event) => setMemberNumber(event.target.value)} placeholder="Example: BGM1000" className="w-full bg-transparent text-sm font-bold text-zinc-950 outline-none placeholder:text-zinc-400" /></div></label>
             <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">Registered Email (if available)</span><div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3"><Mail className="text-zinc-400" size={18} strokeWidth={3} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Your membership email" className="w-full bg-transparent text-sm font-bold text-zinc-950 outline-none placeholder:text-zinc-400" /></div></label>
             <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">Choose Username</span><div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3"><User className="text-zinc-400" size={18} strokeWidth={3} /><input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Create username" className="w-full bg-transparent text-sm font-bold text-zinc-950 outline-none placeholder:text-zinc-400" /></div></label>
             <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">Password</span><div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3"><KeyRound className="text-zinc-400" size={18} strokeWidth={3} /><input type="password" value={activatePassword} onChange={(event) => setActivatePassword(event.target.value)} placeholder="Minimum 6 characters" className="w-full bg-transparent text-sm font-bold text-zinc-950 outline-none placeholder:text-zinc-400" /></div></label>
             <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">Confirm Password</span><div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3"><KeyRound className="text-zinc-400" size={18} strokeWidth={3} /><input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Repeat password" className="w-full bg-transparent text-sm font-bold text-zinc-950 outline-none placeholder:text-zinc-400" /></div></label>
-            <button type="submit" disabled={loading} className="flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950 shadow-lg shadow-orange-100 disabled:opacity-60">{loading ? <><RefreshCw size={17} strokeWidth={3} className="animate-spin" />Activating…</> : <>Activate App<ChevronRight size={17} strokeWidth={3} /></>}</button>
+            <button type="submit" disabled={loading} className="flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-4 text-sm font-black text-zinc-950 shadow-lg shadow-orange-100 disabled:opacity-60">{loading ? <><RefreshCw size={17} strokeWidth={3} className="animate-spin" />Activating…</> : <>Activate App<ChevronRight size={17} strokeWidth={3} /></>}</button>
             <p className="text-center text-xs font-bold leading-5 text-zinc-400">Your membership must first be added by BGM admin before activation works.</p>
           </form>
         )}
