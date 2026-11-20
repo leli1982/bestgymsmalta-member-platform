@@ -58,12 +58,12 @@ export default function BottomNav({ variant = "dark" }: BottomNavProps) {
                 key={item.href}
                 href={item.href}
                 className={`relative flex min-w-0 flex-1 flex-col items-center justify-center px-1 py-1.5 text-[10px] font-bold transition ${
-                  isActive ? "text-[#ff5a0a]" : "text-slate-500 hover:text-zinc-950"
+                  isActive ? "text-[#ffb400]" : "text-slate-500 hover:text-zinc-950"
                 }`}
               >
                 <Icon size={22} strokeWidth={isActive ? 3 : 2.4} />
                 <span className="mt-1 truncate">{item.label}</span>
-                {isActive ? <span className="absolute -bottom-1 h-[3px] w-9 rounded-full bg-[#ff5a0a]" /> : null}
+                {isActive ? <span className="absolute -bottom-1 h-[3px] w-9 rounded-full bg-[#ffb400]" /> : null}
               </a>
             );
           }
@@ -74,7 +74,7 @@ export default function BottomNav({ variant = "dark" }: BottomNavProps) {
               href={item.href}
               className={`flex min-w-0 flex-1 flex-col items-center justify-center rounded-2xl px-2 py-2.5 text-[10px] font-black transition ${
                 isActive
-                  ? "bg-[#fcb415] text-black"
+                  ? "bg-[#ffb400] text-black"
                   : "text-white/45 hover:bg-white/[0.05] hover:text-white"
               }`}
             >

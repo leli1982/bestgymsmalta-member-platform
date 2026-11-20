@@ -14,8 +14,16 @@ const config: Config = {
         card: "#141414",
         "card-elevated": "#1B1B1B",
 
-        primary: "#fcb415",
-        "primary-light": "#FB923C",
+        // Official BGM #FFB400 with readable gold shades for existing
+        // legacy Tailwind orange utility classes.
+        orange: {
+          50: "#fff8e3", 100: "#ffedba", 200: "#ffe08a",
+          300: "#ffd264", 400: "#ffc641", 500: "#ffb400",
+          600: "#946500", 700: "#805600", 800: "#694700",
+          900: "#4c3400", 950: "#2e2000",
+        },
+        primary: "#ffb400",
+        "primary-light": "#ffd264",
 
         success: "#22C55E",
         warning: "#FACC15",
@@ -28,12 +36,12 @@ const config: Config = {
         bg: "#090909",
         panel: "#141414",
         panel2: "#1B1B1B",
-        acid: "#fcb415",
+        acid: "#ffb400",
         flame: "#FF3131",
         steel: "#A7A7A7",
       },
       boxShadow: {
-        glow: "0 0 35px rgba(252,180,21,.35)",
+        glow: "0 0 35px rgba(255,180,0,.35)",
         card: "0 8px 40px rgba(0,0,0,.35)",
         nav: "0 0 35px rgba(0,0,0,.6)",
         redglow: "0 0 40px rgba(255,49,49,.20)",
