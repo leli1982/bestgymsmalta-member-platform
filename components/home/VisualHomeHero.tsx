@@ -98,7 +98,7 @@ export default function VisualHomeHero() {
           : `center, center, ${heroPosition.x}% ${heroPosition.y}%`,
       }}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(255,90,10,.15),transparent_35%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(255,180,0,.15),transparent_35%)]" />
 
       <div className="relative flex min-h-[414px] flex-col px-5 pb-5 pt-6 sm:min-h-[430px] sm:px-6">
         <div className="flex items-start justify-between gap-3">
@@ -119,7 +119,7 @@ export default function VisualHomeHero() {
           >
             <Bell size={22} strokeWidth={2.3} />
             {unreadCount > 0 ? (
-              <span className="absolute right-1 top-1 flex h-3 min-w-3 items-center justify-center rounded-full bg-[#ff5a0a] px-0.5 text-[8px] font-black leading-none text-white">
+              <span className="absolute right-1 top-1 flex h-3 min-w-3 items-center justify-center rounded-full bg-[#ffb400] px-0.5 text-[8px] font-black leading-none text-zinc-950">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             ) : null}
@@ -127,17 +127,17 @@ export default function VisualHomeHero() {
         </div>
 
         <div
-          className="absolute left-5 top-[84px] -rotate-6 text-[25px] font-bold leading-[0.9] text-[#ff5a0a] drop-shadow-lg sm:left-6 sm:text-[28px]"
+          className="absolute left-5 top-[84px] -rotate-6 text-[25px] font-bold leading-[0.9] text-[#ffb400] drop-shadow-lg sm:left-6 sm:text-[28px]"
           style={{ fontFamily: '"Brush Script MT", "Segoe Script", cursive' }}
         >
           More<br />Than Gyms
-          <span className="mt-1 block h-[3px] w-24 -rotate-3 rounded-full bg-[#ff5a0a]" />
+          <span className="mt-1 block h-[3px] w-24 -rotate-3 rounded-full bg-[#ffb400]" />
         </div>
 
         <div className="mt-auto max-w-[62%] pb-[76px]">
           <h1 className="text-[31px] font-black leading-[0.98] tracking-[-0.035em] drop-shadow-xl sm:text-[34px]">
             Welcome back,
-            <span className="mt-1 block text-[42px] text-[#ff5a0a] sm:text-[46px]">{welcomeName}</span>
+            <span className="mt-1 block text-[42px] text-[#ffb400] sm:text-[46px]">{welcomeName}</span>
           </h1>
           <p className="mt-3 whitespace-nowrap text-[16px] font-medium tracking-[-0.02em] text-white/88 sm:text-[17px]">
             be the best...beat the rest
@@ -147,16 +147,16 @@ export default function VisualHomeHero() {
         <div className="absolute bottom-5 left-5 right-5 grid grid-cols-2 gap-3 sm:left-6 sm:right-6">
           <a
             href="/card"
-            className="flex min-h-[58px] items-center justify-center gap-2.5 rounded-[1.25rem] bg-[#ff5a0a] px-3 text-[15px] font-black text-white shadow-[0_10px_28px_rgba(255,90,10,.25)] transition active:scale-[0.98]"
+            className="flex min-h-[58px] items-center justify-center gap-2.5 rounded-[1.25rem] bg-[#ffb400] px-3 text-[15px] font-black text-zinc-950 shadow-[0_10px_28px_rgba(255,180,0,.25)] transition active:scale-[0.98]"
           >
             <CreditCard size={20} strokeWidth={2.8} />
             Show Card
           </a>
           <a
             href="/gyms"
-            className="flex min-h-[58px] items-center justify-center gap-2.5 rounded-[1.25rem] border-2 border-[#ff5a0a] bg-black/60 px-3 text-[15px] font-black text-white backdrop-blur-sm transition active:scale-[0.98]"
+            className="flex min-h-[58px] items-center justify-center gap-2.5 rounded-[1.25rem] border-2 border-[#ffb400] bg-black/60 px-3 text-[15px] font-black text-white backdrop-blur-sm transition active:scale-[0.98]"
           >
-            <MapPin className="text-[#ff5a0a]" size={21} strokeWidth={3} />
+            <MapPin className="text-[#ffb400]" size={21} strokeWidth={3} />
             Find Gyms
           </a>
         </div>

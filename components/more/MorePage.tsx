@@ -45,9 +45,9 @@ export default function MorePage() {
   return (
     <div data-member-surface="more-light" className="space-y-6 text-zinc-950">
       <section className="relative overflow-hidden rounded-[2rem] bg-zinc-950 p-6 shadow-xl">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ff5a0a]/25 blur-3xl" />
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ffb400]/25 blur-3xl" />
         <div className="relative">
-          <p className="text-xs font-black uppercase tracking-[.25em] text-[#ff5a0a]">
+          <p className="text-xs font-black uppercase tracking-[.25em] text-[#ffb400]">
             More
           </p>
           <h1 className="mt-3 text-4xl font-black leading-tight text-white">
@@ -61,11 +61,11 @@ export default function MorePage() {
 
       <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-[#ff5a0a]">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-[#ffb400]">
             <ShieldCheck size={27} strokeWidth={3} />
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[.22em] text-[#ff5a0a]">
+            <p className="text-xs font-black uppercase tracking-[.22em] text-[#ffb400]">
               Member
             </p>
             <h2 className="mt-1 truncate text-2xl font-black text-zinc-950">
@@ -82,7 +82,7 @@ export default function MorePage() {
         {!member ? (
           <a
             href="/member-login"
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-100"
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950 shadow-lg shadow-orange-100"
           >
             <LogIn size={17} strokeWidth={3} />
             Login / Activate
@@ -96,7 +96,7 @@ export default function MorePage() {
           className="flex items-center justify-between gap-4 rounded-[1.7rem] border border-zinc-200 bg-white p-5 shadow-sm"
         >
           <div className="flex min-w-0 items-center gap-4">
-            <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-[#ff5a0a]">
+            <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-[#ffb400]">
               <Stamp size={25} strokeWidth={3} />
             </div>
             <div className="min-w-0">
@@ -134,7 +134,7 @@ export default function MorePage() {
           className="flex items-center justify-between gap-4 rounded-[1.7rem] border border-orange-200 bg-orange-50 p-5"
         >
           <div className="flex min-w-0 items-center gap-4">
-            <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-[#ff5a0a] text-white">
+            <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-[#ffb400] text-zinc-950">
               <MessageCircle size={25} strokeWidth={3} />
             </div>
             <div className="min-w-0">
@@ -144,7 +144,7 @@ export default function MorePage() {
               </p>
             </div>
           </div>
-          <ChevronRight className="shrink-0 text-[#ff5a0a]" size={20} strokeWidth={3} />
+          <ChevronRight className="shrink-0 text-[#ffb400]" size={20} strokeWidth={3} />
         </a>
 
         {member ? <MemberReminderNotifications /> : null}
@@ -172,8 +172,8 @@ export default function MorePage() {
       </section>
 
       <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 text-center shadow-sm">
-        <Sparkles className="mx-auto text-[#ff5a0a]" size={28} strokeWidth={3} />
-        <p className="mt-3 text-xs font-black uppercase tracking-[.24em] text-[#ff5a0a]">
+        <Sparkles className="mx-auto text-[#ffb400]" size={28} strokeWidth={3} />
+        <p className="mt-3 text-xs font-black uppercase tracking-[.24em] text-[#ffb400]">
           Be the best... Beat the rest
         </p>
         <p className="mt-2 text-sm font-bold text-zinc-400">

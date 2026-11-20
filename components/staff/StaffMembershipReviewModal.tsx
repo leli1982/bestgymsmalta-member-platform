@@ -805,7 +805,7 @@ export default function StaffMembershipReviewModal({
       <div className="max-h-[96vh] w-full overflow-auto rounded-t-3xl bg-[#f6f6f6] shadow-2xl sm:max-w-5xl sm:rounded-3xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-200 bg-white/95 px-5 py-4 backdrop-blur sm:px-6">
           <div className="min-w-0">
-            <p className="truncate text-xs font-black uppercase tracking-[0.16em] text-[#ff5a0a]">
+            <p className="truncate text-xs font-black uppercase tracking-[0.16em] text-[#ffb400]">
               {application?.reference || "Membership application"}
             </p>
             <h2 className="truncate text-xl font-black text-zinc-950">
@@ -830,7 +830,7 @@ export default function StaffMembershipReviewModal({
 
         {loading && (
           <div className="flex min-h-80 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-[#ff5a0a]" />
+            <Loader2 className="h-8 w-8 animate-spin text-[#ffb400]" />
           </div>
         )}
         {!loading && error && (
@@ -1403,7 +1403,7 @@ export default function StaffMembershipReviewModal({
                       type="button"
                       onClick={() => void confirmReview()}
                       disabled={!reviewReady || acting || saving}
-                      className="min-h-14 rounded-2xl bg-[#ff5a0a] px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-35"
+                      className="min-h-14 rounded-2xl bg-[#ffb400] px-5 py-3 text-sm font-black text-zinc-950 disabled:cursor-not-allowed disabled:opacity-35"
                     >
                       {saving ? "CONFIRMING REVIEW…" : "CONFIRM REVIEW → CONTINUE"}
                     </button>
@@ -1530,14 +1530,14 @@ function Field({
         <EuropeanDateInput
           value={value || ""}
           onValueChange={onChange}
-          className="mt-1.5 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-zinc-900 outline-none focus:border-[#ff5a0a] focus:ring-3 focus:ring-orange-100"
+          className="mt-1.5 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-zinc-900 outline-none focus:border-[#ffb400] focus:ring-3 focus:ring-orange-100"
         />
       ) : (
         <input
           type={type}
           value={value || ""}
           onChange={(event) => onChange(event.target.value)}
-          className="mt-1.5 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-zinc-900 outline-none focus:border-[#ff5a0a] focus:ring-3 focus:ring-orange-100"
+          className="mt-1.5 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-zinc-900 outline-none focus:border-[#ffb400] focus:ring-3 focus:ring-orange-100"
         />
       )}
     </label>
@@ -1559,7 +1559,7 @@ function Check({
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="h-5 w-5 accent-[#ff5a0a]"
+        className="h-5 w-5 accent-[#ffb400]"
       />
       {label}
     </label>

@@ -946,7 +946,7 @@ export default function MembershipEnrollmentPage() {
                           : ""}
                       </span>
                     </span>
-                    <span className="rounded-lg bg-orange-500 px-3 py-2 text-xs font-black text-white">
+                    <span className="rounded-lg bg-orange-500 px-3 py-2 text-xs font-black text-zinc-950">
                       Use for renewal
                     </span>
                   </button>
@@ -1164,7 +1164,7 @@ export default function MembershipEnrollmentPage() {
             {kind === "renewal" && renewalSelections.length !== expectedParticipants && <p role="status" className="rounded-xl border border-amber-400 bg-amber-50 p-3 text-sm font-bold text-amber-900">Select {expectedParticipants === 2 ? "both members" : "the member"} before submitting.</p>}
             <button
               disabled={submitting || (kind === "renewal" && renewalSelections.length !== expectedParticipants)}
-              className="w-full rounded-2xl bg-[#ff5a0a] px-5 py-4 text-lg font-black text-zinc-950 shadow-lg transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
+              className="w-full rounded-2xl bg-[#ffb400] px-5 py-4 text-lg font-black text-zinc-950 shadow-lg transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {submitting ? "Saving application…" : "SUBMIT MEMBERSHIP APPLICATION"}
             </button>

@@ -27,7 +27,7 @@ test("MovementCard uses the shared light BGM surface and supports visual assets 
   assert.match(card, /border-zinc-200/);
   assert.match(card, /bg-white/);
   assert.match(card, /text-zinc-950/);
-  assert.match(card, /#ff5a0a/);
+  assert.match(card, /#ffb400/);
   assert.match(card, /diagramAsset/);
   assert.match(card, /alt=/);
   assert.match(card, /Visual guide coming soon/);

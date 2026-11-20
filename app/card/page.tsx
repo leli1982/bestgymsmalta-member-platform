@@ -6,7 +6,7 @@ export default function CardPage() {
     <AppShell theme="light">
       <div className="space-y-6">
         <div>
-          <p className="text-sm font-black uppercase tracking-[.25em] text-[#c2410c]">
+          <p className="text-sm font-black uppercase tracking-[.25em] text-[#805600]">
             Membership Card
           </p>
           <h1 className="mt-2 text-3xl font-black text-zinc-950">

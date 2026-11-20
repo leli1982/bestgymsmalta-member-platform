@@ -77,10 +77,10 @@ export default function VisualQuickLinks() {
   return (
     <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
       <div className="flex items-center gap-3">
-        <Dumbbell className="text-[#fcb415]" size={25} strokeWidth={3} />
+        <Dumbbell className="text-[#ffb400]" size={25} strokeWidth={3} />
 
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
             Quick Links
           </p>
 
@@ -106,14 +106,14 @@ export default function VisualQuickLinks() {
                 isLastOdd ? "col-span-2" : ""
               }`}
               style={{
-                backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.84)), linear-gradient(135deg, rgba(252,180,21,.18), rgba(0,0,0,.72)), url('${item.image}')`,
+                backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.84)), linear-gradient(135deg, rgba(255,180,0,.18), rgba(0,0,0,.72)), url('${item.image}')`,
               }}
             >
               <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/80" />
 
               <div className="relative flex h-full min-h-[118px] flex-col justify-between">
                 <div className="flex items-center justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fcb415] text-black shadow-lg">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#ffb400] text-black shadow-lg">
                     <Icon size={24} strokeWidth={3} />
                   </div>
 

@@ -139,7 +139,7 @@ export default function AdminCheckinsViewer({ pin }: { pin: string }) {
     <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
             Check-ins
           </p>
 
@@ -174,7 +174,7 @@ export default function AdminCheckinsViewer({ pin }: { pin: string }) {
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-          <p className="text-3xl font-black text-[#fcb415]">{uniqueMembers}</p>
+          <p className="text-3xl font-black text-[#ffb400]">{uniqueMembers}</p>
           <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35">
             Members
           </p>
@@ -222,7 +222,7 @@ export default function AdminCheckinsViewer({ pin }: { pin: string }) {
             className="rounded-[1.5rem] border border-white/10 bg-black/25 p-4"
           >
             <div className="flex items-start gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#fcb415] text-black">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ffb400] text-black">
                 <User size={22} strokeWidth={3} />
               </div>
 
@@ -231,7 +231,7 @@ export default function AdminCheckinsViewer({ pin }: { pin: string }) {
                   {checkin.memberName}
                 </h3>
 
-                <p className="mt-1 text-xs font-black uppercase tracking-[.16em] text-[#fcb415]">
+                <p className="mt-1 text-xs font-black uppercase tracking-[.16em] text-[#ffb400]">
                   {checkin.memberNumber || "No member number"}
                 </p>
 

@@ -145,7 +145,7 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, c
       <div className="border-b border-zinc-200 p-5 sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff5a0a]">Member browser</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ffb400]">Member browser</p>
             <h2 className="mt-1 text-2xl font-black tracking-tight text-zinc-950">Members</h2>
             <p className="mt-1 text-sm text-zinc-500">Member lookup for reception and renewal.</p>
           </div>
@@ -164,7 +164,7 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, c
                 setPage(1);
               }}
               placeholder="Search name, BGM number, card / pkCustomer, ID, phone or email"
-              className="w-full rounded-2xl border border-zinc-300 bg-zinc-50 py-3.5 pl-12 pr-4 text-base font-medium outline-none transition focus:border-[#ff5a0a] focus:bg-white focus:ring-4 focus:ring-orange-100"
+              className="w-full rounded-2xl border border-zinc-300 bg-zinc-50 py-3.5 pl-12 pr-4 text-base font-medium outline-none transition focus:border-[#ffb400] focus:bg-white focus:ring-4 focus:ring-orange-100"
             />
           </label>
           <div className="flex rounded-2xl bg-zinc-100 p-1" aria-label="Member status filter">
@@ -309,7 +309,7 @@ export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, c
             {canRenew && selected.memberNumber && (
               <a
                 href={`/staff/members/enroll?kind=renewal&memberNumber=${encodeURIComponent(selected.memberNumber)}`}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#ff5a0a] px-5 py-4 text-base font-black text-white shadow-sm hover:bg-orange-600"
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#ffb400] px-5 py-4 text-base font-black text-zinc-950 shadow-sm hover:bg-orange-600"
               >
                 <RefreshCw className="h-5 w-5" /> RENEW MEMBERSHIP
               </a>

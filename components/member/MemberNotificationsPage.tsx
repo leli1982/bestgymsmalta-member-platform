@@ -120,11 +120,11 @@ export default function MemberNotificationsPage() {
       <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-[#ff5a0a]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-[#ffb400]">
               <Bell size={24} strokeWidth={3} />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ff5a0a]">Notifications</p>
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">Notifications</p>
               <h1 className="mt-1 text-2xl font-black">Your BGM updates</h1>
               <p className="mt-1 text-xs font-bold text-zinc-500">{unread} unread</p>
             </div>
@@ -165,7 +165,7 @@ export default function MemberNotificationsPage() {
               className={`w-full rounded-[1.6rem] border p-4 text-left shadow-sm transition active:scale-[0.99] ${item.read_at ? "border-zinc-200 bg-white" : "border-orange-200 bg-orange-50"}`}
             >
               <div className="flex items-start gap-3">
-                <div className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${item.read_at ? "bg-zinc-200" : "bg-[#ff5a0a]"}`} />
+                <div className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${item.read_at ? "bg-zinc-200" : "bg-[#ffb400]"}`} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3">
                     <h2 className="text-sm font-black text-zinc-950">{item.title}</h2>
@@ -193,7 +193,7 @@ export default function MemberNotificationsPage() {
             </button>
 
             <div className="pr-12">
-              <p className="text-[10px] font-black uppercase tracking-[.22em] text-[#ff5a0a]">BGM Notification</p>
+              <p className="text-[10px] font-black uppercase tracking-[.22em] text-[#ffb400]">BGM Notification</p>
               <h2 className="mt-2 text-2xl font-black">{selected.title}</h2>
               <p className="mt-2 text-xs font-bold text-zinc-400">{formatDate(selected.created_at)}</p>
             </div>
@@ -205,7 +205,7 @@ export default function MemberNotificationsPage() {
                 <button
                   type="button"
                   onClick={() => window.location.assign(selected.href!)}
-                  className="w-full rounded-full bg-[#ff5a0a] px-5 py-3 text-sm font-black text-white"
+                  className="w-full rounded-full bg-[#ffb400] px-5 py-3 text-sm font-black text-zinc-950"
                 >
                   Open related page
                 </button>

@@ -162,7 +162,7 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
     return (
       <section data-member-surface="checkin-light" className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3 text-zinc-500">
-          <RefreshCw size={18} className="animate-spin text-[#ff5a0a]" />
+          <RefreshCw size={18} className="animate-spin text-[#ffb400]" />
           <p className="text-sm font-bold">Loading check-in…</p>
         </div>
       </section>
@@ -178,7 +178,7 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
         </p>
         <a
           href="/gyms"
-          className="mt-5 flex items-center justify-center rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white"
+          className="mt-5 flex items-center justify-center rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950"
         >
           View Gyms
         </a>
@@ -194,14 +194,14 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
         className="relative overflow-hidden rounded-[2.3rem] border border-white/10 bg-zinc-950 bg-cover bg-center p-6 shadow-xl"
         style={{
           backgroundImage:
-            "linear-gradient(180deg, rgba(0,0,0,.20), rgba(0,0,0,.88)), linear-gradient(135deg, rgba(255,90,10,.25), rgba(0,0,0,.85))",
+            "linear-gradient(180deg, rgba(0,0,0,.20), rgba(0,0,0,.88)), linear-gradient(135deg, rgba(255,180,0,.25), rgba(0,0,0,.85))",
         }}
       >
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ff5a0a]/25 blur-3xl" />
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ffb400]/25 blur-3xl" />
         <div className="relative">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-xs font-black uppercase tracking-[.25em] text-[#ff5a0a]">
+              <p className="text-xs font-black uppercase tracking-[.25em] text-[#ffb400]">
                 BGM Check-in
               </p>
               <h1 className="mt-4 text-4xl font-black leading-tight text-white">
@@ -215,7 +215,7 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
             ) : null}
           </div>
           <p className="mt-4 flex items-start gap-2 text-sm font-bold leading-6 text-white/60">
-            <MapPinned className="mt-0.5 text-[#ff5a0a]" size={17} />
+            <MapPinned className="mt-0.5 text-[#ffb400]" size={17} />
             {gym.address}
           </p>
         </div>
@@ -230,7 +230,7 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
           </p>
           <a
             href="/member-login"
-            className="mt-5 flex items-center justify-center rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white"
+            className="mt-5 flex items-center justify-center rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950"
           >
             Login / Activate
           </a>
@@ -242,7 +242,7 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
             <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
               <CheckCircle2 size={52} strokeWidth={3} />
             </div>
-            <p className="mt-5 text-xs font-black uppercase tracking-[.25em] text-[#ff5a0a]">
+            <p className="mt-5 text-xs font-black uppercase tracking-[.25em] text-[#ffb400]">
               Stamp collected
             </p>
             <h2 className="mt-2 text-4xl font-black leading-tight text-zinc-950">
@@ -257,13 +257,13 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
                 {logo ? (
                   <img src={logo} alt="" className="h-20 w-20 shrink-0 object-contain" />
                 ) : (
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#ff5a0a] text-white">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#ffb400] text-zinc-950">
                     <Stamp size={30} strokeWidth={3} />
                   </div>
                 )}
                 <div className="min-w-0">
                   <p className="truncate text-xl font-black text-zinc-950">{gym.name}</p>
-                  <p className="mt-1 text-xs font-black uppercase tracking-[.16em] text-[#ff5a0a]">
+                  <p className="mt-1 text-xs font-black uppercase tracking-[.16em] text-[#ffb400]">
                     {member.fullName || member.username} · {member.memberNumber}
                   </p>
                   {latestCheckinAt ? (
@@ -285,17 +285,17 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
                     {visitedCount} / {totalActiveGyms} gyms
                   </p>
                 </div>
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#ff5a0a] text-white">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#ffb400] text-zinc-950">
                   <Trophy size={28} strokeWidth={3} />
                 </div>
               </div>
               <div className="mt-4 h-3 overflow-hidden rounded-full bg-zinc-200">
-                <div className="h-full rounded-full bg-[#ff5a0a]" style={{ width: `${progressPercent}%` }} />
+                <div className="h-full rounded-full bg-[#ffb400]" style={{ width: `${progressPercent}%` }} />
               </div>
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <a href="/passport" className="rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white">
+              <a href="/passport" className="rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950">
                 View Passport
               </a>
               <a href="/story" className="flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white px-5 py-4 text-sm font-black text-zinc-950">
@@ -307,11 +307,11 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
         </section>
       ) : (
         <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 text-center shadow-sm">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-orange-50 text-[#ff5a0a]">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-orange-50 text-[#ffb400]">
             <Dumbbell size={38} strokeWidth={3} />
           </div>
           <h2 className="mt-5 text-2xl font-black text-zinc-950">Confirm your visit</h2>
-          <p className="mt-2 text-xs font-black uppercase tracking-[.18em] text-[#ff5a0a]">
+          <p className="mt-2 text-xs font-black uppercase tracking-[.18em] text-[#ffb400]">
             {member.fullName || member.username} · {member.memberNumber}
           </p>
           <p className="mt-3 text-sm font-bold leading-6 text-zinc-500">
@@ -321,7 +321,7 @@ export default function CheckInPage({ gymId }: { gymId: string }) {
             type="button"
             onClick={confirmCheckIn}
             disabled={saving || gym.status !== "active"}
-            className="mt-5 w-full rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white disabled:opacity-40"
+            className="mt-5 w-full rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950 disabled:opacity-40"
           >
             {saving ? "Checking in…" : "Confirm Check-in"}
           </button>

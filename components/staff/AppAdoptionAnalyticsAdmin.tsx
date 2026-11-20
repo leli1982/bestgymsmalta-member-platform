@@ -56,7 +56,7 @@ function KpiCard({ label, value, detail, icon: Icon }: {
     <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-black uppercase tracking-wider text-zinc-500">{label}</p>
-        <Icon className="h-5 w-5 text-[#ff5a0a]" />
+        <Icon className="h-5 w-5 text-[#ffb400]" />
       </div>
       <p className="mt-3 text-3xl font-black tracking-tight text-zinc-950">{value}</p>
       {detail ? <p className="mt-1 text-xs font-semibold text-zinc-500">{detail}</p> : null}
@@ -174,7 +174,7 @@ export default function AppAdoptionAnalyticsAdmin() {
                       <span className="mb-1 text-[11px] font-black text-zinc-700">{point.count}</span>
                       <div
                         title={`${displayDate(point.date)}: ${point.count} activation${point.count === 1 ? "" : "s"}`}
-                        className="w-6 rounded-t-md bg-[#ff5a0a]"
+                        className="w-6 rounded-t-md bg-[#ffb400]"
                         style={{ height }}
                       />
                     </div>

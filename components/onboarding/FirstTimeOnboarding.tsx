@@ -81,17 +81,17 @@ export default function FirstTimeOnboarding() {
             <img src="/bgm-logo.png" alt="BestGymsMalta" className="h-full w-full object-contain" />
           </div>
 
-          <div className="mt-7 flex h-20 w-20 items-center justify-center rounded-[1.7rem] bg-[#ff5a0a] text-white shadow-lg shadow-orange-100">
+          <div className="mt-7 flex h-20 w-20 items-center justify-center rounded-[1.7rem] bg-[#ffb400] text-zinc-950 shadow-lg shadow-orange-100">
             <Icon size={38} strokeWidth={3} />
           </div>
 
-          <p className="mt-6 text-xs font-black uppercase tracking-[.25em] text-[#ff5a0a]">Step {step + 1} of {slides.length}</p>
+          <p className="mt-6 text-xs font-black uppercase tracking-[.25em] text-[#ffb400]">Step {step + 1} of {slides.length}</p>
           <h2 className="mt-3 text-4xl font-black leading-tight">{slide.title}</h2>
           <p className="mt-4 text-sm font-bold leading-6 text-zinc-600">{slide.text}</p>
 
           <div className="mt-6 flex gap-2">
             {slides.map((item, index) => (
-              <span key={item.title} className={index === step ? "h-2 flex-1 rounded-full bg-[#ff5a0a]" : "h-2 flex-1 rounded-full bg-zinc-100"} />
+              <span key={item.title} className={index === step ? "h-2 flex-1 rounded-full bg-[#ffb400]" : "h-2 flex-1 rounded-full bg-zinc-100"} />
             ))}
           </div>
 
@@ -103,7 +103,7 @@ export default function FirstTimeOnboarding() {
                 if (isLast) finish();
                 else setStep((current) => current + 1);
               }}
-              className="rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-100"
+              className="rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950 shadow-lg shadow-orange-100"
             >
               {isLast ? "Start" : "Next"}
             </button>

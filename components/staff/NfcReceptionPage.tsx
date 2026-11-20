@@ -292,7 +292,7 @@ export default function NfcReceptionPage() {
               className="w-full rounded-2xl border-2 border-zinc-700 bg-zinc-950 px-5 py-4 text-center text-xl font-bold tracking-wider outline-none focus:border-orange-500 disabled:opacity-40"
               placeholder={!user.gymId && !selectedGymId ? "Select gym first" : "NFC reader input"}
             />
-            <button disabled={scanning || !uid.trim()} className="mt-3 rounded-xl bg-orange-500 px-6 py-3 font-black text-white disabled:opacity-40">
+            <button disabled={scanning || !uid.trim()} className="mt-3 rounded-xl bg-orange-500 px-6 py-3 font-black text-zinc-950 disabled:opacity-40">
               {scanning ? "Checking…" : "Process Card"}
             </button>
           </form>

@@ -251,7 +251,7 @@ export default function OfflineMembershipCheckout({ draft, context, onSaved, onC
       {error ? <p role="alert" className="mt-4 rounded-xl border border-red-300/25 bg-red-500/15 p-3 text-sm font-bold text-red-100">{error}</p> : null}
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button type="submit" disabled={saving} className="rounded-xl bg-[#ff5a0a] px-5 py-3 text-sm font-black text-white disabled:opacity-50">
+        <button type="submit" disabled={saving} className="rounded-xl bg-[#ffb400] px-5 py-3 text-sm font-black text-zinc-950 disabled:opacity-50">
           {saving ? "Saving…" : "Save Offline"}
         </button>
         {onCancel ? (

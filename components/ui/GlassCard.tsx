@@ -12,7 +12,7 @@ export default function GlassCard({
   const variants = {
     default: "p-5",
     hero: "p-6",
-    mission: "p-5 border-[#fcb415]/20 bg-[#fcb415]/10",
+    mission: "p-5 border-[#ffb400]/20 bg-[#ffb400]/10",
     compact: "p-4",
   };
 

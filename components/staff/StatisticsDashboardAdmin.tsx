@@ -62,7 +62,7 @@ export default function StatisticsDashboardAdmin() {
           <a href="/staff/admin" className="inline-flex items-center gap-2 text-sm font-black text-orange-700">
             <ArrowLeft className="h-4 w-4" /> Super Admin
           </a>
-          <p className="mt-5 text-xs font-black uppercase tracking-[0.2em] text-[#ff5a0a]">BestGymsMalta · Insights</p>
+          <p className="mt-5 text-xs font-black uppercase tracking-[0.2em] text-[#ffb400]">BestGymsMalta · Insights</p>
           <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">Statistics & Analytics</h1>
           <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-zinc-600">
             Choose one statistic below. Only the selected report is shown, so you can move between business insights without scrolling through every graph.
@@ -84,10 +84,10 @@ export default function StatisticsDashboardAdmin() {
                     type="button"
                     onClick={() => setView(option.key)}
                     className={`min-h-[118px] rounded-2xl border p-4 text-left transition ${active
-                      ? "border-[#ff5a0a] bg-orange-50 shadow-sm ring-2 ring-orange-100"
+                      ? "border-[#ffb400] bg-orange-50 shadow-sm ring-2 ring-orange-100"
                       : "border-zinc-200 bg-white hover:border-orange-300"}`}
                   >
-                    <Icon className={`h-6 w-6 ${active ? "text-[#ff5a0a]" : "text-zinc-500"}`} />
+                    <Icon className={`h-6 w-6 ${active ? "text-[#ffb400]" : "text-zinc-500"}`} />
                     <p className="mt-3 text-sm font-black text-zinc-950">{option.label}</p>
                     <p className="mt-1 text-xs font-semibold leading-5 text-zinc-500">{option.description}</p>
                   </button>
@@ -99,7 +99,7 @@ export default function StatisticsDashboardAdmin() {
 
         <section className="rounded-3xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6">
           <div className="mb-5 flex items-start gap-3 border-b border-zinc-100 pb-4">
-            <SelectedIcon className="mt-0.5 h-6 w-6 text-[#ff5a0a]" />
+            <SelectedIcon className="mt-0.5 h-6 w-6 text-[#ffb400]" />
             <div>
               <h2 className="text-2xl font-black">{selected.label}</h2>
               <p className="mt-1 text-sm font-semibold text-zinc-500">{selected.description}</p>

@@ -186,7 +186,7 @@ export default function OperationsDashboardAdmin() {
           </a>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-[#ff5a0a]">BestGymsMalta · Super Admin</p>
+              <p className="text-xs font-black uppercase tracking-widest text-[#ffb400]">BestGymsMalta · Super Admin</p>
               <h1 className="mt-1 text-3xl font-black">Operations dashboard</h1>
               <p className="mt-1 text-sm text-zinc-600">Sundries requests and submitted Bar Lists from all gym locations.</p>
             </div>
@@ -266,7 +266,7 @@ export default function OperationsDashboardAdmin() {
               <article key={order.id} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex min-w-0 flex-1 items-start gap-3">
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-[#ff5a0a]">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-[#ffb400]">
                       {order.order_type === "sundries" ? <ClipboardList className="h-7 w-7"/> : <Beer className="h-7 w-7"/>}
                     </span>
                     <div className="min-w-0">

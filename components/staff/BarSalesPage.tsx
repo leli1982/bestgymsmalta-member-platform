@@ -50,7 +50,7 @@ function QuantityPicker({ name, quantity, locked, onChange }: {
         className="w-14 bg-transparent text-center text-xl font-black text-zinc-950 outline-none disabled:opacity-50" />
       <button type="button" aria-label={`Increase ${name}`} disabled={locked || quantity === MAX_QTY}
         onClick={() => next(quantity + 1)}
-        className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50 text-[#ff5a0a] disabled:opacity-30">
+        className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50 text-[#ffb400] disabled:opacity-30">
         <Plus className="h-5 w-5" />
       </button>
     </div>
@@ -294,14 +294,14 @@ export default function BarSalesPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <a href="/staff" className="inline-flex items-center gap-1 text-sm font-bold text-orange-700"><ArrowLeft className="h-4 w-4" /> Staff Home</a>
-              <p className="mt-3 text-xs font-black uppercase tracking-widest text-[#ff5a0a]">BGM · Live open Bar sheet</p>
+              <p className="mt-3 text-xs font-black uppercase tracking-widest text-[#ffb400]">BGM · Live open Bar sheet</p>
               <h1 className="text-3xl font-black">Bar</h1>
               <p className="mt-1 text-sm text-zinc-600">Press + or − as items are sold. Changes save automatically and carry forward until End of Day is submitted.</p>
               <p className="mt-2 text-sm font-black text-orange-700">Location: {gymName}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span role="status" className={`rounded-full px-3 py-2 text-xs font-black ${saveState === "offline" ? "bg-amber-100 text-amber-800" : saveState === "saving" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700"}`}>{saveLabel}</span>
-              {user.isSuperAdmin && <a href="/staff/bar/catalog" className="inline-flex items-center gap-2 rounded-xl bg-[#ff5a0a] px-4 py-3 text-sm font-black text-white"><ClipboardList className="h-4 w-4" /> Edit Bar List</a>}
+              {user.isSuperAdmin && <a href="/staff/bar/catalog" className="inline-flex items-center gap-2 rounded-xl bg-[#ffb400] px-4 py-3 text-sm font-black text-zinc-950"><ClipboardList className="h-4 w-4" /> Edit Bar List</a>}
               <button type="button" onClick={() => void manualRefresh()} disabled={refreshing || saveState === "saving"}
                 className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-3 text-sm font-bold"><RefreshCcw className="h-4 w-4" /> Refresh</button>
             </div>
@@ -333,7 +333,7 @@ export default function BarSalesPage() {
               const quantity = quantities[item.id] || 0;
               return (
                 <div key={item.id} className={quantity > 0 ? "flex flex-wrap items-center gap-3 rounded-2xl border border-orange-300 bg-orange-50 p-3" : "flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-3"}>
-                  <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#ff5a0a]"><Package className="h-8 w-8" /></span>
+                  <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#ffb400]"><Package className="h-8 w-8" /></span>
                   <div className="min-w-40 flex-1"><p className="font-black">{item.name}</p><p className="text-sm font-bold text-zinc-600">{formatBarEuro(item.priceCents || 0)} per unit</p></div>
                   <QuantityPicker name={item.name} quantity={quantity} locked={locked} onChange={(value) => markQuantity(item.id, value)} />
                   <div className="min-w-24 text-right"><p className="text-xs font-bold text-zinc-500">Item total</p><p className="text-lg font-black tabular-nums">{formatBarEuro((item.priceCents || 0) * quantity)}</p></div>

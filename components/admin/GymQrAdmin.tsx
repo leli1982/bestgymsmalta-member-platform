@@ -84,7 +84,7 @@ export default function GymQrAdmin({ pin }: { pin: string }) {
     <section className="space-y-6">
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
         <div className="flex items-center gap-3">
-          <QrCode className="text-[#fcb415]" size={26} strokeWidth={3} />
+          <QrCode className="text-[#ffb400]" size={26} strokeWidth={3} />
           <h2 className="text-2xl font-black">Gym QR Check-ins</h2>
         </div>
 
@@ -129,7 +129,7 @@ export default function GymQrAdmin({ pin }: { pin: string }) {
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-              <p className="text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
+              <p className="text-xs font-black uppercase tracking-[.18em] text-[#ffb400]">
                 {selectedGym.name}
               </p>
               <p className="mt-2 break-all text-xs font-bold text-white/45">
@@ -140,7 +140,7 @@ export default function GymQrAdmin({ pin }: { pin: string }) {
             <button
               type="button"
               onClick={copyLink}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-black"
             >
               <Copy size={17} strokeWidth={3} />
               Copy Check-in Link
@@ -170,7 +170,7 @@ export default function GymQrAdmin({ pin }: { pin: string }) {
               <p className="mt-1 text-xs font-bold text-white/45">
                 {formatEuropeanDateTime(checkin.checkinAt)}
               </p>
-              <p className="mt-1 text-[11px] font-bold uppercase tracking-[.16em] text-[#fcb415]">
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-[.16em] text-[#ffb400]">
                 {checkin.memberId}
               </p>
             </div>

@@ -207,7 +207,7 @@ export default function LiveGymsPage() {
       </header>
 
       <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-4 shadow-sm focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-100">
-        <Search className="shrink-0 text-[#ff5a0a]" size={20} />
+        <Search className="shrink-0 text-[#ffb400]" size={20} />
         <label htmlFor="gym-search" className="sr-only">Search gym or location</label>
         <input id="gym-search" value={query} onChange={(event) => setQuery(event.target.value)}
           placeholder="Search gym or location" type="search"
@@ -216,13 +216,13 @@ export default function LiveGymsPage() {
 
       {loading && (
         <section className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-slate-600" aria-live="polite">
-          <RefreshCw size={18} className="animate-spin text-[#ff5a0a]" /> Loading gyms…
+          <RefreshCw size={18} className="animate-spin text-[#ffb400]" /> Loading gyms…
         </section>
       )}
 
       {!loading && filteredGyms.length === 0 && (
         <section className="rounded-[1.5rem] border border-zinc-200 bg-white p-6 text-center">
-          <Dumbbell className="mx-auto text-[#ff5a0a]" size={34} />
+          <Dumbbell className="mx-auto text-[#ffb400]" size={34} />
           <h2 className="mt-4 text-xl font-black text-zinc-950">No gyms found</h2>
           <p className="mt-2 text-sm text-slate-600">Try searching another location.</p>
         </section>
@@ -246,7 +246,7 @@ export default function LiveGymsPage() {
               <div className="p-5">
                 <h2 className="text-2xl font-black tracking-tight text-zinc-950">{gym.name}</h2>
                 <p className="mt-2 flex items-start gap-2 text-sm leading-6 text-slate-600">
-                  <MapPinned className="mt-1 shrink-0 text-[#ff5a0a]" size={16} />
+                  <MapPinned className="mt-1 shrink-0 text-[#ffb400]" size={16} />
                   {gym.address || gym.city || "BestGymsMalta location"}
                 </p>
                 {openingHours && (
@@ -256,14 +256,14 @@ export default function LiveGymsPage() {
                   </div>
                 )}
                 <div className="mt-4 grid grid-cols-2 gap-3">
-                  <a href={`/gyms/${gym.id}`} className="flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-3 py-3 text-xs font-black text-white">
+                  <a href={`/gyms/${gym.id}`} className="flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-3 py-3 text-xs font-black text-zinc-950">
                     View gym <ArrowRight size={16} />
                   </a>
                   <a href={getMapsUrl(gym)} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-3 text-xs font-bold text-zinc-900">
                     <Navigation size={16} /> Directions
                   </a>
                 </div>
-                {tourUrl && <a href={`/gyms/${gym.id}/tour`} className="mt-3 flex items-center justify-center gap-2 rounded-full bg-orange-50 px-3 py-3 text-xs font-bold text-[#c2410c]">
+                {tourUrl && <a href={`/gyms/${gym.id}/tour`} className="mt-3 flex items-center justify-center gap-2 rounded-full bg-orange-50 px-3 py-3 text-xs font-bold text-[#805600]">
                   <Box size={17} /> Explore in 3D
                 </a>}
               </div>

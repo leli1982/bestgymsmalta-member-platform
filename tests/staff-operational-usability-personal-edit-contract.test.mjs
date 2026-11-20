@@ -76,7 +76,7 @@ test("All staff action errors appear at submission controls and registration but
   const review = read("components/staff/StaffMembershipReviewModal.tsx");
   const eod = read("components/staff/EndOfDayPage.tsx");
   assert.match(registration, /formError \|\| \(mode === "staff" && externalError\)/);
-  assert.match(registration, /mode === "staff" \? "bg-\[#ff5a0a\]/);
+  assert.match(registration, /mode === "staff" \? "bg-\[#ffb400\]/);
   assert.match(renewal, /aria-live="assertive"/);
   assert.match(review, /aria-live="assertive"/);
   assert.match(eod, /aria-live="assertive"/);

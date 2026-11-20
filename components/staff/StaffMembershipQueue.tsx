@@ -179,7 +179,7 @@ export default function StaffMembershipQueue({
     <section id="staff-waiting" className="rounded-3xl border border-zinc-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200 p-5 sm:p-6">
         <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-[#ff5a0a]"><Bell className="h-6 w-6" /></span>
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-[#ffb400]"><Bell className="h-6 w-6" /></span>
           <div>
             <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">Membership applications</p>
             <h2 className="text-xl font-black text-zinc-950">{applications.length} WAITING</h2>
@@ -239,7 +239,7 @@ export default function StaffMembershipQueue({
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="w-full border-t border-zinc-100 px-5 py-3 text-sm font-black text-[#ff5a0a] hover:bg-orange-50 sm:px-6"
+          className="w-full border-t border-zinc-100 px-5 py-3 text-sm font-black text-[#ffb400] hover:bg-orange-50 sm:px-6"
         >
           Show {hiddenCount} more waiting application{hiddenCount === 1 ? "" : "s"}
         </button>

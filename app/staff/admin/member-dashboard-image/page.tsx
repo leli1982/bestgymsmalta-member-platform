@@ -245,12 +245,12 @@ export default function MemberDashboardImagePage() {
                 <div className="flex items-center gap-2"><img src="/bgm-logo.png" alt="BestGymsMalta" className="h-10 w-10 object-contain" /><span className="text-[11px] font-black">WWW.BESTGYMSMALTA.COM</span></div>
                 <div className="mt-auto mb-20 max-w-[70%]">
                   <p className="text-3xl font-black leading-tight">Welcome back,</p>
-                  <p className="text-4xl font-black text-[#ff5a0a]">Member</p>
+                  <p className="text-4xl font-black text-[#ffb400]">Member</p>
                   <p className="mt-2 whitespace-nowrap text-sm">be the best...beat the rest</p>
                 </div>
                 <div className="absolute bottom-5 left-5 right-5 grid grid-cols-2 gap-3 text-center text-sm font-black">
-                  <div className="rounded-xl bg-[#ff5a0a] px-2 py-4">Show Card</div>
-                  <div className="rounded-xl border-2 border-[#ff5a0a] bg-black/60 px-2 py-4">Find Gyms</div>
+                  <div className="rounded-xl bg-[#ffb400] px-2 py-4">Show Card</div>
+                  <div className="rounded-xl border-2 border-[#ffb400] bg-black/60 px-2 py-4">Find Gyms</div>
                 </div>
               </div>
             </div>

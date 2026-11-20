@@ -528,7 +528,7 @@ export default function StaffGlobalScanner() {
             setManualCode("");
             setManualScanOpen(true);
           }}
-          className="fixed bottom-4 left-4 z-[90] rounded-2xl bg-orange-500 px-4 py-3 text-sm font-black text-white shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"
+          className="fixed bottom-4 left-4 z-[90] rounded-2xl bg-orange-500 px-4 py-3 text-sm font-black text-zinc-950 shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"
         >
           Scan card
         </button>
@@ -553,7 +553,7 @@ export default function StaffGlobalScanner() {
               <button type="button" onClick={() => { setManualScanOpen(false); setManualCode(""); focusBeforeScan.current?.focus({ preventScroll: true }); }}
                 className="flex-1 rounded-xl border border-zinc-300 px-4 py-3 font-bold">Cancel</button>
               <button type="submit" disabled={!manualCode.trim()}
-                className="flex-1 rounded-xl bg-orange-500 px-4 py-3 font-black text-white disabled:opacity-40">Verify card</button>
+                className="flex-1 rounded-xl bg-orange-500 px-4 py-3 font-black text-zinc-950 disabled:opacity-40">Verify card</button>
             </div>
           </form>
         </div>

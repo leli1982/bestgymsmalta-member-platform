@@ -40,7 +40,7 @@ export default function MovementCard({
   return (
     <article
       data-movement-context={context}
-      className="overflow-hidden rounded-2xl border border-zinc-200 border-t-2 border-t-[#ff5a0a] bg-white text-zinc-950 shadow-sm"
+      className="overflow-hidden rounded-2xl border border-zinc-200 border-t-2 border-t-[#ffb400] bg-white text-zinc-950 shadow-sm"
     >
       {movement ? (
         <div className="border-b border-zinc-100 bg-white p-3">
@@ -98,7 +98,7 @@ export default function MovementCard({
               type="button"
               aria-expanded={expanded}
               onClick={() => setExpanded((open) => !open)}
-              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-bold text-zinc-950 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff5a0a] focus-visible:ring-offset-2"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-bold text-zinc-950 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffb400] focus-visible:ring-offset-2"
             >
               {expanded ? "Hide technique" : "View technique"}
             </button>

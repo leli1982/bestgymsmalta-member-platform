@@ -77,7 +77,7 @@ export default function StaffHelpManualPage() {
                 <ol className="mt-5 space-y-3">
                   {topic.steps.map((step, index) => (
                     <li key={`${topic.id}-${index}`} className="flex gap-3 rounded-2xl bg-zinc-50 p-3">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ff5a0a] text-sm font-black text-white">{index + 1}</span>
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ffb400] text-sm font-black text-zinc-950">{index + 1}</span>
                       <p className="pt-1 text-sm font-semibold leading-6 text-zinc-800">{step}</p>
                     </li>
                   ))}

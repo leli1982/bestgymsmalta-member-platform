@@ -48,7 +48,7 @@ test("Story Creator uses light editor chrome while preserving the dark 9 by 16 s
   assert.match(story, /capture=["']environment["']/);
   assert.match(story, /bestgymsmalta-story\.png/);
   assert.match(story, /ctx\.fillStyle = ["']#050505["']/);
-  assert.match(story, /ctx\.strokeStyle = ["']rgba\(252,180,21,0\.78\)["']/);
+  assert.match(story, /ctx\.strokeStyle = ["']rgba\(255,180,0,0\.78\)["']/);
 });
 
 test("Story Creator is canvas-first with an Instagram-style tool dock and overlay sheet", () => {

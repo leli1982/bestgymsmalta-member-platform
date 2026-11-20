@@ -424,7 +424,7 @@ export default function RegistrationForm({
 
       {(formError || (mode === "staff" && externalError)) ? <div role="alert" aria-live="assertive" className="rounded-2xl border-2 border-red-500 bg-red-50 p-4 text-sm font-black text-red-900">{formError || externalError}</div> : null}
       {membershipType && documentReady ? (
-        <button type="submit" disabled={submitting || (mode !== "staff" && !durationKey)} className={`w-full rounded-2xl px-5 py-4 text-lg font-black shadow-lg disabled:cursor-not-allowed disabled:opacity-50 ${mode === "staff" ? "bg-[#ff5a0a] text-zinc-950 ring-2 ring-white/40 transition hover:bg-orange-400" : "bg-zinc-950 text-white"}`}>
+        <button type="submit" disabled={submitting || (mode !== "staff" && !durationKey)} className={`w-full rounded-2xl px-5 py-4 text-lg font-black shadow-lg disabled:cursor-not-allowed disabled:opacity-50 ${mode === "staff" ? "bg-[#ffb400] text-zinc-950 ring-2 ring-white/40 transition hover:bg-orange-400" : "bg-zinc-950 text-white"}`}>
           {submitting ? "Submitting application…" : "Submit application"}
         </button>
       ) : null}

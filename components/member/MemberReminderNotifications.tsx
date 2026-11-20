@@ -276,7 +276,7 @@ export default function MemberReminderNotifications() {
   return (
     <section className="rounded-[1.7rem] border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="flex items-start gap-4">
-        <div className={`flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl ${subscribed ? "bg-orange-50 text-[#ff5a0a]" : "bg-zinc-100 text-zinc-600"}`}>
+        <div className={`flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl ${subscribed ? "bg-orange-50 text-[#ffb400]" : "bg-zinc-100 text-zinc-600"}`}>
           {subscribed ? <Bell size={25} strokeWidth={3} /> : <BellOff size={25} strokeWidth={3} />}
         </div>
         <div className="min-w-0 flex-1">
@@ -315,7 +315,7 @@ export default function MemberReminderNotifications() {
             type="button"
             disabled={busy}
             onClick={() => void (subscribed ? disableNotifications() : enableNotifications())}
-            className={`w-full rounded-full px-5 py-3 text-sm font-black disabled:opacity-50 ${subscribed ? "border border-zinc-300 bg-white text-zinc-800" : "bg-[#ff5a0a] text-white"}`}
+            className={`w-full rounded-full px-5 py-3 text-sm font-black disabled:opacity-50 ${subscribed ? "border border-zinc-300 bg-white text-zinc-800" : "bg-[#ffb400] text-white"}`}
           >
             {busy ? "Updating…" : subscribed ? "Disable notifications on this device" : "Enable notifications on this device"}
           </button>
@@ -324,7 +324,7 @@ export default function MemberReminderNotifications() {
               type="button"
               disabled={busy}
               onClick={() => void testLocalNotification()}
-              className="w-full rounded-full border border-orange-200 bg-orange-50 px-5 py-3 text-sm font-black text-[#ff5a0a] disabled:opacity-50"
+              className="w-full rounded-full border border-orange-200 bg-orange-50 px-5 py-3 text-sm font-black text-[#ffb400] disabled:opacity-50"
             >
               Test notification on this device
             </button>

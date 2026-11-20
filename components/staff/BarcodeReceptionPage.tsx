@@ -576,7 +576,7 @@ export default function BarcodeReceptionPage() {
             />
             <button
               disabled={scanning || !membershipNumber.trim()}
-              className="mt-3 rounded-xl bg-orange-500 px-6 py-3 font-black text-white disabled:opacity-40"
+              className="mt-3 rounded-xl bg-orange-500 px-6 py-3 font-black text-zinc-950 disabled:opacity-40"
             >
               {scanning ? "Checking…" : "Process Barcode"}
             </button>

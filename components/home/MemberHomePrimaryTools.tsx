@@ -49,14 +49,14 @@ export default function MemberHomePrimaryTools() {
               href={item.href}
               className="group flex min-h-[176px] flex-col items-center rounded-[1.45rem] border border-zinc-200/80 bg-white px-2.5 py-4 text-center shadow-[0_6px_20px_rgba(15,23,42,0.06)] transition active:scale-[0.98]"
             >
-              <Icon className="text-[#ff5a0a]" size={31} strokeWidth={3} />
+              <Icon className="text-[#ffb400]" size={31} strokeWidth={3} />
               <h2 className="mt-3 text-[13px] font-black leading-tight text-zinc-950 sm:text-sm">
                 {item.label}
               </h2>
               <p className="mt-2 text-[10px] font-semibold leading-[1.35] text-slate-500 sm:text-[11px]">
                 {item.description}
               </p>
-              <span className="mt-auto flex h-8 w-8 items-center justify-center rounded-full bg-orange-50 text-[#ff5a0a] transition group-hover:bg-orange-100">
+              <span className="mt-auto flex h-8 w-8 items-center justify-center rounded-full bg-orange-50 text-[#ffb400] transition group-hover:bg-orange-100">
                 <ChevronRight size={16} strokeWidth={3} />
               </span>
             </a>
@@ -73,14 +73,14 @@ export default function MemberHomePrimaryTools() {
               href={item.href}
               className="group flex min-h-[142px] min-w-0 flex-col items-center rounded-[1.3rem] border border-zinc-200/80 bg-white px-1.5 py-3.5 text-center shadow-[0_5px_18px_rgba(15,23,42,0.05)] transition active:scale-[0.98]"
             >
-              <Icon className="text-[#ff5a0a]" size={27} strokeWidth={3} />
+              <Icon className="text-[#ffb400]" size={27} strokeWidth={3} />
               <h3 className="mt-2.5 text-[10px] font-black leading-tight text-zinc-950 sm:text-[11px]">
                 {item.label}
               </h3>
               <p className="mt-1.5 line-clamp-2 text-[9px] font-semibold leading-[1.3] text-slate-500">
                 {item.description}
               </p>
-              <span className="mt-auto flex h-7 w-7 items-center justify-center rounded-full bg-orange-50 text-[#ff5a0a]">
+              <span className="mt-auto flex h-7 w-7 items-center justify-center rounded-full bg-orange-50 text-[#ffb400]">
                 <ChevronRight size={14} strokeWidth={3} />
               </span>
             </a>

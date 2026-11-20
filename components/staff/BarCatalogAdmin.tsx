@@ -163,7 +163,7 @@ export default function BarCatalogAdmin() {
                   </table>
                 </div>
                 <button type="button" disabled={saving} onClick={() => void publishStarter()}
-                  className="rounded-xl bg-[#ff5a0a] px-5 py-3 text-sm font-black text-white disabled:opacity-50">
+                  className="rounded-xl bg-[#ffb400] px-5 py-3 text-sm font-black text-zinc-950 disabled:opacity-50">
                   Publish {starter.length} products + Others to Staff
                 </button>
               </div>
@@ -181,7 +181,7 @@ export default function BarCatalogAdmin() {
               <input aria-label="New Bar unit price" value={price} onChange={(e) => setPrice(e.target.value)}
                 inputMode="decimal" placeholder="2.50" className="mt-1 w-full rounded-xl border border-zinc-300 px-3 py-3 text-base"/>
             </label>
-            <button disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#ff5a0a] px-5 py-3 font-black text-white disabled:opacity-50"><Plus className="h-5 w-5"/> Add product</button>
+            <button disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#ffb400] px-5 py-3 font-black text-zinc-950 disabled:opacity-50"><Plus className="h-5 w-5"/> Add product</button>
           </div>
           {!catalog.some((item) => item.isOther) && (
             <button type="button" disabled={saving} onClick={() => void write("POST", { isOther: true, sortOrder: 9999 })}

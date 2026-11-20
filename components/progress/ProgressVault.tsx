@@ -243,20 +243,20 @@ export default function ProgressVault() {
           className="relative min-h-[320px] overflow-hidden rounded-[2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
           style={{
             backgroundImage:
-              "linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.82)), linear-gradient(135deg, rgba(252,180,21,.22), rgba(0,0,0,.82)), url('/visuals/progress.jpg')",
+              "linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.82)), linear-gradient(135deg, rgba(255,180,0,.22), rgba(0,0,0,.82)), url('/visuals/progress.jpg')",
           }}
         >
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
+          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#ffb400]/25 blur-3xl" />
 
           <div className="relative flex min-h-[270px] flex-col justify-between">
             <div className="flex items-center justify-between">
               <div className="rounded-full border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-md">
-                <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
                   Progress Vault
                 </p>
               </div>
 
-              <Lock className="text-[#fcb415]" size={28} strokeWidth={3} />
+              <Lock className="text-[#ffb400]" size={28} strokeWidth={3} />
             </div>
 
             <div>
@@ -270,7 +270,7 @@ export default function ProgressVault() {
 
               <a
                 href="/member-login"
-                className="mt-6 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+                className="mt-6 flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-black"
               >
                 Login / Activate
                 <ChevronRight size={17} strokeWidth={3} />
@@ -288,27 +288,27 @@ export default function ProgressVault() {
         className="relative min-h-[340px] overflow-hidden rounded-[2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
         style={{
           backgroundImage:
-            "linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.82)), linear-gradient(135deg, rgba(252,180,21,.22), rgba(0,0,0,.82)), url('/visuals/progress.jpg')",
+            "linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.82)), linear-gradient(135deg, rgba(255,180,0,.22), rgba(0,0,0,.82)), url('/visuals/progress.jpg')",
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/25 to-black/85" />
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#ffb400]/25 blur-3xl" />
 
         <div className="relative flex min-h-[298px] flex-col justify-between">
           <div className="flex items-center justify-between">
             <div className="rounded-full border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-md">
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
                 Progress Vault
               </p>
             </div>
 
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black/35 text-[#fcb415] backdrop-blur-md">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black/35 text-[#ffb400] backdrop-blur-md">
               <Camera size={24} strokeWidth={3} />
             </div>
           </div>
 
           <div>
-            <p className="text-sm font-black uppercase tracking-[.24em] text-[#fcb415]">
+            <p className="text-sm font-black uppercase tracking-[.24em] text-[#ffb400]">
               Private. Personal. Powerful.
             </p>
 
@@ -330,7 +330,7 @@ export default function ProgressVault() {
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-md">
-                <p className="text-3xl font-black text-[#fcb415]">
+                <p className="text-3xl font-black text-[#ffb400]">
                   {trackedDays}
                 </p>
                 <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/40">
@@ -353,10 +353,10 @@ export default function ProgressVault() {
 
       <section className="rounded-[1.8rem] border border-orange-200 bg-orange-50 p-5">
         <div className="flex items-start gap-3">
-          <Lock className="mt-0.5 shrink-0 text-[#ff5a0a]" size={24} strokeWidth={3} />
+          <Lock className="mt-0.5 shrink-0 text-[#ffb400]" size={24} strokeWidth={3} />
 
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ff5a0a]">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
               Private Vault
             </p>
 
@@ -374,7 +374,7 @@ export default function ProgressVault() {
 
       {photos.length === 0 ? (
         <section className="rounded-[2rem] border border-zinc-200 bg-white p-6 text-center">
-          <Sparkles className="mx-auto text-[#ff5a0a]" size={42} strokeWidth={3} />
+          <Sparkles className="mx-auto text-[#ffb400]" size={42} strokeWidth={3} />
 
           <h2 className="mt-4 text-3xl font-black text-zinc-950">
             Start your progress journey
@@ -391,7 +391,7 @@ export default function ProgressVault() {
         <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ff5a0a]">
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
                 Before / Latest
               </p>
 
@@ -400,7 +400,7 @@ export default function ProgressVault() {
               </h2>
             </div>
 
-            <Eye className="text-[#ff5a0a]" size={25} strokeWidth={3} />
+            <Eye className="text-[#ffb400]" size={25} strokeWidth={3} />
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-3">
@@ -421,7 +421,7 @@ export default function ProgressVault() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-[1.5rem] border border-[#fcb415]/30 bg-zinc-50">
+            <div className="overflow-hidden rounded-[1.5rem] border border-[#ffb400]/30 bg-zinc-50">
               <div
                 className="aspect-[3/4] bg-cover bg-center"
                 style={{
@@ -429,7 +429,7 @@ export default function ProgressVault() {
                 }}
               />
               <div className="p-3">
-                <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#ff5a0a]">
+                <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#ffb400]">
                   Latest
                 </p>
                 <p className="mt-1 text-xs font-bold text-zinc-600">
@@ -441,7 +441,7 @@ export default function ProgressVault() {
 
           <a
             href="/story"
-            className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-black"
+            className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-black"
           >
             Create Progress Story
             <ChevronRight size={17} strokeWidth={3} />
@@ -451,10 +451,10 @@ export default function ProgressVault() {
 
       <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
         <div className="flex items-center gap-3">
-          <ImagePlus className="text-[#ff5a0a]" size={24} strokeWidth={3} />
+          <ImagePlus className="text-[#ffb400]" size={24} strokeWidth={3} />
 
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ff5a0a]">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
               Progress Check-In
             </p>
 
@@ -490,7 +490,7 @@ export default function ProgressVault() {
           <button
             type="button"
             onClick={() => cameraInputRef.current?.click()}
-            className="flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-black"
+            className="flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-black"
           >
             <Camera size={17} strokeWidth={3} />
             Take Photo
@@ -507,7 +507,7 @@ export default function ProgressVault() {
         </div>
 
         {previewUrl ? (
-          <div className="mt-5 overflow-hidden rounded-[1.8rem] border border-[#fcb415]/25 bg-zinc-50">
+          <div className="mt-5 overflow-hidden rounded-[1.8rem] border border-[#ffb400]/25 bg-zinc-50">
             <img src={previewUrl} alt="" className="max-h-[420px] w-full object-cover" />
           </div>
         ) : null}
@@ -571,7 +571,7 @@ export default function ProgressVault() {
           type="button"
           onClick={savePhoto}
           disabled={!selectedFile || saving}
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-black disabled:opacity-50"
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-black disabled:opacity-50"
         >
           {saving ? (
             <>
@@ -590,7 +590,7 @@ export default function ProgressVault() {
       <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ff5a0a]">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
               Timeline
             </p>
 
@@ -600,7 +600,7 @@ export default function ProgressVault() {
           </div>
 
           {loading ? (
-            <RefreshCw className="animate-spin text-[#ff5a0a]" size={24} strokeWidth={3} />
+            <RefreshCw className="animate-spin text-[#ffb400]" size={24} strokeWidth={3} />
           ) : null}
         </div>
 
@@ -612,7 +612,7 @@ export default function ProgressVault() {
               onClick={() => setFilter(view)}
               className={`shrink-0 rounded-full px-4 py-2 text-xs font-black uppercase tracking-[.14em] ${
                 filter === view
-                  ? "bg-[#ff5a0a] text-black"
+                  ? "bg-[#ffb400] text-black"
                   : "border border-zinc-200 bg-zinc-50 text-zinc-500"
               }`}
             >
@@ -637,7 +637,7 @@ export default function ProgressVault() {
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#ff5a0a]">
+                      <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#ffb400]">
                         {getPhotoView(photo)}
                       </p>
 
@@ -673,7 +673,7 @@ export default function ProgressVault() {
 
           {!loading && filteredPhotos.length === 0 ? (
             <div className="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-5 text-center">
-              <Camera className="mx-auto text-[#ff5a0a]" size={34} strokeWidth={3} />
+              <Camera className="mx-auto text-[#ffb400]" size={34} strokeWidth={3} />
               <p className="mt-3 text-sm font-bold text-zinc-500">
                 No progress photos in this view yet.
               </p>
@@ -685,10 +685,10 @@ export default function ProgressVault() {
       {photos.length > 0 ? (
         <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
           <div className="flex items-center gap-3">
-            <Sparkles className="text-[#ff5a0a]" size={24} strokeWidth={3} />
+            <Sparkles className="text-[#ffb400]" size={24} strokeWidth={3} />
 
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ff5a0a]">
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
                 Milestones
               </p>
 

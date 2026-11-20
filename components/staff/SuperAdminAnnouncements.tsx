@@ -210,7 +210,7 @@ export default function SuperAdminAnnouncements() {
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <label className="flex items-center gap-2 text-sm font-black"><input aria-label="Announcement active" type="checkbox" checked={form.active} onChange={e => change({ active: e.target.checked })}/> Active (show within its scheduled dates)</label>
-            <button type="submit" disabled={busy || uploading || loading} className="inline-flex items-center gap-2 rounded-xl bg-[#ff5a0a] px-5 py-3 font-black text-white disabled:opacity-50">
+            <button type="submit" disabled={busy || uploading || loading} className="inline-flex items-center gap-2 rounded-xl bg-[#ffb400] px-5 py-3 font-black text-zinc-950 disabled:opacity-50">
               {editingId ? <Save size={18}/> : <Plus size={18}/>} {busy ? "Saving…" : editingId ? "Save changes" : "Create announcement"}
             </button>
           </div>
