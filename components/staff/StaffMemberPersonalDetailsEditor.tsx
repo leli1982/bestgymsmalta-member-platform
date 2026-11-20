@@ -118,7 +118,7 @@ export default function StaffMemberPersonalDetailsEditor({ memberId }: { memberI
             </div>
             {error && <p role="alert" aria-live="assertive" className="mt-5 rounded-xl border-2 border-red-500 bg-red-50 p-4 text-sm font-black text-red-900">{error}</p>}
             {message && <p role="status" className="mt-5 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">{message}</p>}
-            <button type="submit" disabled={saving || !changed} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#ff5a0a] px-5 py-4 text-base font-black text-zinc-950 disabled:cursor-not-allowed disabled:opacity-40">
+            <button type="submit" disabled={saving || !changed} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#ffb400] px-5 py-4 text-base font-black text-zinc-950 disabled:cursor-not-allowed disabled:opacity-40">
               <Save className="h-5 w-5" /> {saving ? "SAVING…" : "SAVE PERSONAL DETAILS"}
             </button>
             <p className="mt-3 text-center text-xs font-semibold text-zinc-600">Only these personal fields can be saved. All corrections are audited. For membership term corrections, contact Super Admin.</p>

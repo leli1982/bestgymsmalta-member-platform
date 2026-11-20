@@ -37,7 +37,7 @@ function HelpArticle({ topic }: { topic: StaffHelpTopic }) {
       <ol className="space-y-3">
         {topic.steps.map((step, index) => (
           <li key={`${topic.id}-${index}`} className="flex gap-3 rounded-2xl bg-zinc-50 p-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ff5a0a] text-sm font-black text-white">{index + 1}</span>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ffb400] text-sm font-black text-zinc-950">{index + 1}</span>
             <p className="pt-1 text-sm font-semibold leading-6 text-zinc-800">{step}</p>
           </li>
         ))}
@@ -119,7 +119,7 @@ export default function StaffHelpCentre() {
           setRouteKey(`${window.location.pathname}${window.location.search}`);
           setOpen(true);
         }}
-        className="fixed bottom-5 right-5 z-[75] inline-flex items-center gap-2 rounded-full bg-[#ff5a0a] px-4 py-3 text-sm font-black text-white shadow-xl shadow-orange-950/20 transition hover:-translate-y-0.5 hover:bg-orange-600 print:hidden"
+        className="fixed bottom-5 right-5 z-[75] inline-flex items-center gap-2 rounded-full bg-[#ffb400] px-4 py-3 text-sm font-black text-zinc-950 shadow-xl shadow-orange-950/20 transition hover:-translate-y-0.5 hover:bg-orange-600 print:hidden"
       >
         <CircleHelp className="h-5 w-5" /> Help
       </button>
