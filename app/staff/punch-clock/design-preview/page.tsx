@@ -49,7 +49,7 @@ export default function PunchClockDesignPreview() {
               <p className="mt-1 text-sm text-zinc-400">Staff No. {demo.number}</p>
               <div className="mt-7 flex items-center gap-3 rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-6 py-4 text-emerald-300">
                 <CheckCircle2 className="h-6 w-6" />
-                <span className="text-lg font-bold">{mode === "in" ? "CLOCKED IN" : "CLOCKED OUT"}</span>
+                <span className="text-2xl font-black tracking-wide sm:text-3xl">{mode === "in" ? "CLOCKED IN" : "CLOCKED OUT"}</span>
               </div>
               <p className="mt-4 text-4xl font-black tabular-nums text-primary">08:32:14</p>
               <p className="mt-2 text-sm text-zinc-300">{stamp.split(" • ")[0]} · {demo.gym}</p>
