@@ -10,7 +10,7 @@ export async function GET() {
   } catch (error) {
     console.error("Member dashboard hero lookup failed", error);
     // Keep a healthy fallback in the member app even during TEST migration rollout.
-    return NextResponse.json({ imageUrl: null, updatedAt: null }, {
+    return NextResponse.json({ imageUrl: null, positionX: 38, positionY: 50, updatedAt: null }, {
       headers: { "Cache-Control": "no-store, max-age=0" },
     });
   }
