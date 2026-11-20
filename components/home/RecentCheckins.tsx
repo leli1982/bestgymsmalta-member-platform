@@ -52,9 +52,9 @@ export default function RecentCheckins() {
   return (
     <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
       <div className="flex items-center gap-3">
-        <CheckCircle2 className="text-[#fcb415]" size={24} strokeWidth={3} />
+        <CheckCircle2 className="text-[#ffb400]" size={24} strokeWidth={3} />
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
             Recent Check-ins
           </p>
           <h2 className="mt-1 text-2xl font-black text-white">
