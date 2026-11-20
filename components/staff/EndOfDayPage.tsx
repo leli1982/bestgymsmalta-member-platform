@@ -109,7 +109,7 @@ function SubmittedReport({ report }: { report: Report }) {
     <div>
       <PrintableEndOfDay report={report} />
       <div className="bgm-eod-screen-report space-y-5">
-      <button type="button" onClick={() => window.print()} className="w-full rounded-xl bg-[#ff5a0a] px-4 py-3 text-sm font-black text-zinc-950">PRINT / REPRINT A4 END OF DAY</button>
+      <button type="button" onClick={() => window.print()} className="w-full rounded-xl bg-[#ffb400] px-4 py-3 text-sm font-black text-zinc-950">PRINT / REPRINT A4 END OF DAY</button>
       <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
         <p className="text-xs font-black uppercase tracking-widest">End of Day submitted</p>
         <p className="mt-2 text-2xl font-black">{report.gymName} · {displayDate(report.businessDate)}</p>
@@ -212,7 +212,7 @@ export default function EndOfDayPage() {
       <div className="mx-auto max-w-4xl space-y-5">
         <header className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
           <a href="/staff" className="inline-flex items-center gap-1 text-sm font-black text-orange-700"><ArrowLeft className="h-4 w-4" /> Staff Home</a>
-          <p className="mt-3 text-xs font-black uppercase tracking-widest text-[#ff5a0a]">BestGymsMalta · Staff</p>
+          <p className="mt-3 text-xs font-black uppercase tracking-widest text-[#ffb400]">BestGymsMalta · Staff</p>
           <h1 className="text-3xl font-black">End of Day</h1>
           <p className="mt-2 text-sm font-bold text-zinc-600">{data.gymName} · {displayDate(data.businessDate)}</p>
           <p className="mt-1 text-sm text-zinc-500">Figures below are calculated automatically from the open financial period since the previous End of Day. Midnight does not reset them.</p>
@@ -253,7 +253,7 @@ export default function EndOfDayPage() {
           </label>
           {error && <p role="alert" aria-live="assertive" className="mt-4 rounded-xl border-2 border-red-500 bg-red-50 p-3 text-sm font-black text-red-900">{error}</p>}
           <button type="button" onClick={() => void submit()} disabled={submitting}
-            className="mt-4 w-full rounded-2xl bg-[#ff5a0a] px-5 py-4 text-lg font-black text-white disabled:opacity-40">
+            className="mt-4 w-full rounded-2xl bg-[#ffb400] px-5 py-4 text-lg font-black text-zinc-950 disabled:opacity-40">
             {submitting ? "Submitting…" : "Print + Submit"}
           </button>
           <p className="mt-2 text-center text-xs font-semibold text-zinc-500">PRINT + SUBMIT closes the current financial period and opens the A4 print dialog after successful submission. Sales afterwards belong to the next period.</p>

@@ -483,7 +483,7 @@ export default function MembershipSettingsAdmin() {
               <p className="mt-3 text-xs font-semibold text-zinc-600">€0 is not an inactive switch. Untick Active to remove a duration from future choices; its saved price is retained. Published rates do not change earlier application or payment snapshots.</p>
               <div className="mt-5 flex flex-wrap justify-end gap-2">
                 <button type="button" disabled={saving} onClick={() => void savePriceDraft()} className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-black disabled:opacity-50">Save Price Draft</button>
-                <button type="button" disabled={saving || !latestDraftCatalog} onClick={() => void publishPrices()} className="rounded-xl bg-[#ff5a0a] px-4 py-3 text-sm font-black text-white disabled:opacity-40">Publish Prices</button>
+                <button type="button" disabled={saving || !latestDraftCatalog} onClick={() => void publishPrices()} className="rounded-xl bg-[#ffb400] px-4 py-3 text-sm font-black text-zinc-950 disabled:opacity-40">Publish Prices</button>
               </div>
             </section>
 
@@ -583,7 +583,7 @@ export default function MembershipSettingsAdmin() {
                         <div className="text-xs font-semibold text-zinc-400">{published ? `Published at ${formatDate(published.publishedAt)} · contentSha256 ${published.contentSha256}` : "No published version yet."}</div>
                         <div className="flex gap-2">
                           <button type="button" disabled={saving || !hasUnsavedChanges || !declarationBodies[contentKey].trim()} onClick={() => void saveDeclarationDraft(contentKey)} className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-black disabled:opacity-50">Save Draft</button>
-                          <button type="button" disabled={saving || !draft || hasUnsavedChanges || printOverflow} onClick={() => void publishDeclaration(contentKey)} className="rounded-xl bg-[#ff5a0a] px-3 py-2 text-xs font-black text-white disabled:opacity-40">{published && !draft && !hasUnsavedChanges ? "Published ✓" : "Publish Declaration"}</button>
+                          <button type="button" disabled={saving || !draft || hasUnsavedChanges || printOverflow} onClick={() => void publishDeclaration(contentKey)} className="rounded-xl bg-[#ffb400] px-3 py-2 text-xs font-black text-zinc-950 disabled:opacity-40">{published && !draft && !hasUnsavedChanges ? "Published ✓" : "Publish Declaration"}</button>
                         </div>
                       </div>
                       {versions.length > 0 && (

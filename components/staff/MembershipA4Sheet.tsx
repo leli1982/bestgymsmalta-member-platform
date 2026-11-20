@@ -235,8 +235,8 @@ export default function MembershipA4Sheet({
           position: relative;
         }
         .bgm-member-a4-sheet:last-child { break-after: auto; }
-        .bgm-print-header { display:flex; justify-content:space-between; gap:4mm; border-bottom:1mm solid #ff5a0a; padding-bottom:1.5mm; }
-        .bgm-print-brand { font-size:8pt; font-weight:900; letter-spacing:.13em; text-transform:uppercase; color:#ff5a0a; }
+        .bgm-print-header { display:flex; justify-content:space-between; gap:4mm; border-bottom:1mm solid #ffb400; padding-bottom:1.5mm; }
+        .bgm-print-brand { font-size:8pt; font-weight:900; letter-spacing:.13em; text-transform:uppercase; color:#ffb400; }
         .bgm-print-title { margin-top:1mm; font-size:15pt; line-height:1; font-weight:900; letter-spacing:-.02em; }
         .bgm-print-subtle { color:#71717a; font-size:7.2pt; }
         .bgm-print-ref { text-align:right; font-size:7.5pt; max-width:65mm; }

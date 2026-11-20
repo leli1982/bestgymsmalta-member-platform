@@ -230,7 +230,7 @@ export default function IssueNewCardPanel({ initialMemberNumber = "" }: { initia
           </div>
           <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">Issue New Card changes the card only. It does not renew or extend the membership.</p>
           {error && <p role="alert" aria-live="assertive" className="mt-4 rounded-xl border-2 border-red-500 bg-red-50 p-3 text-sm font-black text-red-900">{error}</p>}
-          <button type="button" disabled={busy} onClick={() => void replaceCard()} className="mt-4 w-full rounded-xl bg-orange-500 px-5 py-3 font-black text-white disabled:opacity-40">{busy ? "Issuing…" : "Issue New Card"}</button>
+          <button type="button" disabled={busy} onClick={() => void replaceCard()} className="mt-4 w-full rounded-xl bg-orange-500 px-5 py-3 font-black text-zinc-950 disabled:opacity-40">{busy ? "Issuing…" : "Issue New Card"}</button>
         </section>
       )}
     </div>
