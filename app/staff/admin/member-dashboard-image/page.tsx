@@ -118,7 +118,8 @@ export default function MemberDashboardImagePage() {
   }
 
   async function reset() {
-    if (working || !currentUrl || !window.confirm("Restore the original BGM dashboard image for every member?")) return;
+    if (working || (!currentUrl && publishedPosition.x === DEFAULT_MEMBER_HERO_POSITION.x && publishedPosition.y === DEFAULT_MEMBER_HERO_POSITION.y) ||
+        !window.confirm("Restore the original BGM dashboard image and its position for every member?")) return;
     setWorking(true);
     setError("");
     setNotice("");
@@ -219,7 +220,7 @@ export default function MemberDashboardImagePage() {
             <div className="mt-6 border-t border-zinc-200 pt-5">
               <h3 className="text-sm font-black">Current published image</h3>
               <p className="mt-1 text-sm text-zinc-600">{loading ? "Checking…" : currentUrl ? "Custom image" : "Original BGM image"}</p>
-              <button type="button" onClick={() => void reset()} disabled={!currentUrl || working || loading} className="mt-3 inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2 text-sm font-bold text-zinc-800 disabled:opacity-40">
+              <button type="button" onClick={() => void reset()} disabled={(!currentUrl && publishedPosition.x === DEFAULT_MEMBER_HERO_POSITION.x && publishedPosition.y === DEFAULT_MEMBER_HERO_POSITION.y) || working || loading} className="mt-3 inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2 text-sm font-bold text-zinc-800 disabled:opacity-40">
                 <RotateCcw size={16} /> Restore original image
               </button>
             </div>
