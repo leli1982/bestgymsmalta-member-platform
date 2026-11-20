@@ -576,6 +576,12 @@ try {
         Write-Host "No finger before single-use recognition expired. No attendance."
         if ($FullScreenTest) { Show-Hu20KioskStatus -State "cooldown" }
       }
+      elseif ($decision.Mode -eq "closed") {
+        # ESC is a normal, final exit for this already-checkpointed TEST window.
+        # Never resume scanning this approval; the watcher waits for a NEW one.
+        Write-Host "ESC closed the TEST kiosk. Returning the watcher to safe standby for a NEW Super Admin approval."
+        $stopKiosk = $true
+      }
       else {
         # Unknown SDK/network outcomes always stop. In particular, a lost
         # attendance response must NEVER auto-retry or toggle a new punch.

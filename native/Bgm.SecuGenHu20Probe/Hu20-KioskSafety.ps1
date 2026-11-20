@@ -19,7 +19,8 @@ function Get-Hu20KioskFailurePolicy {
     '^KIOSK_PUNCH_UNCERTAIN:' { $screen = "uncertain"; $review = $true; break }
     '^KIOSK_DEVICE_ERROR:' { $screen = "reader_error"; break }
     '^KIOSK_NETWORK_ERROR:' { $screen = "network_error"; break }
-    '^KIOSK_DISPLAY_CLOSED:' { $screen = "closed"; break }
+    # An explicitly closed TEST screen consumes this approval but is not a scanner fault.
+    '^KIOSK_DISPLAY_CLOSED:' { $mode = "closed"; $screen = "closed"; break }
     default { $screen = "error"; break }
   }
   # Only Super Admin-controlled cooldown and no-finger waits can retry;
