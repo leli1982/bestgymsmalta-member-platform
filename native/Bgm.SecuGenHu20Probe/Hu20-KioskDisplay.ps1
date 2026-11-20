@@ -32,7 +32,7 @@ function Initialize-Hu20KioskDisplay {
   $script:Hu20Display.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::None
   $script:Hu20Display.WindowState = [System.Windows.Forms.FormWindowState]::Maximized
   $script:Hu20Display.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
-  $script:Hu20Display.BackColor = [System.Drawing.Color]::FromArgb(12,18,29)
+  $script:Hu20Display.BackColor = [System.Drawing.Color]::FromArgb(9,9,9)
   $script:Hu20Display.KeyPreview = $true
   $script:Hu20Display.TopMost = $true
   $script:Hu20Display.ShowInTaskbar = $true
@@ -52,12 +52,12 @@ function Initialize-Hu20KioskDisplay {
   foreach ($percent in @(13,16,36,22,13)) {
     [void]$grid.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Percent, [float]$percent))
   }
-  $white = [System.Drawing.Color]::FromArgb(242,245,249)
-  $muted = [System.Drawing.Color]::FromArgb(161,175,194)
-  $amber = [System.Drawing.Color]::FromArgb(253,179,36)
-  $script:Hu20TitleLabel = New-Hu20ScreenLabel "BESTGYMSMALTA | STAFF PUNCH CLOCK" 30 $white $true
+  $white = [System.Drawing.Color]::FromArgb(255,255,255)
+  $muted = [System.Drawing.Color]::FromArgb(161,161,170)
+  $amber = [System.Drawing.Color]::FromArgb(255,180,0)
+  $script:Hu20TitleLabel = New-Hu20ScreenLabel "BESTGYMSMALTA | STAFF ATTENDANCE" 30 $amber $true
   $script:Hu20DetailLabel = New-Hu20ScreenLabel "AUTOMATIC FINGERPRINT TERMINAL" 24 $muted $true
-  $script:Hu20StateLabel = New-Hu20ScreenLabel "CONNECTING" 62 $amber $true
+  $script:Hu20StateLabel = New-Hu20ScreenLabel "CONNECTING" 72 $amber $true
   $script:Hu20PersonLabel = New-Hu20ScreenLabel "FICTIONAL TEST ONLY" 30 $white $false
   $script:Hu20FooterLabel = New-Hu20ScreenLabel "HU20 TEST  |  No real employee punches  |  ESC closes the scanner" 17 $muted $false
   [void]$grid.Controls.Add($script:Hu20TitleLabel,0,0)
@@ -115,11 +115,11 @@ function Show-Hu20KioskStatus {
     [string]$Person = ""
   )
   Assert-Hu20KioskDisplay
-  $white = [System.Drawing.Color]::FromArgb(242,245,249)
+  $white = [System.Drawing.Color]::FromArgb(255,255,255)
   $green = [System.Drawing.Color]::FromArgb(73,216,143)
-  $amber = [System.Drawing.Color]::FromArgb(253,179,36)
+  $amber = [System.Drawing.Color]::FromArgb(255,180,0)
   $red = [System.Drawing.Color]::FromArgb(246,113,115)
-  $muted = [System.Drawing.Color]::FromArgb(161,175,194)
+  $muted = [System.Drawing.Color]::FromArgb(161,161,170)
   $main = "CONNECTING"
   $detail = if ($script:Hu20RealStaffPilot) { "STAFF PILOT TEST - NOT PRODUCTION" } else { "FICTIONAL TEST ONLY" }
   $colour = $amber
@@ -143,14 +143,14 @@ function Show-Hu20KioskStatus {
   # Visual feedback only. Only the server and native recognition routine
   # determine whether an attendance event was actually recorded.
   $script:Hu20Display.BackColor = if ($State -in @("clock_in","clock_out")) {
-    [System.Drawing.Color]::FromArgb(10,63,45)
+    [System.Drawing.Color]::FromArgb(20,20,20)
   } elseif ($State -in @("rejected","reader_error","network_error","uncertain","error")) {
-    [System.Drawing.Color]::FromArgb(83,24,30)
+    [System.Drawing.Color]::FromArgb(20,20,20)
   } else {
-    [System.Drawing.Color]::FromArgb(12,18,29)
+    [System.Drawing.Color]::FromArgb(9,9,9)
   }
   $script:Hu20StateLabel.Text = $main
-  $script:Hu20StateLabel.ForeColor = $colour
+  $script:Hu20StateLabel.ForeColor = $colour\n  $script:Hu20StateLabel.Font = [System.Drawing.Font]::new("Segoe UI", $(if ($State -in @("clock_in","clock_out")) { 86 } else { 72 }), [System.Drawing.FontStyle]::Bold)
   $script:Hu20PersonLabel.Text = $detail
   $script:Hu20PersonLabel.ForeColor = $white
   $script:Hu20Display.Refresh()
