@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         const matchingEvent = !event.error && event.data &&
           event.data.employee_id === result.result_employee_id &&
           event.data.gym_id === result.result_gym_id;
-        if (matchingEvent) {
+        if (matchingEvent && event.data) {
           const stamp = event.data.source_timestamp;
           const parsedStamp = typeof stamp === "string" ? Date.parse(stamp) : NaN;
           const first = employee.error ? "" : (employee.data?.first_name || "").trim();
