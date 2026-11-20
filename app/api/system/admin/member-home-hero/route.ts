@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSuperAdmin } from "@/lib/systemAuth";
 import {
   MEMBER_HERO_BUCKET, MEMBER_HERO_MAX_BYTES, MEMBER_HERO_MIME,
-  currentMemberHero, validMemberHeroImage,
+  memberHeroPublicUrl, validMemberHeroImage,
 } from "@/lib/memberDashboardHero";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +23,8 @@ async function guard(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { context, error } = await guard(request);
-    if (error || !context) return error;
+    if (error) return error;
+    if (!context) return NextResponse.json({ error: "Super Admin access required." }, { status: 403 });
     const form = await request.formData().catch(() => null);
     const file = form?.get("file");
     if (!(file instanceof File) || !MEMBER_HERO_MIME[file.type] || file.size < 1 || file.size > MEMBER_HERO_MAX_BYTES) {
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
       await db.storage.from(MEMBER_HERO_BUCKET).remove([path]);
       throw saved.error;
     }
-    return NextResponse.json({ ok: true, ...(await currentMemberHero()) }, {
+    return NextResponse.json({ ok: true, imageUrl: memberHeroPublicUrl(path) }, {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
@@ -60,7 +61,8 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { context, error } = await guard(request);
-    if (error || !context) return error;
+    if (error) return error;
+    if (!context) return NextResponse.json({ error: "Super Admin access required." }, { status: 403 });
     const db = getSupabaseAdmin();
     const saved = await db.from("bgm_member_dashboard_hero").upsert({
       id: 1, image_path: null, updated_at: new Date().toISOString(),
