@@ -169,7 +169,7 @@ export default function MembershipDataAdmin({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <FileSpreadsheet className="text-[#fcb415]" size={26} strokeWidth={3} />
+            <FileSpreadsheet className="text-[#ffb400]" size={26} strokeWidth={3} />
             <h2 className="text-2xl font-black">Membership Data</h2>
           </div>
           <p className="mt-3 max-w-3xl text-sm font-bold leading-6 text-white/50">
@@ -206,7 +206,7 @@ export default function MembershipDataAdmin({
             type="button"
             onClick={previewImport}
             disabled={!file || previewing}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#fcb415] px-5 py-3 text-sm font-black text-black disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#ffb400] px-5 py-3 text-sm font-black text-black disabled:cursor-not-allowed disabled:opacity-40"
           >
             {previewing ? <RefreshCw size={17} className="animate-spin" /> : <Upload size={17} />}
             {previewing ? "Converting…" : "Convert & Validate"}

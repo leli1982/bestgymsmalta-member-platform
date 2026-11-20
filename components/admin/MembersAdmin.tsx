@@ -342,7 +342,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
     <section className="space-y-6">
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
         <div className="flex items-center gap-3">
-          <UserPlus className="text-[#fcb415]" size={26} strokeWidth={3} />
+          <UserPlus className="text-[#ffb400]" size={26} strokeWidth={3} />
           <h2 className="text-2xl font-black">
             {editingId ? "Edit Member" : "Add Member"}
           </h2>
@@ -429,8 +429,8 @@ export default function MembersAdmin({ pin }: { pin: string }) {
             </label>
           </div>
 
-          <div className="rounded-2xl border border-[#fcb415]/30 bg-[#fcb415]/10 p-4">
-            <p className="text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
+          <div className="rounded-2xl border border-[#ffb400]/30 bg-[#ffb400]/10 p-4">
+            <p className="text-xs font-black uppercase tracking-[.18em] text-[#ffb400]">
               Auto Membership Status
             </p>
 
@@ -470,7 +470,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
 
           {editingId ? (
             <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-              <p className="text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
+              <p className="text-xs font-black uppercase tracking-[.18em] text-[#ffb400]">
                 App Login
               </p>
               <p className="mt-2 text-sm font-bold text-white/55">
@@ -485,7 +485,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
             <button
               type="button"
               onClick={saveMember}
-              className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+              className="flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-black"
             >
               <Save size={17} strokeWidth={3} />
               {editingId ? "Save Member" : "Add Member"}
@@ -506,7 +506,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
               Members
             </p>
 
@@ -546,7 +546,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-            <p className="text-3xl font-black text-[#fcb415]">
+            <p className="text-3xl font-black text-[#ffb400]">
               {appActivatedMembers}
             </p>
             <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35">
@@ -591,7 +591,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
                 onClick={() => setMemberFilter(value)}
                 className={
                   memberFilter === value
-                    ? "shrink-0 rounded-full bg-[#fcb415] px-4 py-3 text-xs font-black uppercase tracking-[.14em] text-black"
+                    ? "shrink-0 rounded-full bg-[#ffb400] px-4 py-3 text-xs font-black uppercase tracking-[.14em] text-black"
                     : "shrink-0 rounded-full border border-white/10 bg-black/25 px-4 py-3 text-xs font-black uppercase tracking-[.14em] text-white/45"
                 }
               >
@@ -618,7 +618,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
                         {member.fullName || "Unnamed member"}
                       </p>
 
-                      <p className="mt-1 text-xs font-black uppercase tracking-[.16em] text-[#fcb415]">
+                      <p className="mt-1 text-xs font-black uppercase tracking-[.16em] text-[#ffb400]">
                         {member.memberNumber || "No member number"}
                       </p>
 
@@ -700,7 +700,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
                     <button
                       type="button"
                       onClick={() => editMember(member)}
-                      className="rounded-full bg-[#fcb415] px-5 py-3 text-xs font-black text-black"
+                      className="rounded-full bg-[#ffb400] px-5 py-3 text-xs font-black text-black"
                     >
                       Edit
                     </button>
