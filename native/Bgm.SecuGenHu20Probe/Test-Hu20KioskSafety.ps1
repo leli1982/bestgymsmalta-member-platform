@@ -9,7 +9,8 @@ $cases = @(
   ,@("KIOSK_DEVICE_ERROR: GetImageEx vendor code 7", "halt", "reader_error", $false)
   ,@("KIOSK_NETWORK_ERROR: connection reset", "halt", "network_error", $false)
   ,@("KIOSK_PUNCH_UNCERTAIN: response missing", "halt", "uncertain", $true)
-  ,@("KIOSK_DISPLAY_CLOSED: escape", "halt", "closed", $false)
+  ,@("KIOSK_DISPLAY_CLOSED: escape", "closed", "closed", $false)
+  ,@("KIOSK_DISPLAY_CLOSED", "halt", "error", $false)
   ,@("Unexpected SDK or server exception", "halt", "error", $false)
 )
 foreach ($case in $cases) {
