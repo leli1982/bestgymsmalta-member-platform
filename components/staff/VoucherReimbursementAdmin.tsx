@@ -99,7 +99,7 @@ export default function VoucherReimbursementAdmin() {
     <section className="bgm-admin-light text-zinc-950">
       <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff5a0a]">Voucher accounting</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ffb400]">Voucher accounting</p>
           <h2 className="mt-1 text-xl font-black tracking-tight">Voucher Value €</h2>
           <p className="mt-1 text-sm text-zinc-500">Each voucher keeps its Discount % above. Optional Value € is reimbursement income paid to BestGymsMalta for each successful NEW membership. Leave blank for normal percentage-discount behaviour only.</p>
           <p className="mt-2 text-xs font-bold text-zinc-500">The value is snapshotted when the membership activates. Changing it later never changes historical memberships or End of Day reports.</p>
