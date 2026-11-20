@@ -79,7 +79,7 @@ export default function MobilityStretchPage() {
             <select
               value={selectedCategory}
               onChange={(event) => setSelectedCategory(event.target.value)}
-              className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 font-semibold text-zinc-950 outline-none focus:border-[#ff5a0a] focus:ring-2 focus:ring-[#ff5a0a]/10"
+              className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 font-semibold text-zinc-950 outline-none focus:border-[#ffb400] focus:ring-2 focus:ring-[#ffb400]/10"
             >
               {mobilityGroups.map((group) => (
                 <option key={group.id} value={group.id}>

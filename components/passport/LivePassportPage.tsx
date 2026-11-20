@@ -191,15 +191,15 @@ export default function LivePassportPage() {
           className="relative min-h-[330px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
           style={{
             backgroundImage:
-              "linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.82)), linear-gradient(135deg, rgba(252,180,21,.22), rgba(0,0,0,.82)), url('/visuals/passport.jpg')",
+              "linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.82)), linear-gradient(135deg, rgba(255,180,0,.22), rgba(0,0,0,.82)), url('/visuals/passport.jpg')",
           }}
         >
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
+          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#ffb400]/25 blur-3xl" />
 
           <div className="relative flex min-h-[280px] flex-col justify-between">
             <div className="flex items-center justify-between">
               <div className="rounded-full border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-md">
-                <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
                   BGM Passport
                 </p>
               </div>
@@ -212,7 +212,7 @@ export default function LivePassportPage() {
             </div>
 
             <div>
-              <Lock className="text-[#fcb415]" size={34} strokeWidth={3} />
+              <Lock className="text-[#ffb400]" size={34} strokeWidth={3} />
 
               <h1 className="mt-4 text-5xl font-black leading-[0.95] text-white drop-shadow-2xl">
                 Your gym passport
@@ -225,7 +225,7 @@ export default function LivePassportPage() {
 
               <a
                 href="/member-login"
-                className="mt-6 flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+                className="mt-6 flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-black"
               >
                 Login / Activate
                 <ChevronRight size={17} strokeWidth={3} />
@@ -243,16 +243,16 @@ export default function LivePassportPage() {
         className="relative min-h-[350px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
         style={{
           backgroundImage:
-            "linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.85)), linear-gradient(135deg, rgba(252,180,21,.20), rgba(0,0,0,.82)), url('/visuals/passport.jpg')",
+            "linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.85)), linear-gradient(135deg, rgba(255,180,0,.20), rgba(0,0,0,.82)), url('/visuals/passport.jpg')",
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/25 to-black/90" />
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#ffb400]/25 blur-3xl" />
 
         <div className="relative flex min-h-[300px] flex-col justify-between">
           <div className="flex items-center justify-between">
             <div className="rounded-full border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-md">
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
                 BGM Passport
               </p>
             </div>
@@ -265,7 +265,7 @@ export default function LivePassportPage() {
           </div>
 
           <div>
-            <p className="text-sm font-black uppercase tracking-[.24em] text-[#fcb415]">
+            <p className="text-sm font-black uppercase tracking-[.24em] text-[#ffb400]">
               Train across Malta
             </p>
 
@@ -288,7 +288,7 @@ export default function LivePassportPage() {
                 </div>
 
                 <div className="text-right">
-                  <p className="text-xl font-black text-[#fcb415]">
+                  <p className="text-xl font-black text-[#ffb400]">
                     {stampedGyms.length}/{activeGyms.length}
                   </p>
                   <p className="mt-1 text-[10px] font-black uppercase tracking-[.18em] text-white/40">
@@ -299,7 +299,7 @@ export default function LivePassportPage() {
 
               <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10">
                 <div
-                  className="h-full rounded-full bg-[#fcb415]"
+                  className="h-full rounded-full bg-[#ffb400]"
                   style={{ width: `${completion}%` }}
                 />
               </div>
@@ -310,7 +310,7 @@ export default function LivePassportPage() {
 
       <section className="grid grid-cols-3 gap-3">
         <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <Stamp className="text-[#fcb415]" size={22} strokeWidth={3} />
+          <Stamp className="text-[#ffb400]" size={22} strokeWidth={3} />
           <p className="mt-3 text-3xl font-black text-zinc-950">
             {stampedGyms.length}
           </p>
@@ -320,7 +320,7 @@ export default function LivePassportPage() {
         </div>
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <Dumbbell className="text-[#fcb415]" size={22} strokeWidth={3} />
+          <Dumbbell className="text-[#ffb400]" size={22} strokeWidth={3} />
           <p className="mt-3 text-3xl font-black text-zinc-950">
             {checkIns.length}
           </p>
@@ -330,7 +330,7 @@ export default function LivePassportPage() {
         </div>
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <Target className="text-[#fcb415]" size={22} strokeWidth={3} />
+          <Target className="text-[#ffb400]" size={22} strokeWidth={3} />
           <p className="mt-3 text-3xl font-black text-zinc-950">
             {unvisitedGyms.length}
           </p>
@@ -342,10 +342,10 @@ export default function LivePassportPage() {
 
       <section className="rounded-[2rem] border border-orange-200 bg-orange-50 p-5 shadow-sm">
         <div className="flex items-start gap-3">
-          <QrCode className="mt-0.5 shrink-0 text-[#ff5a0a]" size={28} strokeWidth={3} />
+          <QrCode className="mt-0.5 shrink-0 text-[#ffb400]" size={28} strokeWidth={3} />
 
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ff5a0a]">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
               Check In
             </p>
 
@@ -360,7 +360,7 @@ export default function LivePassportPage() {
 
             <a
               href="/scan-gym-qr"
-              className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-200"
+              className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950 shadow-lg shadow-orange-200"
             >
               Scan Gym QR
               <QrCode size={17} strokeWidth={3} />
@@ -379,7 +379,7 @@ export default function LivePassportPage() {
           >
             <div className="flex min-h-[190px] flex-col justify-between">
               <div className="flex items-center justify-between">
-                <div className="rounded-full bg-[#fcb415] px-4 py-2 text-[10px] font-black uppercase tracking-[.18em] text-black">
+                <div className="rounded-full bg-[#ffb400] px-4 py-2 text-[10px] font-black uppercase tracking-[.18em] text-black">
                   Next Gym To Visit
                 </div>
 
@@ -417,7 +417,7 @@ export default function LivePassportPage() {
         <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
                 Stamped Gyms
               </p>
 
@@ -426,7 +426,7 @@ export default function LivePassportPage() {
               </h2>
             </div>
 
-            <Trophy className="text-[#fcb415]" size={26} strokeWidth={3} />
+            <Trophy className="text-[#ffb400]" size={26} strokeWidth={3} />
           </div>
 
           <div className="mt-5 grid gap-3">
@@ -442,14 +442,14 @@ export default function LivePassportPage() {
                   href={`/gyms/${gym.id}`}
                   className="flex items-center gap-4 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4"
                 >
-                  <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#fcb415]/10 p-2">
+                  <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#ffb400]/10 p-2">
                     <img
                       src={getGymLogo(gym)}
                       alt=""
                       className="h-full w-full object-contain"
                     />
 
-                    <div className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#fcb415] text-black">
+                    <div className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#ffb400] text-black">
                       <BadgeCheck size={17} strokeWidth={3} />
                     </div>
                   </div>
@@ -473,7 +473,7 @@ export default function LivePassportPage() {
         </section>
       ) : (
         <section className="rounded-[2rem] border border-zinc-200 bg-white p-6 text-center shadow-sm">
-          <Sparkles className="mx-auto text-[#fcb415]" size={42} strokeWidth={3} />
+          <Sparkles className="mx-auto text-[#ffb400]" size={42} strokeWidth={3} />
 
           <h2 className="mt-4 text-3xl font-black text-zinc-950">
             Start your passport
@@ -489,7 +489,7 @@ export default function LivePassportPage() {
         <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
                 Still To Visit
               </p>
 
@@ -498,7 +498,7 @@ export default function LivePassportPage() {
               </h2>
             </div>
 
-            <MapPin className="text-[#fcb415]" size={25} strokeWidth={3} />
+            <MapPin className="text-[#ffb400]" size={25} strokeWidth={3} />
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-3">
@@ -536,7 +536,7 @@ export default function LivePassportPage() {
         </section>
       ) : activeGyms.length > 0 ? (
         <section className="rounded-[2rem] border border-orange-200 bg-orange-50 p-6 text-center shadow-sm">
-          <Trophy className="mx-auto text-[#fcb415]" size={46} strokeWidth={3} />
+          <Trophy className="mx-auto text-[#ffb400]" size={46} strokeWidth={3} />
 
           <h2 className="mt-4 text-3xl font-black text-zinc-950">
             Passport complete
@@ -551,7 +551,7 @@ export default function LivePassportPage() {
       <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
               Recent Check-ins
             </p>
 
@@ -561,9 +561,9 @@ export default function LivePassportPage() {
           </div>
 
           {loading ? (
-            <RefreshCw className="animate-spin text-[#fcb415]" size={24} strokeWidth={3} />
+            <RefreshCw className="animate-spin text-[#ffb400]" size={24} strokeWidth={3} />
           ) : (
-            <CalendarDays className="text-[#fcb415]" size={24} strokeWidth={3} />
+            <CalendarDays className="text-[#ffb400]" size={24} strokeWidth={3} />
           )}
         </div>
 
@@ -578,7 +578,7 @@ export default function LivePassportPage() {
                 key={checkIn.id}
                 className="flex items-center gap-4 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4"
               >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#fcb415] text-black">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ffb400] text-black">
                   <Stamp size={23} strokeWidth={3} />
                 </div>
 
@@ -598,7 +598,7 @@ export default function LivePassportPage() {
 
           {!loading && sortedCheckIns.length === 0 ? (
             <div className="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-5 text-center">
-              <QrCode className="mx-auto text-[#fcb415]" size={34} strokeWidth={3} />
+              <QrCode className="mx-auto text-[#ffb400]" size={34} strokeWidth={3} />
               <p className="mt-3 text-sm font-bold text-zinc-500">
                 No check-ins yet. Scan your first gym QR to start collecting stamps.
               </p>
