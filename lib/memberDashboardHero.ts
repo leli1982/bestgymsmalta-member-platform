@@ -1,5 +1,6 @@
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { DEFAULT_MEMBER_HERO_POSITION, parseMemberHeroPosition } from "@/lib/memberHeroPosition";
 
 export const MEMBER_HERO_BUCKET = "bgm-announcements";
 export const MEMBER_HERO_DEFAULT = "/visuals/home-hero-duo.jpg";
@@ -28,12 +29,15 @@ export function memberHeroPublicUrl(path: string | null): string | null {
 export async function currentMemberHero() {
   const { data, error } = await getSupabaseAdmin()
     .from("bgm_member_dashboard_hero")
-    .select("image_path, updated_at")
+    .select("image_path, position_x, position_y, updated_at")
     .eq("id", 1)
     .maybeSingle();
   if (error) throw error;
+  const position = parseMemberHeroPosition(data?.position_x, data?.position_y) ?? DEFAULT_MEMBER_HERO_POSITION;
   return {
     imageUrl: memberHeroPublicUrl(data?.image_path ?? null),
+    positionX: position.x,
+    positionY: position.y,
     updatedAt: data?.updated_at ?? null,
   };
 }
