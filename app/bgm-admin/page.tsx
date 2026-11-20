@@ -101,7 +101,7 @@ const emptyGym: AdminGym = {
   email: "",
   logo: "",
   virtualTourUrl: "",
-  accentColor: "#fcb415",
+  accentColor: "#ffb400",
   qrCodeId: "",
   facilities: [],
   classes: [],
@@ -566,16 +566,16 @@ export default function BgmAdminPage() {
             className="relative w-full overflow-hidden rounded-[2.4rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
             style={{
               backgroundImage:
-                "linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.88)), linear-gradient(135deg, rgba(252,180,21,.24), rgba(0,0,0,.88)), url('/visuals/account.jpg')",
+                "linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.88)), linear-gradient(135deg, rgba(255,180,0,.24), rgba(0,0,0,.88)), url('/visuals/account.jpg')",
             }}
           >
-            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcb415]/25 blur-3xl" />
-            <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-[#fcb415]/10 blur-3xl" />
+            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#ffb400]/25 blur-3xl" />
+            <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-[#ffb400]/10 blur-3xl" />
 
             <div className="relative">
               <div className="flex items-center justify-between">
                 <div className="rounded-full border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-md">
-                  <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                  <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
                     Secure Admin
                   </p>
                 </div>
@@ -588,7 +588,7 @@ export default function BgmAdminPage() {
               </div>
 
               <div className="mt-14">
-                <LockKeyhole className="text-[#fcb415]" size={38} strokeWidth={3} />
+                <LockKeyhole className="text-[#ffb400]" size={38} strokeWidth={3} />
 
                 <h1 className="mt-5 text-5xl font-black leading-[0.95] text-white">
                   BGM Admin
@@ -623,7 +623,7 @@ export default function BgmAdminPage() {
                 <button
                   type="button"
                   onClick={unlockAdmin}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-black"
                 >
                   Unlock Admin
                   <ShieldCheck size={18} strokeWidth={3} />
@@ -649,17 +649,17 @@ export default function BgmAdminPage() {
           className="relative overflow-hidden rounded-[2.4rem] border border-white/10 bg-cover bg-center p-6 shadow-2xl"
           style={{
             backgroundImage:
-              "linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.88)), linear-gradient(135deg, rgba(252,180,21,.24), rgba(0,0,0,.88)), url('/visuals/account.jpg')",
+              "linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.88)), linear-gradient(135deg, rgba(255,180,0,.24), rgba(0,0,0,.88)), url('/visuals/account.jpg')",
           }}
         >
-          <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#fcb415]/25 blur-3xl" />
-          <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-[#fcb415]/10 blur-3xl" />
+          <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#ffb400]/25 blur-3xl" />
+          <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-[#ffb400]/10 blur-3xl" />
 
           <div className="relative">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="w-fit rounded-full border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-md">
-                  <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                  <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
                     BestGymsMalta
                   </p>
                 </div>
@@ -683,7 +683,7 @@ export default function BgmAdminPage() {
 
             <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
               <div className="rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-md">
-                <Megaphone className="text-[#fcb415]" size={22} strokeWidth={3} />
+                <Megaphone className="text-[#ffb400]" size={22} strokeWidth={3} />
                 <p className="mt-3 text-3xl font-black text-white">
                   {announcements.length}
                 </p>
@@ -693,7 +693,7 @@ export default function BgmAdminPage() {
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-md">
-                <Building2 className="text-[#fcb415]" size={22} strokeWidth={3} />
+                <Building2 className="text-[#ffb400]" size={22} strokeWidth={3} />
                 <p className="mt-3 text-3xl font-black text-white">
                   {gyms.filter((gym) => gym.status === "active").length}
                 </p>
@@ -703,7 +703,7 @@ export default function BgmAdminPage() {
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-md">
-                <MapPinned className="text-[#fcb415]" size={22} strokeWidth={3} />
+                <MapPinned className="text-[#ffb400]" size={22} strokeWidth={3} />
                 <p className="mt-3 text-3xl font-black text-white">
                   {gyms.filter((gym) => gym.status === "coming_soon").length}
                 </p>
@@ -713,7 +713,7 @@ export default function BgmAdminPage() {
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-md">
-                <ShieldCheck className="text-[#fcb415]" size={22} strokeWidth={3} />
+                <ShieldCheck className="text-[#ffb400]" size={22} strokeWidth={3} />
                 <p className="mt-3 text-3xl font-black text-white">ON</p>
                 <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35">
                   Admin access
@@ -727,7 +727,7 @@ export default function BgmAdminPage() {
                 onClick={() => setActiveTab("announcements")}
                 className={
                   activeTab === "announcements"
-                    ? "flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-4 py-4 text-sm font-black text-black"
+                    ? "flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-4 py-4 text-sm font-black text-black"
                     : "flex items-center justify-center gap-2 rounded-full border border-white/10 bg-black/35 px-4 py-4 text-sm font-black text-white/70 backdrop-blur-md"
                 }
               >
@@ -740,7 +740,7 @@ export default function BgmAdminPage() {
                 onClick={() => setActiveTab("analytics")}
                 className={
                   activeTab === "analytics"
-                    ? "flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-4 py-4 text-sm font-black text-black"
+                    ? "flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-4 py-4 text-sm font-black text-black"
                     : "flex items-center justify-center gap-2 rounded-full border border-white/10 bg-black/35 px-4 py-4 text-sm font-black text-white/70 backdrop-blur-md"
                 }
               >
@@ -753,7 +753,7 @@ export default function BgmAdminPage() {
                 onClick={() => setActiveTab("gyms")}
                 className={
                   activeTab === "gyms"
-                    ? "flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-4 py-4 text-sm font-black text-black"
+                    ? "flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-4 py-4 text-sm font-black text-black"
                     : "flex items-center justify-center gap-2 rounded-full border border-white/10 bg-black/35 px-4 py-4 text-sm font-black text-white/70 backdrop-blur-md"
                 }
               >
@@ -766,7 +766,7 @@ export default function BgmAdminPage() {
                 onClick={() => setActiveTab("checkins")}
                 className={
                   activeTab === "checkins"
-                    ? "flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-4 py-4 text-sm font-black text-black"
+                    ? "flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-4 py-4 text-sm font-black text-black"
                     : "flex items-center justify-center gap-2 rounded-full border border-white/10 bg-black/35 px-4 py-4 text-sm font-black text-white/70 backdrop-blur-md"
                 }
               >
@@ -779,7 +779,7 @@ export default function BgmAdminPage() {
                 onClick={() => setActiveTab("members")}
                 className={
                   activeTab === "members"
-                    ? "flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-4 py-4 text-sm font-black text-black"
+                    ? "flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-4 py-4 text-sm font-black text-black"
                     : "flex items-center justify-center gap-2 rounded-full border border-white/10 bg-black/35 px-4 py-4 text-sm font-black text-white/70 backdrop-blur-md"
                 }
               >
@@ -831,7 +831,7 @@ export default function BgmAdminPage() {
               <div className="mb-5 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <Megaphone
-                    className="text-[#fcb415]"
+                    className="text-[#ffb400]"
                     size={26}
                     strokeWidth={3}
                   />
@@ -906,7 +906,7 @@ export default function BgmAdminPage() {
                   </div>
                 ) : null}
 
-                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-full border border-[#fcb415]/30 bg-[#fcb415]/10 px-5 py-4 text-sm font-black text-[#fcb415]">
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-full border border-[#ffb400]/30 bg-[#ffb400]/10 px-5 py-4 text-sm font-black text-[#ffb400]">
                   <ImageIcon size={18} strokeWidth={3} />
                   {uploading ? "Uploading…" : "Upload Image"}
                   <input
@@ -992,9 +992,9 @@ export default function BgmAdminPage() {
                   />
                 </div>
 
-                <div className="overflow-hidden rounded-[1.7rem] border border-[#fcb415]/25 bg-[#fcb415]/10">
+                <div className="overflow-hidden rounded-[1.7rem] border border-[#ffb400]/25 bg-[#ffb400]/10">
                   <div className="p-4">
-                    <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                    <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
                       Announcement Preview
                     </p>
 
@@ -1008,12 +1008,12 @@ export default function BgmAdminPage() {
                     </p>
 
                     <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-[#fcb415]">
+                      <span className="rounded-full bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-[#ffb400]">
                         {announcementForm.category || "Update"}
                       </span>
 
                       {announcementForm.button_text ? (
-                        <span className="rounded-full bg-[#fcb415] px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-black">
+                        <span className="rounded-full bg-[#ffb400] px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-black">
                           {announcementForm.button_text}
                         </span>
                       ) : null}
@@ -1040,14 +1040,14 @@ export default function BgmAdminPage() {
                         active: event.target.checked,
                       })
                     }
-                    className="h-5 w-5 accent-[#fcb415]"
+                    className="h-5 w-5 accent-[#ffb400]"
                   />
                 </label>
 
                 <button
                   type="button"
                   onClick={saveAnnouncement}
-                  className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+                  className="flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-black"
                 >
                   {editingAnnouncementId ? (
                     <Save size={17} strokeWidth={3} />
@@ -1108,7 +1108,7 @@ export default function BgmAdminPage() {
                       <button
                         type="button"
                         onClick={() => editAnnouncement(item)}
-                        className="flex items-center gap-2 rounded-full bg-[#fcb415] px-4 py-2 text-xs font-black text-black"
+                        className="flex items-center gap-2 rounded-full bg-[#ffb400] px-4 py-2 text-xs font-black text-black"
                       >
                         <Pencil size={14} strokeWidth={3} />
                         Edit
@@ -1160,7 +1160,7 @@ export default function BgmAdminPage() {
                 <button
                   type="button"
                   onClick={seedGyms}
-                  className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-3 text-sm font-black text-black"
+                  className="flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-3 text-sm font-black text-black"
                 >
                   <Upload size={16} strokeWidth={3} />
                   Import Gyms
@@ -1169,7 +1169,7 @@ export default function BgmAdminPage() {
                 <button
                   type="button"
                   onClick={startNewGym}
-                  className="flex items-center justify-center gap-2 rounded-full border border-[#fcb415]/30 bg-[#fcb415]/10 px-5 py-3 text-sm font-black text-[#fcb415]"
+                  className="flex items-center justify-center gap-2 rounded-full border border-[#ffb400]/30 bg-[#ffb400]/10 px-5 py-3 text-sm font-black text-[#ffb400]"
                 >
                   <Plus size={16} strokeWidth={3} />
                   New Gym
@@ -1178,7 +1178,7 @@ export default function BgmAdminPage() {
             </section>
 
             <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
                 Gym admin overview
               </p>
 
@@ -1200,7 +1200,7 @@ export default function BgmAdminPage() {
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-                  <p className="text-3xl font-black text-[#fcb415]">
+                  <p className="text-3xl font-black text-[#ffb400]">
                     {gyms.filter((gym) => gym.virtualTourUrl).length}
                   </p>
                   <p className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-white/35">
@@ -1257,9 +1257,9 @@ export default function BgmAdminPage() {
                   </label>
                 </section>
 
-                <section className="overflow-hidden rounded-[2rem] border border-[#fcb415]/25 bg-[#fcb415]/10">
+                <section className="overflow-hidden rounded-[2rem] border border-[#ffb400]/25 bg-[#ffb400]/10">
                   <div className="p-5">
-                    <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+                    <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
                       Selected gym preview
                     </p>
 
@@ -1271,7 +1271,7 @@ export default function BgmAdminPage() {
                           className="h-16 w-16 shrink-0 object-contain drop-shadow-2xl"
                         />
                       ) : (
-                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-black/25 text-xl font-black text-[#fcb415]">
+                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-black/25 text-xl font-black text-[#ffb400]">
                           BGM
                         </div>
                       )}
@@ -1286,7 +1286,7 @@ export default function BgmAdminPage() {
                         </p>
 
                         <div className="mt-2 flex flex-wrap gap-2">
-                          <span className="rounded-full bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-[#fcb415]">
+                          <span className="rounded-full bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-[#ffb400]">
                             {gymForm.status}
                           </span>
 
@@ -1304,7 +1304,7 @@ export default function BgmAdminPage() {
                 <section className="space-y-4 rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
                   <div className="flex items-center gap-3">
                     <MapPinned
-                      className="text-[#fcb415]"
+                      className="text-[#ffb400]"
                       size={26}
                       strokeWidth={3}
                     />
@@ -1313,7 +1313,7 @@ export default function BgmAdminPage() {
 
                   <div className="grid gap-3">
                     {creatingGym ? (
-                      <div className="rounded-2xl border border-[#fcb415]/20 bg-[#fcb415]/10 px-4 py-3 text-sm font-bold text-[#fcb415]">
+                      <div className="rounded-2xl border border-[#ffb400]/20 bg-[#ffb400]/10 px-4 py-3 text-sm font-bold text-[#ffb400]">
                         Gym ID, /join route and /staff route will be generated automatically from the gym name.
                       </div>
                     ) : (
@@ -1361,8 +1361,8 @@ export default function BgmAdminPage() {
 
                     {gymForm.status === "active" &&
                     (creatingGym || !gymForm.staffProvisioned) ? (
-                      <label className="grid gap-2 rounded-2xl border border-[#fcb415]/25 bg-[#fcb415]/10 p-4">
-                        <span className="text-xs font-black uppercase tracking-[.18em] text-[#fcb415]">
+                      <label className="grid gap-2 rounded-2xl border border-[#ffb400]/25 bg-[#ffb400]/10 p-4">
+                        <span className="text-xs font-black uppercase tracking-[.18em] text-[#ffb400]">
                           Staff password required
                         </span>
                         <input
@@ -1399,7 +1399,7 @@ export default function BgmAdminPage() {
                         </div>
                         <a
                           href="/bgm-admin/system-users"
-                          className="mt-1 w-fit rounded-full border border-white/10 px-3 py-2 text-[#fcb415]"
+                          className="mt-1 w-fit rounded-full border border-white/10 px-3 py-2 text-[#ffb400]"
                         >
                           Manage staff password
                         </a>
@@ -1501,7 +1501,7 @@ export default function BgmAdminPage() {
                       </div>
                     ) : null}
 
-                    <label className="flex cursor-pointer items-center justify-center gap-2 rounded-full border border-[#fcb415]/30 bg-[#fcb415]/10 px-5 py-4 text-sm font-black text-[#fcb415]">
+                    <label className="flex cursor-pointer items-center justify-center gap-2 rounded-full border border-[#ffb400]/30 bg-[#ffb400]/10 px-5 py-4 text-sm font-black text-[#ffb400]">
                       <ImageIcon size={18} strokeWidth={3} />
                       {uploadingGymLogo ? "Uploading…" : "Upload Gym Logo"}
                       <input
@@ -1570,7 +1570,7 @@ export default function BgmAdminPage() {
                     <button
                       type="button"
                       onClick={saveGym}
-                      className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-4 text-sm font-black text-black"
+                      className="flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-black"
                     >
                       <Save size={17} strokeWidth={3} />
                       {creatingGym ? "Add Gym" : "Save Gym"}
