@@ -90,7 +90,12 @@ export default function VisualHomeHero() {
       style={{
         backgroundImage:
           `linear-gradient(90deg, rgba(0,0,0,.82) 0%, rgba(0,0,0,.58) 34%, rgba(0,0,0,.08) 72%, rgba(0,0,0,.04) 100%), linear-gradient(180deg, rgba(0,0,0,.04) 0%, rgba(0,0,0,.02) 58%, rgba(0,0,0,.48) 100%), url(${JSON.stringify(heroImageUrl)})`,
-        backgroundPosition: `center, center, ${heroPosition.x}% ${heroPosition.y}%`,
+        // Keep the original responsive 38% / 40% CSS placement until edited.
+        backgroundPosition: heroImageUrl === "/visuals/home-hero-duo.jpg" &&
+          heroPosition.x === DEFAULT_MEMBER_HERO_POSITION.x &&
+          heroPosition.y === DEFAULT_MEMBER_HERO_POSITION.y
+          ? undefined
+          : `center, center, ${heroPosition.x}% ${heroPosition.y}%`,
       }}
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(255,90,10,.15),transparent_35%)]" />
