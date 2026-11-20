@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { Bell, CreditCard, MapPin } from "lucide-react";
 import { getSavedMember, type AppMember } from "@/lib/memberSession";
+import { DEFAULT_MEMBER_HERO_POSITION, parseMemberHeroPosition } from "@/lib/memberHeroPosition";
 
 export default function VisualHomeHero() {
   const [member, setMember] = useState<AppMember | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [heroImageUrl, setHeroImageUrl] = useState("/visuals/home-hero-duo.jpg");
+  const [heroPosition, setHeroPosition] = useState(DEFAULT_MEMBER_HERO_POSITION);
 
   useEffect(() => {
     function loadMember() {
@@ -66,6 +68,7 @@ export default function VisualHomeHero() {
             typeof result.imageUrl === "string" && result.imageUrl.startsWith("https://")
               ? result.imageUrl : "/visuals/home-hero-duo.jpg"
           );
+          setHeroPosition(parseMemberHeroPosition(result.positionX, result.positionY) ?? DEFAULT_MEMBER_HERO_POSITION);
         }
       } catch { /* Keep the original BGM picture if the optional image setting is unavailable. */ }
     }
@@ -87,6 +90,7 @@ export default function VisualHomeHero() {
       style={{
         backgroundImage:
           `linear-gradient(90deg, rgba(0,0,0,.82) 0%, rgba(0,0,0,.58) 34%, rgba(0,0,0,.08) 72%, rgba(0,0,0,.04) 100%), linear-gradient(180deg, rgba(0,0,0,.04) 0%, rgba(0,0,0,.02) 58%, rgba(0,0,0,.48) 100%), url(${JSON.stringify(heroImageUrl)})`,
+        backgroundPosition: `center, center, ${heroPosition.x}% ${heroPosition.y}%`,
       }}
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(255,90,10,.15),transparent_35%)]" />
