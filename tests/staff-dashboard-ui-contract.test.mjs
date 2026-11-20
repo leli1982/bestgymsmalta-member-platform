@@ -34,7 +34,8 @@ test("staff dashboard is icon-first and exposes core reception actions", () => {
     assert.match(dashboard, new RegExp(label.replace("/", "\\/")));
   }
   assert.match(dashboard, /lucide-react/);
-  assert.match(dashboard, /#ffb400/i);
+  assert.match(dashboard, /\bbg-primary\b/);
+  assert.match(dashboard, /\btext-primary\b/);
   assert.match(dashboard, /Realtime|connection/i);
   assert.match(dashboard, /WAITING/);
   assert.match(dashboard, /membersOpen/);
