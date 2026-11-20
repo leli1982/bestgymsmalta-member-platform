@@ -94,7 +94,7 @@ export default function LegacyMemberActivationPage() {
             <p className="mt-4 text-sm font-bold leading-6 text-emerald-800">Your new email address has also been saved to your membership record.</p>
           ) : null}
         </section>
-        <a href="/card" className="flex w-full items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-100">
+        <a href="/card" className="flex w-full items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950 shadow-lg shadow-orange-100">
           Continue to Member App <ChevronRight size={17} strokeWidth={3} />
         </a>
       </div>
@@ -105,9 +105,9 @@ export default function LegacyMemberActivationPage() {
     <div className="space-y-5 text-zinc-950">
       <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex items-start gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-[#ff5a0a]"><ShieldCheck size={24} strokeWidth={3} /></div>
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-[#ffb400]"><ShieldCheck size={24} strokeWidth={3} /></div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.22em] text-[#ff5a0a]">Existing Members</p>
+            <p className="text-[10px] font-black uppercase tracking-[.22em] text-[#ffb400]">Existing Members</p>
             <h1 className="mt-1 text-2xl font-black">Activate with your old membership number</h1>
             <p className="mt-2 text-sm font-bold leading-6 text-zinc-500">Use this if you were already a BGM member before the new app and do not know your new BGM number.</p>
           </div>
@@ -131,11 +131,11 @@ export default function LegacyMemberActivationPage() {
           <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">Password</span><div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3"><KeyRound className="text-zinc-400" size={18} strokeWidth={3} /><input aria-label="Legacy activation password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Minimum 6 characters" className="w-full bg-transparent text-sm font-bold outline-none placeholder:text-zinc-400" /></div></label>
           <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[.18em] text-zinc-500">Confirm Password</span><div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3"><KeyRound className="text-zinc-400" size={18} strokeWidth={3} /><input aria-label="Confirm legacy activation password" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Repeat password" className="w-full bg-transparent text-sm font-bold outline-none placeholder:text-zinc-400" /></div></label>
 
-          <button type="submit" disabled={loading} className="flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-100 disabled:opacity-60">{loading ? <><RefreshCw size={17} strokeWidth={3} className="animate-spin" />Checking…</> : <>Activate My App<ChevronRight size={17} strokeWidth={3} /></>}</button>
+          <button type="submit" disabled={loading} className="flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950 shadow-lg shadow-orange-100 disabled:opacity-60">{loading ? <><RefreshCw size={17} strokeWidth={3} className="animate-spin" />Checking…</> : <>Activate My App<ChevronRight size={17} strokeWidth={3} /></>}</button>
         </form>
       </section>
 
-      <a href="/member-login" className="block text-center text-sm font-black text-[#ff5a0a]">Back to normal login / activation</a>
+      <a href="/member-login" className="block text-center text-sm font-black text-[#ffb400]">Back to normal login / activation</a>
     </div>
   );
 }
