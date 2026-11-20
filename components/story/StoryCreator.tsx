@@ -622,6 +622,11 @@ export default function StoryCreator() {
     if (sticker.src) {
       try {
         const image = await loadImage(sticker.src);
+        if (sticker.id === "bgm") {
+          ctx.beginPath();
+          ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
+          ctx.clip();
+        }
         ctx.drawImage(image, -size / 2, -size / 2, size, size);
       } catch {
         // Ignore missing sticker image.
@@ -893,7 +898,7 @@ export default function StoryCreator() {
                         width: `${layer.size}px`,
                         height: `${layer.size}px`,
                       }}
-                      className="select-none object-contain"
+                      className={`select-none object-contain ${sticker.id === "bgm" ? "rounded-full" : ""}`}
                     />
                   ) : (
                     <span
