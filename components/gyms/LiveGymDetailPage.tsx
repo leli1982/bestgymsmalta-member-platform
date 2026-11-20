@@ -163,7 +163,7 @@ export default function LiveGymDetailPage(props: {
   if (!gym) {
     return (
       <section className="rounded-[2rem] border border-zinc-200 bg-white p-6 text-center">
-        <Dumbbell className="mx-auto text-[#c2410c]" size={42} strokeWidth={3} />
+        <Dumbbell className="mx-auto text-[#805600]" size={42} strokeWidth={3} />
         <h1 className="mt-4 text-3xl font-black text-zinc-950">Gym not found</h1>
         <p className="mt-3 text-sm font-bold leading-6 text-slate-600">
           This location could not be found.
@@ -196,7 +196,7 @@ export default function LiveGymDetailPage(props: {
           </div>}
         </div>
         <div className="p-5">
-          <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#c2410c]">BestGymsMalta location</p>
+          <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#805600]">BestGymsMalta location</p>
           <h1 className="mt-2 text-3xl font-black leading-tight tracking-tight text-zinc-950">{gym.name}</h1>
           <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-slate-600">
             <MapPinned className="mt-1 shrink-0 text-[#ffb400]" size={17} />
@@ -211,14 +211,14 @@ export default function LiveGymDetailPage(props: {
       {tourUrl && (
         <section className="rounded-[1.5rem] border border-orange-200 bg-orange-50 p-5">
           <div className="flex items-center gap-3">
-            <Box size={27} className="shrink-0 text-[#c2410c]" />
+            <Box size={27} className="shrink-0 text-[#805600]" />
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[.16em] text-[#c2410c]">Explore before you visit</p>
+              <p className="text-[10px] font-black uppercase tracking-[.16em] text-[#805600]">Explore before you visit</p>
               <h2 className="mt-1 text-xl font-black text-zinc-950">Step inside in 3D</h2>
             </div>
           </div>
           <p className="mt-3 text-sm leading-6 text-slate-600">Take a look around {gym.name} and explore the space before your next session.</p>
-          <a href={`/gyms/${gym.id}/tour`} className="mt-4 flex items-center justify-center gap-2 rounded-full border border-orange-200 bg-white px-4 py-3 text-sm font-bold text-[#c2410c]">
+          <a href={`/gyms/${gym.id}/tour`} className="mt-4 flex items-center justify-center gap-2 rounded-full border border-orange-200 bg-white px-4 py-3 text-sm font-bold text-[#805600]">
             <Box size={17} /> Start virtual tour
           </a>
         </section>
@@ -227,9 +227,9 @@ export default function LiveGymDetailPage(props: {
       {openingHours ? (
         <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
           <div className="flex items-start gap-3">
-            <Clock className="mt-0.5 shrink-0 text-[#c2410c]" size={23} strokeWidth={3} />
+            <Clock className="mt-0.5 shrink-0 text-[#805600]" size={23} strokeWidth={3} />
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#c2410c]">
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#805600]">
                 Opening Hours
               </p>
               <p className="mt-3 whitespace-pre-line text-sm font-bold leading-6 text-slate-600">
@@ -246,7 +246,7 @@ export default function LiveGymDetailPage(props: {
             href={`tel:${gym.phone}`}
             className="rounded-[1.5rem] border border-zinc-200 bg-white p-4"
           >
-            <Phone className="text-[#c2410c]" size={23} strokeWidth={3} />
+            <Phone className="text-[#805600]" size={23} strokeWidth={3} />
             <p className="mt-3 text-xs font-black uppercase tracking-[.18em] text-slate-500">
               Phone
             </p>
@@ -259,7 +259,7 @@ export default function LiveGymDetailPage(props: {
             href={`mailto:${gym.email}`}
             className="rounded-[1.5rem] border border-zinc-200 bg-white p-4"
           >
-            <Mail className="text-[#c2410c]" size={23} strokeWidth={3} />
+            <Mail className="text-[#805600]" size={23} strokeWidth={3} />
             <p className="mt-3 text-xs font-black uppercase tracking-[.18em] text-slate-500">
               Email
             </p>
@@ -272,7 +272,7 @@ export default function LiveGymDetailPage(props: {
 
       {facilities.length > 0 ? (
         <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#c2410c]">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#805600]">
             Facilities
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -290,7 +290,7 @@ export default function LiveGymDetailPage(props: {
 
       {classes.length > 0 ? (
         <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#c2410c]">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#805600]">
             Classes
           </p>
           <div className="mt-4 grid gap-2">
@@ -308,7 +308,7 @@ export default function LiveGymDetailPage(props: {
 
       {equipment.length > 0 ? (
         <section className="rounded-[2rem] border border-zinc-200 bg-white p-5">
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#c2410c]">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#805600]">
             Featured Equipment
           </p>
           <div className="mt-4 grid grid-cols-2 gap-3">
@@ -317,7 +317,7 @@ export default function LiveGymDetailPage(props: {
                 key={item}
                 className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
               >
-                <Sparkles className="text-[#c2410c]" size={18} strokeWidth={3} />
+                <Sparkles className="text-[#805600]" size={18} strokeWidth={3} />
                 <p className="mt-3 text-sm font-black text-zinc-950">{item}</p>
               </div>
             ))}
@@ -327,7 +327,7 @@ export default function LiveGymDetailPage(props: {
 
       {gym.notes ? (
         <section className="rounded-[2rem] border border-orange-200 bg-orange-50 p-5">
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#c2410c]">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#805600]">
             Notes
           </p>
           <p className="mt-3 text-sm font-bold leading-6 text-slate-600">

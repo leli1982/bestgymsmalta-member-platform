@@ -83,7 +83,7 @@ export default function GymTourPage({ gymId }: { gymId: string }) {
   if (!gym) {
     return (
       <section className="rounded-[2rem] border border-zinc-200 bg-white p-6 text-center">
-        <Box className="mx-auto text-[#c2410c]" size={42} strokeWidth={3} />
+        <Box className="mx-auto text-[#805600]" size={42} strokeWidth={3} />
 
         <h1 className="mt-4 text-3xl font-black text-zinc-950">Tour not found</h1>
 
@@ -106,7 +106,7 @@ export default function GymTourPage({ gymId }: { gymId: string }) {
   if (!tourUrl) {
     return (
       <section className="rounded-[2rem] border border-zinc-200 bg-white p-6 text-center">
-        <Box className="mx-auto text-[#c2410c]" size={42} strokeWidth={3} />
+        <Box className="mx-auto text-[#805600]" size={42} strokeWidth={3} />
 
         <h1 className="mt-4 text-3xl font-black text-zinc-950">
           3D tour coming soon
@@ -138,7 +138,7 @@ export default function GymTourPage({ gymId }: { gymId: string }) {
 
 
       <section className="rounded-[1.75rem] border border-zinc-200 bg-white p-5 shadow-sm">
-        <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#c2410c]">3D virtual tour</p>
+        <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#805600]">3D virtual tour</p>
         <h1 className="mt-2 text-3xl font-black leading-tight tracking-tight text-zinc-950">Explore {gym.name}</h1>
         <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-slate-600">
           <MapPinned className="mt-1 shrink-0 text-[#ffb400]" size={17} />

@@ -51,7 +51,7 @@ export default function AppShell({
                     <span className="block text-[10px] font-semibold text-slate-500">More than gyms.</span>
                   </span>
                 </a>
-                <a href="/card" className="rounded-full border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-bold text-[#c2410c]">My card</a>
+                <a href="/card" className="rounded-full border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-bold text-[#805600]">My card</a>
               </header>
             ) : useTopBar ? (
               <TopBar />

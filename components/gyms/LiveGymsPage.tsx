@@ -263,7 +263,7 @@ export default function LiveGymsPage() {
                     <Navigation size={16} /> Directions
                   </a>
                 </div>
-                {tourUrl && <a href={`/gyms/${gym.id}/tour`} className="mt-3 flex items-center justify-center gap-2 rounded-full bg-orange-50 px-3 py-3 text-xs font-bold text-[#c2410c]">
+                {tourUrl && <a href={`/gyms/${gym.id}/tour`} className="mt-3 flex items-center justify-center gap-2 rounded-full bg-orange-50 px-3 py-3 text-xs font-bold text-[#805600]">
                   <Box size={17} /> Explore in 3D
                 </a>}
               </div>
