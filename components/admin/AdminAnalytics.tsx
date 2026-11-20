@@ -51,7 +51,7 @@ function StatCard({
 }) {
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-      <div className="text-[#fcb415]">{icon}</div>
+      <div className="text-[#ffb400]">{icon}</div>
       <p className="mt-3 text-3xl font-black text-white">{value}</p>
       <p className="mt-1 text-[10px] font-black uppercase tracking-[.18em] text-white/35">
         {label}
@@ -105,7 +105,7 @@ export default function AdminAnalytics() {
       <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
               Admin Analytics
             </p>
             <h2 className="mt-2 text-3xl font-black text-white">
@@ -119,7 +119,7 @@ export default function AdminAnalytics() {
           <button
             type="button"
             onClick={loadAnalytics}
-            className="flex items-center justify-center gap-2 rounded-full bg-[#fcb415] px-5 py-3 text-sm font-black text-black"
+            className="flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-3 text-sm font-black text-black"
           >
             <RefreshCw size={16} strokeWidth={3} />
             Refresh
@@ -179,7 +179,7 @@ export default function AdminAnalytics() {
 
           <div className="grid gap-5 lg:grid-cols-2">
             <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
                 Last 30 days
               </p>
               <h3 className="mt-2 text-2xl font-black text-white">
@@ -207,7 +207,7 @@ export default function AdminAnalytics() {
                         ) : null}
                       </div>
 
-                      <p className="text-2xl font-black text-[#fcb415]">
+                      <p className="text-2xl font-black text-[#ffb400]">
                         {gym.count}
                       </p>
                     </div>
@@ -221,7 +221,7 @@ export default function AdminAnalytics() {
             </section>
 
             <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5">
-              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#fcb415]">
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#ffb400]">
                 Live activity
               </p>
               <h3 className="mt-2 text-2xl font-black text-white">
@@ -245,7 +245,7 @@ export default function AdminAnalytics() {
                           </p>
                         </div>
 
-                        <p className="text-right text-xs font-black text-[#fcb415]">
+                        <p className="text-right text-xs font-black text-[#ffb400]">
                           {formatDate(checkin.checkinAt)}
                         </p>
                       </div>

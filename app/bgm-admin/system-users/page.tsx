@@ -7,7 +7,7 @@ export default function SystemUsersPage() {
     <>
       <a
         href="/bgm-admin/notifications"
-        className="fixed bottom-5 right-5 z-50 rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-white shadow-lg"
+        className="fixed bottom-5 right-5 z-50 rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-zinc-950 shadow-lg"
       >
         Notification Settings
       </a>
