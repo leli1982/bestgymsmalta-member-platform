@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Fingerprint, WifiOff, UserRound } from "lucide-react";
 
 type Mode = "ready" | "in" | "out" | "unknown" | "offline";
-const demo = { name: "Sarah Vella", number: "BGM-0012", gym: "BUILD Fitness", photo: "" };
+const demo = { name: "Sarah Vella", number: "BGM-0012", gym: "BUILD Fitness", photo: "https://i.pravatar.cc/300?img=47" };
 const stamp = "20/11/2026 • 08:32:14";
 
 export default function PunchClockDesignPreview() {
