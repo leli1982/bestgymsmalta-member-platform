@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent, type PointerEvent as ReactPointerEvent } from "react";
-import { DEFAULT_MEMBER_HERO_POSITION, constrainMemberHeroPosition, parseMemberHeroPosition, type MemberHeroPosition } from "@/lib/memberHeroPosition";
+import { DEFAULT_MEMBER_HERO_POSITION, dragMemberHeroPosition, parseMemberHeroPosition, type MemberHeroPosition } from "@/lib/memberHeroPosition";
 import { ArrowLeft, ImageUp, RotateCcw } from "lucide-react";
 
 const DEFAULT_HERO = "/visuals/home-hero-duo.jpg";
@@ -172,13 +172,10 @@ export default function MemberDashboardImagePage() {
   function pointerMove(event: ReactPointerEvent<HTMLDivElement>) {
     const start = drag.current;
     if (!start || event.pointerId !== start.pointerId) return;
-    const x = start.overflowX > 0.5
-      ? constrainMemberHeroPosition(start.initial.x - (event.clientX - start.clientX) * 100 / start.overflowX)
-      : start.initial.x;
-    const y = start.overflowY > 0.5
-      ? constrainMemberHeroPosition(start.initial.y - (event.clientY - start.clientY) * 100 / start.overflowY)
-      : start.initial.y;
-    setPosition({ x, y });
+    setPosition(dragMemberHeroPosition(
+      start.initial, event.clientX - start.clientX, event.clientY - start.clientY,
+      start.overflowX, start.overflowY,
+    ));
   }
 
   function pointerUp(event: ReactPointerEvent<HTMLDivElement>) {
