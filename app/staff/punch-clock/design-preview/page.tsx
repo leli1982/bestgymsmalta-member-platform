@@ -42,12 +42,12 @@ export default function PunchClockDesignPreview() {
             </>
           ) : success ? (
             <>
-              <div className="mb-5 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-primary bg-[#303030]">
-                {demo.photo ? <img src={demo.photo} alt={demo.name} className="h-full w-full object-cover" /> : <UserRound className="h-11 w-11 text-primary" aria-hidden="true" />}
+              <div className="mb-6 flex h-36 w-36 items-center justify-center overflow-hidden rounded-full border-4 border-primary bg-[#303030] shadow-[0_0_35px_rgba(255,180,0,0.18)] sm:h-44 sm:w-44">
+                {demo.photo ? <img src={demo.photo} alt={demo.name} className="h-full w-full object-cover" /> : <UserRound className="h-20 w-20 text-primary" aria-hidden="true" />}
               </div>
               <h2 className="text-3xl font-black">{demo.name}</h2>
               <p className="mt-1 text-sm text-zinc-400">Staff No. {demo.number}</p>
-              <div className="mt-7 flex items-center gap-2 text-emerald-400">
+              <div className="mt-7 flex items-center gap-3 rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-6 py-4 text-emerald-300">
                 <CheckCircle2 className="h-6 w-6" />
                 <span className="text-lg font-bold">{mode === "in" ? "CLOCKED IN" : "CLOCKED OUT"}</span>
               </div>
