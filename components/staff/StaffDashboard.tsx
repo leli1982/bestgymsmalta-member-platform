@@ -63,7 +63,7 @@ function Tile({ label, icon: Icon, href, onClick, badge, disabled = false }: {
     <>
       <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-950 text-white">
         <Icon className="h-7 w-7" strokeWidth={2.2} />
-        {badge && <span className="absolute -right-3 -top-3 rounded-full bg-[#ff5a0a] px-2 py-1 text-[10px] font-black text-white shadow-sm">{badge}</span>}
+        {badge && <span className="absolute -right-3 -top-3 rounded-full bg-[#ffb400] px-2 py-1 text-[10px] font-black text-zinc-950 shadow-sm">{badge}</span>}
       </span>
       <span className="mt-3 text-center text-sm font-black leading-tight text-zinc-950">{label}</span>
     </>
@@ -112,11 +112,11 @@ export default function StaffDashboard({ user, onLogout }: Props) {
         <header className="rounded-3xl border border-zinc-200 bg-white px-5 py-4 shadow-sm sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ff5a0a] text-white"><Dumbbell className="h-7 w-7" /></span>
-              <div className="min-w-0"><p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff5a0a]">BestGymsMalta Staff</p><h1 className="truncate text-xl font-black tracking-tight sm:text-2xl">{user.displayName}</h1><p className="mt-0.5 text-xs font-semibold text-zinc-400"><MaltaClock /></p></div>
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ffb400] text-zinc-950"><Dumbbell className="h-7 w-7" /></span>
+              <div className="min-w-0"><p className="text-xs font-black uppercase tracking-[0.18em] text-[#ffb400]">BestGymsMalta Staff</p><h1 className="truncate text-xl font-black tracking-tight sm:text-2xl">{user.displayName}</h1><p className="mt-0.5 text-xs font-semibold text-zinc-400"><MaltaClock /></p></div>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              {queueCount > 0 && <button type="button" onClick={focusWaiting} className="rounded-full bg-[#ff5a0a] px-3 py-2 text-xs font-black text-white">{queueCount} WAITING</button>}
+              {queueCount > 0 && <button type="button" onClick={focusWaiting} className="rounded-full bg-[#ffb400] px-3 py-2 text-xs font-black text-zinc-950">{queueCount} WAITING</button>}
               <span className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-bold ${realtimeStatus === "connected" ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-600"}`}><span className={`h-2 w-2 rounded-full ${realtimeStatus === "connected" ? "bg-emerald-500" : "bg-zinc-400"}`} />{realtimeLabel}</span>
               <button type="button" onClick={() => void onLogout()} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-bold text-zinc-700 hover:bg-zinc-50"><LogOut className="h-4 w-4" /> Log Out</button>
             </div>

@@ -131,12 +131,12 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
           </p>
         ) : signingIn ? (
           <a href="/member-login?returnTo=card"
-            className="mt-4 flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-3 text-sm font-black text-white">
+            className="mt-4 flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-3 text-sm font-black text-zinc-950">
             <LogIn size={17} /> Sign in
           </a>
         ) : (
           <button type="button" onClick={() => void loadCardCredential()}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-3 text-sm font-black text-white">
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-3 text-sm font-black text-zinc-950">
             <RefreshCw size={17} /> Try again
           </button>
         )}

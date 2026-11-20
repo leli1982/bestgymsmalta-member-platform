@@ -81,12 +81,12 @@ export default function ChangePasswordPage() {
       </a>
 
       <section className="relative overflow-hidden rounded-[2rem] bg-zinc-950 p-6 text-white shadow-xl">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ff5a0a]/25 blur-3xl" />
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ffb400]/25 blur-3xl" />
         <div className="relative">
-          <span className="inline-flex rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[.22em] text-[#ff5a0a]">
+          <span className="inline-flex rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[.22em] text-[#ffb400]">
             Account Security
           </span>
-          <ShieldCheck className="mt-6 text-[#ff5a0a]" size={34} strokeWidth={3} />
+          <ShieldCheck className="mt-6 text-[#ffb400]" size={34} strokeWidth={3} />
           <h1 className="mt-4 text-3xl font-black">Change password</h1>
           <p className="mt-3 max-w-sm text-sm font-bold leading-6 text-white/65">
             Confirm your current password, then choose a new password for your BGM member account.
@@ -170,7 +170,7 @@ export default function ChangePasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-1 flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-100 disabled:opacity-60"
+            className="mt-1 flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950 shadow-lg shadow-orange-100 disabled:opacity-60"
           >
             {loading ? (
               <>
