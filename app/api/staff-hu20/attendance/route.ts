@@ -56,7 +56,41 @@ export async function POST(request: NextRequest) {
     if (!result || !["clocked_in", "clocked_out", "duplicate_ignored"].includes(result.outcome)) {
       throw new Error("Invalid fictional TEST attendance outcome.");
     }
+    // Read-only, best-effort display metadata AFTER the attendance RPC commits.
+    // Never turn a successful punch into a failed response if a profile lookup fails.
+    // Never expose ID card numbers, photo storage paths or personal contact details.
+    let display: { name: string | null; gymName: string | null; recordedAt: string | null } = {
+      name: null, gymName: null, recordedAt: null,
+    };
+    if (result.outcome === "clocked_in" || result.outcome === "clocked_out") {
+      try {
+        const [employee, gymName, event] = await Promise.all([
+          db.from("bgm_staff_employees").select("first_name,surname").eq("id", result.result_employee_id).maybeSingle(),
+          db.from("bgm_gyms").select("name").eq("id", result.result_gym_id).maybeSingle(),
+          db.from("bgm_staff_punch_events")
+            .select("source_timestamp,employee_id,gym_id")
+            .eq("id", result.result_punch_event_id).maybeSingle(),
+        ]);
+        const matchingEvent = !event.error && event.data &&
+          event.data.employee_id === result.result_employee_id &&
+          event.data.gym_id === result.result_gym_id;
+        if (matchingEvent && event.data) {
+          const stamp = event.data.source_timestamp;
+          const parsedStamp = typeof stamp === "string" ? Date.parse(stamp) : NaN;
+          const first = employee.error ? "" : (employee.data?.first_name || "").trim();
+          const last = employee.error ? "" : (employee.data?.surname || "").trim();
+          display = {
+            name: [first, last].filter(Boolean).join(" ").slice(0, 100) || null,
+            gymName: gymName.error ? null : (gymName.data?.name || "").slice(0, 80) || null,
+            recordedAt: Number.isFinite(parsedStamp) ? new Date(parsedStamp).toISOString() : null,
+          };
+        }
+      } catch {
+        // Attendance is already recorded: optional presentation data must not change its outcome.
+      }
+    }
     return NextResponse.json({
+      display,
       ok: true, testOnly: true,
       fictionalTestOnly: !hu20RealStaffPilotEnabled(),
       realStaffPilot: hu20RealStaffPilotEnabled(),
