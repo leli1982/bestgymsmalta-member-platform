@@ -456,8 +456,8 @@ export default function MemberLoginPage() {
       <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
         {mode !== "forgot" && (
           <div className="grid grid-cols-2 gap-1 rounded-full bg-zinc-100 p-1">
-            <button type="button" onClick={() => { setMode("login"); setError(""); }} className={`rounded-full px-5 py-3 text-sm font-black ${mode === "login" ? "bg-[#ffb400] text-white shadow-sm" : "text-zinc-500"}`}>Login</button>
-            <button type="button" onClick={() => { setMode("activate"); setError(""); }} className={`rounded-full px-5 py-3 text-sm font-black ${mode === "activate" ? "bg-[#ffb400] text-white shadow-sm" : "text-zinc-500"}`}>Activate</button>
+            <button type="button" onClick={() => { setMode("login"); setError(""); }} className={`rounded-full px-5 py-3 text-sm font-black ${mode === "login" ? "bg-primary text-zinc-950 shadow-sm" : "text-zinc-500"}`}>Login</button>
+            <button type="button" onClick={() => { setMode("activate"); setError(""); }} className={`rounded-full px-5 py-3 text-sm font-black ${mode === "activate" ? "bg-primary text-zinc-950 shadow-sm" : "text-zinc-500"}`}>Activate</button>
           </div>
         )}
 
