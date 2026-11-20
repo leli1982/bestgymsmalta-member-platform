@@ -3,10 +3,13 @@
 import { useEffect, useState } from "react";
 import { Bell, CreditCard, MapPin } from "lucide-react";
 import { getSavedMember, type AppMember } from "@/lib/memberSession";
+import { DEFAULT_MEMBER_HERO_POSITION, parseMemberHeroPosition } from "@/lib/memberHeroPosition";
 
 export default function VisualHomeHero() {
   const [member, setMember] = useState<AppMember | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [heroImageUrl, setHeroImageUrl] = useState("/visuals/home-hero-duo.jpg");
+  const [heroPosition, setHeroPosition] = useState(DEFAULT_MEMBER_HERO_POSITION);
 
   useEffect(() => {
     function loadMember() {
@@ -51,6 +54,34 @@ export default function VisualHomeHero() {
     };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    async function refreshHero() {
+      try {
+        const response = await fetch("/api/member/home-hero", {
+          cache: "no-store", credentials: "same-origin",
+        });
+        if (!response.ok) return;
+        const result = await response.json();
+        if (mounted) {
+          setHeroImageUrl(
+            typeof result.imageUrl === "string" && result.imageUrl.startsWith("https://")
+              ? result.imageUrl : "/visuals/home-hero-duo.jpg"
+          );
+          setHeroPosition(parseMemberHeroPosition(result.positionX, result.positionY) ?? DEFAULT_MEMBER_HERO_POSITION);
+        }
+      } catch { /* Keep the original BGM picture if the optional image setting is unavailable. */ }
+    }
+    void refreshHero();
+    window.addEventListener("focus", refreshHero);
+    window.addEventListener("pageshow", refreshHero);
+    return () => {
+      mounted = false;
+      window.removeEventListener("focus", refreshHero);
+      window.removeEventListener("pageshow", refreshHero);
+    };
+  }, []);
+
   const welcomeName = member?.fullName?.split(" ")[0] || member?.username || "Member";
 
   return (
@@ -58,7 +89,13 @@ export default function VisualHomeHero() {
       className="relative min-h-[414px] overflow-hidden bg-black bg-cover bg-[38%_center] text-white sm:min-h-[430px] sm:bg-[40%_center]"
       style={{
         backgroundImage:
-          "linear-gradient(90deg, rgba(0,0,0,.82) 0%, rgba(0,0,0,.58) 34%, rgba(0,0,0,.08) 72%, rgba(0,0,0,.04) 100%), linear-gradient(180deg, rgba(0,0,0,.04) 0%, rgba(0,0,0,.02) 58%, rgba(0,0,0,.48) 100%), url('/visuals/home-hero-duo.jpg')",
+          `linear-gradient(90deg, rgba(0,0,0,.82) 0%, rgba(0,0,0,.58) 34%, rgba(0,0,0,.08) 72%, rgba(0,0,0,.04) 100%), linear-gradient(180deg, rgba(0,0,0,.04) 0%, rgba(0,0,0,.02) 58%, rgba(0,0,0,.48) 100%), url(${JSON.stringify(heroImageUrl)})`,
+        // Keep the original responsive 38% / 40% CSS placement until edited.
+        backgroundPosition: heroImageUrl === "/visuals/home-hero-duo.jpg" &&
+          heroPosition.x === DEFAULT_MEMBER_HERO_POSITION.x &&
+          heroPosition.y === DEFAULT_MEMBER_HERO_POSITION.y
+          ? undefined
+          : `center, center, ${heroPosition.x}% ${heroPosition.y}%`,
       }}
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(255,90,10,.15),transparent_35%)]" />

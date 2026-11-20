@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  Activity, ArrowLeft, ArrowUpRight, Beer, Bell, BellRing, Building2, ChartNoAxesCombined, ClipboardList, Dumbbell,
+  Activity, ArrowLeft, ArrowUpRight, Beer, Bell, BellRing, Building2, ChartNoAxesCombined, ClipboardList, Dumbbell, Images,
   FileBarChart2, Fingerprint, KeyRound, Megaphone, RefreshCw, Settings2, ShieldCheck, UserPlus, UsersRound, Barcode, ShoppingBasket, ScrollText,
 } from "lucide-react";
 
@@ -18,6 +18,7 @@ const sections: Section[] = [
   { href: "/staff/admin/audit-trail", label: "Audit Trail", description: "Review who changed what and when, including staff name, user account, member context and before/after values. Export filtered or complete Excel reports.", icon: ScrollText, group: "Management" },
   { href: "/staff/admin/voucher-approvals", label: "Voucher Approvals", description: "Approve or reject protected voucher requests from gym staff.", icon: BellRing, group: "Management" },
   { href: "/staff/admin/announcements", label: "Announcements", description: "Publish member news, images and links; schedule, edit or hide announcements.", icon: Megaphone, group: "Management" },
+  { href: "/staff/admin/member-dashboard-image", label: "Member Dashboard Image", description: "Upload, preview and publish the Members App welcome image without redeploying the app.", icon: Images, group: "Management" },
   { href: "/bgm-admin/notifications", label: "Notifications", description: "Manage order alerts, Super Admin push devices and automatic membership-expiry reminders.", icon: BellRing, group: "Management" },
   { href: "/staff/admin/gyms", label: "Gym locations", description: "Add and edit gyms, opening hours, active status, staff access and tablet registration links.", icon: Building2, group: "Management" },
   { href: "/staff/admin/staff", label: "Staff", description: "Manage staff employment, pay configuration, attendance and payroll. Fingerprint Punch Clock remains inactive until hardware setup is complete.", icon: Fingerprint, group: "Management" },
