@@ -195,10 +195,10 @@ export default function ScanGymQrPage() {
   return (
     <div data-member-surface="qr-light" className="space-y-6 text-zinc-950">
       <section className="relative overflow-hidden rounded-[2rem] bg-zinc-950 p-6 shadow-xl">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ff5a0a]/25 blur-3xl" />
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ffb400]/25 blur-3xl" />
         <div className="relative flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-black uppercase tracking-[.25em] text-[#ff5a0a]">
+            <p className="text-xs font-black uppercase tracking-[.25em] text-[#ffb400]">
               Passport Check-in
             </p>
             <h1 className="mt-3 text-4xl font-black leading-tight text-white">
@@ -208,7 +208,7 @@ export default function ScanGymQrPage() {
               Scan the QR code at the gym to collect your passport stamp.
             </p>
           </div>
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#ff5a0a] text-white">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#ffb400] text-zinc-950">
             <QrCode size={30} strokeWidth={3} />
           </div>
         </div>
@@ -222,7 +222,7 @@ export default function ScanGymQrPage() {
           </p>
           <a
             href="/member-login"
-            className="mt-5 flex items-center justify-center rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white"
+            className="mt-5 flex items-center justify-center rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950"
           >
             Login / Activate
           </a>
@@ -230,11 +230,11 @@ export default function ScanGymQrPage() {
       ) : (
         <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="text-center">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-orange-50 text-[#ff5a0a]">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-orange-50 text-[#ffb400]">
               <Camera size={38} strokeWidth={3} />
             </div>
             <h2 className="mt-5 text-2xl font-black text-zinc-950">Camera scanner</h2>
-            <p className="mt-2 text-xs font-black uppercase tracking-[.18em] text-[#ff5a0a]">
+            <p className="mt-2 text-xs font-black uppercase tracking-[.18em] text-[#ffb400]">
               {member.fullName || member.username} · {member.memberNumber}
             </p>
           </div>
@@ -252,7 +252,7 @@ export default function ScanGymQrPage() {
               playsInline
               className="aspect-[3/4] w-full bg-black object-cover"
             />
-            <div className="pointer-events-none absolute inset-8 rounded-[1.3rem] border-2 border-[#ff5a0a]/80" />
+            <div className="pointer-events-none absolute inset-8 rounded-[1.3rem] border-2 border-[#ffb400]/80" />
           </div>
 
           {scannerMessage ? (
@@ -266,7 +266,7 @@ export default function ScanGymQrPage() {
               <button
                 type="button"
                 onClick={startScanner}
-                className="flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white"
+                className="flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950"
               >
                 <Camera size={17} strokeWidth={3} />
                 Start Scan
@@ -295,12 +295,12 @@ export default function ScanGymQrPage() {
       <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-black uppercase tracking-[.25em] text-[#ff5a0a]">
+            <p className="text-xs font-black uppercase tracking-[.25em] text-[#ffb400]">
               Manual fallback
             </p>
             <h2 className="mt-2 text-2xl font-black text-zinc-950">Select your gym</h2>
           </div>
-          <Dumbbell className="text-[#ff5a0a]" size={28} strokeWidth={3} />
+          <Dumbbell className="text-[#ffb400]" size={28} strokeWidth={3} />
         </div>
 
         <div className="mt-5 flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4">
@@ -315,7 +315,7 @@ export default function ScanGymQrPage() {
 
         {loading ? (
           <div className="mt-5 flex items-center gap-3 text-zinc-500">
-            <RefreshCw size={18} className="animate-spin text-[#ff5a0a]" />
+            <RefreshCw size={18} className="animate-spin text-[#ffb400]" />
             <p className="text-sm font-bold">Loading gyms…</p>
           </div>
         ) : (

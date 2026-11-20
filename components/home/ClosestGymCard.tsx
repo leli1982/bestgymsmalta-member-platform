@@ -152,7 +152,7 @@ export default function ClosestGymCard() {
         data-home-nearest="compact-row"
         className="flex min-h-[104px] items-center justify-center rounded-[1.45rem] border border-zinc-200/80 bg-white shadow-[0_6px_20px_rgba(15,23,42,0.06)]"
       >
-        <RefreshCw size={18} className="animate-spin text-[#ff5a0a]" />
+        <RefreshCw size={18} className="animate-spin text-[#ffb400]" />
         <span className="ml-2 text-xs font-bold text-slate-500">Loading nearest gym…</span>
       </section>
     );
@@ -170,7 +170,7 @@ export default function ClosestGymCard() {
           disabled={findingLocation}
           className="flex w-full items-center gap-3 text-left disabled:opacity-50"
         >
-          <span className="flex h-[72px] w-[92px] shrink-0 items-center justify-center rounded-[1rem] bg-zinc-950 text-[#ff5a0a]">
+          <span className="flex h-[72px] w-[92px] shrink-0 items-center justify-center rounded-[1rem] bg-zinc-950 text-[#ffb400]">
             {findingLocation ? <RefreshCw size={24} className="animate-spin" /> : <LocateFixed size={25} strokeWidth={3} />}
           </span>
           <span className="min-w-0 flex-1">

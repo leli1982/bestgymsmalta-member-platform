@@ -93,7 +93,7 @@ export default function GymTourPage({ gymId }: { gymId: string }) {
 
         <a
           href="/gyms"
-          className="mt-5 flex items-center justify-center rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white"
+          className="mt-5 flex items-center justify-center rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950"
         >
           Back to Gyms
         </a>
@@ -118,7 +118,7 @@ export default function GymTourPage({ gymId }: { gymId: string }) {
 
         <a
           href={`/gyms/${gym.id}`}
-          className="mt-5 flex items-center justify-center rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white"
+          className="mt-5 flex items-center justify-center rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950"
         >
           Back to Gym
         </a>
@@ -141,7 +141,7 @@ export default function GymTourPage({ gymId }: { gymId: string }) {
         <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#c2410c]">3D virtual tour</p>
         <h1 className="mt-2 text-3xl font-black leading-tight tracking-tight text-zinc-950">Explore {gym.name}</h1>
         <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-slate-600">
-          <MapPinned className="mt-1 shrink-0 text-[#ff5a0a]" size={17} />
+          <MapPinned className="mt-1 shrink-0 text-[#ffb400]" size={17} />
           {gym.address || gym.city || "BestGymsMalta location"}
         </p>
       </section>
@@ -163,7 +163,7 @@ export default function GymTourPage({ gymId }: { gymId: string }) {
           href={getMapsUrl(gym)}
           target="_blank"
           rel="noreferrer"
-          className="flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white"
+          className="flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950"
         >
           <Navigation size={17} strokeWidth={3} />
           Directions
