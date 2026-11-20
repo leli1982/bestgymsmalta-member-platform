@@ -9,7 +9,7 @@
   --card: #121212;
   --card-2: #1a1a1a;
 
-  --primary: #ffb400;
+  --primary: var(--bgm-primary);
   --primary-light: #ffd264;
   --primary-glow: rgba(255,180,0, 0.45);
 
@@ -109,7 +109,7 @@ body {
   justify-content: center;
   border-radius: 18px;
   background: rgba(255,180,0,0.10);
-  color: #ffb400;
+  color: var(--bgm-primary);
   border: 1px solid rgba(255,180,0,0.22);
   box-shadow: 0 0 24px rgba(255,180,0,0.18);
 }
@@ -126,11 +126,12 @@ body {
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.28em;
-  color: #ffb400;
+  color: var(--bgm-primary);
 }
 /* BGM premium gold polish */
 :root {
   --bgm-gold: #ffb400;
+  --bgm-primary: var(--bgm-gold);
   --bgm-gold-rgb: 255, 180, 0;
 }
 
@@ -257,7 +258,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid #ffb400;
+  outline: 2px solid var(--bgm-primary);
   outline-offset: 3px;
 }
 
