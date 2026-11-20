@@ -3,7 +3,7 @@ import { Camera, CreditCard, MapPinned } from "lucide-react";
 export default function HomeHero() {
   return (
     <section className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#ffb400]/20 via-white/[0.04] to-black p-6">
-      <div className="inline-flex rounded-full border border-[#ffb400]/30 bg-[#ffb400]/10 px-4 py-2">
+      <div className="inline-flex rounded-full border border-primary/30 bg-primary/10 px-4 py-2">
         <p className="text-xs font-black uppercase tracking-[.2em] text-primary">
           Active Member
         </p>
