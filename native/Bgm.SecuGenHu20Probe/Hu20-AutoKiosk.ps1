@@ -517,7 +517,7 @@ try {
         "clocked_out" { Show-Hu20KioskStatus -State "clock_out" -Person $matchedName }
         default { Show-Hu20KioskStatus -State "cooldown" }
       }
-      Wait-Hu20KioskUi -Milliseconds 3000
+      Wait-Hu20KioskUi -Milliseconds $(if ([string]$testPunch.outcome -in @("clocked_in","clocked_out")) { 5000 } else { 3000 })
     }
     } # End attendance branch; RecognitionDiagnostic cannot reach punch API.
 
