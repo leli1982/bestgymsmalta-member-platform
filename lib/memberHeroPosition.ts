@@ -18,3 +18,21 @@ export function parseMemberHeroPosition(x: unknown, y: unknown): MemberHeroPosit
 export function constrainMemberHeroPosition(value: number): number {
   return Math.round(Math.min(100, Math.max(0, value)) * 100) / 100;
 }
+
+/** Convert a physical drag into CSS background-position percentages under background-size:cover. */
+export function dragMemberHeroPosition(
+  original: MemberHeroPosition,
+  deltaX: number,
+  deltaY: number,
+  overflowX: number,
+  overflowY: number,
+): MemberHeroPosition {
+  return {
+    x: overflowX > 0.5
+      ? constrainMemberHeroPosition(original.x - deltaX * 100 / overflowX)
+      : original.x,
+    y: overflowY > 0.5
+      ? constrainMemberHeroPosition(original.y - deltaY * 100 / overflowY)
+      : original.y,
+  };
+}
