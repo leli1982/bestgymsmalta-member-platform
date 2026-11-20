@@ -68,7 +68,7 @@ function Bars({
                   <span className="shrink-0 tabular-nums text-zinc-950">{formatter ? formatter(value) : int.format(value)}{suffix}</span>
                 </div>
                 <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-zinc-100">
-                  <div className="h-full rounded-full bg-[#ff5a0a]" style={{ width: `${Math.max(value > 0 ? 3 : 0, value / max * 100)}%` }} />
+                  <div className="h-full rounded-full bg-[#ffb400]" style={{ width: `${Math.max(value > 0 ? 3 : 0, value / max * 100)}%` }} />
                 </div>
               </div>
             );

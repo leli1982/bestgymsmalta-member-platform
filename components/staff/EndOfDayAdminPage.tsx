@@ -135,7 +135,7 @@ export default function EndOfDayAdminPage() {
         <header className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-7">
           <a href="/staff/admin" className="inline-flex items-center gap-2 text-sm font-black text-orange-700"><ArrowLeft className="h-4 w-4" /> Super Admin</a>
           <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
-            <div><p className="text-xs font-black uppercase tracking-widest text-[#ff5a0a]">BestGymsMalta · Operations</p><h1 className="text-3xl font-black">End of Day</h1><p className="mt-1 text-sm text-zinc-600">Individual shift submissions with combined daily totals.</p></div>
+            <div><p className="text-xs font-black uppercase tracking-widest text-[#ffb400]">BestGymsMalta · Operations</p><h1 className="text-3xl font-black">End of Day</h1><p className="mt-1 text-sm text-zinc-600">Individual shift submissions with combined daily totals.</p></div>
             <button type="button" onClick={() => void loadReports(gymId, businessDate)} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-3 text-sm font-black"><RefreshCcw className="h-4 w-4" /> Refresh</button>
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
