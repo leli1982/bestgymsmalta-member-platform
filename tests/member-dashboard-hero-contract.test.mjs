@@ -59,7 +59,7 @@ test("only Super Admin can manage the dashboard image", () => {
   assert.match(page, /Publish image & position/);
   assert.match(page, /Save image position/);
   assert.match(page, /Restore original image/);
-  assert.match(page, /Preview — not yet published/);
+  assert.match(page, /Preview — unpublished framing/);
 });
 
 
