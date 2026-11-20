@@ -150,7 +150,8 @@ function Show-Hu20KioskStatus {
     [System.Drawing.Color]::FromArgb(9,9,9)
   }
   $script:Hu20StateLabel.Text = $main
-  $script:Hu20StateLabel.ForeColor = $colour\n  $script:Hu20StateLabel.Font = [System.Drawing.Font]::new("Segoe UI", $(if ($State -in @("clock_in","clock_out")) { 86 } else { 72 }), [System.Drawing.FontStyle]::Bold)
+  $script:Hu20StateLabel.ForeColor = $colour
+  $script:Hu20StateLabel.Font = [System.Drawing.Font]::new("Segoe UI", $(if ($State -in @("clock_in","clock_out")) { 86 } else { 72 }), [System.Drawing.FontStyle]::Bold)
   $script:Hu20PersonLabel.Text = $detail
   $script:Hu20PersonLabel.ForeColor = $white
   $script:Hu20Display.Refresh()
