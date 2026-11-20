@@ -270,7 +270,7 @@ function GraphModal({
       <div className="mx-auto flex max-h-[calc(100dvh-1rem)] w-full max-w-md flex-col overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-2xl sm:max-h-[92vh]">
         <div className="shrink-0 flex items-start justify-between gap-4 border-b border-zinc-200 p-5">
           <div>
-            <p className="text-xs font-black uppercase tracking-[.25em] text-[#ff5a0a]">
+            <p className="text-xs font-black uppercase tracking-[.25em] text-[#ffb400]">
               Progress Graph
             </p>
             <h2 className="mt-2 text-2xl font-black text-zinc-950">{exercise}</h2>
@@ -306,7 +306,7 @@ function GraphModal({
                   onClick={() => onExerciseChange(tab)}
                   className={
                     tab === exercise
-                      ? "shrink-0 rounded-full bg-[#ff5a0a] px-4 py-3 text-xs font-black text-black"
+                      ? "shrink-0 rounded-full bg-[#ffb400] px-4 py-3 text-xs font-black text-black"
                       : "shrink-0 rounded-full border border-zinc-200 bg-white px-4 py-3 text-xs font-black text-zinc-600"
                   }
                 >
@@ -342,8 +342,8 @@ function GraphModal({
           ) : null}
 
           {history.length < 2 ? (
-            <div className="rounded-[1.5rem] border border-[#ff5a0a]/20 bg-[#ff5a0a]/10 p-5 text-center">
-              <LineChart className="mx-auto text-[#ff5a0a]" size={34} />
+            <div className="rounded-[1.5rem] border border-[#ffb400]/20 bg-[#ffb400]/10 p-5 text-center">
+              <LineChart className="mx-auto text-[#ffb400]" size={34} />
               <h3 className="mt-3 text-xl font-black text-zinc-950">
                 Add another {exercise} entry
               </h3>
@@ -375,7 +375,7 @@ function GraphModal({
                   <polyline
                     points={polyline}
                     fill="none"
-                    stroke="#ff5a0a"
+                    stroke="#ffb400"
                     strokeWidth="3"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -387,7 +387,7 @@ function GraphModal({
                         cx={point.x}
                         cy={point.y}
                         r="3.2"
-                        fill="#ff5a0a"
+                        fill="#ffb400"
                         stroke="black"
                         strokeWidth="1.5"
                       />
@@ -663,7 +663,7 @@ export default function StrengthTracker() {
       <section data-member-surface="strength-light" className="space-y-5 rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-black uppercase tracking-[.25em] text-[#ff5a0a]">
+            <p className="text-xs font-black uppercase tracking-[.25em] text-[#ffb400]">
               Strength Tracker
             </p>
             <h2 className="mt-2 text-3xl font-black text-zinc-950">
@@ -674,7 +674,7 @@ export default function StrengthTracker() {
             </p>
           </div>
 
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#ff5a0a] text-black">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#ffb400] text-black">
             <Dumbbell size={30} strokeWidth={3} />
           </div>
         </div>
@@ -811,7 +811,7 @@ export default function StrengthTracker() {
             type="button"
             onClick={saveRows}
             disabled={saving}
-            className="flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-black disabled:opacity-60"
+            className="flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-black disabled:opacity-60"
           >
             {saving ? (
               <RefreshCw size={17} className="animate-spin" strokeWidth={3} />
@@ -825,7 +825,7 @@ export default function StrengthTracker() {
         <div className="rounded-[1.7rem] border border-zinc-200 bg-zinc-50 p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-black uppercase tracking-[.22em] text-[#ff5a0a]">
+              <p className="text-xs font-black uppercase tracking-[.22em] text-[#ffb400]">
                 Exercise Progress
               </p>
               <h3 className="mt-1 text-xl font-black text-zinc-950">
@@ -836,7 +836,7 @@ export default function StrengthTracker() {
               </p>
             </div>
 
-            <Activity className="text-[#ff5a0a]" size={26} strokeWidth={3} />
+            <Activity className="text-[#ffb400]" size={26} strokeWidth={3} />
           </div>
 
           {loggedExerciseTabs.length > 0 ? (
@@ -849,7 +849,7 @@ export default function StrengthTracker() {
                     onClick={() => setSelectedExercise(exercise)}
                     className={
                       activeExercise === exercise
-                        ? "shrink-0 rounded-full bg-[#ff5a0a] px-4 py-3 text-xs font-black text-black"
+                        ? "shrink-0 rounded-full bg-[#ffb400] px-4 py-3 text-xs font-black text-black"
                         : "shrink-0 rounded-full border border-zinc-200 bg-white px-4 py-3 text-xs font-black text-zinc-600"
                     }
                   >
@@ -882,7 +882,7 @@ export default function StrengthTracker() {
               <button
                 type="button"
                 onClick={() => setShowGraph(true)}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-black"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-black"
               >
                 <BarChart3 size={18} strokeWidth={3} />
                 View Progress Graphs
@@ -924,7 +924,7 @@ export default function StrengthTracker() {
                 key={entry.id}
                 className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-4"
               >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ff5a0a]/10 text-[#ff5a0a]">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ffb400]/10 text-[#ffb400]">
                   <Dumbbell size={22} strokeWidth={3} />
                 </div>
 
@@ -1013,7 +1013,7 @@ function NumberField({
 function LockMessage() {
   return (
     <>
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#ff5a0a]/10 text-[#ff5a0a]">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#ffb400]/10 text-[#ffb400]">
         <Dumbbell size={30} strokeWidth={3} />
       </div>
       <h2 className="mt-4 text-2xl font-black text-zinc-950">Strength Tracker</h2>
@@ -1022,7 +1022,7 @@ function LockMessage() {
       </p>
       <a
         href="/member-login"
-        className="mt-5 flex items-center justify-center rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-black"
+        className="mt-5 flex items-center justify-center rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-black"
       >
         Login / Activate
       </a>

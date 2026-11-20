@@ -75,7 +75,7 @@ const focusAreas = [
 ];
 
 const fieldClass =
-  "rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-950 outline-none transition focus:border-[#ff5a0a] focus:ring-2 focus:ring-[#ff5a0a]/10";
+  "rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-950 outline-none transition focus:border-[#ffb400] focus:ring-2 focus:ring-[#ffb400]/10";
 const fieldLabelClass =
   "text-xs font-black uppercase tracking-[.18em] text-zinc-500";
 
@@ -308,7 +308,7 @@ export default function AiTrainer() {
           className="relative min-h-[330px] overflow-hidden rounded-[2rem] border border-zinc-200 bg-cover bg-center p-6 shadow-lg"
           style={{
             backgroundImage:
-              "linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.86)), linear-gradient(135deg, rgba(255,90,10,.26), rgba(0,0,0,.82)), url('/visuals/trainer.jpg')",
+              "linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.86)), linear-gradient(135deg, rgba(255,180,0,.26), rgba(0,0,0,.82)), url('/visuals/trainer.jpg')",
           }}
         >
           <div className="relative flex min-h-[282px] flex-col justify-between">
@@ -336,7 +336,7 @@ export default function AiTrainer() {
               </p>
               <a
                 href="/member-login"
-                className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-950/20"
+                className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950 shadow-lg shadow-orange-950/20"
               >
                 Login / Activate
                 <ChevronRight size={17} strokeWidth={3} />
@@ -354,11 +354,11 @@ export default function AiTrainer() {
         className="relative min-h-[340px] overflow-hidden rounded-[2rem] border border-zinc-200 bg-cover bg-center p-5 shadow-lg"
         style={{
           backgroundImage:
-            "linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.84)), linear-gradient(135deg, rgba(255,90,10,.26), rgba(0,0,0,.82)), url('/visuals/trainer.jpg')",
+            "linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.84)), linear-gradient(135deg, rgba(255,180,0,.26), rgba(0,0,0,.82)), url('/visuals/trainer.jpg')",
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/20 to-black/90" />
-        <div className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-[#ff5a0a]/25 blur-3xl" />
+        <div className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-[#ffb400]/25 blur-3xl" />
 
         <div className="relative flex min-h-[298px] flex-col justify-between">
           <div className="flex items-center justify-between">
@@ -406,11 +406,11 @@ export default function AiTrainer() {
 
       <section className="rounded-[1.8rem] border border-orange-200 bg-orange-50 p-5">
         <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[#ff5a0a] shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[#ffb400] shadow-sm">
             <ShieldCheck size={24} strokeWidth={3} />
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.24em] text-[#ff5a0a]">
+            <p className="text-[10px] font-black uppercase tracking-[.24em] text-[#ffb400]">
               Smart Guidance
             </p>
             <h2 className="mt-1 text-2xl font-black text-zinc-950">Train with structure</h2>
@@ -427,11 +427,11 @@ export default function AiTrainer() {
         className="rounded-[1.8rem] border border-zinc-200 bg-white p-5 shadow-sm"
       >
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#ff5a0a]/10 text-[#ff5a0a]">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#ffb400]/10 text-[#ffb400]">
             <Bot size={24} strokeWidth={3} />
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.24em] text-[#ff5a0a]">Plan Builder</p>
+            <p className="text-[10px] font-black uppercase tracking-[.24em] text-[#ffb400]">Plan Builder</p>
             <h2 className="mt-1 text-2xl font-black text-zinc-950">Create your plan</h2>
           </div>
         </div>
@@ -507,7 +507,7 @@ export default function AiTrainer() {
         <button
           type="submit"
           disabled={generating}
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#ff5a0a] px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-200 disabled:opacity-60"
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#ffb400] px-5 py-4 text-sm font-black text-zinc-950 shadow-lg shadow-orange-200 disabled:opacity-60"
         >
           {generating ? (
             <>
@@ -526,20 +526,20 @@ export default function AiTrainer() {
       <section className="rounded-[1.8rem] border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#ff5a0a]/10 text-[#ff5a0a]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#ffb400]/10 text-[#ffb400]">
               <Dumbbell size={24} strokeWidth={3} />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[.24em] text-[#ff5a0a]">Current Plan</p>
+              <p className="text-[10px] font-black uppercase tracking-[.24em] text-[#ffb400]">Current Plan</p>
               <h2 className="mt-1 text-2xl font-black text-zinc-950">Your training week</h2>
             </div>
           </div>
-          {loadingPlan ? <RefreshCw className="animate-spin text-[#ff5a0a]" size={22} /> : null}
+          {loadingPlan ? <RefreshCw className="animate-spin text-[#ffb400]" size={22} /> : null}
         </div>
 
         {!plan && !loadingPlan ? (
           <div className="mt-5 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-6 text-center">
-            <Sparkles className="mx-auto text-[#ff5a0a]" size={38} strokeWidth={3} />
+            <Sparkles className="mx-auto text-[#ffb400]" size={38} strokeWidth={3} />
             <h3 className="mt-4 text-2xl font-black text-zinc-950">No plan yet</h3>
             <p className="mt-2 text-sm font-semibold leading-6 text-zinc-500">
               Build your first AI training plan and save it to your member profile.
@@ -551,11 +551,11 @@ export default function AiTrainer() {
           <div className="mt-5 space-y-4">
             <div className="rounded-[1.5rem] border border-orange-200 bg-orange-50 p-5">
               <div className="flex items-start gap-3">
-                <Trophy className="mt-0.5 shrink-0 text-[#ff5a0a]" size={25} strokeWidth={3} />
+                <Trophy className="mt-0.5 shrink-0 text-[#ffb400]" size={25} strokeWidth={3} />
                 <div>
                   <h3 className="text-xl font-black text-zinc-950">{plan.title || "Your AI Training Plan"}</h3>
                   {planDate ? (
-                    <p className="mt-1 text-xs font-black uppercase tracking-[.16em] text-[#ff5a0a]">Created {planDate}</p>
+                    <p className="mt-1 text-xs font-black uppercase tracking-[.16em] text-[#ffb400]">Created {planDate}</p>
                   ) : null}
                   {plan.summary || plan.overview ? (
                     <p className="mt-3 text-sm font-semibold leading-6 text-zinc-600">{plan.summary || plan.overview}</p>
@@ -569,13 +569,13 @@ export default function AiTrainer() {
                 {plan.days.map((day, index) => (
                   <article key={`${day.title || day.day || "day"}-${index}`} className="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-5">
                     <div className="flex items-start gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#ff5a0a] text-white">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#ffb400] text-zinc-950">
                         <Flame size={22} strokeWidth={3} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-[10px] font-black uppercase tracking-[.18em] text-zinc-400">Day {index + 1}</p>
                         <h3 className="mt-1 text-xl font-black text-zinc-950">{day.title || day.day || `Training Day ${index + 1}`}</h3>
-                        {day.focus ? <p className="mt-1 text-sm font-black text-[#ff5a0a]">{day.focus}</p> : null}
+                        {day.focus ? <p className="mt-1 text-sm font-black text-[#ffb400]">{day.focus}</p> : null}
                       </div>
                     </div>
 
@@ -598,13 +598,13 @@ export default function AiTrainer() {
 
       <section className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <Activity className="text-[#ff5a0a]" size={23} strokeWidth={3} />
+          <Activity className="text-[#ffb400]" size={23} strokeWidth={3} />
           <h3 className="mt-3 text-lg font-black text-zinc-950">Track progress</h3>
           <p className="mt-1 text-xs font-semibold leading-5 text-zinc-500">Use your Progress Vault to keep visual updates alongside your plan.</p>
         </div>
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <UserCheck className="text-[#ff5a0a]" size={23} strokeWidth={3} />
+          <UserCheck className="text-[#ffb400]" size={23} strokeWidth={3} />
           <h3 className="mt-3 text-lg font-black text-zinc-950">Ask a coach</h3>
           <p className="mt-1 text-xs font-semibold leading-5 text-zinc-500">Need help with form? Ask a BGM team member in the gym.</p>
         </div>
@@ -614,7 +614,7 @@ export default function AiTrainer() {
             <h3 className="text-lg font-black text-zinc-950">Progress Vault</h3>
             <p className="mt-1 text-xs font-semibold text-zinc-500">Save photos</p>
           </div>
-          <ChevronRight className="text-[#ff5a0a]" size={22} strokeWidth={3} />
+          <ChevronRight className="text-[#ffb400]" size={22} strokeWidth={3} />
         </a>
 
         <a href="/story" className="flex items-center justify-between rounded-2xl border border-orange-200 bg-orange-50 p-4">
@@ -622,15 +622,15 @@ export default function AiTrainer() {
             <h3 className="text-lg font-black text-zinc-950">Share Story</h3>
             <p className="mt-1 text-xs font-semibold text-zinc-500">Create post</p>
           </div>
-          <ChevronRight className="text-[#ff5a0a]" size={22} strokeWidth={3} />
+          <ChevronRight className="text-[#ffb400]" size={22} strokeWidth={3} />
         </a>
       </section>
 
       <section className="rounded-[1.8rem] border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex items-start gap-3">
-          <CheckCircle2 className="mt-0.5 shrink-0 text-[#ff5a0a]" size={25} strokeWidth={3} />
+          <CheckCircle2 className="mt-0.5 shrink-0 text-[#ffb400]" size={25} strokeWidth={3} />
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.24em] text-[#ff5a0a]">Trainer Tip</p>
+            <p className="text-[10px] font-black uppercase tracking-[.24em] text-[#ffb400]">Trainer Tip</p>
             <h2 className="mt-1 text-2xl font-black text-zinc-950">Consistency beats perfection</h2>
             <p className="mt-2 text-sm font-semibold leading-6 text-zinc-600">
               A realistic plan that you follow is better than a perfect plan you quit after one week. Start simple and build momentum.
