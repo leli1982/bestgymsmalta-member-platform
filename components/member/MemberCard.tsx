@@ -166,8 +166,8 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
           className="relative min-h-[160px]"
         >
           <section
-            className="absolute inset-0 overflow-hidden rounded-[1.55rem] border p-4 text-white shadow-[0_16px_36px_rgba(0,0,0,0.24)] transition-opacity duration-200 motion-reduce:transition-none"
-            style={{ opacity: flipped ? 0 : 1, borderColor: theme.border, backgroundColor: theme.background }}
+            className="absolute inset-0 overflow-hidden rounded-[1.55rem] border p-4 text-white shadow-[0_16px_36px_rgba(0,0,0,0.24)] transition-[opacity,transform] duration-300 ease-in-out motion-reduce:transition-none"
+            style={{ opacity: flipped ? 0 : 1, transform: flipped ? "scaleX(0)" : "scaleX(1)", transitionDelay: flipped ? "0ms" : "300ms", borderColor: theme.border, backgroundColor: theme.background }}
             aria-hidden={flipped}
           >
             <PremiumArtwork themeColor={theme.background} compact />
@@ -202,8 +202,8 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
           </section>
 
           <section
-            className="absolute inset-0 overflow-hidden rounded-[1.55rem] border p-4 text-white shadow-[0_16px_36px_rgba(0,0,0,0.24)] transition-opacity duration-200 motion-reduce:transition-none"
-            style={{ opacity: flipped ? 1 : 0, borderColor: theme.border, backgroundColor: theme.background }}
+            className="absolute inset-0 overflow-hidden rounded-[1.55rem] border p-4 text-white shadow-[0_16px_36px_rgba(0,0,0,0.24)] transition-[opacity,transform] duration-300 ease-in-out motion-reduce:transition-none"
+            style={{ opacity: flipped ? 1 : 0, transform: flipped ? "scaleX(1)" : "scaleX(0)", transitionDelay: flipped ? "300ms" : "0ms", borderColor: theme.border, backgroundColor: theme.background }}
             aria-hidden={!flipped}
           >
             <PremiumArtwork themeColor={theme.background} compact />
@@ -231,8 +231,8 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
         aria-label={flipped ? "Show membership barcode" : "Show membership details"}>
         <div className="grid">
           <section
-            className="relative col-start-1 row-start-1 flex min-h-[500px] flex-col justify-between overflow-hidden rounded-[2rem] border p-6 text-white shadow-[0_22px_55px_rgba(0,0,0,0.30)] transition-opacity duration-200 motion-reduce:transition-none"
-            style={{ opacity: flipped ? 0 : 1, borderColor: theme.border, backgroundColor: theme.background }} aria-hidden={flipped}>
+            className="relative col-start-1 row-start-1 flex min-h-[500px] flex-col justify-between overflow-hidden rounded-[2rem] border p-6 text-white shadow-[0_22px_55px_rgba(0,0,0,0.30)] transition-[opacity,transform] duration-300 ease-in-out motion-reduce:transition-none"
+            style={{ opacity: flipped ? 0 : 1, transform: flipped ? "scaleX(0)" : "scaleX(1)", transitionDelay: flipped ? "0ms" : "300ms", borderColor: theme.border, backgroundColor: theme.background }} aria-hidden={flipped}>
             <PremiumArtwork themeColor={theme.background} />
             <div className="relative z-10">
               <div className="flex items-start justify-between gap-4">
@@ -279,8 +279,8 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
           </section>
 
           <section
-            className="relative col-start-1 row-start-1 flex min-h-[500px] flex-col justify-between overflow-hidden rounded-[2rem] border p-6 text-white shadow-[0_22px_55px_rgba(0,0,0,0.30)] transition-opacity duration-200 motion-reduce:transition-none"
-            style={{ opacity: flipped ? 1 : 0, borderColor: theme.border, backgroundColor: theme.background }} aria-hidden={!flipped}>
+            className="relative col-start-1 row-start-1 flex min-h-[500px] flex-col justify-between overflow-hidden rounded-[2rem] border p-6 text-white shadow-[0_22px_55px_rgba(0,0,0,0.30)] transition-[opacity,transform] duration-300 ease-in-out motion-reduce:transition-none"
+            style={{ opacity: flipped ? 1 : 0, transform: flipped ? "scaleX(1)" : "scaleX(0)", transitionDelay: flipped ? "300ms" : "0ms", borderColor: theme.border, backgroundColor: theme.background }} aria-hidden={!flipped}>
             <PremiumArtwork themeColor={theme.background} />
             <div className="relative z-10">
               <div className="flex items-center justify-between gap-4">
