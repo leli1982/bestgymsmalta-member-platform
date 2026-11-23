@@ -172,11 +172,11 @@ export default function LegacyPhotoImportPage() {
       else baseNames.set(basename, f);
     }
     pathsDuplicated.forEach((key) => map.delete(key));
-    for (const [basename, file] of baseNames) {
+    baseNames.forEach((file, basename) => {
       if (!baseNamesDuplicated.has(basename) && !map.has(basename) && !pathsDuplicated.has(basename)) {
         map.set(basename, file);
       }
-    }
+    });
     return map;
   }, [folderFiles]);
   const eligible = useMemo(() => (rawReport?.ready || [])
