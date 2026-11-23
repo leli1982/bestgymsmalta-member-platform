@@ -20,7 +20,7 @@ type LiveMember = {
 };
 
 function normalizedIdentity(value: string | null | undefined) {
-  return String(value || "").trim().replace(/\\s+/g, " ").toLowerCase();
+  return String(value || "").trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 function hasLiveIdentityConflict(members: LiveMember[]) {
