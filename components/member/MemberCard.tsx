@@ -160,19 +160,15 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
         data-home-membership="compact-strip"
         onClick={() => setFlipped((value) => !value)}
         className="block w-full text-left"
-        style={{ perspective: "1200px" }}
-        aria-label="Flip membership card"
+        aria-label={flipped ? "Show membership barcode" : "Show membership details"}
       >
         <div
-          className="relative min-h-[160px] transition-transform duration-700"
-          style={{
-            transformStyle: "preserve-3d",
-            transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
-          }}
+          className="relative min-h-[160px]"
         >
           <section
-            className="absolute inset-0 overflow-hidden rounded-[1.55rem] border p-4 text-white shadow-[0_16px_36px_rgba(0,0,0,0.24)]"
-            style={{ backfaceVisibility: "hidden", borderColor: theme.border, backgroundColor: theme.background }}
+            className="absolute inset-0 overflow-hidden rounded-[1.55rem] border p-4 text-white shadow-[0_16px_36px_rgba(0,0,0,0.24)] transition-opacity duration-200 motion-reduce:transition-none"
+            style={{ opacity: flipped ? 0 : 1, borderColor: theme.border, backgroundColor: theme.background }}
+            aria-hidden={flipped}
           >
             <PremiumArtwork themeColor={theme.background} compact />
             <div className="relative z-10 grid h-full grid-cols-[minmax(0,1fr)_minmax(112px,.9fr)] gap-4">
@@ -206,8 +202,9 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
           </section>
 
           <section
-            className="absolute inset-0 overflow-hidden rounded-[1.55rem] border p-4 text-white shadow-[0_16px_36px_rgba(0,0,0,0.24)]"
-            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", borderColor: theme.border, backgroundColor: theme.background }}
+            className="absolute inset-0 overflow-hidden rounded-[1.55rem] border p-4 text-white shadow-[0_16px_36px_rgba(0,0,0,0.24)] transition-opacity duration-200 motion-reduce:transition-none"
+            style={{ opacity: flipped ? 1 : 0, borderColor: theme.border, backgroundColor: theme.background }}
+            aria-hidden={!flipped}
           >
             <PremiumArtwork themeColor={theme.background} compact />
             <div className="relative z-10 flex h-full items-center justify-between gap-4">
@@ -230,13 +227,12 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
   return (
     <>
       <button type="button" onClick={() => setFlipped((value) => !value)}
-        className="block w-full text-left" style={{ perspective: "1200px" }}
+        className="block w-full text-left"
         aria-label={flipped ? "Show membership barcode" : "Show membership details"}>
-        <div className="grid transition-transform duration-700 motion-reduce:transition-none"
-          style={{ transformStyle: "preserve-3d", transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)" }}>
+        <div className="grid">
           <section
-            className="relative col-start-1 row-start-1 flex min-h-[500px] flex-col justify-between overflow-hidden rounded-[2rem] border p-6 text-white shadow-[0_22px_55px_rgba(0,0,0,0.30)]"
-            style={{ backfaceVisibility: "hidden", borderColor: theme.border, backgroundColor: theme.background }} aria-hidden={flipped}>
+            className="relative col-start-1 row-start-1 flex min-h-[500px] flex-col justify-between overflow-hidden rounded-[2rem] border p-6 text-white shadow-[0_22px_55px_rgba(0,0,0,0.30)] transition-opacity duration-200 motion-reduce:transition-none"
+            style={{ opacity: flipped ? 0 : 1, borderColor: theme.border, backgroundColor: theme.background }} aria-hidden={flipped}>
             <PremiumArtwork themeColor={theme.background} />
             <div className="relative z-10">
               <div className="flex items-start justify-between gap-4">
@@ -283,8 +279,8 @@ export default function MemberCard({ variant = "full" }: MemberCardProps) {
           </section>
 
           <section
-            className="relative col-start-1 row-start-1 flex min-h-[500px] flex-col justify-between overflow-hidden rounded-[2rem] border p-6 text-white shadow-[0_22px_55px_rgba(0,0,0,0.30)]"
-            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", borderColor: theme.border, backgroundColor: theme.background }} aria-hidden={!flipped}>
+            className="relative col-start-1 row-start-1 flex min-h-[500px] flex-col justify-between overflow-hidden rounded-[2rem] border p-6 text-white shadow-[0_22px_55px_rgba(0,0,0,0.30)] transition-opacity duration-200 motion-reduce:transition-none"
+            style={{ opacity: flipped ? 1 : 0, borderColor: theme.border, backgroundColor: theme.background }} aria-hidden={!flipped}>
             <PremiumArtwork themeColor={theme.background} />
             <div className="relative z-10">
               <div className="flex items-center justify-between gap-4">
