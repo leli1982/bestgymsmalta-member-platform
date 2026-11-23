@@ -22,7 +22,8 @@ test("minor staff renewal displays currently published guardian wording and unde
 
 test("server uses permanent existing-member DOB and stores new immutable guardian snapshot", () => {
   assert.match(submit, /corresponding\.date_of_birth !== member\.date_of_birth/);
-  assert.match(submit, /isUnder18On\(member\.date_of_birth, submittedOnMalta\)/);
+  assert.match(submit, /isUnder18On\(member\.date_of_birth \|\| verifiedBirthDate, submittedOnMalta\)/);
+  assert.match(submit, /actualBirth \|\| participant\.date_of_birth/);
   assert.match(submit, /clean\(body\.guardianDeclarationVersionId\) !== published\.id/);
   assert.match(submit, /guardianDeclarationPresented !== true/);
   assert.match(submit, /under_18_at_submission: under18Orders\.includes\(index \+ 1\)/);

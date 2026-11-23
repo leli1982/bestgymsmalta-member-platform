@@ -107,6 +107,17 @@ const DURATIONS = [
   { value: "1_year", label: "1 year" },
 ];
 
+// Legacy records often lack contact information. Show it to reception without
+// turning an optional personal detail into a renewal blocker.
+const LEGACY_RENEWAL_DETAILS = [
+  ["idNumber", "ID / passport number"],
+  ["addressLine1", "Address"],
+  ["town", "Town / locality"],
+  ["phone", "Telephone / mobile"],
+  ["email", "Email"],
+  ["nextOfKin", "Next of kin"],
+] as const;
+
 function blankParticipant(): ParticipantForm {
   return {
     existingMemberId: "",
@@ -664,7 +675,9 @@ export default function MembershipEnrollmentPage() {
     for (let index = 0; index < participants.length; index += 1) {
       const participant = participants[index];
       if (!participant.dateOfBirth) {
-        setError(`Applicant ${index + 1}: A valid date of birth is required.`);
+        setError(kind === "renewal"
+          ? `Applicant ${index + 1}: No date of birth was recorded on this legacy member. Enter a verified date of birth to determine whether guardian consent is needed. Other missing personal details can remain blank.`
+          : `Applicant ${index + 1}: A valid date of birth is required for a new membership.`);
         return;
       }
       try {
@@ -1135,6 +1148,7 @@ export default function MembershipEnrollmentPage() {
                   participant={participant}
                   index={index}
                   kind={kind}
+                  originallyRecordedDob={selectedRenewalCandidates.find((candidate) => candidate.id === participant.existingMemberId)?.dateOfBirth || ""}
                   onChange={updateParticipant}
                   onGuardianChange={updateGuardian}
                   guardianDeclaration={guardianDeclaration}
@@ -1203,6 +1217,7 @@ function ParticipantEditor({
   participant,
   index,
   kind,
+  originallyRecordedDob,
   onChange,
   onGuardianChange,
   guardianDeclaration,
@@ -1212,12 +1227,16 @@ function ParticipantEditor({
   participant: ParticipantForm;
   index: number;
   kind: "new" | "renewal";
+  originallyRecordedDob: string;
   onChange: (index: number, field: keyof ParticipantForm, value: string | boolean) => void;
   onGuardianChange: (index: number, field: keyof ParticipantForm["guardian"], value: string) => void;
   guardianDeclaration: GuardianDeclaration | null;
   membershipType: string;
   submissionDay: string;
 }) {
+  const missingLegacyDetails = kind === "renewal"
+    ? LEGACY_RENEWAL_DETAILS.filter(([key]) => !participant[key]?.trim()).map(([, label]) => label)
+    : [];
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1234,6 +1253,18 @@ function ParticipantEditor({
         <p className="mt-2 text-sm font-bold text-emerald-700">
           This permanent BGM number stays with this member. The current physical card is verified or replaced in the next step.
         </p>
+      )}
+      {kind === "renewal" && missingLegacyDetails.length > 0 && (
+        <div role="status" className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <p className="font-black">Missing information in this legacy membership record</p>
+          <p className="mt-1 font-semibold">{missingLegacyDetails.join(" · ")}</p>
+          <p className="mt-2">Fill in what the member can confirm, or continue with these personal details blank. Missing contact and ID-number fields do not stop a renewal. Existing-member selection and card verification remain in place.</p>
+        </div>
+      )}
+      {kind === "renewal" && !participant.dateOfBirth && (
+        <div role="alert" className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold text-amber-950">
+          The old record has no date of birth. Enter the verified date below so the system can check age and guardian-consent requirements; this will be stored on the same BGM member when activated.
+        </div>
       )}
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <Field label="First Name">
@@ -1255,6 +1286,7 @@ function ParticipantEditor({
         <Field label="Address Line 1">
           <input
             value={participant.addressLine1}
+            required={kind === "new"}
             onChange={(event) => onChange(index, "addressLine1", event.target.value)}
             className={inputClass}
           />
@@ -1269,6 +1301,7 @@ function ParticipantEditor({
         <Field label="Town / Locality">
           <input
             value={participant.town}
+            required={kind === "new"}
             onChange={(event) => onChange(index, "town", event.target.value)}
             className={inputClass}
           />
@@ -1283,6 +1316,7 @@ function ParticipantEditor({
         <Field label="ID Number">
           <input
             value={participant.idNumber}
+            required={kind === "new"}
             onChange={(event) => onChange(index, "idNumber", event.target.value)}
             className={inputClass}
           />
@@ -1291,13 +1325,14 @@ function ParticipantEditor({
           <EuropeanDateInput
             value={participant.dateOfBirth}
             onValueChange={(value) => onChange(index, "dateOfBirth", value)}
-            readOnly={kind === "renewal" && Boolean(participant.dateOfBirth)}
+            readOnly={kind === "renewal" && Boolean(originallyRecordedDob)}
             className={inputClass}
           />
         </Field>
         <Field label="Telephone / Mobile">
           <input
             value={participant.phone}
+            required={kind === "new"}
             onChange={(event) => onChange(index, "phone", event.target.value)}
             className={inputClass}
           />
@@ -1306,6 +1341,7 @@ function ParticipantEditor({
           <input
             type="email"
             value={participant.email}
+            required={kind === "new"}
             onChange={(event) => onChange(index, "email", event.target.value)}
             className={inputClass}
           />
@@ -1313,6 +1349,7 @@ function ParticipantEditor({
         <Field label="Next of Kin">
           <input
             value={participant.nextOfKin}
+            required={kind === "new"}
             onChange={(event) => onChange(index, "nextOfKin", event.target.value)}
             className={inputClass}
           />
