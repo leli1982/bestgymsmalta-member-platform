@@ -135,6 +135,7 @@ export default function LegacyPhotoImportPage() {
   const [folderFiles, setFolderFiles] = useState<File[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [testPassed, setTestPassed] = useState(false);
   const [progress, setProgress] = useState<Progress>({ processed: 0, saved: 0, skipped: 0, failed: 0, total: 0 });
   const [results, setResults] = useState<Result[]>([]);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
@@ -175,7 +176,7 @@ export default function LegacyPhotoImportPage() {
     if (!file) return;
     try {
       const parsed = parseReady(await file.text());
-      setRawReport(parsed); setResults([]); setCompletedIds(new Set()); setError("");
+      setRawReport(parsed); setResults([]); setCompletedIds(new Set()); setTestPassed(false); setError("");
     } catch (e) { setRawReport(null); setError(e instanceof Error ? e.message : "Unreadable report."); }
   }
   async function uploadBatch(firstTen: boolean) {
@@ -183,6 +184,7 @@ export default function LegacyPhotoImportPage() {
     const remaining = eligible.filter((r) => !completedIds.has(r.memberNumber));
     const selected = firstTen ? remaining.slice(0, 10) : remaining;
     if (!selected.length) { setError("All selected files have been processed in this browser session."); return; }
+    if (!firstTen && !testPassed) { setError("Complete the 10-photo test without failures before bulk upload."); return; }
     if (!firstTen && !window.confirm(`Upload ${selected.length} remaining photos to the LIVE BGM database? Existing photos, inactive members and ambiguous numbers will be skipped automatically.`)) return;
     setBusy(true); setError("");
     const counts: Progress = { processed: 0, saved: 0, skipped: 0, failed: 0, total: selected.length };
@@ -207,6 +209,7 @@ export default function LegacyPhotoImportPage() {
         }
       }));
     } finally {
+      if (firstTen) setTestPassed(counts.processed === selected.length && counts.failed === 0 && counts.saved > 0);
       setResults((prev) => [...prev, ...batchResults]);
       setCompletedIds(doneIds); setBusy(false);
     }
@@ -256,7 +259,7 @@ export default function LegacyPhotoImportPage() {
           <button disabled={busy || !eligible.length}
             onClick={() => void uploadBatch(true)}
             className="rounded-xl bg-[#ffb400] px-5 py-3 font-black text-black disabled:opacity-40">3. Upload test batch (10)</button>
-          <button disabled={busy || !eligible.length}
+          <button disabled={busy || !eligible.length || !testPassed}
             onClick={() => void uploadBatch(false)}
             className="flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-3 font-black text-white disabled:opacity-40"><UploadCloud size={18}/> 4. Upload remaining verified matches</button>
           <button disabled={!results.length || busy} onClick={() => exportResults(results)}
