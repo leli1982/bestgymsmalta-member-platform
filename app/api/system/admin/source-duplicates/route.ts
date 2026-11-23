@@ -72,6 +72,8 @@ export async function GET(request: NextRequest) {
         a.member_number.localeCompare(b.member_number)
       );
       const decision = decisions.get(source.pk);
+      const missingLiveMatches = Math.max(0, source.sourceCount - liveMembers.length);
+      const extraLiveMatches = Math.max(0, liveMembers.length - source.sourceCount);
       const liveIdentityConflict = hasLiveIdentityConflict(liveMembers);
       const isPreclassified = source.assessment === "same_person_candidate" && !liveIdentityConflict;
       const state = decision?.status === "reviewed" ? "reviewed"
@@ -81,7 +83,7 @@ export async function GET(request: NextRequest) {
         legacyPkCustomer: source.pk.toUpperCase(),
         sourceCount: source.sourceCount, sourceKind: source.sourceKind,
         assessment: source.assessment,
-        state, liveIdentityConflict,
+        state, liveIdentityConflict, missingLiveMatches, extraLiveMatches,
         reviewNote: decision?.resolution_note || null,
         reviewedAt: decision?.reviewed_at || null,
         members: liveMembers.map((m) => ({
