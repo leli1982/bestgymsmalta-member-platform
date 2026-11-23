@@ -99,7 +99,16 @@ async function toWebp(file: File, pk: string): Promise<File> {
   } finally { bitmap.close(); }
 }
 async function sendPhoto(row: Ready, file: File): Promise<{ outcome: string; detail: string }> {
-  const webp = await toWebp(file, row.legacyPk);
+  // Damaged/unsupported legacy JPGs must fail individually, not abort all workers.
+  let webp: File;
+  try {
+    webp = await toWebp(file, row.legacyPk);
+  } catch (error) {
+    return {
+      outcome: "FAILED",
+      detail: "Could not read/convert this image: " + (error instanceof Error ? error.message : "Unsupported photo format"),
+    };
+  }
   const fields = new FormData();
   fields.append("memberNumber", row.memberNumber);
   fields.append("pkCustomer", row.legacyPk);
@@ -146,15 +155,28 @@ export default function LegacyPhotoImportPage() {
   }, []);
 
   const indexedFiles = useMemo(() => {
-    const map = new Map<string, File>(); const collisions = new Set<string>();
+    const map = new Map<string, File>();
+    const pathsDuplicated = new Set<string>();
+    const baseNames = new Map<string, File>();
+    const baseNamesDuplicated = new Set<string>();
     for (const f of folderFiles) {
       const relative = (f.webkitRelativePath || f.name).replace(/\\/g, "/");
       const parts = relative.split("/");
       const path = (parts.length > 1 ? parts.slice(1).join("/") : relative).toLowerCase();
-      if (map.has(path)) collisions.add(path);
+      if (map.has(path)) pathsDuplicated.add(path);
       else map.set(path, f);
+      // Older photo exports sometimes nest images one folder deeper. Fallback
+      // to the file's basename ONLY when unique in the selected directory.
+      const basename = f.name.toLowerCase();
+      if (baseNames.has(basename)) baseNamesDuplicated.add(basename);
+      else baseNames.set(basename, f);
     }
-    collisions.forEach((key) => map.delete(key));
+    pathsDuplicated.forEach((key) => map.delete(key));
+    baseNames.forEach((file, basename) => {
+      if (!baseNamesDuplicated.has(basename) && !map.has(basename) && !pathsDuplicated.has(basename)) {
+        map.set(basename, file);
+      }
+    });
     return map;
   }, [folderFiles]);
   const eligible = useMemo(() => (rawReport?.ready || [])
@@ -178,10 +200,18 @@ export default function LegacyPhotoImportPage() {
     } catch (e) { setRawReport(null); setError(e instanceof Error ? e.message : "Unreadable report."); }
   }
   async function uploadBatch(firstTen: boolean) {
-    if (busy || !eligible.length) return;
+    if (busy) return;
+    if (!eligible.length) {
+      setError("No image files match the report. Select the original extracted images folder, not individual JPGs.");
+      return;
+    }
     const remaining = eligible.filter((r) => !completedIds.has(r.memberNumber));
     const selected = firstTen ? remaining.slice(0, 10) : remaining;
     if (!selected.length) { setError("All selected files have been processed in this browser session."); return; }
+    if (firstTen && selected.length < 10) {
+      setError("Only " + selected.length + " matching photos are available. The test requires 10. Check Source files found and Verified filename matches above.");
+      return;
+    }
     if (!firstTen && !testPassed) { setError("Complete the 10-photo test without failures before bulk upload."); return; }
     if (!firstTen && !window.confirm(`Upload ${selected.length} remaining photos to the LIVE BGM database? Existing photos, inactive members and ambiguous numbers will be skipped automatically.`)) return;
     setBusy(true); setError("");
@@ -195,8 +225,13 @@ export default function LegacyPhotoImportPage() {
           if (index >= selected.length) return;
           const r = selected[index]; const file = indexedFiles.get(r.imageFile.toLowerCase());
           let outcome: { outcome: string; detail: string };
-          if (!file) outcome = { outcome: "FAILED", detail: "Image file not found." };
-          else outcome = await sendPhoto(r, file);
+          try {
+            if (!file) outcome = { outcome: "FAILED", detail: "Image file not found." };
+            else outcome = await sendPhoto(r, file);
+          } catch (error) {
+            // Never let one bad legacy image terminate the entire 10-photo batch.
+            outcome = { outcome: "FAILED", detail: error instanceof Error ? error.message : "Unexpected image error" };
+          }
           batchResults.push({ memberNumber: r.memberNumber, photo: r.imageFile, ...outcome });
           counts.processed += 1;
           if (outcome.outcome === "SAVED") counts.saved += 1;
@@ -276,7 +311,12 @@ export default function LegacyPhotoImportPage() {
         </div>
         <div className="h-3 overflow-hidden rounded-full bg-zinc-200"><div className="h-full bg-[#ffb400]" style={{width:progress.total ? `${100 * progress.processed / progress.total}%` : "0%"}}/></div>
         {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm font-bold text-rose-800">{error}</p>}
-        {results.length > 0 && <div className="text-sm text-zinc-600">Last result: <strong>{results[results.length-1].memberNumber}</strong> · {results[results.length-1].outcome} · {results[results.length-1].detail}</div>}
+        {results.length > 0 && <div className="space-y-2 rounded-xl border border-zinc-200 p-3 text-sm">
+          <p className="font-bold text-zinc-800">Latest 10 results (all results available in the CSV download)</p>
+          {results.slice(-10).map((result, index) => <div key={result.memberNumber + "-" + index} className="flex flex-wrap gap-2 border-t border-zinc-100 pt-2 text-zinc-700">
+            <strong>{result.memberNumber}</strong><span>{result.outcome}</span><span>{result.detail}</span>
+          </div>)}
+        </div>}
       </section>
     </div>
   </main>;
