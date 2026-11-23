@@ -4,7 +4,7 @@ import {
   buildEnrollmentIdentityAction,
   requireStaffName,
 } from "@/lib/membershipEnrollmentCore";
-import { isUnder18On, isUnder16On } from "@/lib/membershipRegistrationCore";
+import { isUnder18On, isUnder16On, normalizeIdentityDocument } from "@/lib/membershipRegistrationCore";
 import { UNDER16_SUPERVISION_CLAUSE } from "@/lib/guardianConsentPolicy";
 import { pendingGuardianConsentGap } from "@/lib/guardianConsentSafety";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
@@ -223,10 +223,16 @@ export async function POST(request: NextRequest) {
         for (const participant of guardianParticipants) {
           if (participant.existing_member_id) {
             const actualBirth = dates.get(participant.existing_member_id);
-            if (!actualBirth) {
-              return NextResponse.json({ error: "Existing member date of birth must be verified before activation." }, { status: 409 });
+            // A legacy member can lack a stored DOB. Use the verified DOB
+            // captured on this renewal application; activation saves it to
+            // the same permanent member record. Never override a known DOB.
+            if (!actualBirth && !participant.date_of_birth) {
+              return NextResponse.json({ error: "This legacy member has no date of birth. Enter a verified date of birth on the renewal to check guardian eligibility." }, { status: 409 });
             }
-            participant.date_of_birth = actualBirth;
+            if (actualBirth && participant.date_of_birth && participant.date_of_birth !== actualBirth) {
+              return NextResponse.json({ error: "Renewal date of birth differs from the existing member record. Verify before activation." }, { status: 409 });
+            }
+            participant.date_of_birth = actualBirth || participant.date_of_birth;
           }
         }
       }
@@ -388,6 +394,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Required personal details apply to NEW memberships only. Legacy
+    // renewals may retain blank contact and ID fields while staff add what
+    // is available; the selected member UUID is protected by the DB trigger.
+    if (kind === "new") {
+      const requiredNew: Array<[keyof (typeof participants)[number], string]> = [
+        ["id_number", "ID / passport number"],
+        ["date_of_birth", "Date of birth"],
+        ["address_line_1", "Address"],
+        ["town", "Town / locality"],
+        ["phone", "Mobile / contact number"],
+        ["email", "Email"],
+        ["next_of_kin", "Next of kin / emergency contact"],
+      ];
+      for (const [index, participant] of participants.entries()) {
+        for (const [key, label] of requiredNew) {
+          if (!participant[key]) {
+            return NextResponse.json({ error: `Applicant ${index + 1}: ${label} is required for a new membership.` }, { status: 400 });
+          }
+        }
+        if (!normalizeIdentityDocument(participant.id_number || "")) {
+          return NextResponse.json({ error: `Applicant ${index + 1}: Enter a valid ID / passport number.` }, { status: 400 });
+        }
+        if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(participant.email || "")) {
+          return NextResponse.json({ error: `Applicant ${index + 1}: Enter a valid email address.` }, { status: 400 });
+        }
+      }
+    }
+
     const submittedOnMalta = maltaTodayIso();
     try {
       for (const participant of participants) {
@@ -434,21 +468,27 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Reject edited DOBs; the permanent member record controls guardian eligibility.
+      // Known dates of birth remain immutable on renewal. When a legacy
+      // member has no DOB, staff can enter and verify it in the same form,
+      // so guardian and couples eligibility are still checked correctly.
       for (const member of memberResult.data || []) {
-        if (!member.date_of_birth) {
-          return NextResponse.json({ error: "Existing member date of birth must be verified before renewal." }, { status: 409 });
-        }
         const corresponding = participants.find(p => p.existing_member_id === member.id);
-        if (!corresponding || corresponding.date_of_birth !== member.date_of_birth) {
+        if (!corresponding) {
+          return NextResponse.json({ error: "Selected renewal member was not found. Search and select the existing member again." }, { status: 409 });
+        }
+        if (member.date_of_birth && corresponding.date_of_birth !== member.date_of_birth) {
           return NextResponse.json({ error: "Renewal date of birth differs from the existing permanent member record. Reopen the member search." }, { status: 409 });
         }
+        const verifiedBirthDate = member.date_of_birth || corresponding.date_of_birth;
+        if (!verifiedBirthDate) {
+          return NextResponse.json({ error: "This legacy member has no date of birth on file. Verify and enter their date of birth to determine guardian requirements." }, { status: 409 });
+        }
         try {
-          if (membershipType === "couples" && isUnder18On(member.date_of_birth, submittedOnMalta)) {
+          if (membershipType === "couples" && isUnder18On(member.date_of_birth || verifiedBirthDate, submittedOnMalta)) {
             return NextResponse.json({ error: "Couples membership requires both existing members to be at least 18." }, { status: 409 });
           }
         } catch {
-          return NextResponse.json({ error: "Existing member date of birth must be corrected before renewal." }, { status: 409 });
+          return NextResponse.json({ error: "Enter a valid verified date of birth for this legacy renewal." }, { status: 409 });
         }
       }
 
