@@ -15,7 +15,8 @@ type ReviewGroup = {
   sourceKind: "repeated_in_source" | "manually_removed";
   assessment: "review_required" | "same_person_candidate";
   state: "pending" | "preclassified" | "reviewed";
-  liveIdentityConflict: boolean; reviewNote: string | null;
+  liveIdentityConflict: boolean; missingLiveMatches: number; extraLiveMatches: number;
+  reviewNote: string | null;
   reviewedAt: string | null; members: ReviewMember[];
 };
 
@@ -34,6 +35,7 @@ function stateLabel(group: ReviewGroup) {
   if (group.state === "reviewed") return "Review completed";
   if (group.state === "preclassified") return "Likely same person";
   if (group.liveIdentityConflict) return "Live identity conflict";
+  if (group.missingLiveMatches > 0) return "Source members not yet imported";
   return group.sourceKind === "manually_removed"
     ? "Removed from latest Excel — verify live record" : "Needs identity review";
 }
@@ -148,6 +150,7 @@ export default function SourceDuplicateReview() {
           {data.sourceTotals.sourceRepeatGroups} repeated-number groups ·
           {data.sourceTotals.manuallyRemoved} manually excluded source rows.
           The “likely same person” category is preclassified only; no live records have been merged.
+          Source-row counts reflect your latest edited Excel; some corresponding members may not yet exist in the live database.
         </p>}
         <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-950">
           Identity review does not release physical cards, modify gym access, change member numbers,
@@ -199,6 +202,14 @@ export default function SourceDuplicateReview() {
                   Names match with corroborating source identity information and no conflicting source
                   ID or birth date. Kept out of the main review queue, but the live records are untouched.
                 </p>}
+                {group.missingLiveMatches > 0 && <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-950">
+                  {group.missingLiveMatches} source {group.missingLiveMatches === 1 ? "member" : "members"} not yet matched in the live database.
+                  The current Excel contains more people under this old number. Wait until the import is reconciled before completing this group.
+                </p>}
+                {group.extraLiveMatches > 0 && <p className="mb-3 rounded-lg bg-zinc-100 p-3 text-xs font-semibold">
+                  There are {group.extraLiveMatches} more historical live records under this number than in the latest Excel.
+                  Check the membership history before deciding which records remain current.
+                </p>}
                 {group.members.length === 0 && <p className="text-sm text-zinc-700">
                   No corresponding live legacy number found. These source rows will be reconciled at import;
                   do not invent a matching member.
@@ -248,11 +259,14 @@ export default function SourceDuplicateReview() {
                     rows={2} maxLength={2000} placeholder="Example: Different DOBs; retain both members separately."
                     className="mt-2 w-full rounded-lg border border-zinc-300 p-3 text-sm" />
                   <button type="button"
-                    disabled={Boolean(busy) || (notes[group.legacyPkCustomer] || "").trim().length < 8}
+                    disabled={Boolean(busy) || group.missingLiveMatches > 0 || (notes[group.legacyPkCustomer] || "").trim().length < 8}
                     onClick={() => void review(group, "mark_reviewed")}
                     className="mt-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-black text-white disabled:opacity-40">
                     {busy === group.legacyPkCustomer ? "Saving…" : "Mark identity review complete"}
                   </button>
+                  {group.missingLiveMatches > 0 && <p className="mt-2 text-xs text-amber-900">
+                    Review completion is disabled until all source members are matched during import.
+                  </p>}
                   {group.state === "preclassified" && <p className="mt-2 text-xs text-zinc-500">
                     Optional: leave this preclassified, or add an audited review decision.
                   </p>}
