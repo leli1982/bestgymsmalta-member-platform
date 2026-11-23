@@ -10,9 +10,10 @@ const physicalCards = read("../app/api/system/admin/card-conflicts/route.ts");
 const migration = read("../supabase/migrations/20261123_120000_source_duplicate_identity_review_decisions.sql");
 
 function literalArray(variable) {
-  const match = scope.match(new RegExp(`const ${variable} = (\\[[^;]+\\]);`));
+  const assigned = scope.split(`const ${variable} = `)[1]?.split(";")[0] || "";
+  const match = assigned.match(/\\[[\\s\\S]*\\]/);
   assert.ok(match, `Missing ${variable}`);
-  return JSON.parse(match[1]);
+  return JSON.parse(match[0]);
 }
 
 test("latest source review scope is complete, nonpersonal and excludes strict same-person duplicates", () => {
