@@ -133,6 +133,19 @@ export async function PATCH(request: NextRequest) {
         { status: 400, headers });
     }
     const db = getSupabaseAdmin();
+    if (action === "mark_reviewed") {
+      const source = sourceDuplicateGroups.find((item) => item.pk === pk);
+      // No source person can be silently omitted from a completed review.
+      const matched = await db.from("bgm_members")
+        .select("id", { count: "exact", head: true })
+        .in("legacy_pk_customer", Array.from(new Set([pk, pk.toUpperCase()])));
+      if (matched.error) throw matched.error;
+      if (!source || (matched.count ?? 0) < source.sourceCount) {
+        return NextResponse.json({
+          error: "Some people in the edited Excel are not yet matched in the live database. Reconcile or import them before completing this review."
+        }, { status: 409, headers });
+      }
+    }
     const before = await db.from("bgm_source_duplicate_review_decisions")
       .select("status,resolution_note,reviewed_at").eq("legacy_pk_customer", pk).maybeSingle();
     if (before.error) throw before.error;
