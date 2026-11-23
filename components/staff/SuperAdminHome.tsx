@@ -28,6 +28,7 @@ const sections: Section[] = [
   { href: "/staff/bar/catalog", label: "Bar catalogue & prices", description: "Edit the official Bar List products, selling prices and availability.", icon: Beer, group: "Management" },
   { href: "/staff/admin/membership-tools?tool=members", label: "Members", description: "Find and inspect membership records.", icon: UsersRound, group: "Membership Tools" },
   { href: "/staff/admin/member-data", label: "Member import & export", description: "Upload the original 15-column legacy Excel file safely; preview matches, preserve existing members, and export the numbered BGM list.", icon: FileBarChart2, group: "Membership Tools" },
+  { href: "/staff/admin/photo-import", label: "Legacy member photos", description: "Assign verified old-system photos in protected batches, without replacing existing member photos.", icon: Images, group: "Membership Tools" },
   { href: "/staff/admin/card-conflicts", label: "Card Conflict Review", description: "Review duplicate legacy member numbers from the latest edited list; audit identity decisions without changing cards.", icon: Barcode, group: "Membership Tools" },
   { href: "/staff/members/enroll?kind=new", label: "New membership", description: "Create a new membership.", icon: UserPlus, group: "Membership Tools" },
   { href: "/staff/members/enroll?kind=renewal", label: "Renew", description: "Renew an existing membership.", icon: RefreshCw, group: "Membership Tools" },
