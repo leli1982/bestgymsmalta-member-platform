@@ -11,12 +11,12 @@ test("membership card has non-mirrored front and back surfaces on iPhone Safari"
 
   // Simulate the original flip as two non-mirrored 2D halves:
   // outgoing face collapses first; incoming face expands after 300ms.
-  assert.equal((card.match(/transition-\\[opacity,transform\\]/g) || []).length, 4);
+  assert.equal((card.match(/transition-\[opacity,transform\]/g) || []).length, 4);
   assert.equal((card.match(/duration-300/g) || []).length, 4);
-  assert.equal((card.match(/transitionDelay:\\s*flipped\\s*\\?\\s*"0ms"\\s*:\\s*"300ms"/g) || []).length, 2);
-  assert.equal((card.match(/transitionDelay:\\s*flipped\\s*\\?\\s*"300ms"\\s*:\\s*"0ms"/g) || []).length, 2);
-  assert.equal((card.match(/transform:\\s*flipped\\s*\\?\\s*"scaleX\\(0\\)"\\s*:\\s*"scaleX\\(1\\)"/g) || []).length, 2);
-  assert.equal((card.match(/transform:\\s*flipped\\s*\\?\\s*"scaleX\\(1\\)"\\s*:\\s*"scaleX\\(0\\)"/g) || []).length, 2);
+  assert.equal((card.match(/transitionDelay:\s*flipped\s*\?\s*"0ms"\s*:\s*"300ms"/g) || []).length, 2);
+  assert.equal((card.match(/transitionDelay:\s*flipped\s*\?\s*"300ms"\s*:\s*"0ms"/g) || []).length, 2);
+  assert.equal((card.match(/transform:\s*flipped\s*\?\s*"scaleX\(0\)"\s*:\s*"scaleX\(1\)"/g) || []).length, 2);
+  assert.equal((card.match(/transform:\s*flipped\s*\?\s*"scaleX\(1\)"\s*:\s*"scaleX\(0\)"/g) || []).length, 2);
   assert.match(card, /motion-reduce:transition-none/);
 
   assert.match(card, /aria-hidden=\{flipped\}/);
