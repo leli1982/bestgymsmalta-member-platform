@@ -22,6 +22,8 @@ test("member home matches the approved mockup hierarchy", () => {
   assert.match(home, /<MemberCard\s+variant=["']home["']/);
   assert.match(home, /<MemberHomePrimaryTools/);
   assert.match(home, /<ClosestGymCard/);
+  assert.match(home, /<LiveUpdates/);
+  assert.doesNotMatch(home, /<HomeAnnouncementCard/);
   assert.doesNotMatch(home, /VisualQuickLinks/);
 });
 
@@ -47,7 +49,7 @@ test("approved duo hero is a detailed static image, not a degraded fallback", ()
   );
 });
 
-test("primary and secondary home tools use the approved 3 plus 4 tile layout", () => {
+test("primary and secondary home tools show six useful tiles without redundant News", () => {
   assert.equal(existsSync(toolsPath), true, "primary member tools component must exist");
   const tools = readFileSync(toolsPath, "utf8");
 
@@ -58,12 +60,12 @@ test("primary and secondary home tools use the approved 3 plus 4 tile layout", (
   assert.match(tools, /\/mobility-stretch/);
   assert.match(tools, /Progress/i);
   assert.match(tools, /\/progress/);
-  assert.match(tools, /grid-cols-4/);
+  assert.doesNotMatch(tools, /grid-cols-4/);
   assert.match(tools, /Passport/);
   assert.match(tools, /Story Creator/);
   assert.match(tools, /Gyms/);
-  assert.match(tools, /News/);
-  assert.match(tools, /#announcements/);
+  assert.doesNotMatch(tools, /label: "News"/);
+  assert.doesNotMatch(tools, /href: "#announcements"/);
 });
 
 test("home membership card is the compact strip with the round BGM mark", () => {
