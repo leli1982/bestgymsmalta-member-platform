@@ -23,7 +23,7 @@ export type SourceDuplicateGroup = {
   assessment: "review_required" | "same_person_candidate";
 };
 
-export const sourceDuplicateGroups: readonly SourceDuplicateGroup[] = sourceKeys.map((pk) => {
+export const sourceDuplicateGroups: readonly SourceDuplicateGroup[] = sourceKeys.map((pk): SourceDuplicateGroup => {
   const removed = manuallyExcluded.has(pk);
   return {
     pk,
