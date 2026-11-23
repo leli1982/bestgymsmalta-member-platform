@@ -156,7 +156,7 @@ export default function LegacyPhotoImportPage() {
       if (map.has(path)) collisions.add(path);
       else map.set(path, f);
     }
-    for (const key of collisions) map.delete(key);
+    collisions.forEach((key) => map.delete(key));
     return map;
   }, [folderFiles]);
   const eligible = useMemo(() => (rawReport?.ready || [])
