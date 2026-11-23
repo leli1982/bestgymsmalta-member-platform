@@ -5,7 +5,6 @@ import {
   Dumbbell,
   HeartPulse,
   MapPinned,
-  Megaphone,
   Stamp,
 } from "lucide-react";
 
@@ -34,7 +33,6 @@ const secondaryTools = [
   { label: "Passport", description: "Access more gyms", href: "/passport", icon: Stamp },
   { label: "Story Creator", description: "Share your workout", href: "/story", icon: Camera },
   { label: "Gyms", description: "Find and explore gyms", href: "/gyms", icon: MapPinned },
-  { label: "News", description: "Stay updated with the latest", href: "#announcements", icon: Megaphone },
 ];
 
 export default function MemberHomePrimaryTools() {
@@ -64,7 +62,7 @@ export default function MemberHomePrimaryTools() {
         })}
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {secondaryTools.map((item) => {
           const Icon = item.icon;
           return (
