@@ -407,7 +407,8 @@ export async function POST(request: NextRequest) {
         ["email", "Email"],
         ["next_of_kin", "Next of kin / emergency contact"],
       ];
-      for (const [index, participant] of participants.entries()) {
+      for (let index = 0; index < participants.length; index += 1) {
+        const participant = participants[index];
         for (const [key, label] of requiredNew) {
           if (!participant[key]) {
             return NextResponse.json({ error: `Applicant ${index + 1}: ${label} is required for a new membership.` }, { status: 400 });
