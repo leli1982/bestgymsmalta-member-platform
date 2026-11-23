@@ -10,9 +10,10 @@ const renewal = readFileSync(
 test("renewal keeps an existing date of birth locked but allows a missing one to be entered", () => {
   assert.match(
     renewal,
-    /readOnly=\{kind === ["']renewal["'] && Boolean\(participant\.dateOfBirth\)\}/,
+    /readOnly=\{kind === ["']renewal["'] && Boolean\(originallyRecordedDob\)\}/,
     "renewal DOB must only be read-only when the existing member already has a DOB",
   );
+  assert.match(renewal, /originallyRecordedDob=\{selectedRenewalCandidates\.find/);
   assert.doesNotMatch(
     renewal,
     /readOnly=\{kind === ["']renewal["']\}/,
