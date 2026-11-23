@@ -16,14 +16,14 @@ const manuallyExcluded = new Set(["122","129","150","152","258","348","355","s30
 const confidentlyExcluded = new Set(["129","258","348","s3069"]);
 const tripleSourceRows = new Set(["481","1741","3267","3546","3755","k105","k2140"]);
 
-export type SourceDuplicateGroup = {
+// Three additional import-held identities have no repeated legacy key in the edited source.\n// No names or other personal data are kept in Git.\nconst extraImportHeldKeys = ["3749", "b12578", "t396"] as const;\n\nexport type SourceDuplicateGroup = {
   pk: string;
   sourceCount: number;
-  sourceKind: "repeated_in_source" | "manually_removed";
+  sourceKind: "repeated_in_source" | "manually_removed" | "import_hold";
   assessment: "review_required" | "same_person_candidate";
 };
 
-export const sourceDuplicateGroups: readonly SourceDuplicateGroup[] = sourceKeys.map((pk): SourceDuplicateGroup => {
+const baseSourceDuplicateGroups: readonly SourceDuplicateGroup[] = sourceKeys.map((pk): SourceDuplicateGroup => {
   const removed = manuallyExcluded.has(pk);
   return {
     pk,
@@ -34,13 +34,13 @@ export const sourceDuplicateGroups: readonly SourceDuplicateGroup[] = sourceKeys
   };
 });
 
-export const sourceReviewTotals = {
+export const sourceDuplicateGroups: readonly SourceDuplicateGroup[] = [\n  ...baseSourceDuplicateGroups,\n  ...extraImportHeldKeys.map((pk): SourceDuplicateGroup => ({\n    pk, sourceCount: 1, sourceKind: "import_hold", assessment: "review_required",\n  })),\n];\n\nexport const sourceReviewTotals = {
   sourceRows: 7276,
   sourceRepeatGroups: 170,
   sourceRepeatRows: 347,
   manuallyRemoved: 8,
   samePersonCandidates: 32,
-  manualReviewRequired: 146,
+  manualReviewRequired: 146,\n  extraImportHeldGroups: 3,
 } as const;
 
 export function normalizeLegacyPk(value: unknown): string {
