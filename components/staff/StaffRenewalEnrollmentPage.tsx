@@ -1148,6 +1148,7 @@ export default function MembershipEnrollmentPage() {
                   participant={participant}
                   index={index}
                   kind={kind}
+                  originallyRecordedDob={selectedRenewalCandidates.find((candidate) => candidate.id === participant.existingMemberId)?.dateOfBirth || ""}
                   onChange={updateParticipant}
                   onGuardianChange={updateGuardian}
                   guardianDeclaration={guardianDeclaration}
@@ -1216,6 +1217,7 @@ function ParticipantEditor({
   participant,
   index,
   kind,
+  originallyRecordedDob,
   onChange,
   onGuardianChange,
   guardianDeclaration,
@@ -1225,6 +1227,7 @@ function ParticipantEditor({
   participant: ParticipantForm;
   index: number;
   kind: "new" | "renewal";
+  originallyRecordedDob: string;
   onChange: (index: number, field: keyof ParticipantForm, value: string | boolean) => void;
   onGuardianChange: (index: number, field: keyof ParticipantForm["guardian"], value: string) => void;
   guardianDeclaration: GuardianDeclaration | null;
@@ -1322,7 +1325,7 @@ function ParticipantEditor({
           <EuropeanDateInput
             value={participant.dateOfBirth}
             onValueChange={(value) => onChange(index, "dateOfBirth", value)}
-            readOnly={kind === "renewal" && Boolean(participant.dateOfBirth)}
+            readOnly={kind === "renewal" && Boolean(originallyRecordedDob)}
             className={inputClass}
           />
         </Field>
