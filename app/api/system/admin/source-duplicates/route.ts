@@ -9,6 +9,13 @@ import {
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store, max-age=0" };
 const scope = new Set(sourceDuplicateGroups.map((g) => g.pk));
+const fullPreviewBatch = "1a0b5a51-2ec4-4938-aafc-bb6e788ab25f";
+const reducedPreviewBatch = "5d02d5a4-7e3e-49c0-a2ef-e7e7cc96c181";
+// Original worksheet row numbers, not personal identity information.
+const fullHeldRows = [140,379,910,1158,1237,1798,2634,4161,5479,6180,6189,6191,6257,6469,6602,6627,6827,378,909,5478,6188,6190,6468,6727];
+const linkedOriginalRows = new Set([378,909,5478,6188,6190,6468,6727]);
+const reducedHeldRows = [1238,1799,4162,6181,6603,6628];
+
 
 type LiveMember = {
   id: string; member_number: string; full_name: string;
@@ -45,15 +52,28 @@ export async function GET(request: NextRequest) {
     const pkVariants = Array.from(new Set(sourceDuplicateGroups.flatMap((g) =>
       [g.pk, g.pk.toUpperCase()]
     )));
-    const [membersResult, decisionsResult] = await Promise.all([
+    const [membersResult, decisionsResult, originalHeldResult, reducedHeldResult] = await Promise.all([
       db.from("bgm_members")
         .select("id,member_number,full_name,legacy_pk_customer,status,membership_expiry,enrollment_gym_id,official_photo_path,updated_at,real_import_batch_id,archived_at,id_number,date_of_birth,email")
         .in("legacy_pk_customer", pkVariants).range(0, 999),
       db.from("bgm_source_duplicate_review_decisions")
         .select("legacy_pk_customer,status,resolution_note,reviewed_at,updated_at"),
+      db.from("bgm_member_import_rows")
+        .select("row_number,pk_customer,customer_name,action,issue,expiry_date,matched_member_id")
+        .eq("batch_id", fullPreviewBatch).in("row_number", fullHeldRows),
+      db.from("bgm_member_import_rows")
+        .select("row_number,pk_customer,customer_name,action,issue,expiry_date,matched_member_id")
+        .eq("batch_id", reducedPreviewBatch).in("row_number", reducedHeldRows),
     ]);
     if (membersResult.error) throw membersResult.error;
     if (decisionsResult.error) throw decisionsResult.error;
+    if (originalHeldResult.error) throw originalHeldResult.error;
+    if (reducedHeldResult.error) throw reducedHeldResult.error;
+    // Detect missing preview data instead of silently hiding a held identity.
+    if ((originalHeldResult.data || []).length !== fullHeldRows.length
+      || (reducedHeldResult.data || []).length !== reducedHeldRows.length) {
+      throw new Error("Expected held import source rows are missing; no identities were altered.");
+    }
     if ((membersResult.data || []).length === 1000) {
       throw new Error("The duplicate lookup reached its safety limit; pagination is required.");
     }
@@ -100,9 +120,23 @@ export async function GET(request: NextRequest) {
         })),
       };
     });
+    const importHolds = [
+      ...(originalHeldResult.data || []).map((r) => ({
+        sourceRow: r.row_number, legacyPkCustomer: r.pk_customer, fullName: r.customer_name,
+        sourceExpiry: r.expiry_date, reason: r.issue,
+        type: linkedOriginalRows.has(r.row_number) ? "linked_row" : "blocking_conflict",
+        origin: "original_7276", matchedMemberId: r.matched_member_id || null,
+      })),
+      ...(reducedHeldResult.data || []).map((r) => ({
+        sourceRow: r.row_number, legacyPkCustomer: r.pk_customer, fullName: r.customer_name,
+        sourceExpiry: r.expiry_date, reason: r.issue, type: "blocking_conflict",
+        origin: "reduced_7252", matchedMemberId: r.matched_member_id || null,
+      })),
+    ].sort((a,b) => a.sourceRow - b.sourceRow || a.origin.localeCompare(b.origin));
+
     return NextResponse.json({
       source: SOURCE_DUPLICATE_SNAPSHOT,
-      sourceTotals: sourceReviewTotals,
+      sourceTotals: sourceReviewTotals,\n      importHolds,
       summary: {
         pending: groups.filter((g) => g.state === "pending").length,
         preclassified: groups.filter((g) => g.state === "preclassified").length,
@@ -140,7 +174,7 @@ export async function PATCH(request: NextRequest) {
         .select("id", { count: "exact", head: true })
         .in("legacy_pk_customer", Array.from(new Set([pk, pk.toUpperCase()])));
       if (matched.error) throw matched.error;
-      if (!source || (matched.count ?? 0) < source.sourceCount) {
+      if (!source || ((matched.count ?? 0) < source.sourceCount && source.sourceKind !== "import_hold")) {
         return NextResponse.json({
           error: "Some people in the edited Excel are not yet matched in the live database. Reconcile or import them before completing this review."
         }, { status: 409, headers });
