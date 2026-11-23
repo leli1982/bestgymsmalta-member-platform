@@ -11,9 +11,10 @@ const migration = read("../supabase/migrations/20261123_120000_source_duplicate_
 
 function literalArray(variable) {
   const assigned = scope.split(`const ${variable} = `)[1]?.split(";")[0] || "";
-  const match = assigned.match(/\\[[\\s\\S]*\\]/);
-  assert.ok(match, `Missing ${variable}`);
-  return JSON.parse(match[0]);
+  const firstBracket = assigned.indexOf("[");
+  const lastBracket = assigned.lastIndexOf("]");
+  assert.ok(firstBracket >= 0 && lastBracket > firstBracket, `Missing ${variable}`);
+  return JSON.parse(assigned.slice(firstBracket, lastBracket + 1));
 }
 
 test("latest source review scope is complete, nonpersonal and excludes strict same-person duplicates", () => {
