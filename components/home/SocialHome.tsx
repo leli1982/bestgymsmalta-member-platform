@@ -4,7 +4,6 @@ import VisualHomeHero from "@/components/home/VisualHomeHero";
 import MemberCard from "@/components/member/MemberCard";
 import ClosestGymCard from "@/components/home/ClosestGymCard";
 import LiveUpdates from "@/components/home/LiveUpdates";
-import HomeAnnouncementCard from "@/components/home/HomeAnnouncementCard";
 import MemberHomePrimaryTools from "@/components/home/MemberHomePrimaryTools";
 
 export default function SocialHome() {
@@ -19,7 +18,6 @@ export default function SocialHome() {
           <ClosestGymCard />
 
           <section id="announcements" className="space-y-3 pt-1">
-            <HomeAnnouncementCard />
             <LiveUpdates />
           </section>
         </div>
