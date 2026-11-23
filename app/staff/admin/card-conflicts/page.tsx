@@ -1,3 +1,3 @@
-import CardConflictReview from "@/components/staff/CardConflictReview";
+import SourceDuplicateReview from "@/components/staff/SourceDuplicateReview";
 export const dynamic = "force-dynamic";
-export default function Page() { return <CardConflictReview />; }
+export default function Page() { return <SourceDuplicateReview />; }
