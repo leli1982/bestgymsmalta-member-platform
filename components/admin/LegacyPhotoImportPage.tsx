@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Images, ShieldCheck, UploadCloud } from "lucide-react";
 
 type Ready = {
@@ -129,7 +129,6 @@ async function sendPhoto(row: Ready, file: File): Promise<{ outcome: string; det
   return { outcome: "FAILED", detail: "Unknown retry failure" };
 }
 export default function LegacyPhotoImportPage() {
-  const folderInput = useRef<HTMLInputElement>(null);
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [rawReport, setRawReport] = useState<ReturnType<typeof parseReady> | null>(null);
   const [folderFiles, setFolderFiles] = useState<File[]>([]);
@@ -141,7 +140,6 @@ export default function LegacyPhotoImportPage() {
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    folderInput.current?.setAttribute("webkitdirectory", "");
     fetch("/api/system/auth", { cache: "no-store" }).then((r) => r.json())
       .then((v) => setAllowed(Boolean(v.authenticated && v.user?.isSuperAdmin)))
       .catch(() => setAllowed(false));
@@ -234,7 +232,11 @@ export default function LegacyPhotoImportPage() {
             onChange={(event) => void readReport(event.target.files?.[0])}/>
         </label>
         <label className="block text-sm font-bold">2. Select the extracted images folder
-          <input ref={folderInput} type="file" multiple disabled={busy}
+          <input ref={(input) => {
+            // This input mounts only after the Super Admin check has completed.
+            // Set directory mode when the input mounts, before the file picker opens.
+            input?.setAttribute("webkitdirectory", "");
+          }} type="file" multiple disabled={busy}
             className="mt-3 block w-full rounded-xl border border-zinc-200 p-3"
             onChange={(event) => setFolderFiles(Array.from(event.target.files || []))}/>
         </label>
