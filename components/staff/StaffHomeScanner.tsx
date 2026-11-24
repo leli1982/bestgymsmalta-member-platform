@@ -261,7 +261,11 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
             {renewalDaysRemaining !== null && result.member?.membershipExpiry && (
                <StaffScanRenewalBanner daysRemaining={renewalDaysRemaining} expiryDate={result.member.membershipExpiry} />
              )}
-             {Boolean(result.cardMatches?.length) && <CardConflictCards members={result.cardMatches || []} scanId={result.scanId} />}
+             {Boolean(result.cardMatches?.length) && <CardConflictCards members={result.cardMatches || []} scanId={result.scanId}
+              onResolved={(resolved) => {
+                setPhotoLoadFailed(false);
+                setResult(previous => previous ? { ...previous, ...resolved, cardMatches: [] } : previous);
+              }} />}
             {result.result === "ambiguous_card" && !result.cardMatches?.length && (result.legacyMatches || []).length > 0 && (
               <div className="mx-auto mt-6 max-w-xl rounded-2xl border-2 border-red-200 bg-red-50 p-4 text-left">
                 <p className="text-sm font-black uppercase tracking-wide text-red-700">
