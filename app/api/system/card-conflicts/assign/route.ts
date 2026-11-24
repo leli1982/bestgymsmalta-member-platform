@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     const [legacy, modern, nfc, gym] = await Promise.all([
       db.from("bgm_legacy_card_claims").select("member_id,scan3,assignment_status")
-        .ilike("scan3", code).eq("assignment_status", "active"),
+        .ilike("scan3", code),
       db.from("bgm_member_card_credentials").select("member_id,barcode_value,status")
         .ilike("barcode_value", code),
       db.from("bgm_nfc_cards").select("member_id,card_uid,status").ilike("card_uid", code),
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
           error: "This physical card is already assigned to another member. Their assignment was NOT changed. Verify a different card or use the Super Admin replacement procedure.",
         }, { status: 409 });
       }
-      if ((modern.data || []).length || (nfc.data || []).length) {
+      if ((legacy.data || []).length || (modern.data || []).length || (nfc.data || []).length) {
         return NextResponse.json({ error: "This card has an existing or retired credential. Super Admin review is required." }, { status: 409 });
       }
       const ownCards = await Promise.all([
@@ -132,8 +132,8 @@ export async function POST(request: NextRequest) {
         barcode_value: code, member_id: member.id, status: "active",
         activated_at: new Date().toISOString(),
         created_by_system_user_id: auth.context.systemUserId,
-      });
-      if (assign.error) {
+      }).select("id").single();
+      if (assign.error || !assign.data?.id) {
         return NextResponse.json({ error: "Card assignment changed or conflicts with another member. Please rescan; no other member was modified." }, { status: 409 });
       }
       permanentlyAssigned = true;
@@ -147,7 +147,15 @@ export async function POST(request: NextRequest) {
           sourceScanId: scan.id, permanent: true, scope: "2026-11-24 32 exceptions",
           noExistingCardReassigned: true },
       });
-      if (audit.error) console.error("Card assignment audit failed:", audit.error);
+      if (audit.error) {
+        // Do not silently succeed without accountability. Undo only the
+        // credential created by THIS request; never alter another member.
+        const undo = await db.from("bgm_member_card_credentials")
+          .delete().eq("id", assign.data.id).eq("member_id", member.id);
+        if (undo.error) console.error("New credential rollback failed:", undo.error);
+        console.error("Card assignment audit failed:", audit.error);
+        return NextResponse.json({ error: "Audit could not be recorded. Card verification was not finalized; ask Super Admin to review." }, { status: 500 });
+      }
     }
 
     // Only the originating staff and gym can complete this one scan.
