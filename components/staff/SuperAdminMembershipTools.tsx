@@ -36,7 +36,7 @@ export default function SuperAdminMembershipTools() {
             <a href="/staff/reception" className="rounded-xl bg-zinc-100 px-4 py-3 font-bold">Reception tools</a>
           </nav>
         </header>
-        {tool === "members" ? <StaffMemberBrowser canRenew canEdit/> : tool === "archive" ? <SuperAdminArchivedMembers/> : <StaffMembershipQueue/>}
+        {tool === "members" ? <StaffMemberBrowser canRenew canEdit isSuperAdmin /> : tool === "archive" ? <SuperAdminArchivedMembers/> : <StaffMembershipQueue/>}
       </div>
     </main>
   );
