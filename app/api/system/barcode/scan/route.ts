@@ -54,7 +54,11 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const rawMembershipNumber = clean(body.barcode ?? body.membershipNumber);
-    const membershipNumber = normalizeBarcodePayload(rawMembershipNumber);
+    const originalPayload = normalizeBarcodePayload(rawMembershipNumber);
+    const scopedCandidates = scopedConflictCandidates(originalPayload);
+    // Upper-case only approved exception identifiers; do not touch ordinary scans.
+    const membershipNumber = scopedCandidates.length
+      ? originalPayload.toUpperCase() : originalPayload;
     const deviceId = clean(body.deviceId);
     const requestedGymId = clean(body.gymId);
     const gymId = auth.context.gymId || requestedGymId;
@@ -91,7 +95,6 @@ export async function POST(request: NextRequest) {
     let cardMatches: any[] = [];
     let ambiguousPhysicalCard = false;
     let existingOwnerIds: string[] = [];
-    const scopedCandidates = scopedConflictCandidates(membershipNumber);
     let activeLegacyClaimCount = 0;
 
     if (membershipNumber) {
