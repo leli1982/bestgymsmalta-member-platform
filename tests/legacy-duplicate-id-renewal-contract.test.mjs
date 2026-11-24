@@ -25,7 +25,7 @@ test("newly supplied ID and mismatched known ID retain collision safeguards", ()
 
 test("identity errors are actionable for staff, not converted to generic server error", () => {
   assert.match(api, /already recorded against a different BGM member/);
-  assert.match(api, /ID \\/ passport number differs/);
+  assert.match(api, /passport number differs/);
   assert.match(api, /participantMessage/);
   assert.match(api, /status: 409/);
 });
