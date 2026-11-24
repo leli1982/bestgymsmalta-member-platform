@@ -57,6 +57,7 @@ type ParticipantForm = {
   memberNumber: string;
   firstName: string;
   lastName: string;
+  previousExpiryDate: string;
   addressLine1: string;
   addressLine2: string;
   town: string;
@@ -124,6 +125,7 @@ function blankParticipant(): ParticipantForm {
     memberNumber: "",
     firstName: "",
     lastName: "",
+    previousExpiryDate: "",
     addressLine1: "",
     addressLine2: "",
     town: "",
@@ -184,6 +186,7 @@ function participantFromCandidate(candidate: Candidate): ParticipantForm {
     memberNumber: candidate.memberNumber,
     firstName: candidate.firstName || fallbackFirstName,
     lastName: candidate.lastName || fallbackLastName,
+    previousExpiryDate: candidate.membershipExpiry || "",
     addressLine1: candidate.addressLine1 || "",
     addressLine2: candidate.addressLine2 || "",
     town: candidate.town || "",
@@ -1264,6 +1267,21 @@ function ParticipantEditor({
       {kind === "renewal" && !participant.dateOfBirth && (
         <div role="alert" className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold text-amber-950">
           The old record has no date of birth. Enter the verified date below so the system can check age and guardian-consent requirements; this will be stored on the same BGM member when activated.
+        </div>
+      )}
+      {kind === "renewal" && (
+        <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+          <Field label="Previous Exp Date">
+            <EuropeanDateInput
+              value={participant.previousExpiryDate}
+              onValueChange={(value) => onChange(index, "previousExpiryDate", value)}
+              className={inputClass}
+            />
+          </Field>
+          <p className="mt-2 text-xs font-semibold text-zinc-600">
+            Filing reference only. Auto-filled from the existing member record; enter or correct the date if needed.
+            This does not change the membership expiry or renewal start date.
+          </p>
         </div>
       )}
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
