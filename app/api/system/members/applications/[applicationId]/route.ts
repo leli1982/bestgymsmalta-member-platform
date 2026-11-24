@@ -214,7 +214,7 @@ export async function GET(
       supabase
         .from("bgm_membership_application_members")
         .select(
-          "id, application_id, participant_order, first_name, last_name, address_line_1, address_line_2, town, postcode, id_number, date_of_birth, phone, email, next_of_kin, official_photo_path, existing_member_id, matched_member_id, identity_match_state, duplicate_contact_warning, under_18_at_submission, guardian_name, guardian_id_number, guardian_relationship, guardian_phone, guardian_email, guardian_address, id_verified_at, student_eligibility_verified_at, guardian_present_verified_at, guardian_cosign_verified_at, renewal_card_action, renewal_scanned_barcode, renewal_card_verified_at"
+          "id, application_id, participant_order, previous_expiry_date, first_name, last_name, address_line_1, address_line_2, town, postcode, id_number, date_of_birth, phone, email, next_of_kin, official_photo_path, existing_member_id, matched_member_id, identity_match_state, duplicate_contact_warning, under_18_at_submission, guardian_name, guardian_id_number, guardian_relationship, guardian_phone, guardian_email, guardian_address, id_verified_at, student_eligibility_verified_at, guardian_present_verified_at, guardian_cosign_verified_at, renewal_card_action, renewal_scanned_barcode, renewal_card_verified_at"
         )
         .eq("application_id", applicationId)
         .order("participant_order", { ascending: true }),
@@ -370,6 +370,7 @@ export async function GET(
             postcode: participant.postcode || "",
             idNumber: participant.id_number || "",
             dateOfBirth: participant.date_of_birth || "",
+            previousExpiryDate: application.application_kind === "renewal" ? participant.previous_expiry_date || "" : "",
             phone: participant.phone || "",
             email: participant.email || "",
             nextOfKin: participant.next_of_kin || "",
