@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { scopedConflictCandidates } from "@/lib/scopedCardConflictCandidates";
 import { requireSystemPermission } from "@/lib/systemAuth";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,24 @@ export async function POST(request: NextRequest) {
         .limit(50);
       if (legacyMatches.error) throw legacyMatches.error;
       memberIds = (legacyMatches.data || []).map((member) => member.id);
+    }
+
+    // For the 32 exception scans, include unassigned source candidates plus
+    // any currently assigned modern-card owner. Only these codes are affected.
+    const scoped = scopedConflictCandidates(scan.data.credential_value);
+    if (scoped.length) {
+      const [candidates, current] = await Promise.all([
+        db.from("bgm_members").select("id").in("member_number", scoped).is("archived_at", null),
+        db.from("bgm_member_card_credentials").select("member_id")
+          .ilike("barcode_value", scan.data.credential_value).eq("status", "active"),
+      ]);
+      if (candidates.error) throw candidates.error;
+      if (current.error) throw current.error;
+      memberIds = Array.from(new Set([
+        ...memberIds,
+        ...(candidates.data || []).map(m => m.id),
+        ...(current.data || []).map(c => c.member_id).filter((id): id is string => Boolean(id)),
+      ]));
     }
 
     const people = memberIds.length ? await db.from("bgm_members")

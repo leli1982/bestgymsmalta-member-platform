@@ -341,7 +341,11 @@ export default function BarcodeReceptionPage() {
           {renewalDaysRemaining !== null && result.member?.membershipExpiry && (
              <StaffScanRenewalBanner daysRemaining={renewalDaysRemaining} expiryDate={result.member.membershipExpiry} />
            )}
-           {Boolean(result.cardMatches?.length) && <CardConflictCards members={result.cardMatches || []} scanId={result.scanId} />}
+           {Boolean(result.cardMatches?.length) && <CardConflictCards members={result.cardMatches || []} scanId={result.scanId}
+              onResolved={(resolved) => {
+                setPhotoLoadFailed(false);
+                setResult(previous => previous ? { ...previous, ...resolved, cardMatches: [] } : previous);
+              }} />}
           {result.result === "ambiguous_card" && !result.cardMatches?.length && (result.legacyMatches || []).length > 0 && (
             <div className="mt-8 rounded-2xl border-4 border-red-200 bg-red-50 p-5">
               <p className="text-center text-2xl font-black text-red-700">
