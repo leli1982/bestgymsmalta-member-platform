@@ -44,7 +44,8 @@ test("no other member card can be removed or transferred", () => {
   assert.match(api, /candidateNumbers\.includes\(member\.member_number\)/);
   assert.match(api, /allCurrentOwners\.size > 0/);
   assert.match(api, /This physical card is already assigned to another member/);
-  assert.doesNotMatch(api, /\.delete\(\)/);
+  // Rollback is permitted only for the exact NEW credential created by this request.
+  assert.match(api, /\.delete\(\)\.eq\("id", assign\.data\.id\)\.eq\("member_id", member\.id\)/);
   assert.doesNotMatch(api, /\.update\(\{\s*status:\s*"retired"/);
   assert.match(api, /evaluateBarcodeAccess/);
   assert.match(api, /recordCanonicalCheckin/);
