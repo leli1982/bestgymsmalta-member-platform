@@ -17,6 +17,7 @@ export type DeclarationPrintSnapshot = {
 export type PrintableParticipant = {
   id: string;
   participantOrder: number;
+  previousExpiryDate?: string;
   firstName: string;
   lastName: string;
   addressLine1: string;
@@ -324,7 +325,9 @@ export default function MembershipA4Sheet({
             <Info label="Start date" value={formatEuropeanDate(application.startDate)} />
             <Info label="Expiry date" value={formatEuropeanDate(application.expiryDate)} />
             <Info label="Application" value={application.kind === "renewal" ? "Renewal" : "New membership"} />
-            <Info label="Status" value={application.status} />
+            {application.kind === "renewal"
+              ? <Info label="Previous Exp Date" value={formatEuropeanDate(participant.previousExpiryDate || "")} />
+              : <Info label="Status" value={application.status} />}
           </div>
         </section>
 
