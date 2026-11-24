@@ -601,7 +601,11 @@ export default function StaffGlobalScanner() {
                 OFFLINE CACHED ACCESS — evaluated from the last saved roster using today&apos;s Malta date. No live check-in has been recorded.
               </p>
             )}
-            {Boolean(result.cardMatches?.length) && <CardConflictCards members={result.cardMatches || []} scanId={result.scanId} />}
+            {Boolean(result.cardMatches?.length) && <CardConflictCards members={result.cardMatches || []} scanId={result.scanId}
+              onResolved={(resolved) => {
+                setPhotoLoadFailed(false);
+                setResult(previous => previous ? { ...previous, ...resolved, cardMatches: [] } : previous);
+              }} />}
             {result.member ? (
               <div className="mx-auto mt-4 grid max-w-5xl gap-5 text-left lg:grid-cols-[minmax(300px,420px)_minmax(0,1fr)] lg:items-center">
                 <div
