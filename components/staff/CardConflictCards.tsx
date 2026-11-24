@@ -35,7 +35,9 @@ export type CardConflictResolution = {
 };
 
 function effectiveMembershipStatus(member: CardConflictMember) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Malta", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
   if (String(member.status || "").toLowerCase() !== "active") return "INACTIVE";
   if (member.membershipExpiry && member.membershipExpiry < today) return "EXPIRED";
   return "ACTIVE";
