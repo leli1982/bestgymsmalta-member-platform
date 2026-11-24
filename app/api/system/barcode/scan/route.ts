@@ -4,6 +4,7 @@ import { recordCanonicalCheckin } from "@/lib/checkinService";
 import { normalizeBarcodePayload } from "@/lib/memberCardCredentialCore";
 import { todayMaltaDate } from "@/lib/maltaDate";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { scopedConflictCandidates } from "@/lib/scopedCardConflictCandidates";
 import { requireSystemPermission } from "@/lib/systemAuth";
 
 export const dynamic = "force-dynamic";
@@ -89,6 +90,8 @@ export async function POST(request: NextRequest) {
       | null = null;
     let cardMatches: any[] = [];
     let ambiguousPhysicalCard = false;
+    let existingOwnerIds: string[] = [];
+    const scopedCandidates = scopedConflictCandidates(membershipNumber);
     let activeLegacyClaimCount = 0;
 
     if (membershipNumber) {
@@ -107,11 +110,27 @@ export async function POST(request: NextRequest) {
 
       const claimIds = (claimsResult.data || []).map((claim) => claim.member_id);
       if (card?.status === "active" && card.member_id) claimIds.push(card.member_id);
+      existingOwnerIds = Array.from(new Set(claimIds));
       if (claimIds.length) {
         const claimedResult = await supabase.from("bgm_members").select(MEMBER_SELECT)
           .in("id", Array.from(new Set(claimIds)));
         if (claimedResult.error) throw claimedResult.error;
-        const allClaims = claimedResult.data || [];
+        let allClaims = claimedResult.data || [];
+        // Only the 32 frozen November exceptions get an extra candidate lookup.
+        // Once a scoped member owns this exact card, future scans are normal.
+        const scopedOwner = allClaims.some((candidate) =>
+          scopedCandidates.includes(candidate.member_number)
+        );
+        if (scopedCandidates.length && !scopedOwner) {
+          const scopedResult = await supabase.from("bgm_members")
+            .select(MEMBER_SELECT).in("member_number", scopedCandidates)
+            .is("archived_at", null);
+          if (scopedResult.error) throw scopedResult.error;
+          const known = new Set(allClaims.map((candidate) => candidate.id));
+          allClaims = [...allClaims, ...(scopedResult.data || []).filter(
+            (candidate) => !known.has(candidate.id)
+          )];
+        }
         const activeClaims = allClaims.filter((candidate) => accessFor(candidate, gymId).granted);
         credentialKind = "physical_card";
 
@@ -134,6 +153,20 @@ export async function POST(request: NextRequest) {
         if (memberResult.error) throw memberResult.error;
         member = memberResult.data;
       } else if (!claimIds.length && !card) {
+        // Unassigned source Scan3: show only the pre-approved 32 exceptions.
+        // This does not change any unrelated member's scan flow.
+        if (scopedCandidates.length) {
+          const scopedResult = await supabase.from("bgm_members")
+            .select(MEMBER_SELECT).in("member_number", scopedCandidates)
+            .is("archived_at", null);
+          if (scopedResult.error) throw scopedResult.error;
+          if ((scopedResult.data || []).length) {
+            cardMatches = scopedResult.data || [];
+            ambiguousPhysicalCard = true;
+            credentialKind = "physical_card";
+          }
+        }
+        if (!ambiguousPhysicalCard) {
         const memberNumberResult = await supabase
           .from("bgm_members")
           .select(MEMBER_SELECT)
@@ -170,6 +203,7 @@ export async function POST(request: NextRequest) {
             member = legacyMembers[0];
             credentialKind = "legacy_pk_customer";
           }
+        }
         }
       }
     }
@@ -324,6 +358,8 @@ export async function POST(request: NextRequest) {
               photoUrl: candidate.official_photo_path
                 ? `/api/system/members/photo/${encodeURIComponent(candidate.id)}?inline=1`
                 : null,
+              isExistingCardOwner: existingOwnerIds.includes(candidate.id),
+              isScopedCandidate: scopedCandidates.includes(candidate.member_number),
             };
           }))
         : [],
