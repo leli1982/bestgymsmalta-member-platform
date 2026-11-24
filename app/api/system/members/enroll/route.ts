@@ -624,7 +624,7 @@ export async function POST(request: NextRequest) {
 
       const participantMessage = String(participantResult.error.message || "");
       const expectedParticipantValidation =
-        /active membership already exists|selected renewal member|renewal requires an existing member|identity/i.test(
+        /active membership already exists|selected renewal member|renewal requires an existing member|identity|already recorded against a different BGM member|ID \/ passport number differs|was not found or was archived/i.test(
           participantMessage
         );
 
