@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const noStore = { "Cache-Control": "private, no-store, max-age=0" };
-const COLS = "id,member_number,full_name,first_name,last_name,id_number,address_line_1,address_line_2,town,postcode,country,mobile,phone,telephone_no_1,telephone_no_2,email,next_of_kin,updated_at,archived_at";
+const COLS = "id,member_number,full_name,first_name,last_name,id_number,address_line_1,address_line_2,town,postcode,country,mobile,phone,telephone_no_1,telephone_no_2,email,next_of_kin,updated_at,archived_at,official_photo_path";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ memberId: string }> }) {
   try {
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
     return NextResponse.json({
       member: { id: member.id, memberNumber: member.member_number, fullName: member.full_name,
-        updatedAt: member.updated_at, profile },
+        updatedAt: member.updated_at, photoUrl: member.official_photo_path ? `/api/system/members/photo/${member.id}?inline=1&v=${encodeURIComponent(member.updated_at)}` : null, profile },
     }, { headers: noStore });
   } catch (error) {
     console.error(error);
