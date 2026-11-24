@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import StaffRegistrationPhotoControls from "@/components/staff/StaffRegistrationPhotoControls";
 import { ArrowLeft, CreditCard, Save, ShieldCheck } from "lucide-react";
 import { STAFF_PERSONAL_DETAIL_FIELDS, type StaffPersonalDetails } from "@/lib/staffMemberPersonalDetailsCore";
 
 type MemberRecord = {
   id: string; memberNumber: string; fullName: string; updatedAt: string;
   profile: StaffPersonalDetails;
+  photoUrl?: string | null;
 };
 
 const FIELDS: Array<{ key: keyof StaffPersonalDetails; label: string; type?: string; wide?: boolean }> = [
@@ -29,6 +31,9 @@ const FIELDS: Array<{ key: keyof StaffPersonalDetails; label: string; type?: str
 export default function StaffMemberPersonalDetailsEditor({ memberId }: { memberId: string }) {
   const [record, setRecord] = useState<MemberRecord | null>(null);
   const [profile, setProfile] = useState<StaffPersonalDetails | null>(null);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [preview, setPreview] = useState("");
+  useEffect(() => { if (!photo) { setPreview(""); return; } const url = URL.createObjectURL(photo); setPreview(url); return () => URL.revokeObjectURL(url); }, [photo]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -68,11 +73,12 @@ export default function StaffMemberPersonalDetailsEditor({ memberId }: { memberI
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!record || !profile || saving) return;
-    if (!changed) { setError("No changes to save."); return; }
+    if (!changed && !photo) { setError("No changes to save."); return; }
     setSaving(true);
     setError("");
     setMessage("");
     try {
+      if (changed) {
       const response = await fetch("/api/system/members/" + encodeURIComponent(memberId) + "/personal-details", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -81,8 +87,17 @@ export default function StaffMemberPersonalDetailsEditor({ memberId }: { memberI
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not save these details.");
+      if (data.updatedAt) setRecord(old => old ? { ...old, updatedAt: data.updatedAt, profile } : old);
+      }
+      if (photo) {
+        const body = new FormData(); body.set("memberId", memberId); body.set("file", photo); body.set("source", "reception_capture");
+        const response = await fetch("/api/system/members/photo", { method: "POST", body });
+        const data = await response.json();
+        if (!response.ok || !data.ok || !data.captured) throw new Error((changed ? "Personal details saved. Photo not saved: " : "") + (data.error || "Could not save photo."));
+        setPhoto(null);
+      }
       await load();
-      setMessage("Personal details saved successfully. The change has been recorded in the audit trail.");
+      setMessage("Changes saved successfully and recorded in the audit trail.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save these details.");
     } finally {
@@ -113,6 +128,12 @@ export default function StaffMemberPersonalDetailsEditor({ memberId }: { memberI
           </section>
           <form onSubmit={save} className="rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6" noValidate>
             <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-orange-600" /><h2 className="text-lg font-black">Personal details</h2></div>
+            <fieldset disabled={saving} className="mt-4 space-y-3">
+              <legend className="font-bold">Member photo</legend>
+              {(preview || record.photoUrl) && <img src={preview || record.photoUrl || ""} alt={photo ? "New photo preview" : "Current member photo"} className="h-40 w-40 rounded-xl object-cover" />}
+              <StaffRegistrationPhotoControls existingPhotoUrl={record.photoUrl} onCaptured={setPhoto} onUploaded={setPhoto} onPhotoLater={() => setPhoto(null)} />
+              {photo && <p className="text-sm font-bold">New photo selected. Save changes to replace the official photo.</p>}
+            </fieldset>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               {FIELDS.map(({ key, label, type, wide }) =>
                 <label key={key} className={wide ? "block sm:col-span-2" : "block"}>
@@ -125,8 +146,8 @@ export default function StaffMemberPersonalDetailsEditor({ memberId }: { memberI
             </div>
             {error && <p role="alert" aria-live="assertive" className="mt-5 rounded-xl border-2 border-red-500 bg-red-50 p-4 text-sm font-black text-red-900">{error}</p>}
             {message && <p role="status" className="mt-5 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">{message}</p>}
-            <button type="submit" disabled={saving || !changed} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#ffb400] px-5 py-4 text-base font-black text-zinc-950 disabled:cursor-not-allowed disabled:opacity-40">
-              <Save className="h-5 w-5" /> {saving ? "SAVING…" : "SAVE PERSONAL DETAILS"}
+            <button type="submit" disabled={saving || (!changed && !photo)} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#ffb400] px-5 py-4 text-base font-black text-zinc-950 disabled:cursor-not-allowed disabled:opacity-40">
+              <Save className="h-5 w-5" /> {saving ? "SAVING…" : "SAVE CHANGES"}
             </button>
             <p className="mt-3 text-center text-xs font-semibold text-zinc-600">Only these personal fields can be saved. All corrections are audited. For membership term corrections, contact Super Admin.</p>
           </form>
