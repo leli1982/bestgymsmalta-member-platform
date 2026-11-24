@@ -40,6 +40,13 @@ export default function StaffMemberPersonalDetailsEditor({ memberId }: { memberI
     try {
       const response = await fetch("/api/system/members/" + encodeURIComponent(memberId) + "/personal-details", { cache: "no-store" });
       const data = await response.json();
+      // Preserve old staff-edit bookmarks for Super Admin accounts. The
+      // authoritative staff-only API rejects them and directs them to the
+      // privileged editor; follow that route instead of showing an error.
+      if (response.status === 403 && data.error === "Use the Super Admin member editor.") {
+        window.location.replace(`/staff/admin/members/${encodeURIComponent(memberId)}`);
+        return;
+      }
       if (!response.ok) throw new Error(data.error || "Unable to load personal details.");
       setRecord(data.member as MemberRecord);
       setProfile(data.member.profile as StaffPersonalDetails);
