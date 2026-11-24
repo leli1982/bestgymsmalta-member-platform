@@ -39,6 +39,7 @@ type Participant = {
   postcode: string;
   idNumber: string;
   dateOfBirth: string;
+  previousExpiryDate?: string;
   phone: string;
   email: string;
   nextOfKin: string;
@@ -893,6 +894,12 @@ export default function StaffMembershipReviewModal({
                   key={participantForm.id}
                   className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6"
                 >
+                  {application.kind === "renewal" && (
+                    <div className="mb-4 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-800">
+                      <strong>Previous Exp Date:</strong> {formatEuropeanDate(participant?.previousExpiryDate || "")}
+                      <span className="ml-2 text-xs text-zinc-500">Filing reference only</span>
+                    </div>
+                  )}
                   {needsReview && participant?.identityMatchState === "active" && !reusesExistingMember && (
                     <div className="mb-5 rounded-2xl border-2 border-red-300 bg-red-50 p-4">
                       <p className="text-sm font-black text-red-800">Existing active membership found</p>
