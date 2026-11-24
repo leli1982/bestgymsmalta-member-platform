@@ -12,6 +12,7 @@ export type DeclarationPrintSnapshot = {
 export type PrintableParticipant = {
   id: string;
   participantOrder: number;
+  previousExpiryDate?: string;
   firstName: string;
   lastName: string;
   addressLine1: string;
@@ -98,7 +99,7 @@ export async function loadPrintableMembershipApplication(applicationId: string):
     supabase
       .from("bgm_membership_application_members")
       .select(
-        "id, participant_order, first_name, last_name, address_line_1, address_line_2, town, postcode, id_number, date_of_birth, phone, email, next_of_kin, official_photo_path, existing_member_id, reserved_member_number, renewal_scanned_barcode, under_18_at_submission, guardian_name, guardian_id_number, guardian_relationship, guardian_phone, guardian_email, guardian_address, id_verified_at, student_eligibility_verified_at, guardian_present_verified_at, guardian_cosign_verified_at"
+        "id, participant_order, previous_expiry_date, first_name, last_name, address_line_1, address_line_2, town, postcode, id_number, date_of_birth, phone, email, next_of_kin, official_photo_path, existing_member_id, reserved_member_number, renewal_scanned_barcode, under_18_at_submission, guardian_name, guardian_id_number, guardian_relationship, guardian_phone, guardian_email, guardian_address, id_verified_at, student_eligibility_verified_at, guardian_present_verified_at, guardian_cosign_verified_at"
       )
       .eq("application_id", applicationId)
       .order("participant_order", { ascending: true }),
@@ -183,6 +184,7 @@ export async function loadPrintableMembershipApplication(applicationId: string):
     return {
       id: participant.id,
       participantOrder: participant.participant_order,
+      previousExpiryDate: application.application_kind === "renewal" ? participant.previous_expiry_date || "" : "",
       firstName: participant.first_name || "",
       lastName: participant.last_name || "",
       addressLine1: participant.address_line_1 || "",

@@ -73,6 +73,10 @@ function participantPayload(participant: any, participantOrder: number, kind: st
   const firstName = clean(participant?.firstName);
   const lastName = clean(participant?.lastName);
   const existingMemberId = clean(participant?.existingMemberId);
+  const previousExpiryDate = clean(participant?.previousExpiryDate);
+  if (kind === "renewal" && previousExpiryDate && !isIsoDate(previousExpiryDate)) {
+    throw new Error(`Participant ${participantOrder}: Previous Exp Date must be a valid date.`);
+  }
 
   if (!firstName || !lastName) {
     throw new Error(`Participant ${participantOrder} first name and surname are required.`);
@@ -93,6 +97,7 @@ function participantPayload(participant: any, participantOrder: number, kind: st
     postcode: optional(participant?.postcode),
     id_number: optional(participant?.idNumber),
     date_of_birth: optional(participant?.dateOfBirth),
+    previous_expiry_date: kind === "renewal" ? (previousExpiryDate || null) : null,
     phone: optional(participant?.phone),
     email: normalizeEmail(participant?.email),
     next_of_kin: optional(participant?.nextOfKin),
@@ -661,6 +666,7 @@ export async function POST(request: NextRequest) {
           postcode: participant.postcode,
           idNumber: participant.id_number,
           dateOfBirth: participant.date_of_birth,
+          previousExpiryDate: kind === "renewal" ? participant.previous_expiry_date : null,
           phone: participant.phone,
           email: participant.email,
           nextOfKin: participant.next_of_kin,
