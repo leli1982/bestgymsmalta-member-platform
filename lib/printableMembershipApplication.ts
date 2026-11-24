@@ -12,7 +12,7 @@ export type DeclarationPrintSnapshot = {
 export type PrintableParticipant = {
   id: string;
   participantOrder: number;
-  previousExpiryDate: string;
+  previousExpiryDate?: string;
   firstName: string;
   lastName: string;
   addressLine1: string;
