@@ -9,6 +9,7 @@ export function classifyStaffMember(input: {
   cancellationEffectiveDate?: string | null;
   today: string;
 }): StaffMemberClassification {
+  if (!input.membershipExpiry) return "inactive";
   const result = evaluateBarcodeAccess({
     member: {
       status: input.status,
