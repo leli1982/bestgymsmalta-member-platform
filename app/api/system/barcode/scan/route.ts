@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
     let ambiguousPhysicalCard = false;
     let existingOwnerIds: string[] = [];
     let activeLegacyClaimCount = 0;
+    let pendingLegacyIds: string[] = [];
 
     if (membershipNumber) {
       const claimsResult = await supabase.from("bgm_legacy_card_claims")
@@ -108,6 +109,9 @@ export async function POST(request: NextRequest) {
         .eq("barcode_value", membershipNumber)
         .maybeSingle();
       if (cardResult.error) throw cardResult.error;
+      const pending = await supabase.from("bgm_pending_legacy_card_verifications").select("member_id").eq("scan3", membershipNumber.toUpperCase()).eq("status", "pending");
+      if (pending.error) throw pending.error;
+      pendingLegacyIds = (pending.data || []).map(row => row.member_id);
       card = cardResult.data;
       if (card) credentialKind = "physical_card";
 
@@ -211,6 +215,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (pendingLegacyIds.length && membershipNumber) {
+      const candidates = await supabase.from("bgm_members").select(MEMBER_SELECT)
+        .in("id", Array.from(new Set([...pendingLegacyIds, ...existingOwnerIds])))
+        .is("archived_at", null).neq("status", "archived");
+      if (candidates.error) throw candidates.error;
+      if ((candidates.data || []).length) {
+        cardMatches = candidates.data || [];
+        member = null;
+        ambiguousPhysicalCard = true;
+        credentialKind = "physical_card";
+      }
+    }
     let decision: {
       result:
         | "granted"
@@ -363,9 +379,8 @@ export async function POST(request: NextRequest) {
                 : null,
               isExistingCardOwner: existingOwnerIds.includes(candidate.id),
               isScopedCandidate: scopedCandidates.includes(candidate.member_number),
-              canResolveSharedLegacy: activeLegacyClaimCount > 1 && !card &&
-                existingOwnerIds.includes(candidate.id) &&
-                cardMatches.every(match => existingOwnerIds.includes(match.id)),
+              canResolveSharedLegacy: (activeLegacyClaimCount > 1 || pendingLegacyIds.length > 0) && !card &&
+                cardMatches.every(match => existingOwnerIds.includes(match.id) || pendingLegacyIds.includes(match.id)),
             };
           }))
         : [],
