@@ -58,7 +58,7 @@ test("member browser exposes browse search and All Active Expired filters", () =
 test("member browser keeps profile fields read-only while exposing canonical status labels and controlled renewal", () => {
   assert.match(browser, /ACTIVE/);
   assert.match(browser, /EXPIRED/);
-  assert.match(browser, /INACTIVE/);
+  assert.doesNotMatch(browser, /INACTIVE/);
   assert.doesNotMatch(browser, /Save Member|Update Member|Delete Member/);
   assert.match(browser, /canRenew/);
   assert.match(browser, /RENEW MEMBERSHIP/);
