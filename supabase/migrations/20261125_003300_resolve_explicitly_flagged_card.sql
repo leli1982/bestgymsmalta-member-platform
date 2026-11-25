@@ -56,6 +56,9 @@ begin
  where p.scan3=v_code and p.status='pending' and m.archived_at is null and m.status<>'archived';
  select array_agg(distinct x order by x) into v_ids from unnest(coalesce(v_claim_ids,'{}'::uuid[])||coalesce(v_pending_ids,'{}'::uuid[])) x;
  if v_has_modern then
+   if exists(select 1 from public.bgm_pending_legacy_card_verifications where scan3=v_code and status='pending' and source_row_number is not null) then
+     raise exception 'Existing modern or NFC credential requires Super Admin review.';
+   end if;
    select array_agg(distinct x order by x) into v_ids from unnest(coalesce(v_pending_ids,'{}'::uuid[])||array[v_modern.member_id]) x;
    if v_ids is distinct from v_flag_ids then raise exception 'Flagged card candidates changed. Rescan.'; end if;
  end if;
