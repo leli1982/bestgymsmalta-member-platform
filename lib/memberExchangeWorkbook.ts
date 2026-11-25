@@ -246,15 +246,16 @@ export async function parseMemberExchangeXlsx(
 }
 
 export async function buildMemberExchangeXlsx(
-  rows: readonly ParsedMemberExchangeRow[]
+  rows: readonly ParsedMemberExchangeRow[],
+  headers: readonly MemberExchangeHeader[] = MEMBER_EXCHANGE_HEADERS
 ): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("AllCustomers");
-  sheet.addRow([...MEMBER_EXCHANGE_HEADERS]);
+  sheet.addRow([...headers]);
   sheet.getRow(1).font = { bold: true };
 
   for (const row of rows) {
-    const output = MEMBER_EXCHANGE_HEADERS.map((header) => {
+    const output = headers.map((header) => {
       const value = row.values[header] ?? "";
       if (header !== "ExpiryDate1" || !value) return value;
       return parseExportDate(value) ?? value;
@@ -262,7 +263,7 @@ export async function buildMemberExchangeXlsx(
     const excelRow = sheet.addRow(output);
     excelRow.getCell(1).numFmt = "@";
     excelRow.getCell(3).numFmt = "@";
-    const expiryIndex = MEMBER_EXCHANGE_HEADERS.indexOf("ExpiryDate1") + 1;
+    const expiryIndex = headers.indexOf("ExpiryDate1") + 1;
     if (excelRow.getCell(expiryIndex).value instanceof Date) {
       excelRow.getCell(expiryIndex).numFmt = "dd/mm/yyyy";
     }
@@ -276,6 +277,11 @@ export async function buildMemberExchangeXlsx(
     else column.width = 16;
   });
 
+  const cardIndex = headers.indexOf("CardBarcode") + 1;
+  if (cardIndex > 0) {
+    sheet.getColumn(cardIndex).numFmt = "@";
+    sheet.getColumn(cardIndex).width = 24;
+  }
   const output = await workbook.xlsx.writeBuffer();
   return Buffer.from(output);
 }
