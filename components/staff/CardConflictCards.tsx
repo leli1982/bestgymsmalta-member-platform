@@ -63,7 +63,7 @@ export default function CardConflictCards({ members, scanId, onResolved }: {
       return;
     }
     if (!window.confirm(sharedLegacy
-      ? `I have verified ${member.fullName} (${member.memberNumber}) as the owner of this physical card. Competing legacy card claims will be removed, but every member account and membership will be retained. Proceed?`
+      ? `I have verified ${member.fullName} (${member.memberNumber}) as the owner of this physical card. Only the conflicting card ownership will be corrected; every member account and membership will be retained. Proceed?`
       : isOwner
       ? `I have checked the person against the member details and confirm ${member.fullName} (${member.memberNumber}) for THIS visit. No card ownership will change.`
       : `I have checked the person against their identity/photo and confirm permanently assigning the SCANNED card to ${member.fullName} (${member.memberNumber}). This will affect future scans. Proceed?`)) return;
@@ -105,7 +105,7 @@ export default function CardConflictCards({ members, scanId, onResolved }: {
       <h2 className="text-center text-2xl font-black text-amber-900">Shared physical card / Scan3</h2>
       <p className="mt-2 text-center text-sm font-bold text-amber-900">
         This scan matches {members.length} possible members. Verify the person in front of you; no entry has been recorded yet.
-        {sharedLegacy ? " Confirming the correct person resolves only the competing legacy card claims. No member accounts are removed." : scoped && " Verified card ownership is protected."}
+        {sharedLegacy ? " Confirming the correct person resolves only this card conflict. No member accounts are removed." : scoped && " Verified card ownership is protected."}
       </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {members.map((m) => (
