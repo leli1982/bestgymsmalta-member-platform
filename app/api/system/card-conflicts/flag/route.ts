@@ -37,6 +37,12 @@ export async function POST(request: NextRequest) {
       memberIds = (legacyMatches.data || []).map((member) => member.id);
     }
 
+    const pending = await db.from("bgm_pending_legacy_card_verifications")
+      .select("member_id").eq("scan3", scan.data.credential_value.toUpperCase()).eq("status", "pending");
+    if (pending.error) throw pending.error;
+    const pendingIds = (pending.data || []).map(row => row.member_id);
+    memberIds = Array.from(new Set([...memberIds, ...pendingIds]));
+
     // For the 32 exception scans, include unassigned source candidates plus
     // any currently assigned modern-card owner. Only these codes are affected.
     const scoped = scopedConflictCandidates(scan.data.credential_value);
@@ -60,7 +66,7 @@ export async function POST(request: NextRequest) {
       .in("id", Array.from(new Set(memberIds))) : { data: [], error: null };
     if (people.error) throw people.error;
     const conflictMembers = (people.data || []).filter((m) => m.status !== "archived");
-    if (conflictMembers.length < 2) {
+    if (conflictMembers.length < 2 && !(pendingIds.length && conflictMembers.length)) {
       return NextResponse.json({ error: "The card is no longer conflicted." }, { status: 409 });
     }
     let review = await db.from("bgm_card_conflict_reviews").select("id")
