@@ -13,9 +13,8 @@ function clean(value: unknown) {
 }
 
 /**
- * Staff verification for ONLY the 32 Nov 2026 Scan3 exceptions.
- * Existing card owners are NEVER reassigned here. If staff identify an
- * existing owner they may simply complete that person's check-in.
+ * Staff verification for scoped exceptions and current shared legacy claims.
+ * Modern and NFC credentials are never transferred by this route.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -50,9 +49,6 @@ export async function POST(request: NextRequest) {
 
     const code = clean(scan.credential_value).toUpperCase();
     const candidateNumbers = scopedConflictCandidates(code);
-    if (!candidateNumbers.length) {
-      return NextResponse.json({ error: "This is not one of the 32 scoped card conflicts." }, { status: 403 });
-    }
     const memberResult = await db.from("bgm_members")
       .select("id,member_number,full_name,status,membership_expiry,cancellation_effective_date,archived_at,access_scope,access_gym_id,pending_access_scope,pending_access_gym_id,pending_access_effective_date,enrollment_gym_id,official_photo_path")
       .eq("id", memberId).maybeSingle();
@@ -84,6 +80,11 @@ export async function POST(request: NextRequest) {
     ]);
     const isExistingOwner = allCurrentOwners.has(member.id);
     const isScopedCandidate = candidateNumbers.includes(member.member_number);
+    const currentLegacyIds = (legacy.data || []).filter(x => x.assignment_status === "active").map(x => x.member_id);
+    const sharedLegacy = currentLegacyIds.length > 1 && !(modern.data || []).length && !(nfc.data || []).length;
+    if (!candidateNumbers.length && !sharedLegacy) {
+      return NextResponse.json({ error: "This card is not an eligible shared legacy conflict. Please rescan or ask Super Admin." }, { status: 403 });
+    }
     if (!isExistingOwner && !isScopedCandidate) {
       return NextResponse.json({ error: "The selected member is not a verified match for this scanned card." }, { status: 403 });
     }
@@ -107,7 +108,22 @@ export async function POST(request: NextRequest) {
     }
 
     let permanentlyAssigned = false;
-    if (!isExistingOwner) {
+    if (body.resolveSharedLegacy === true) {
+      if (!sharedLegacy || !currentLegacyIds.includes(member.id) || !Array.isArray(body.expectedMemberIds) ||
+          !body.expectedMemberIds.every((id: unknown) => typeof id === "string")) {
+        return NextResponse.json({ error: "Shared card claims changed. Rescan before confirming." }, { status: 409 });
+      }
+      const resolved = await db.rpc("bgm_staff_resolve_shared_legacy_card", {
+        p_scan_id: scan.id, p_staff_id: auth.context.systemUserId, p_member_id: member.id,
+        p_expected_ids: body.expectedMemberIds,
+      });
+      if (resolved.error || !resolved.data?.resolved) {
+        return NextResponse.json({ error: "Shared card could not be resolved safely. Rescan or flag to Super Admin." }, { status: 409 });
+      }
+      permanentlyAssigned = true;
+    } else if (sharedLegacy && !candidateNumbers.length) {
+      return NextResponse.json({ error: "Confirm the shared legacy card assignment first." }, { status: 409 });
+    } else if (!isExistingOwner) {
       // Never steal a card from any existing owner (inside OR outside the 32).
       if (allCurrentOwners.size > 0) {
         return NextResponse.json({
