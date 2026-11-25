@@ -640,11 +640,11 @@ export default function StaffGlobalScanner() {
                   <p className="mt-1 text-sm font-semibold text-zinc-500">Status: {result.member.status}</p>
                 </div>
               </div>
-            ) : (
+            ) : !result.cardMatches?.length && result.result !== "ambiguous_card" ? (
               <p className="mt-5 text-lg font-bold text-red-800">
                 This scanned identifier does not identify one verified active member.
               </p>
-            )}
+            ) : null}
             {!granted && (
               <p className="mt-5 rounded-2xl bg-red-50 p-4 text-lg font-black text-red-800">
                 DO NOT ALLOW ACCESS until verified by reception.
