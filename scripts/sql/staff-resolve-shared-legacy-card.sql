@@ -11,6 +11,7 @@ declare
  v_expected uuid[];
  v_today date := (now() at time zone 'Europe/Malta')::date;
  v_member public.bgm_members%rowtype;
+ v_result text;
 begin
  select * into s from public.bgm_access_scans where id=p_scan_id for update;
  if not found or s.system_user_id<>p_staff_id or s.credential_type<>'barcode'
@@ -38,13 +39,16 @@ begin
    raise exception 'Card claims changed. Rescan before confirming.';
  end if;
  select * into v_member from public.bgm_members where id=p_member_id for update;
- if not found or v_member.archived_at is not null or v_member.status<>'active'
-   or v_member.membership_expiry is null or v_member.membership_expiry<v_today
-   or (v_member.cancellation_effective_date is not null and v_member.cancellation_effective_date<=v_today)
- then raise exception 'Member does not have a current membership.'; end if;
- if (case when v_member.pending_access_effective_date<=v_today then v_member.pending_access_scope else v_member.access_scope end)<>'network'
-   and (case when v_member.pending_access_effective_date<=v_today then v_member.pending_access_gym_id else v_member.access_gym_id end) is distinct from s.gym_id
- then raise exception 'Membership does not allow access at this gym.'; end if;
+ if not found or v_member.archived_at is not null or v_member.status='archived'
+ then raise exception 'Member unavailable.'; end if;
+ -- Identity resolution is independent of access eligibility.
+ v_result := case
+   when v_member.cancellation_effective_date<=v_today then 'inactive'
+   when v_member.membership_expiry<v_today then 'expired'
+   when v_member.status<>'active' or v_member.membership_expiry is null then 'inactive'
+   when (case when v_member.pending_access_scope is not null and v_member.pending_access_effective_date<=v_today then v_member.pending_access_scope else v_member.access_scope end)<>'network'
+    and (case when v_member.pending_access_scope is not null and v_member.pending_access_effective_date<=v_today then v_member.pending_access_gym_id else v_member.access_gym_id end) is distinct from s.gym_id then 'restricted_gym'
+   else 'granted' end;
  if not exists(select 1 from public.bgm_gyms where id=s.gym_id and status='active') then raise exception 'Gym unavailable.'; end if;
  -- Only deactivate competing unverified claims for this precise Scan3.
  update public.bgm_legacy_card_claims set assignment_status='removed',updated_at=now()
@@ -56,7 +60,10 @@ begin
  update public.bgm_card_conflict_reviews set status='resolved',resolved_by_system_user_id=p_staff_id,
    resolved_at=now(),resolution_note='Staff verified the person and resolved competing legacy card claims.'
  where scan3=v_code and status='unresolved';
- return jsonb_build_object('resolved',true,'memberId',p_member_id);
+ update public.bgm_access_scans set result=v_result,member_id=p_member_id,
+ membership_expiry_snapshot=v_member.membership_expiry,photo_required_warning=(v_member.official_photo_path is null)
+ where id=p_scan_id;
+ return jsonb_build_object('resolved',true,'memberId',p_member_id,'result',v_result);
 end;
 $$;
 revoke all on function public.bgm_staff_resolve_shared_legacy_card(uuid,uuid,uuid,uuid[]) from public,anon,authenticated;
