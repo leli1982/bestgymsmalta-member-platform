@@ -140,7 +140,7 @@ export default function StaffDashboard({ user, onLogout }: Props) {
           {user.isSuperAdmin && <Tile label="Membership Settings" icon={Settings2} href="/staff/membership-settings" />}
         </section>
 
-        <div className="mt-5"><StaffMembershipQueue refreshToken={queueRefreshToken} onCountChange={setQueueCount} compact /></div>
+        <div className="mt-5"><StaffMembershipQueue autoOpen={!user.isSuperAdmin} refreshToken={queueRefreshToken} onCountChange={setQueueCount} compact /></div>
 
         {membersOpen && (
           <div className="mt-5">
