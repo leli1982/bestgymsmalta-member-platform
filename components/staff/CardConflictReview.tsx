@@ -16,6 +16,8 @@ type Group = {
 
 export default function CardConflictReview() {
   const [groups, setGroups] = useState<Group[]>([]);
+  const [pending, setPending] = useState<Array<{scan3:string;memberId:string;memberNumber?:string;fullName?:string;membershipExpiry?:string|null;status?:string;flagged:boolean}>>([]);
+  const [identity, setIdentity] = useState<Array<{source_row_number:number;legacy_pk_customer:string|null;source_scan3:string|null;review_reason:string}>>([]);
   const [ready, setReady] = useState<Array<{ id: string; scan3: string; flaggedAt: string }>>([]);
   const [open, setOpen] = useState("");
   const [newCard, setNewCard] = useState<Record<string, string>>({});
@@ -29,6 +31,8 @@ export default function CardConflictReview() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not load conflicts.");
       setGroups(data.conflicts || []);
+      setPending(data.pendingVerifications || []);
+      setIdentity(data.identityReviews || []);
       setReady(data.flaggedWithoutActiveConflict || []);
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not load conflicts."); }
   }, []);
@@ -68,6 +72,20 @@ export default function CardConflictReview() {
       <p className="mt-3 font-bold">{groups.length} active card conflicts · {groups.filter(g => g.reviewId).length} flagged for review</p>
       {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-red-800">{error}</p>}
       {message && <p role="status" className="mt-4 rounded-xl bg-green-50 p-3 text-green-800">{message}</p>}
+      <details className="mt-4 rounded-xl border bg-white p-4">
+        <summary className="cursor-pointer font-black">{pending.length} imported cards awaiting staff verification</summary>
+        <p className="mt-2 text-sm">These source card numbers are not assigned until the member is verified at reception.</p>
+        {pending.map(item => <div key={item.scan3+item.memberId} className="mt-2 border-t pt-2 text-sm">
+          <span className="font-mono font-bold">{item.scan3}</span> · <a className="font-bold underline" href={`/staff/admin/members/${encodeURIComponent(item.memberId)}`}>{item.memberNumber} {item.fullName}</a> · {item.status} · {formatEuropeanDate(item.membershipExpiry || null)} {item.flagged && "· FLAGGED"}
+        </div>)}
+      </details>
+      <details className="mt-4 rounded-xl border bg-white p-4">
+        <summary className="cursor-pointer font-black">{identity.length} source records requiring identity review</summary>
+        <p className="mt-2 text-sm">No member account was created from these ambiguous rows. Verify the legacy record before enrollment.</p>
+        {identity.map(item => <div key={item.source_row_number} className="mt-2 border-t pt-2 text-sm">
+          <span className="font-bold">Source row {item.source_row_number}</span> · Legacy {item.legacy_pk_customer || "unknown"} · Scan3 {item.source_scan3 || "unknown"} · {item.review_reason}
+        </div>)}
+      </details>
       <div className="mt-6 space-y-3">
         {ready.map(item => <section key={item.id} className="rounded-2xl border border-emerald-200 bg-white p-4">
           <h2 className="font-black">Scan3 {item.scan3} · ready to resolve</h2>
