@@ -5,9 +5,9 @@ const read = (p) => fs.readFileSync(new URL("../"+p, import.meta.url),"utf8");
 const scan=read("app/api/system/barcode/scan/route.ts");
 const ui=read("components/staff/CardConflictCards.tsx");
 const api=read("app/api/system/card-conflicts/assign/route.ts");
-const sql=read("supabase/migrations/20261125_003200_resolve_pending_legacy_card_verifications.sql");
+const sql=read("supabase/migrations/20261125_003300_resolve_explicitly_flagged_card.sql");
 test("shared legacy claims enable staff confirmation outside frozen exceptions",()=>{
- assert.match(scan,/canResolveSharedLegacy: \(activeLegacyClaimCount > 1 \|\| pendingLegacyIds.length > 0\) && !card/);
+ assert.match(scan,/canResolveSharedLegacy: \(activeLegacyClaimCount > 1 \|\| pendingLegacyIds.length > 0\) && \(!card \|\| pendingModernEligible\)/);
  assert.match(ui,/members.every\(member => member.canResolveSharedLegacy\)/);
  assert.match(api,/!candidateNumbers.length && !sharedLegacy/);
  assert.match(api,/bgm_staff_resolve_shared_legacy_card/);
