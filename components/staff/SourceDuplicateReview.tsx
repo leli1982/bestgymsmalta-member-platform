@@ -1,6 +1,8 @@
 "use client";
 
 import { formatEuropeanDate, formatEuropeanDateTime } from "@/lib/europeanDate";
+import { todayMaltaDate } from "@/lib/maltaDate";
+import { classifyStaffMember } from "@/lib/staffDashboardCore";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type ReviewMember = {
@@ -231,7 +233,7 @@ export default function SourceDuplicateReview() {
                       </div>
                     </div>
                     <p className="mt-3 text-sm text-zinc-700">
-                      {member.status} · expiry {formatEuropeanDate(member.membershipExpiry)}
+                      {member.archived ? "ARCHIVED" : classifyStaffMember({...member, today: todayMaltaDate()}) === "active" ? "ACTIVE" : "EXPIRED"} · expiry {formatEuropeanDate(member.membershipExpiry)}
                     </p>
                     <p className="mt-1 text-xs text-zinc-600">
                       DOB {formatEuropeanDate(member.dateOfBirth)} · {member.email || "Email not recorded"}

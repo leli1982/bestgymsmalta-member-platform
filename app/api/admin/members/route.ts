@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
+import { classifyStaffMember } from "@/lib/staffDashboardCore";
+import { todayMaltaDate } from "@/lib/maltaDate";
 import {
   normalizeMembershipNumber,
   parseMembershipNumber,
@@ -37,6 +39,12 @@ function publicMember(member: any) {
     email: member.email || "",
     phone: member.phone || "",
     status,
+    membershipDisplayStatus: classifyStaffMember({
+      status: member.status,
+      membershipExpiry: member.membership_expiry,
+      cancellationEffectiveDate: member.cancellation_effective_date,
+      today: todayMaltaDate(),
+    }) === "active" ? "active" : "expired",
     enrollmentDate: member.enrollment_date || "",
     membershipPeriod: member.membership_period || "",
     membershipExpiry: member.membership_expiry || "",

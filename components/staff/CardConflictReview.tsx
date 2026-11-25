@@ -1,6 +1,8 @@
 "use client";
 
 import { formatEuropeanDate, formatEuropeanDateTime } from "@/lib/europeanDate";
+import { todayMaltaDate } from "@/lib/maltaDate";
+import { classifyStaffMember } from "@/lib/staffDashboardCore";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -13,6 +15,10 @@ type Group = {
   scan3: string; reviewId: string | null; flaggedAt: string | null;
   flaggedGym: string | null; flaggedBy: string | null; members: Member[];
 };
+
+function membershipLabel(member: {status?: string; membershipExpiry?: string | null}) {
+  return classifyStaffMember({ ...member, today: todayMaltaDate() }) === "active" ? "ACTIVE" : "EXPIRED";
+}
 
 export default function CardConflictReview() {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -76,7 +82,7 @@ export default function CardConflictReview() {
         <summary className="cursor-pointer font-black">{pending.length} imported cards awaiting staff verification</summary>
         <p className="mt-2 text-sm">These source card numbers are not assigned until the member is verified at reception.</p>
         {pending.map(item => <div key={item.scan3+item.memberId} className="mt-2 border-t pt-2 text-sm">
-          <span className="font-mono font-bold">{item.scan3}</span> · <a className="font-bold underline" href={`/staff/admin/members/${encodeURIComponent(item.memberId)}`}>{item.memberNumber} {item.fullName}</a> · {item.status} · {formatEuropeanDate(item.membershipExpiry || null)} {item.flagged && "· FLAGGED"}
+          <span className="font-mono font-bold">{item.scan3}</span> · <a className="font-bold underline" href={`/staff/admin/members/${encodeURIComponent(item.memberId)}`}>{item.memberNumber} {item.fullName}</a> · {membershipLabel(item)} · {formatEuropeanDate(item.membershipExpiry || null)} {item.flagged && "· FLAGGED"}
         </div>)}
       </details>
       <details className="mt-4 rounded-xl border bg-white p-4">
@@ -115,7 +121,7 @@ export default function CardConflictReview() {
                     <p className="font-mono">{m.memberNumber}</p>
                     <p className="text-sm">Legacy pkCustomer: {m.legacyPkCustomer || "Not recorded"}</p></div>
                 </div>
-                <p className="mt-3 text-sm">{m.status} · expires {formatEuropeanDate(m.membershipExpiry)} · {m.enrollmentGymName}</p>
+                <p className="mt-3 text-sm">{membershipLabel(m)} · expires {formatEuropeanDate(m.membershipExpiry)} · {m.enrollmentGymName}</p>
                 <a className="mt-3 inline-block font-bold text-orange-700 underline"
                   href={`/staff/admin/members/${encodeURIComponent(m.id)}`}>Inspect full record · edit or archive member</a>
                 <div className="mt-4 flex flex-wrap gap-2">

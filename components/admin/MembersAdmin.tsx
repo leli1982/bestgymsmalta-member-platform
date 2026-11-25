@@ -1,6 +1,7 @@
 "use client";
 
 import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+import { todayMaltaDate } from "@/lib/maltaDate";
 
 import { useEffect, useMemo, useState } from "react";
 import MembershipDataAdmin from "@/components/admin/MembershipDataAdmin";
@@ -20,6 +21,7 @@ type AdminMember = {
   email: string;
   phone: string;
   status: string;
+  membershipDisplayStatus?: "active" | "expired";
   enrollmentDate: string;
   membershipPeriod: string;
   membershipExpiry: string;
@@ -81,8 +83,7 @@ function calculateStatus(expiryDate: string) {
 }
 
 function isMemberExpired(member: any) {
-  if (!member?.membershipExpiry) return false;
-  return member.membershipExpiry < new Date().toISOString().slice(0, 10);
+  return memberDisplayStatus(member) === "expired";
 }
 
 function formatMemberDate(value?: string) {
@@ -99,7 +100,10 @@ function formatMemberDate(value?: string) {
 }
 
 function memberDisplayStatus(member: any) {
-  return String(member?.status || "active").toLowerCase();
+  return member?.membershipDisplayStatus !== "expired" &&
+    String(member?.status || "").toLowerCase() === "active" &&
+    member?.membershipExpiry && member.membershipExpiry >= todayMaltaDate()
+    ? "active" : "expired";
 }
 
 export default function MembersAdmin({ pin }: { pin: string }) {
@@ -312,10 +316,6 @@ export default function MembersAdmin({ pin }: { pin: string }) {
         return expired;
       }
 
-      if (memberFilter === "inactive") {
-        return memberDisplayStatus(member) !== "active";
-      }
-
       if (memberFilter === "enrolled") {
         return Boolean(member.appEnrolled);
       }
@@ -350,7 +350,7 @@ export default function MembersAdmin({ pin }: { pin: string }) {
 
         <p className="mt-3 text-sm font-bold leading-6 text-white/50">
           Add the member here first. Enter the enrolment date and choose the
-          membership duration. The expiry date and active/inactive status will
+          membership duration. The expiry date and active/expired status will
           be calculated automatically.
         </p>
 
@@ -440,10 +440,10 @@ export default function MembersAdmin({ pin }: { pin: string }) {
 
             <p
               className={`mt-1 text-sm font-black uppercase tracking-[.16em] ${
-                statusPreview === "active" ? "text-green-300" : "text-red-300"
+                statusPreview === "active" && expiryPreview ? "text-green-300" : "text-red-300"
               }`}
             >
-              {statusPreview}
+              {statusPreview === "active" && expiryPreview ? "ACTIVE" : "EXPIRED"}
             </p>
           </div>
 
@@ -581,7 +581,6 @@ export default function MembersAdmin({ pin }: { pin: string }) {
               ["all", "All"],
               ["active", "Active"],
               ["expired", "Expired"],
-              ["inactive", "Inactive"],
               ["enrolled", "App active"],
               ["not_enrolled", "Not activated"],
             ].map(([value, label]) => (
