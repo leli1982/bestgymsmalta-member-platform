@@ -20,7 +20,7 @@ export type CardConflictMember = {
 };
 
 export type CardConflictResolution = {
-  result: "granted"; granted: true; duplicate?: boolean;
+  result: "granted" | "expired" | "inactive" | "restricted_gym"; granted: boolean; duplicate?: boolean;
   scanId?: string; scannedBarcode?: string;
   permanentlyAssigned?: boolean;
   credentialKind: "physical_card";
@@ -39,8 +39,8 @@ function effectiveMembershipStatus(member: CardConflictMember) {
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Malta", year: "numeric", month: "2-digit", day: "2-digit",
   }).format(new Date());
-  if (String(member.status || "").toLowerCase() !== "active") return "INACTIVE";
   if (member.membershipExpiry && member.membershipExpiry < today) return "EXPIRED";
+  if (String(member.status || "").toLowerCase() !== "active" || !member.membershipExpiry) return "INACTIVE";
   return "ACTIVE";
 }
 
@@ -58,7 +58,7 @@ export default function CardConflictCards({ members, scanId, onResolved }: {
   async function assign(member: CardConflictMember) {
     if (!scanId || busy || !onResolved || !scoped) return;
     const isOwner = Boolean(member.isExistingCardOwner);
-    if (!isOwner && assignedOwner) {
+    if (!sharedLegacy && !isOwner && assignedOwner) {
       setMessage(`This card already belongs to ${assignedOwner.fullName} (${assignedOwner.memberNumber}). Its existing assignment cannot be replaced here. Use a different card or Super Admin correction.`);
       return;
     }
@@ -146,13 +146,13 @@ export default function CardConflictCards({ members, scanId, onResolved }: {
             </dl>
             {m.isExistingCardOwner && !sharedLegacy && <p className="mt-3 rounded-lg bg-blue-50 p-2 text-xs font-bold text-blue-900">Existing card owner — this assignment will not be changed.</p>}
             {scoped && !m.photoUrl && <p className="mt-2 rounded-lg bg-amber-100 p-2 text-xs font-bold text-amber-900">NO OFFICIAL PHOTO — verify physical identity before selecting.</p>}
-            {scoped && onResolved && (m.isScopedCandidate || m.isExistingCardOwner) && (
+            {scoped && onResolved && (sharedLegacy || m.isScopedCandidate || m.isExistingCardOwner) && (
               <button type="button" onClick={() => void assign(m)}
-                disabled={!scanId || busy || (!m.isExistingCardOwner && Boolean(assignedOwner)) || effectiveMembershipStatus(m) !== "ACTIVE"}
+                disabled={!scanId || busy || (!sharedLegacy && ((!m.isExistingCardOwner && Boolean(assignedOwner)) || effectiveMembershipStatus(m) !== "ACTIVE"))}
                 className="mt-4 w-full rounded-xl bg-zinc-950 px-4 py-3 text-base font-black text-white disabled:cursor-not-allowed disabled:bg-zinc-400">
                 {assigningMemberId === m.id ? "Verifying…" :
+                  sharedLegacy ? "Select this member & assign card" :
                   effectiveMembershipStatus(m) !== "ACTIVE" ? "Access unavailable — inactive/expired" :
-                  sharedLegacy ? "Confirm & assign card" :
                   m.isExistingCardOwner ? "Verify person & check in (no transfer)" :
                   assignedOwner ? "Card belongs to another member" :
                   "Assign this card & check in"}
