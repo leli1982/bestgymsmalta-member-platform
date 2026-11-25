@@ -16,7 +16,7 @@ test("member app encodes only current active physical card and keeps the friendl
 
 test("staff scanner resolves both the current card and the friendly number into canonical gym checkins", () => {
   assert.match(staffScan, /from\("bgm_member_card_credentials"\)/);
-  assert.match(staffScan, /eq\("barcode_value", membershipNumber\)/);
+  assert.match(staffScan, /ilike\("barcode_value", membershipNumber\.replace/);
   assert.match(staffScan, /eq\("member_number", membershipNumber\)/);
   assert.match(staffScan, /card\.status !== "active"/);
   assert.match(staffScan, /memberId: member\.id,\s*gymId,\s*source: "barcode"/);
@@ -25,7 +25,7 @@ test("staff scanner resolves both the current card and the friendly number into 
 
 test("staff member browser searches active card numbers as well as friendly BGM numbers", () => {
   assert.match(staffSearch, /eq\("member_number", exactMemberNumber\)/);
-  assert.match(staffSearch, /from\("bgm_member_card_credentials"\)[\s\S]*?eq\("barcode_value", query\)[\s\S]*?eq\("status", "active"\)/);
+  assert.match(staffSearch, /from\("bgm_member_card_credentials"\)[\s\S]*?ilike\("barcode_value", escapeLikePattern\(query\)\)[\s\S]*?eq\("status", "active"\)/);
   assert.match(staffSearch, /in\("id", cardMemberIds\)/);
   assert.match(staffSearch, /exactCardNumber: true/);
 });
@@ -34,4 +34,10 @@ test("partial numeric staff search aggregates member number and legacy pkCustome
   assert.doesNotMatch(staffSearch, /exactLegacyPkCustomer:\s*true/);
   assert.match(staffSearch, /ilike\("member_number", pattern\)/);
   assert.match(staffSearch, /ilike\("legacy_pk_customer", pattern\)/);
+});
+
+test("case-insensitive scanner retains all active credential owners for conflict detection", () => {
+  assert.match(staffScan, /for \(const match of activeCards\)/);
+  assert.match(staffScan, /if \(allClaims.length > 1\)/);
+  assert.match(staffScan, /ambiguousPhysicalCard = true/);
 });
