@@ -64,119 +64,9 @@ begin
       or exists(select 1 from public.bgm_nfc_cards where member_id=p_member_id)
       or exists(select 1 from public.bgm_legacy_card_claims where scan3=v_code and assignment_status='removed')
       or exists(select 1 from public.bgm_members where upper(member_number)=v_code)
-      or exists(select 1 from public.bgm_legacy_card_claims where v_code~'^[0-9]+
- update public.bgm_legacy_card_claims set assignment_status='removed',updated_at=now()
- where scan3=v_code and assignment_status='active' and member_id<>p_member_id;
- update public.bgm_pending_legacy_card_verifications set status=case when member_id=p_member_id then 'verified' else 'not_owner' end,
- resolved_at=now(),resolved_by_system_user_id=p_staff_id where scan3=v_code and status='pending';
- insert into public.bgm_audit_log(system_user_id,context_gym_id,action_key,entity_type,entity_id,member_id,before_data,after_data)
- values(p_staff_id,s.gym_id,'member.card.shared_legacy_staff_verified','member',p_member_id::text,p_member_id,
-   jsonb_build_object('scan3',v_code,'candidateIds',v_ids,'pendingIds',v_pending_ids,'sourceScanId',p_scan_id),
-   jsonb_build_object('verifiedOwner',p_member_id,'removedClaimIds',array_remove(v_ids,p_member_id),'sourceScanId',p_scan_id));
- update public.bgm_card_conflict_reviews set status='resolved',resolved_by_system_user_id=p_staff_id,
-   resolved_at=now(),resolution_note='Staff verified the person and resolved competing legacy card claims.'
- where scan3=v_code and status='unresolved';
- update public.bgm_access_scans set result=v_result,member_id=p_member_id,
- membership_expiry_snapshot=v_member.membership_expiry,photo_required_warning=(v_member.official_photo_path is null)
- where id=p_scan_id;
- return jsonb_build_object('resolved',true,'memberId',p_member_id,'result',v_result);
-end;
-$$;
-revoke all on function public.bgm_staff_resolve_shared_legacy_card(uuid,uuid,uuid,uuid[]) from public,anon,authenticated;
-grant execute on function public.bgm_staff_resolve_shared_legacy_card(uuid,uuid,uuid,uuid[]) to service_role;
- and scan3~'^[0-9]+
- update public.bgm_legacy_card_claims set assignment_status='removed',updated_at=now()
- where scan3=v_code and assignment_status='active' and member_id<>p_member_id;
- insert into public.bgm_audit_log(system_user_id,context_gym_id,action_key,entity_type,entity_id,member_id,before_data,after_data)
- values(p_staff_id,s.gym_id,'member.card.shared_legacy_staff_verified','member',p_member_id::text,p_member_id,
-   jsonb_build_object('scan3',v_code,'candidateIds',v_ids,'sourceScanId',p_scan_id),
-   jsonb_build_object('verifiedOwner',p_member_id,'removedClaimIds',array_remove(v_ids,p_member_id),'sourceScanId',p_scan_id));
- update public.bgm_card_conflict_reviews set status='resolved',resolved_by_system_user_id=p_staff_id,
-   resolved_at=now(),resolution_note='Staff verified the person and resolved competing legacy card claims.'
- where scan3=v_code and status='unresolved';
- update public.bgm_access_scans set result=v_result,member_id=p_member_id,
- membership_expiry_snapshot=v_member.membership_expiry,photo_required_warning=(v_member.official_photo_path is null)
- where id=p_scan_id;
- return jsonb_build_object('resolved',true,'memberId',p_member_id,'result',v_result);
-end;
-$$;
-revoke all on function public.bgm_staff_resolve_shared_legacy_card(uuid,uuid,uuid,uuid[]) from public,anon,authenticated;
-grant execute on function public.bgm_staff_resolve_shared_legacy_card(uuid,uuid,uuid,uuid[]) to service_role;
- and scan3<>v_code and ltrim(scan3,'0')=ltrim(v_code,'0'))
-      or exists(select 1 from public.bgm_member_card_credentials where v_code~'^[0-9]+
- update public.bgm_legacy_card_claims set assignment_status='removed',updated_at=now()
- where scan3=v_code and assignment_status='active' and member_id<>p_member_id;
- insert into public.bgm_audit_log(system_user_id,context_gym_id,action_key,entity_type,entity_id,member_id,before_data,after_data)
- values(p_staff_id,s.gym_id,'member.card.shared_legacy_staff_verified','member',p_member_id::text,p_member_id,
-   jsonb_build_object('scan3',v_code,'candidateIds',v_ids,'sourceScanId',p_scan_id),
-   jsonb_build_object('verifiedOwner',p_member_id,'removedClaimIds',array_remove(v_ids,p_member_id),'sourceScanId',p_scan_id));
- update public.bgm_card_conflict_reviews set status='resolved',resolved_by_system_user_id=p_staff_id,
-   resolved_at=now(),resolution_note='Staff verified the person and resolved competing legacy card claims.'
- where scan3=v_code and status='unresolved';
- update public.bgm_access_scans set result=v_result,member_id=p_member_id,
- membership_expiry_snapshot=v_member.membership_expiry,photo_required_warning=(v_member.official_photo_path is null)
- where id=p_scan_id;
- return jsonb_build_object('resolved',true,'memberId',p_member_id,'result',v_result);
-end;
-$$;
-revoke all on function public.bgm_staff_resolve_shared_legacy_card(uuid,uuid,uuid,uuid[]) from public,anon,authenticated;
-grant execute on function public.bgm_staff_resolve_shared_legacy_card(uuid,uuid,uuid,uuid[]) to service_role;
- and barcode_value~'^[0-9]+
- update public.bgm_legacy_card_claims set assignment_status='removed',updated_at=now()
- where scan3=v_code and assignment_status='active' and member_id<>p_member_id;
- insert into public.bgm_audit_log(system_user_id,context_gym_id,action_key,entity_type,entity_id,member_id,before_data,after_data)
- values(p_staff_id,s.gym_id,'member.card.shared_legacy_staff_verified','member',p_member_id::text,p_member_id,
-   jsonb_build_object('scan3',v_code,'candidateIds',v_ids,'sourceScanId',p_scan_id),
-   jsonb_build_object('verifiedOwner',p_member_id,'removedClaimIds',array_remove(v_ids,p_member_id),'sourceScanId',p_scan_id));
- update public.bgm_card_conflict_reviews set status='resolved',resolved_by_system_user_id=p_staff_id,
-   resolved_at=now(),resolution_note='Staff verified the person and resolved competing legacy card claims.'
- where scan3=v_code and status='unresolved';
- update public.bgm_access_scans set result=v_result,member_id=p_member_id,
- membership_expiry_snapshot=v_member.membership_expiry,photo_required_warning=(v_member.official_photo_path is null)
- where id=p_scan_id;
- return jsonb_build_object('resolved',true,'memberId',p_member_id,'result',v_result);
-end;
-$$;
-revoke all on function public.bgm_staff_resolve_shared_legacy_card(uuid,uuid,uuid,uuid[]) from public,anon,authenticated;
-grant execute on function public.bgm_staff_resolve_shared_legacy_card(uuid,uuid,uuid,uuid[]) to service_role;
- and ltrim(barcode_value,'0')=ltrim(v_code,'0'))
-      or exists(select 1 from public.bgm_nfc_cards where v_code~'^[0-9]+
- update public.bgm_legacy_card_claims set assignment_status='removed',updated_at=now()
- where scan3=v_code and assignment_status='active' and member_id<>p_member_id;
- insert into public.bgm_audit_log(system_user_id,context_gym_id,action_key,entity_type,entity_id,member_id,before_data,after_data)
- values(p_staff_id,s.gym_id,'member.card.shared_legacy_staff_verified','member',p_member_id::text,p_member_id,
-   jsonb_build_object('scan3',v_code,'candidateIds',v_ids,'sourceScanId',p_scan_id),
-   jsonb_build_object('verifiedOwner',p_member_id,'removedClaimIds',array_remove(v_ids,p_member_id),'sourceScanId',p_scan_id));
- update public.bgm_card_conflict_reviews set status='resolved',resolved_by_system_user_id=p_staff_id,
-   resolved_at=now(),resolution_note='Staff verified the person and resolved competing legacy card claims.'
- where scan3=v_code and status='unresolved';
- update public.bgm_access_scans set result=v_result,member_id=p_member_id,
- membership_expiry_snapshot=v_member.membership_expiry,photo_required_warning=(v_member.official_photo_path is null)
- where id=p_scan_id;
- return jsonb_build_object('resolved',true,'memberId',p_member_id,'result',v_result);
-end;
-$$;
-revoke all on function public.bgm_staff_resolve_shared_legacy_card(uuid,uuid,uuid,uuid[]) from public,anon,authenticated;
-grant execute on function public.bgm_staff_resolve_shared_legacy_card(uuid,uuid,uuid,uuid[]) to service_role;
- and card_uid~'^[0-9]+
- update public.bgm_legacy_card_claims set assignment_status='removed',updated_at=now()
- where scan3=v_code and assignment_status='active' and member_id<>p_member_id;
- insert into public.bgm_audit_log(system_user_id,context_gym_id,action_key,entity_type,entity_id,member_id,before_data,after_data)
- values(p_staff_id,s.gym_id,'member.card.shared_legacy_staff_verified','member',p_member_id::text,p_member_id,
-   jsonb_build_object('scan3',v_code,'candidateIds',v_ids,'sourceScanId',p_scan_id),
-   jsonb_build_object('verifiedOwner',p_member_id,'removedClaimIds',array_remove(v_ids,p_member_id),'sourceScanId',p_scan_id));
- update public.bgm_card_conflict_reviews set status='resolved',resolved_by_system_user_id=p_staff_id,
-   resolved_at=now(),resolution_note='Staff verified the person and resolved competing legacy card claims.'
- where scan3=v_code and status='unresolved';
- update public.bgm_access_scans set result=v_result,member_id=p_member_id,
- membership_expiry_snapshot=v_member.membership_expiry,photo_required_warning=(v_member.official_photo_path is null)
- where id=p_scan_id;
- return jsonb_build_object('resolved',true,'memberId',p_member_id,'result',v_result);
-end;
-$$;
-revoke all on function public.bgm_staff_resolve_shared_legacy_card(uuid,uuid,uuid,uuid[]) from public,anon,authenticated;
-grant execute on function public.bgm_staff_resolve_shared_legacy_card(uuid,uuid,uuid,uuid[]) to service_role;
- and ltrim(card_uid,'0')=ltrim(v_code,'0'))
+      or exists(select 1 from public.bgm_legacy_card_claims where v_code~'^[0-9]+$' and scan3~'^[0-9]+$' and scan3<>v_code and ltrim(scan3,'0')=ltrim(v_code,'0'))
+      or exists(select 1 from public.bgm_member_card_credentials where v_code~'^[0-9]+$' and barcode_value~'^[0-9]+$' and ltrim(barcode_value,'0')=ltrim(v_code,'0'))
+      or exists(select 1 from public.bgm_nfc_cards where v_code~'^[0-9]+$' and card_uid~'^[0-9]+$' and ltrim(card_uid,'0')=ltrim(v_code,'0'))
    then raise exception 'Credential history or alias requires Super Admin review.'; end if;
    insert into public.bgm_legacy_card_claims(member_id,scan3,assignment_status,source_row_number,source_scan3)
    select p_member_id,v_code,'active',source_row_number,v_code
@@ -185,9 +75,11 @@ grant execute on function public.bgm_staff_resolve_shared_legacy_card(uuid,uuid,
  -- Only deactivate competing unverified claims for this precise Scan3.
  update public.bgm_legacy_card_claims set assignment_status='removed',updated_at=now()
  where scan3=v_code and assignment_status='active' and member_id<>p_member_id;
+ update public.bgm_pending_legacy_card_verifications set status=case when member_id=p_member_id then 'verified' else 'not_owner' end,
+ resolved_at=now(),resolved_by_system_user_id=p_staff_id where scan3=v_code and status='pending';
  insert into public.bgm_audit_log(system_user_id,context_gym_id,action_key,entity_type,entity_id,member_id,before_data,after_data)
  values(p_staff_id,s.gym_id,'member.card.shared_legacy_staff_verified','member',p_member_id::text,p_member_id,
-   jsonb_build_object('scan3',v_code,'candidateIds',v_ids,'sourceScanId',p_scan_id),
+   jsonb_build_object('scan3',v_code,'candidateIds',v_ids,'pendingIds',v_pending_ids,'sourceScanId',p_scan_id),
    jsonb_build_object('verifiedOwner',p_member_id,'removedClaimIds',array_remove(v_ids,p_member_id),'sourceScanId',p_scan_id));
  update public.bgm_card_conflict_reviews set status='resolved',resolved_by_system_user_id=p_staff_id,
    resolved_at=now(),resolution_note='Staff verified the person and resolved competing legacy card claims.'
