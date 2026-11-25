@@ -284,9 +284,8 @@ export async function GET(request: NextRequest) {
   const activeCardResult = await supabase
     .from("bgm_member_card_credentials")
     .select("member_id")
-    .eq("barcode_value", query)
-    .eq("status", "active")
-    .limit(2);
+    .ilike("barcode_value", escapeLikePattern(query))
+    .eq("status", "active");
   if (activeCardResult.error) {
     console.error(activeCardResult.error);
     return NextResponse.json({ error: "Could not search member cards." }, { status: 500 });
