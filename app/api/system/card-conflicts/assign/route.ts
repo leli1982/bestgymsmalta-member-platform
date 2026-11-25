@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     const [legacy, modern, nfc, gym] = await Promise.all([
       db.from("bgm_legacy_card_claims").select("member_id,scan3,assignment_status")
         .ilike("scan3", code),
-      db.from("bgm_member_card_credentials").select("member_id,barcode_value,status")
+      db.from("bgm_member_card_credentials").select("member_id,barcode_value,status,application_member_id")
         .ilike("barcode_value", code),
       db.from("bgm_nfc_cards").select("member_id,card_uid,status").ilike("card_uid", code),
       db.from("bgm_gyms").select("id,name,status").eq("id", scan.gym_id).maybeSingle(),
@@ -80,11 +80,16 @@ export async function POST(request: NextRequest) {
     ]);
     const isExistingOwner = allCurrentOwners.has(member.id);
     const isScopedCandidate = candidateNumbers.includes(member.member_number);
-    const pending = await db.from("bgm_pending_legacy_card_verifications").select("member_id").eq("scan3", code).eq("status", "pending");
+    const pending = await db.from("bgm_pending_legacy_card_verifications").select("member_id,source_row_number").eq("scan3", code).eq("status", "pending");
     if (pending.error) throw pending.error;
     const pendingIds = (pending.data || []).map(x => x.member_id);
     const currentLegacyIds = (legacy.data || []).filter(x => x.assignment_status === "active").map(x => x.member_id);
-    const sharedLegacy = (currentLegacyIds.length > 1 || pendingIds.length > 0) && !(modern.data || []).length && !(nfc.data || []).length;
+    const modernRows = modern.data || [];
+    const eligibleFlaggedModern = modernRows.length === 1 && modernRows[0].status === "active" &&
+      Boolean(modernRows[0].member_id) && !modernRows[0].application_member_id &&
+      pendingIds.length > 0 && (pending.data || []).every(row => row.source_row_number === null);
+    const sharedLegacy = (currentLegacyIds.length > 1 || pendingIds.length > 0) &&
+      (!modernRows.length || eligibleFlaggedModern) && !(nfc.data || []).length;
     if (!candidateNumbers.length && !sharedLegacy) {
       return NextResponse.json({ error: "This card is not an eligible shared legacy conflict. Please rescan or ask Super Admin." }, { status: 403 });
     }
@@ -114,7 +119,7 @@ export async function POST(request: NextRequest) {
     let finalAccess = access;
     let sharedScanCompleted = false;
     if (body.resolveSharedLegacy === true) {
-      if (!sharedLegacy || !(currentLegacyIds.includes(member.id) || pendingIds.includes(member.id)) || !Array.isArray(body.expectedMemberIds) ||
+      if (!sharedLegacy || !(currentLegacyIds.includes(member.id) || pendingIds.includes(member.id) || (eligibleFlaggedModern && isExistingOwner)) || !Array.isArray(body.expectedMemberIds) ||
           !body.expectedMemberIds.every((id: unknown) => typeof id === "string")) {
         return NextResponse.json({ error: "Shared card claims changed. Rescan before confirming." }, { status: 409 });
       }
