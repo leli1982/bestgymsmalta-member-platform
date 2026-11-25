@@ -325,6 +325,12 @@ export async function GET(request: NextRequest) {
   const pattern = `%${escapeLikePattern(query)}%`;
   const searchPoolLimit = Math.min(200, Math.max(50, page * limit * 2));
 
+  const nameTerms = Array.from(new Set(query.toLowerCase().split(/\s+/).filter(Boolean))).sort();
+  let nameQuery = supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).neq("status", "archived");
+  for (const term of nameTerms) {
+    nameQuery = nameQuery.ilike("full_name", `%${escapeLikePattern(term)}%`);
+  }
+
   const [
     memberNumberResult,
     nameResult,
@@ -335,7 +341,7 @@ export async function GET(request: NextRequest) {
     legacyPkResult,
   ] = await Promise.all([
     supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).neq("status", "archived").ilike("member_number", pattern).limit(searchPoolLimit),
-    supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).neq("status", "archived").ilike("full_name", pattern).limit(searchPoolLimit),
+    nameQuery.order("full_name", { ascending: true }).order("id", { ascending: true }).limit(searchPoolLimit),
     supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).neq("status", "archived").ilike("id_number", pattern).limit(searchPoolLimit),
     supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).neq("status", "archived").ilike("mobile", pattern).limit(searchPoolLimit),
     supabase.from("bgm_members").select(MEMBER_SEARCH_FIELDS).neq("status", "archived").ilike("phone", pattern).limit(searchPoolLimit),

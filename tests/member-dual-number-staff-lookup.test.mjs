@@ -41,3 +41,10 @@ test("case-insensitive scanner retains all active credential owners for conflict
   assert.match(staffScan, /if \(allClaims.length > 1\)/);
   assert.match(staffScan, /ambiguousPhysicalCard = true/);
 });
+
+test("staff name lookup requires every name term independently of word order", () => {
+  assert.match(staffSearch, /const nameTerms = Array.from\(new Set\(query.toLowerCase\(\).split/);
+  assert.match(staffSearch, /for \(const term of nameTerms\)/);
+  assert.match(staffSearch, /nameQuery = nameQuery.ilike\("full_name",/);
+  assert.match(staffSearch, /nameQuery.order\("full_name"/);
+});
