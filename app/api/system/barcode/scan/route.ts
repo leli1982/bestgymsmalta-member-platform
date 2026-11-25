@@ -363,6 +363,9 @@ export async function POST(request: NextRequest) {
                 : null,
               isExistingCardOwner: existingOwnerIds.includes(candidate.id),
               isScopedCandidate: scopedCandidates.includes(candidate.member_number),
+              canResolveSharedLegacy: activeLegacyClaimCount > 1 && !card &&
+                existingOwnerIds.includes(candidate.id) &&
+                cardMatches.every(match => existingOwnerIds.includes(match.id)),
             };
           }))
         : [],
