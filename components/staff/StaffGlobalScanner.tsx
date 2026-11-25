@@ -117,7 +117,7 @@ function heading(result: AccessResult) {
   if (result.granted) return "ACCESS GRANTED";
   if (result.cardMatches?.length) return "SHARED CARD CONFLICT";
   if (result.result === "expired") return "MEMBERSHIP EXPIRED";
-  if (result.result === "inactive") return "MEMBERSHIP INACTIVE";
+  if (result.result === "inactive") return "MEMBERSHIP EXPIRED";
   if (result.result === "restricted_gym") {
     return `${(result.member?.accessGymName || "SINGLE GYM").toUpperCase()} ACCESS ONLY`;
   }
@@ -637,14 +637,14 @@ export default function StaffGlobalScanner() {
                       <p className="mt-1 font-semibold text-zinc-600">Original gym: {result.member.legacyGym || "Not recorded"}</p>
                     </>
                   )}
-                  <p className="mt-1 text-sm font-semibold text-zinc-500">Status: {result.member.status}</p>
+                  <p className="mt-1 text-sm font-semibold text-zinc-500">Status: {result.result === "expired" || result.result === "inactive" ? "EXPIRED" : "ACTIVE"}</p>
                 </div>
               </div>
-            ) : (
+            ) : !result.cardMatches?.length && result.result !== "ambiguous_card" ? (
               <p className="mt-5 text-lg font-bold text-red-800">
                 This scanned identifier does not identify one verified active member.
               </p>
-            )}
+            ) : null}
             {!granted && (
               <p className="mt-5 rounded-2xl bg-red-50 p-4 text-lg font-black text-red-800">
                 DO NOT ALLOW ACCESS until verified by reception.

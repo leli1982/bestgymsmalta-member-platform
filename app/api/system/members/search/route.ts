@@ -198,19 +198,16 @@ export async function GET(request: NextRequest) {
     if (requestedStatus === "active") {
       browseQuery = browseQuery
         .eq("status", "active")
-        .or(`membership_expiry.is.null,membership_expiry.gte.${today}`)
+        .gte("membership_expiry", today)
         .or(
           `cancellation_effective_date.is.null,cancellation_effective_date.gt.${today}`
         );
     }
 
     if (requestedStatus === "expired") {
-      browseQuery = browseQuery
-        .eq("status", "active")
-        .lt("membership_expiry", today)
-        .or(
-          `cancellation_effective_date.is.null,cancellation_effective_date.gt.${today}`
-        );
+      browseQuery = browseQuery.or(
+        `status.neq.active,membership_expiry.lt.${today},membership_expiry.is.null,cancellation_effective_date.lte.${today}`
+      );
     }
 
     const browseResult = await browseQuery.range(offset, offset + limit - 1);

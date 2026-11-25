@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const rawMembershipNumber = clean(body.barcode ?? body.membershipNumber);
     const originalPayload = normalizeBarcodePayload(rawMembershipNumber);
-    const scopedCandidates = scopedConflictCandidates(originalPayload);
+    let scopedCandidates = scopedConflictCandidates(originalPayload);
     // Upper-case only approved exception identifiers; do not touch ordinary scans.
     const membershipNumber = scopedCandidates.length
       ? originalPayload.toUpperCase() : originalPayload;
@@ -96,6 +96,8 @@ export async function POST(request: NextRequest) {
     let ambiguousPhysicalCard = false;
     let existingOwnerIds: string[] = [];
     let activeLegacyClaimCount = 0;
+    let pendingLegacyIds: string[] = [];
+    let pendingModernEligible = false;
 
     if (membershipNumber) {
       const claimsResult = await supabase.from("bgm_legacy_card_claims")
@@ -104,10 +106,17 @@ export async function POST(request: NextRequest) {
       activeLegacyClaimCount = (claimsResult.data || []).length;
       const cardResult = await supabase
         .from("bgm_member_card_credentials")
-        .select("id, barcode_value, member_id, status")
+        .select("id, barcode_value, member_id, status, application_member_id")
         .eq("barcode_value", membershipNumber)
         .maybeSingle();
       if (cardResult.error) throw cardResult.error;
+      const pending = await supabase.from("bgm_pending_legacy_card_verifications").select("member_id,status,source_row_number").eq("scan3", membershipNumber.toUpperCase());
+      if (pending.error) throw pending.error;
+      const pendingRows = (pending.data || []).filter(row => row.status === "pending");
+      pendingLegacyIds = pendingRows.map(row => row.member_id);
+      if ((pending.data || []).some(row => row.status !== "pending")) scopedCandidates = [];
+      pendingModernEligible = Boolean(cardResult.data?.status === "active" && cardResult.data.member_id && !cardResult.data.application_member_id &&
+        pendingRows.length && pendingRows.every(row => row.source_row_number === null));
       card = cardResult.data;
       if (card) credentialKind = "physical_card";
 
@@ -211,6 +220,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (pendingLegacyIds.length && membershipNumber) {
+      const candidates = await supabase.from("bgm_members").select(MEMBER_SELECT)
+        .in("id", Array.from(new Set([...pendingLegacyIds, ...existingOwnerIds])))
+        .is("archived_at", null).neq("status", "archived");
+      if (candidates.error) throw candidates.error;
+      if ((candidates.data || []).length) {
+        cardMatches = candidates.data || [];
+        member = null;
+        ambiguousPhysicalCard = true;
+        credentialKind = "physical_card";
+      }
+    }
     let decision: {
       result:
         | "granted"
@@ -363,6 +384,8 @@ export async function POST(request: NextRequest) {
                 : null,
               isExistingCardOwner: existingOwnerIds.includes(candidate.id),
               isScopedCandidate: scopedCandidates.includes(candidate.member_number),
+              canResolveSharedLegacy: (activeLegacyClaimCount > 1 || pendingLegacyIds.length > 0) && (!card || pendingModernEligible) &&
+                cardMatches.every(match => existingOwnerIds.includes(match.id) || pendingLegacyIds.includes(match.id)),
             };
           }))
         : [],

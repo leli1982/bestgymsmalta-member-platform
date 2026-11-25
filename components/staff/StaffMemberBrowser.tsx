@@ -57,8 +57,7 @@ function statusClass(classification: Classification) {
 
 function statusLabel(classification: Classification) {
   if (classification === "active") return "ACTIVE";
-  if (classification === "expired") return "EXPIRED";
-  return "INACTIVE";
+  return "EXPIRED";
 }
 
 export default function StaffMemberBrowser({ focusToken = 0, canRenew = false, canEdit = false, isSuperAdmin = false }: Props) {

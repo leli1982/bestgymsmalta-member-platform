@@ -65,7 +65,7 @@ function resultTitle(result: ScanResponse) {
   if (result.granted) return "ACCESS GRANTED";
   if (result.cardMatches?.length) return "SHARED CARD CONFLICT";
   if (result.result === "expired") return "MEMBERSHIP EXPIRED";
-  if (result.result === "inactive") return "MEMBERSHIP INACTIVE";
+  if (result.result === "inactive") return "MEMBERSHIP EXPIRED";
   if (result.result === "restricted_gym") {
     return `${(result.member?.accessGymName || "SINGLE GYM").toUpperCase()} ACCESS ONLY`;
   }
@@ -386,11 +386,11 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
                   </p>
                 )}
               </div>
-            ) : (
+            ) : !result.cardMatches?.length && result.result !== "ambiguous_card" ? (
               <p className="mt-6 text-xl font-black text-zinc-700">
                 The scanned identifier is not linked to a member.
               </p>
-            )}
+            ) : null}
 
             <button
               type="button"
