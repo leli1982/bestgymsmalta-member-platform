@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       },
       today: todayMaltaDate(), gymId: scan.gym_id,
     });
-    if (!access.granted) {
+    if (!access.granted && body.resolveSharedLegacy !== true) {
       return NextResponse.json({ error:
         access.result === "expired" ? "Membership expired — no access granted." :
         access.result === "restricted_gym" ? "This membership does not allow entry at this gym." :
@@ -108,6 +108,8 @@ export async function POST(request: NextRequest) {
     }
 
     let permanentlyAssigned = false;
+    let finalAccess = access;
+    let sharedScanCompleted = false;
     if (body.resolveSharedLegacy === true) {
       if (!sharedLegacy || !currentLegacyIds.includes(member.id) || !Array.isArray(body.expectedMemberIds) ||
           !body.expectedMemberIds.every((id: unknown) => typeof id === "string")) {
@@ -121,6 +123,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Shared card could not be resolved safely. Rescan or flag to Super Admin." }, { status: 409 });
       }
       permanentlyAssigned = true;
+      const result = resolved.data.result;
+      if (!["granted", "expired", "inactive", "restricted_gym"].includes(result)) throw new Error("Invalid shared scan result");
+      finalAccess = { result, granted: result === "granted" };
+      sharedScanCompleted = true;
     } else if (sharedLegacy && !candidateNumbers.length) {
       return NextResponse.json({ error: "Confirm the shared legacy card assignment first." }, { status: 409 });
     } else if (!isExistingOwner) {
@@ -175,6 +181,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Only the originating staff and gym can complete this one scan.
+    if (!sharedScanCompleted) {
     const update = await db.from("bgm_access_scans").update({
       result: "granted", member_id: member.id,
       membership_expiry_snapshot: member.membership_expiry,
@@ -186,6 +193,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Scan already resolved. Please scan again." }, { status: 409 });
     }
 
+    }
+    let duplicate = false;
+    if (finalAccess.granted) {
     const checkin = await recordCanonicalCheckin({
       memberId: member.id, gymId: scan.gym_id, source: "barcode",
     });
@@ -193,8 +203,10 @@ export async function POST(request: NextRequest) {
       checkin_id: checkin.checkinId,
     }).eq("id", scan.id).eq("member_id", member.id);
     if (finish.error) throw finish.error;
+    duplicate = checkin.duplicate;
+    }
     return NextResponse.json({
-      result: "granted", granted: true, duplicate: checkin.duplicate,
+      result: finalAccess.result, granted: finalAccess.granted, duplicate,
       permanentlyAssigned, currentPhysicalCard: code, cardStatus: "active",
       credentialKind: "physical_card", scannedBarcode: code,
       cardMatches: [], scanId: scan.id,
