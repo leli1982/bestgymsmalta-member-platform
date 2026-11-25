@@ -10,15 +10,19 @@ export async function GET(request: NextRequest) {
     const auth = await requireSuperAdmin(request);
     if (auth.error || !auth.context) return auth.error;
     const db = getSupabaseAdmin();
-    const [conflicts, reviews] = await Promise.all([
+    const [conflicts, reviews, pending, identity] = await Promise.all([
       db.from("bgm_active_card_conflicts").select("scan3,member_ids,member_count").order("scan3"),
       db.from("bgm_card_conflict_reviews")
         .select("id,scan3,gym_id,requested_by_system_user_id,requested_at,status,resolved_at,resolution_note")
         .eq("status", "unresolved").order("requested_at", { ascending: false }),
+      db.from("bgm_pending_legacy_card_verifications").select("scan3,member_id,source_row_number").eq("status","pending").order("scan3"),
+      db.from("bgm_missing_member_identity_review").select("source_row_number,legacy_pk_customer,source_scan3,review_reason").eq("status","pending").order("source_row_number"),
     ]);
     if (conflicts.error) throw conflicts.error;
     if (reviews.error) throw reviews.error;
-    const memberIds = Array.from(new Set((conflicts.data || []).flatMap((row) => row.member_ids || [])));
+    if (pending.error) throw pending.error;
+    if (identity.error) throw identity.error;
+    const memberIds = Array.from(new Set([...(conflicts.data || []).flatMap((row) => row.member_ids || []), ...(pending.data || []).map(row => row.member_id)]));
     const [members, gyms, users, claims] = await Promise.all([
       memberIds.length ? db.from("bgm_members")
         .select("id,member_number,full_name,legacy_pk_customer,status,membership_expiry,enrollment_gym_id,official_photo_path,updated_at")
@@ -35,6 +39,8 @@ export async function GET(request: NextRequest) {
     const userNames = new Map((users.data || []).map((u) => [u.id, u.display_name]));
     const reviewByScan = new Map((reviews.data || []).map((r) => [r.scan3, r]));
     return NextResponse.json({
+      pendingVerifications: (pending.data || []).map(row => ({ scan3: row.scan3, memberId: row.member_id, memberNumber: byId.get(row.member_id)?.member_number, fullName: byId.get(row.member_id)?.full_name, membershipExpiry: byId.get(row.member_id)?.membership_expiry, status: byId.get(row.member_id)?.status, flagged: reviewByScan.has(row.scan3) })),
+      identityReviews: identity.data || [],
       conflicts: (conflicts.data || []).map((group) => {
         const review = reviewByScan.get(group.scan3);
         return {
@@ -58,7 +64,7 @@ export async function GET(request: NextRequest) {
         };
       }),
       flaggedWithoutActiveConflict: (reviews.data || []).filter((r) =>
-        !(conflicts.data || []).some((c) => c.scan3 === r.scan3)).map((r) => ({
+        !(conflicts.data || []).some((c) => c.scan3 === r.scan3) && !(pending.data || []).some(c => c.scan3 === r.scan3)).map((r) => ({
           id: r.id, scan3: r.scan3, flaggedAt: r.requested_at,
         })),
     }, { headers });
@@ -81,6 +87,9 @@ export async function PATCH(request: NextRequest) {
     if (body.action === "resolve") {
       if (typeof body.reviewId !== "string" || typeof body.note !== "string" || !body.note.trim())
         return NextResponse.json({ error: "Review and resolution note required." }, { status: 400, headers });
+      const pending = await db.from("bgm_pending_legacy_card_verifications").select("member_id").eq("scan3",body.scan3).eq("status","pending").limit(1);
+      if (pending.error) throw pending.error;
+      if (pending.data?.length) return NextResponse.json({error:"Pending source card verification must be completed first."},{status:409,headers});
       const stillConflicted = await db.from("bgm_active_card_conflicts")
         .select("scan3").eq("scan3", body.scan3).maybeSingle();
       if (stillConflicted.error) throw stillConflicted.error;
