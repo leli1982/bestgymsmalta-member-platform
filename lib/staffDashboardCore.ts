@@ -28,7 +28,7 @@ export function matchesStaffMemberFilter(
   filter: StaffMemberFilter
 ) {
   if (filter === "all") return true;
-  return classification === filter;
+  return filter === "expired" ? classification !== "active" : classification === "active";
 }
 
 export function sortPendingApplicationsNewestFirst<
