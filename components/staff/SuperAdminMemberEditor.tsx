@@ -3,6 +3,7 @@
 import { formatEuropeanDate } from "@/lib/europeanDate";
 
 import EuropeanDateInput from "@/components/ui/EuropeanDateInput";
+import StaffRegistrationPhotoControls from "@/components/staff/StaffRegistrationPhotoControls";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ArrowLeft, BadgeCheck, Barcode, RefreshCcw, Save, ShieldCheck, UserRound } from "lucide-react";
@@ -92,6 +93,14 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
   const [profile, setProfile] = useState<MemberProfileDraft | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState("");
+  useEffect(() => {
+    if (!photo) { setPhotoPreview(""); return; }
+    const url = URL.createObjectURL(photo);
+    setPhotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photo]);
   const [gymSelection, setGymSelection] = useState("");
   const [gymSaving, setGymSaving] = useState(false);
   const [gymMessage, setGymMessage] = useState("");
@@ -151,23 +160,43 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!detail || !profile || saving || gymSaving || dateSaving || cancelBusy || cardSaving || gymChanged || dateChanged || cardDraftDirty || cancelDraftDirty) return;
+    if (!detail || !profile || (!changed && !photo) || saving || gymSaving || dateSaving || cancelBusy || cardSaving || gymChanged || dateChanged || cardDraftDirty || cancelDraftDirty) return;
     setSaving(true);
     setMessage("");
     setError("");
+    let profileSaved = false;
+    let savedPhotoUrl = "";
     try {
-      const response = await fetch(`/api/system/admin/members/${encodeURIComponent(memberId)}`, {
-        method: "PATCH",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ expectedUpdatedAt: detail.member.updatedAt, profile }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Could not save member.");
+      if (changed) {
+        const response = await fetch(`/api/system/admin/members/${encodeURIComponent(memberId)}`, {
+          method: "PATCH",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ expectedUpdatedAt: detail.member.updatedAt, profile }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Could not save member.");
+        profileSaved = true;
+      }
+      if (photo) {
+        const body = new FormData();
+        body.set("memberId", memberId);
+        body.set("file", photo);
+        body.set("source", "reception_capture");
+        const response = await fetch("/api/system/members/photo", { method: "POST", credentials: "same-origin", body });
+        const result = await response.json();
+        if (!response.ok || !result.ok || !result.captured || typeof result.photoUrl !== "string" || !result.photoUrl) {
+          throw new Error(result.error || "Could not save official member photo.");
+        }
+        savedPhotoUrl = result.photoUrl;
+        setPhoto(null);
+      }
       await load();
-      setMessage("Personal details saved and audited.");
+      if (savedPhotoUrl) setDetail(old => old ? { ...old, member: { ...old.member, photoUrl: savedPhotoUrl } } : old);
+      setMessage(savedPhotoUrl ? (profileSaved ? "Personal details and official photo saved and audited." : "Official member photo saved and audited.") : "Personal details saved and audited.");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not save member.");
+      if (profileSaved) await load();
+      setError((profileSaved ? "Personal details saved. Photo not saved: " : "") + (caught instanceof Error ? caught.message : "Could not save member."));
     } finally {
       setSaving(false);
     }
@@ -316,12 +345,18 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                 <p className="mt-2 text-lg font-bold">{member.fullName || "Member name not recorded"}</p>
                 <p className="mt-1 text-sm text-zinc-600">Current card: <strong>{detail.activeCardNumber || "Card not assigned"}</strong> · Status: <strong>{member.cancellationEffectiveDate && member.cancellationEffectiveDate <= detail.cancellationEdit.today ? "cancelled" : member.status}</strong></p>
                 <p className="mt-1 text-sm text-zinc-600">Original pkCustomer: <strong>{member.legacyPkCustomer || "Not recorded"}</strong> (Super Admin only)</p>
-                <p className="mt-2 text-xs text-zinc-500">Member photo is managed through the authorised staff photo-capture flow, not Excel or this editor.</p>
+                <p className="mt-2 text-xs text-zinc-500">Retake or upload an official member photo in the personal details section below.</p>
               </div>
             </section>
             <form onSubmit={(event) => void save(event)} className="rounded-3xl border border-zinc-200 bg-white p-5 sm:p-7">
               <div className="flex items-center gap-2"><ShieldCheck className="text-orange-700" size={22}/><h2 className="text-xl font-black">Personal details</h2></div>
               <p className="mt-2 text-sm text-zinc-500">Super Admin may correct all legitimate member detail fields below. Permanent BGM identity, legacy pkCustomer, card credentials and audit metadata remain protected.</p>
+              <fieldset disabled={saving || loading || gymSaving || dateSaving || cardSaving || cancelBusy} className="mt-5 space-y-3">
+                <legend className="text-base font-black">Member photo</legend>
+                {(photoPreview || member.photoUrl) && <img src={photoPreview || member.photoUrl || ""} alt={photo ? "New photo preview" : "Current member photo"} className="h-40 w-40 rounded-xl object-cover" />}
+                <StaffRegistrationPhotoControls existingPhotoUrl={member.photoUrl} onCaptured={setPhoto} onUploaded={setPhoto} onPhotoLater={() => setPhoto(null)} />
+                {photo && <p className="text-sm font-bold">New photo selected. Save personal details to replace the official photo.</p>}
+              </fieldset>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 {FIELDS.map(({ key, label, type, wide }) => (
                   <label key={key} className={wide ? "block sm:col-span-2" : "block"}>
@@ -335,11 +370,11 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                 ))}
               </div>
               <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-zinc-100 pt-5">
-                <button disabled={!changed || gymChanged || dateChanged || cardDraftDirty || cancelDraftDirty || saving || loading || gymSaving || dateSaving || cardSaving || cancelBusy} type="submit"
+                <button disabled={(!changed && !photo) || gymChanged || dateChanged || cardDraftDirty || cancelDraftDirty || saving || loading || gymSaving || dateSaving || cardSaving || cancelBusy} type="submit"
                   className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-5 py-3 font-black text-white disabled:cursor-not-allowed disabled:bg-zinc-300">
                   <Save size={17} /> {saving ? "Saving…" : "Save personal details"}
                 </button>
-                {changed && <span className="text-sm font-medium text-amber-700">You have unsaved changes.</span>}
+                {(changed || photo) && <span className="text-sm font-medium text-amber-700">You have unsaved changes.</span>}
                 {(gymChanged || dateChanged || cardDraftDirty || cancelDraftDirty) && <span className="text-sm font-medium text-amber-700">Save or discard gym, membership date, card or cancellation changes before saving personal details.</span>}
               </div>
             </form>
