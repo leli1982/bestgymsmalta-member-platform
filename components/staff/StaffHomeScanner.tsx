@@ -65,7 +65,7 @@ function resultTitle(result: ScanResponse) {
   if (result.granted) return "ACCESS GRANTED";
   if (result.cardMatches?.length) return "SHARED CARD CONFLICT";
   if (result.result === "expired") return "MEMBERSHIP EXPIRED";
-  if (result.result === "inactive") return "MEMBERSHIP INACTIVE";
+  if (result.result === "inactive") return "MEMBERSHIP EXPIRED";
   if (result.result === "restricted_gym") {
     return `${(result.member?.accessGymName || "SINGLE GYM").toUpperCase()} ACCESS ONLY`;
   }
