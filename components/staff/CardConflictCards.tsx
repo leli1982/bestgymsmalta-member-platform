@@ -51,7 +51,7 @@ export default function CardConflictCards({ members, scanId, onResolved }: {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [assigningMemberId, setAssigningMemberId] = useState<string | null>(null);
-  const sharedLegacy = members.length > 1 && members.every(member => member.canResolveSharedLegacy);
+  const sharedLegacy = members.length > 0 && members.every(member => member.canResolveSharedLegacy);
   const scoped = sharedLegacy || members.some(member => member.isScopedCandidate);
   const assignedOwner = members.find(member => member.isExistingCardOwner);
 
