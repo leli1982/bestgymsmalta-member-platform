@@ -80,12 +80,15 @@ export async function POST(request: NextRequest) {
     ]);
     const isExistingOwner = allCurrentOwners.has(member.id);
     const isScopedCandidate = candidateNumbers.includes(member.member_number);
+    const pending = await db.from("bgm_pending_legacy_card_verifications").select("member_id").eq("scan3", code).eq("status", "pending");
+    if (pending.error) throw pending.error;
+    const pendingIds = (pending.data || []).map(x => x.member_id);
     const currentLegacyIds = (legacy.data || []).filter(x => x.assignment_status === "active").map(x => x.member_id);
-    const sharedLegacy = currentLegacyIds.length > 1 && !(modern.data || []).length && !(nfc.data || []).length;
+    const sharedLegacy = (currentLegacyIds.length > 1 || pendingIds.length > 0) && !(modern.data || []).length && !(nfc.data || []).length;
     if (!candidateNumbers.length && !sharedLegacy) {
       return NextResponse.json({ error: "This card is not an eligible shared legacy conflict. Please rescan or ask Super Admin." }, { status: 403 });
     }
-    if (!isExistingOwner && !isScopedCandidate) {
+    if (!isExistingOwner && !isScopedCandidate && !pendingIds.includes(member.id)) {
       return NextResponse.json({ error: "The selected member is not a verified match for this scanned card." }, { status: 403 });
     }
 
@@ -111,7 +114,7 @@ export async function POST(request: NextRequest) {
     let finalAccess = access;
     let sharedScanCompleted = false;
     if (body.resolveSharedLegacy === true) {
-      if (!sharedLegacy || !currentLegacyIds.includes(member.id) || !Array.isArray(body.expectedMemberIds) ||
+      if (!sharedLegacy || !(currentLegacyIds.includes(member.id) || pendingIds.includes(member.id)) || !Array.isArray(body.expectedMemberIds) ||
           !body.expectedMemberIds.every((id: unknown) => typeof id === "string")) {
         return NextResponse.json({ error: "Shared card claims changed. Rescan before confirming." }, { status: 409 });
       }
