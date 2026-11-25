@@ -134,13 +134,14 @@ function escapeCsv(value: unknown) {
 }
 
 export function serializeMemberExchangeCsv(
-  rows: readonly ParsedMemberExchangeRow[]
+  rows: readonly ParsedMemberExchangeRow[],
+  headers: readonly (keyof MemberExchangeValues)[] = MEMBER_EXCHANGE_HEADERS
 ) {
-  const lines = [MEMBER_EXCHANGE_HEADERS.map(escapeCsv).join(",")];
+  const lines = [headers.map(escapeCsv).join(",")];
 
   for (const row of rows) {
     lines.push(
-      MEMBER_EXCHANGE_HEADERS.map((header) =>
+      headers.map((header) =>
         escapeCsv(row.values[header] ?? "")
       ).join(",")
     );
