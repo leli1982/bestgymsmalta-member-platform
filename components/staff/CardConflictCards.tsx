@@ -40,7 +40,7 @@ function effectiveMembershipStatus(member: CardConflictMember) {
     timeZone: "Europe/Malta", year: "numeric", month: "2-digit", day: "2-digit",
   }).format(new Date());
   if (member.membershipExpiry && member.membershipExpiry < today) return "EXPIRED";
-  if (String(member.status || "").toLowerCase() !== "active" || !member.membershipExpiry) return "INACTIVE";
+  if (String(member.status || "").toLowerCase() !== "active" || !member.membershipExpiry) return "EXPIRED";
   return "ACTIVE";
 }
 
@@ -152,7 +152,7 @@ export default function CardConflictCards({ members, scanId, onResolved }: {
                 className="mt-4 w-full rounded-xl bg-zinc-950 px-4 py-3 text-base font-black text-white disabled:cursor-not-allowed disabled:bg-zinc-400">
                 {assigningMemberId === m.id ? "Verifying…" :
                   sharedLegacy ? "Select this member & assign card" :
-                  effectiveMembershipStatus(m) !== "ACTIVE" ? "Access unavailable — inactive/expired" :
+                  effectiveMembershipStatus(m) !== "ACTIVE" ? "Access unavailable — expired" :
                   m.isExistingCardOwner ? "Verify person & check in (no transfer)" :
                   assignedOwner ? "Card belongs to another member" :
                   "Assign this card & check in"}
