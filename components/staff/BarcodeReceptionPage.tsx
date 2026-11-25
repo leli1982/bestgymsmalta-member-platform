@@ -438,11 +438,11 @@ export default function BarcodeReceptionPage() {
                 </dl>
               </div>
             </div>
-          ) : (
-            <p className="mt-8 text-center text-xl font-bold text-zinc-700">
+          ) : !result.cardMatches?.length && result.result !== "ambiguous_card" ? (
+              <p className="mt-8 text-center text-xl font-bold text-zinc-700">
               MEMBER NOT FOUND
             </p>
-          )}
+            ) : null}
 
           {needsPhoto && result.member && (
             <div className="mt-6 grid gap-5 rounded-2xl border-4 border-amber-300 bg-amber-50 p-5 lg:grid-cols-[minmax(0,1fr)_minmax(340px,440px)] lg:items-center">
