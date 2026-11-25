@@ -107,21 +107,23 @@ export async function POST(request: NextRequest) {
       const cardResult = await supabase
         .from("bgm_member_card_credentials")
         .select("id, barcode_value, member_id, status, application_member_id")
-        .eq("barcode_value", membershipNumber)
-        .maybeSingle();
+        .ilike("barcode_value", membershipNumber.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_"));
       if (cardResult.error) throw cardResult.error;
+      const matchingCards = cardResult.data || [];
+      const activeCards = matchingCards.filter(row => row.status === "active");
+      const selectedCard = activeCards[0] || matchingCards[0] || null;
       const pending = await supabase.from("bgm_pending_legacy_card_verifications").select("member_id,status,source_row_number").eq("scan3", membershipNumber.toUpperCase());
       if (pending.error) throw pending.error;
       const pendingRows = (pending.data || []).filter(row => row.status === "pending");
       pendingLegacyIds = pendingRows.map(row => row.member_id);
       if ((pending.data || []).some(row => row.status !== "pending")) scopedCandidates = [];
-      pendingModernEligible = Boolean(cardResult.data?.status === "active" && cardResult.data.member_id && !cardResult.data.application_member_id &&
+      pendingModernEligible = Boolean(selectedCard?.status === "active" && selectedCard.member_id && !selectedCard.application_member_id &&
         pendingRows.length && pendingRows.every(row => row.source_row_number === null));
-      card = cardResult.data;
+      card = selectedCard;
       if (card) credentialKind = "physical_card";
 
       const claimIds = (claimsResult.data || []).map((claim) => claim.member_id);
-      if (card?.status === "active" && card.member_id) claimIds.push(card.member_id);
+      for (const match of activeCards) { if (match.member_id) claimIds.push(match.member_id); }
       existingOwnerIds = Array.from(new Set(claimIds));
       if (claimIds.length) {
         const claimedResult = await supabase.from("bgm_members").select(MEMBER_SELECT)
