@@ -34,6 +34,7 @@ type Props = {
   refreshToken?: number;
   onCountChange?: (count: number) => void;
   compact?: boolean;
+  autoOpen?: boolean;
 };
 
 function formatSubmitted(value: string | null, fallback: string) {
@@ -51,6 +52,7 @@ export default function StaffMembershipQueue({
   refreshToken = 0,
   onCountChange,
   compact = false,
+  autoOpen = true,
 }: Props) {
   const [applications, setApplications] = useState<QueueApplication[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -108,7 +110,7 @@ export default function StaffMembershipQueue({
       } else {
         const unseen = next.filter((item) => !seenIds.current.has(item.id));
         next.forEach((item) => seenIds.current.add(item.id));
-        if (unseen.length > 0) {
+        if (autoOpen && unseen.length > 0) {
           if (alertsArmed) playArrival();
           setSelectedId((current) => current || unseen[0].id);
         }
@@ -120,7 +122,7 @@ export default function StaffMembershipQueue({
     } finally {
       if (requestId === requestSequence.current) setLoading(false);
     }
-  }, [alertsArmed, onCountChange, playArrival]);
+  }, [alertsArmed, autoOpen, onCountChange, playArrival]);
 
   useEffect(() => {
     void loadQueue();
