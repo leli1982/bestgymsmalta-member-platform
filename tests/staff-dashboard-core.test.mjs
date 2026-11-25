@@ -34,10 +34,10 @@ test("staff member classification matches reception access rules", () => {
   );
 });
 
-test("active and expired filters do not mislabel inactive members", () => {
+test("expired filter includes inactive and expired memberships", () => {
   assert.equal(matchesStaffMemberFilter("active", "active"), true);
   assert.equal(matchesStaffMemberFilter("expired", "expired"), true);
-  assert.equal(matchesStaffMemberFilter("inactive", "expired"), false);
+  assert.equal(matchesStaffMemberFilter("inactive", "expired"), true);
   assert.equal(matchesStaffMemberFilter("inactive", "all"), true);
 });
 
