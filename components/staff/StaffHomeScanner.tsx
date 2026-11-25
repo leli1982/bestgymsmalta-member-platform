@@ -386,11 +386,11 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
                   </p>
                 )}
               </div>
-            ) : (
+            ) : !result.cardMatches?.length && result.result !== "ambiguous_card" ? (
               <p className="mt-6 text-xl font-black text-zinc-700">
                 The scanned identifier is not linked to a member.
               </p>
-            )}
+            ) : null}
 
             <button
               type="button"
