@@ -100,7 +100,7 @@ function presentation(result: BarcodeResult, accessGymName?: string | null) {
   }
   if (result === "inactive") {
     return {
-      title: "MEMBERSHIP INACTIVE",
+      title: "MEMBERSHIP EXPIRED",
       severity: "warning" as const,
       tone: "warning" as const,
       autoResetMs: 0,
@@ -433,7 +433,7 @@ export default function BarcodeReceptionPage() {
                   />
                   <Detail
                     label="Membership"
-                    value={result.member.status.toUpperCase()}
+                    value={result.result === "expired" || result.result === "inactive" ? "EXPIRED" : "ACTIVE"}
                   />
                 </dl>
               </div>
