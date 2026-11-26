@@ -9,6 +9,10 @@ import { broadcastStaffMembershipRefresh } from "@/lib/staffRealtime";
 
 export const dynamic = "force-dynamic";
 
+function exactCaseInsensitivePattern(value: string) {
+  return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
 function clean(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -39,18 +43,20 @@ async function reserveExactCard(
   const existing = await supabase
     .from("bgm_member_card_credentials")
     .select("id, barcode_value, application_member_id, member_id, status")
-    .eq("barcode_value", barcode)
-    .maybeSingle();
+    .ilike("barcode_value", exactCaseInsensitivePattern(barcode));
   if (existing.error) throw existing.error;
 
-  if (existing.data) {
+  const matches = existing.data || [];
+  if (matches.length > 1) throw new Error("CARD_BARCODE_CONFLICT");
+  const existingCard = matches[0];
+  if (existingCard) {
     if (
-      existing.data.status === "reserved" &&
-      existing.data.application_member_id === applicationMemberId &&
-      !existing.data.member_id
+      existingCard.status === "reserved" &&
+      existingCard.application_member_id === applicationMemberId &&
+      !existingCard.member_id
     ) {
-      await releaseReservedCard(supabase, applicationMemberId, barcode);
-      return existing.data;
+      await releaseReservedCard(supabase, applicationMemberId, existingCard.barcode_value);
+      return existingCard;
     }
     throw new Error("CARD_BARCODE_CONFLICT");
   }
@@ -325,8 +331,7 @@ export async function POST(request: NextRequest) {
       supabase
         .from("bgm_member_card_credentials")
         .select("id, barcode_value, application_member_id, member_id, status")
-        .eq("barcode_value", barcode)
-        .maybeSingle(),
+        .ilike("barcode_value", exactCaseInsensitivePattern(barcode)),
     ]);
     if (memberResult.error) throw memberResult.error;
     if (activeCardResult.error) throw activeCardResult.error;
@@ -339,14 +344,21 @@ export async function POST(request: NextRequest) {
     let renewalCardAction = decideRenewalCardAction(currentBarcode, barcode);
     let reservedBarcode: string | null = null;
 
-    const existingBarcode = existingBarcodeResult.data;
+    const matches = existingBarcodeResult.data || [];
+    const liveMatches = matches.filter((row) => row.status !== "retired");
+    if (liveMatches.length > 1) {
+      return NextResponse.json({ error: "Multiple card assignments match this barcode. Ask Super Admin to resolve the conflict." }, { status: 409 });
+    }
+    const existingBarcode = liveMatches[0] || matches[0] || null;
+    let verifiedBarcode = barcode;
     if (existingBarcode) {
       if (
         existingBarcode.status === "active" &&
         existingBarcode.member_id === participant.existing_member_id &&
-        existingBarcode.barcode_value === barcode
+        existingBarcode.barcode_value.toUpperCase() === barcode.toUpperCase()
       ) {
         renewalCardAction = "keep";
+        verifiedBarcode = existingBarcode.barcode_value;
         await releaseReservedCard(supabase, applicationMemberId);
       } else if (
         existingBarcode.status === "reserved" &&
@@ -355,7 +367,8 @@ export async function POST(request: NextRequest) {
       ) {
         renewalCardAction = "replace";
         reservedBarcode = existingBarcode.barcode_value;
-        await releaseReservedCard(supabase, applicationMemberId, barcode);
+        verifiedBarcode = reservedBarcode;
+        await releaseReservedCard(supabase, applicationMemberId, reservedBarcode);
       } else {
         return NextResponse.json(
           { error: "That card barcode belongs to another member or has already been issued." },
@@ -371,6 +384,7 @@ export async function POST(request: NextRequest) {
           auth.context.systemUserId
         );
         reservedBarcode = reservation.barcode_value;
+        verifiedBarcode = reservedBarcode;
       } catch (error) {
         if (error instanceof Error && error.message === "CARD_BARCODE_CONFLICT") {
           return NextResponse.json(
@@ -391,7 +405,7 @@ export async function POST(request: NextRequest) {
       .from("bgm_membership_application_members")
       .update({
         renewal_card_action: renewalCardAction,
-        renewal_scanned_barcode: barcode,
+        renewal_scanned_barcode: verifiedBarcode,
         renewal_card_verified_at: verifiedAt,
         updated_at: verifiedAt,
       })
@@ -410,6 +424,7 @@ export async function POST(request: NextRequest) {
         applicationId: application.id,
         currentBarcode,
         scannedBarcode: barcode,
+        verifiedBarcode,
         action: renewalCardAction,
         reservedBarcode,
       },
