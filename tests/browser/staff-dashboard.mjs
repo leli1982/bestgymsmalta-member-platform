@@ -346,7 +346,7 @@ try {
     });
   });
 
-  await page.route("**/api/system/members/active-vouchers", (route) => {
+  await page.route("**/api/system/members/active-vouchers*", (route) => {
     assert.equal(route.request().method(), "GET");
     return route.fulfill({ json: {
       vouchers: [
