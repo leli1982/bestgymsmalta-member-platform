@@ -88,7 +88,7 @@ export function buildMembershipFormPdf(application: PrintableApplication, partic
     `Email: ${clean(participant.email) || "—"}`,
     `Next of kin: ${clean(participant.nextOfKin) || "—"}`,
     `Base price: ${money(application.basePriceCents, application.currency)}`,
-    `Discount: ${application.discountPercentage || 0}% · ${money(application.discountAmountCents, application.currency)}${application.discountCode ? ` · ${application.discountCode}` : ""}`,
+    `Discount: ${application.discountPercentage || 0}% · ${money(application.discountAmountCents, application.currency)}${application.discountCode ? ` · ${application.discountCode}` : ""}${application.voucherExtensionMonths ? ` · +${application.voucherExtensionMonths} free months` : ""}`,
     `Final amount: ${money(application.finalAmountCents, application.currency)}`,
     `Payment method: ${paymentMethod}`,
     `Payment staff: ${clean(application.paymentStaffName) || "—"}`,
