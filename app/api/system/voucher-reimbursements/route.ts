@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     if (auth.error || !auth.context) return auth.error;
     const result = await getSupabaseAdmin().from("bgm_discount_codes")
       .select("id,code,percentage,active,reimbursement_value_cents,updated_at")
+      .eq("extension_months", 0)
       .order("code", { ascending: true });
     if (result.error) throw result.error;
     return NextResponse.json({ vouchers: (result.data || []).map(mapRow) }, { headers: { "Cache-Control": "private, no-store" } });
@@ -55,10 +56,11 @@ export async function PATCH(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
     const existing = await supabase.from("bgm_discount_codes")
-      .select("id,code,percentage,reimbursement_value_cents")
+      .select("id,code,percentage,reimbursement_value_cents,extension_months")
       .eq("id", id).maybeSingle();
     if (existing.error) throw existing.error;
     if (!existing.data) return jsonError("Voucher not found.", 404);
+    if (existing.data.extension_months > 0) return jsonError("Duration vouchers cannot generate reimbursement.", 409);
 
     const updated = await supabase.from("bgm_discount_codes")
       .update({ reimbursement_value_cents: reimbursementValueCents, updated_at: new Date().toISOString() })

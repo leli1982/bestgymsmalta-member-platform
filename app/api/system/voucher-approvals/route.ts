@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await db.from("bgm_voucher_approval_requests")
-      .select("id,application_id,voucher_code,gym_id,status,requested_by_system_user_id,requested_at,reviewed_by_system_user_id,reviewed_at,decision_note")
+      .select("id,application_id,voucher_code,voucher_terms,gym_id,status,requested_by_system_user_id,requested_at,reviewed_by_system_user_id,reviewed_at,decision_note")
       .order("requested_at",{ascending:false}).limit(120);
     if (result.error) throw result.error;
     const records = result.data || [];
@@ -51,6 +51,8 @@ export async function GET(request: NextRequest) {
       applicationKind:byApplication.get(row.application_id)?.application_kind || "unknown",
       memberName:[byMember.get(row.application_id)?.first_name,byMember.get(row.application_id)?.last_name].filter(Boolean).join(" ") || "Member",
       voucherCode:row.voucher_code,
+      extensionMonths:Number(row.voucher_terms?.extensionMonths || 0),
+      percentage:Number(row.voucher_terms?.percentage || 0),
       gymName:byGym.get(row.gym_id) || row.gym_id,
       status:row.status,
       requestedBy:byUser.get(row.requested_by_system_user_id) || "Staff",

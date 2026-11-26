@@ -64,6 +64,7 @@ export type PrintableApplication = {
   currency: string;
   discountCode: string | null;
   discountPercentage: number | null;
+  voucherExtensionMonths?: number;
   discountAmountCents: number | null;
   finalAmountCents: number | null;
   paymentMethod: string | null;
@@ -87,7 +88,7 @@ export async function loadPrintableMembershipApplication(applicationId: string):
   const applicationResult = await supabase
     .from("bgm_membership_applications")
     .select(
-      "id, application_reference, application_kind, membership_type, duration_key, start_date, expiry_date, enrollment_gym_id, access_scope, access_gym_id, staff_name, status, submitted_at, payment_received_at, activated_at, base_price_cents, currency, discount_code_snapshot, discount_percentage_snapshot, discount_amount_cents, final_amount_cents, payment_method, payment_other_text, payment_staff_name, declaration_snapshot, same_address_verified_at"
+      "id, application_reference, application_kind, membership_type, duration_key, start_date, expiry_date, enrollment_gym_id, access_scope, access_gym_id, staff_name, status, submitted_at, payment_received_at, activated_at, base_price_cents, currency, discount_code_snapshot, discount_percentage_snapshot, voucher_extension_months_snapshot, discount_amount_cents, final_amount_cents, payment_method, payment_other_text, payment_staff_name, declaration_snapshot, same_address_verified_at"
     )
     .eq("id", applicationId)
     .maybeSingle();
@@ -246,6 +247,7 @@ export async function loadPrintableMembershipApplication(applicationId: string):
     currency: application.currency || "EUR",
     discountCode: application.discount_code_snapshot,
     discountPercentage: application.discount_percentage_snapshot,
+    voucherExtensionMonths: application.voucher_extension_months_snapshot,
     discountAmountCents: application.discount_amount_cents,
     finalAmountCents: application.final_amount_cents ?? application.base_price_cents,
     paymentMethod: application.payment_method,

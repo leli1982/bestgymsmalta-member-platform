@@ -6,6 +6,7 @@ import { BellRing, CheckCircle2, RefreshCw, XCircle } from "lucide-react";
 type VoucherRequest = {
   id:string;applicationId:string;reference:string;applicationStatus:string;
   memberName:string;voucherCode:string;gymName:string;status:string;
+  extensionMonths?:number;percentage?:number;
   requestedBy:string;requestedAt:string;reviewedBy:string|null;reviewedAt:string|null;note:string|null;
 };
 type Reply = {pendingCount:number;requests:VoucherRequest[]};
@@ -88,6 +89,7 @@ export default function VoucherApprovalsAdmin() {
                 <div className="flex flex-wrap justify-between gap-2">
                   <div>
                     <h3 className="font-black">{item.voucherCode} · {item.memberName}</h3>
+                    {Boolean(item.extensionMonths) && <p className="mt-1 text-sm font-bold text-emerald-800">+{item.extensionMonths} free months · {item.percentage || 0}% price discount</p>}
                     <p className="mt-1 text-sm font-semibold text-zinc-700">{item.gymName} · {item.reference}</p>
                     <p className="mt-1 text-xs text-zinc-600">Requested by {item.requestedBy} · {localDate(item.requestedAt)}</p>
                   </div>

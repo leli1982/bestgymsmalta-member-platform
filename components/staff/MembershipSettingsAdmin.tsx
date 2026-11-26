@@ -45,6 +45,11 @@ type DiscountCode = {
   id: string;
   code: string;
   percentage: number;
+  extensionMonths: number;
+  eligibleDurationKeys: string[] | null;
+  eligibleMembershipTypes: string[] | null;
+  eligibleApplicationKinds: string[] | null;
+  eligibleGymIds: string[] | null;
   active: boolean;
   requiresVerification: boolean;
   validFrom: string | null;
@@ -59,6 +64,7 @@ type SettingsPayload = {
   priceCatalogs: PriceCatalog[];
   declarations: DeclarationVersion[];
   discountCodes: DiscountCode[];
+  gyms: { id: string; name: string; status: string }[];
 };
 
 const membershipTypes: readonly MembershipType[] = ["single", "student", "couples"];
@@ -146,6 +152,7 @@ export default function MembershipSettingsAdmin() {
     priceCatalogs: [],
     declarations: [],
     discountCodes: [],
+    gyms: [],
   });
   const [priceInputs, setPriceInputs] = useState<Record<string, string>>({});
   const [priceAvailability, setPriceAvailability] = useState<Record<string, boolean>>({});
@@ -161,6 +168,11 @@ export default function MembershipSettingsAdmin() {
     id: "",
     code: "",
     percentage: "",
+    extensionMonths: "0",
+    eligibleDurationKeys: [] as string[],
+    eligibleMembershipTypes: [] as string[],
+    eligibleApplicationKinds: [] as string[],
+    eligibleGymIds: [] as string[],
     validFrom: "",
     validUntil: "",
     maxUses: "",
@@ -329,6 +341,11 @@ export default function MembershipSettingsAdmin() {
       id: discountDraft.id || undefined,
       code: discountDraft.code,
       percentage,
+      extensionMonths: Number(discountDraft.extensionMonths || 0),
+      eligibleDurationKeys: discountDraft.eligibleDurationKeys,
+      eligibleMembershipTypes: discountDraft.eligibleMembershipTypes,
+      eligibleApplicationKinds: discountDraft.eligibleApplicationKinds,
+      eligibleGymIds: discountDraft.eligibleGymIds,
       active: discountDraft.active,
       requiresVerification: discountDraft.requiresVerification,
       validFrom: discountDraft.validFrom || null,
@@ -336,7 +353,7 @@ export default function MembershipSettingsAdmin() {
       maxUses,
     });
     if (result) {
-      setDiscountDraft({ id: "", code: "", percentage: "", validFrom: "", validUntil: "", maxUses: "", active: true, requiresVerification: false });
+      setDiscountDraft({ id: "", code: "", percentage: "", extensionMonths: "0", eligibleDurationKeys: [], eligibleMembershipTypes: [], eligibleApplicationKinds: [], eligibleGymIds: [], validFrom: "", validUntil: "", maxUses: "", active: true, requiresVerification: false });
       setMessage("Discount code saved.");
     }
   }
@@ -351,6 +368,11 @@ export default function MembershipSettingsAdmin() {
       id: discount.id,
       code: discount.code,
       percentage: String(discount.percentage),
+      extensionMonths: String(discount.extensionMonths || 0),
+      eligibleDurationKeys: discount.eligibleDurationKeys || [],
+      eligibleMembershipTypes: discount.eligibleMembershipTypes || [],
+      eligibleApplicationKinds: discount.eligibleApplicationKinds || [],
+      eligibleGymIds: discount.eligibleGymIds || [],
       validFrom: discount.validFrom || "",
       validUntil: discount.validUntil || "",
       maxUses: discount.maxUses === null ? "" : String(discount.maxUses),
@@ -488,7 +510,7 @@ export default function MembershipSettingsAdmin() {
             </section>
 
             <section id="discount-editor" className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
-              <SectionTitle title="Discount Codes" copy="Create controlled percentage discounts. Successful use counts are incremented only by paid activation, never by this editor." />
+              <SectionTitle title="Discount Codes & Duration Vouchers" copy="Set a percentage discount, free months, or both. Zero percent is valid with free months. Usage counts increase only on paid activation." />
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
                 <label className="text-xs font-black text-zinc-600">Discount code
                   <input value={discountDraft.code} onChange={(event) => setDiscountDraft((current) => ({ ...current, code: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" placeholder="WELCOME10" />
@@ -509,6 +531,31 @@ export default function MembershipSettingsAdmin() {
                   <input type="checkbox" checked={discountDraft.active} onChange={(event) => setDiscountDraft((current) => ({ ...current, active: event.target.checked }))} /> Active
                 </label>
               </div>
+              <div className="mt-4 space-y-4 rounded-xl border border-zinc-200 p-4">
+                <label className="block text-xs font-black text-zinc-600">Additional free months
+                  <input type="number" min="0" max="120" step="1" value={discountDraft.extensionMonths} onChange={(event) => setDiscountDraft((current) => ({ ...current, extensionMonths: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" />
+                </label>
+                <p className="text-xs text-zinc-500">Leave the discount at 0% for a duration-only voucher. Free months never create a reimbursement.</p>
+                {([
+                  { key: "eligibleDurationKeys", label: "Eligible purchased durations", options: durations.filter((key) => !(Number(discountDraft.extensionMonths) > 0 && key === "1_session")).map((key) => ({ id: key, name: durationLabels[key] })) },
+                  { key: "eligibleMembershipTypes", label: "Eligible membership categories", options: membershipTypes.map((key) => ({ id: key, name: typeLabels[key] })) },
+                  { key: "eligibleApplicationKinds", label: "Eligible application types", options: [{ id: "new", name: "New memberships" }, { id: "renewal", name: "Renewals" }] },
+                  { key: "eligibleGymIds", label: "Eligible gyms", options: (settings.gyms || []).map((gym) => ({ id: gym.id, name: gym.name })) },
+                ] as const).map(({ key, label, options }) => (
+                  <fieldset key={key}>
+                    <legend className="text-xs font-black text-zinc-700">{label}</legend>
+                    <p className="mb-2 text-xs text-zinc-500">No selection means all eligible options.</p>
+                    <div className="flex flex-wrap gap-2">
+                      {options.map((option) => (
+                        <label key={option.id} className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-800">
+                          <input type="checkbox" checked={discountDraft[key].includes(option.id)} onChange={(event) => setDiscountDraft((current) => ({ ...current, [key]: event.target.checked ? [...current[key], option.id] : current[key].filter((id) => id !== option.id) }))} />
+                          {option.name}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                ))}
+              </div>
               <label className="mt-4 inline-flex flex-wrap items-center gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-black text-zinc-800">
                 <input type="checkbox" checked={discountDraft.requiresVerification}
                   onChange={(event) => setDiscountDraft((current) => ({ ...current, requiresVerification: event.target.checked }))} />
@@ -516,7 +563,7 @@ export default function MembershipSettingsAdmin() {
                 <span className="text-xs font-semibold text-zinc-600">Super Admin approval is required before Staff can activate a membership with this voucher.</span>
               </label>
               <div className="mt-4 flex justify-end gap-2">
-                {discountDraft.id && <button type="button" onClick={() => setDiscountDraft({ id: "", code: "", percentage: "", validFrom: "", validUntil: "", maxUses: "", active: true, requiresVerification: false })} className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-black">Cancel edit</button>}
+                {discountDraft.id && <button type="button" onClick={() => setDiscountDraft({ id: "", code: "", percentage: "", extensionMonths: "0", eligibleDurationKeys: [], eligibleMembershipTypes: [], eligibleApplicationKinds: [], eligibleGymIds: [], validFrom: "", validUntil: "", maxUses: "", active: true, requiresVerification: false })} className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-black">Cancel edit</button>}
                 <button type="button" disabled={saving} onClick={() => void saveDiscountCode()} className="rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{discountDraft.id ? "Update Discount" : "Save Discount"}</button>
               </div>
 
@@ -527,7 +574,7 @@ export default function MembershipSettingsAdmin() {
                   <div key={discount.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 p-4">
                     <div>
                       <div className="flex flex-wrap items-center gap-2"><span className="font-black">{discount.code}</span><span className={`rounded-full px-2 py-1 text-[10px] font-black ${discount.active ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{discount.active ? "ACTIVE" : "INACTIVE"}</span>{discount.requiresVerification ? <span className="rounded-full bg-orange-100 px-2 py-1 text-[10px] font-black text-orange-800">VERIFICATION REQUIRED</span> : null}</div>
-                      <p className="mt-1 text-xs font-semibold text-zinc-500">{discount.percentage}% · {discount.successfulUses}{discount.maxUses ? ` / ${discount.maxUses}` : ""} successful uses · {discount.validFrom || "No start"} → {discount.validUntil || "No expiry"}</p>
+                      <p className="mt-1 text-xs font-semibold text-zinc-500">{[discount.percentage > 0 ? `${discount.percentage}% off` : "", discount.extensionMonths > 0 ? `+${discount.extensionMonths} free months` : ""].filter(Boolean).join(" · ")} · {discount.successfulUses}{discount.maxUses ? ` / ${discount.maxUses}` : ""} successful uses · {discount.validFrom || "No start"} → {discount.validUntil || "No expiry"}</p>
                     </div>
                     <div className="flex gap-2">
                       <button type="button" onClick={() => editDiscount(discount)} className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-black">Edit</button>

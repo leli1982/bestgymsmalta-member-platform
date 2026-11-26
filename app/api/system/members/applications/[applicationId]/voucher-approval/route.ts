@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const voucher = await db.from("bgm_discount_codes")
-      .select("id,code,percentage,active,valid_from,valid_until,max_uses,reimbursement_value_cents,requires_verification")
+      .select("id,code,percentage,active,valid_from,valid_until,max_uses,reimbursement_value_cents,requires_verification,extension_months,eligible_duration_keys,eligible_membership_types,eligible_application_kinds,eligible_gym_ids")
       .eq("code",code).maybeSingle();
     if (voucher.error) throw voucher.error;
     if (!voucher.data || !voucher.data.requires_verification)

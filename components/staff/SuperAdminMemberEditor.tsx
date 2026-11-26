@@ -31,7 +31,7 @@ type Membership = {
     currency: string; payment_method: string | null;
     payment_other_text: string | null; payment_staff_name: string | null;
     payment_received_at: string | null; discount_code_snapshot: string | null;
-    discount_percentage_snapshot: number | null; updated_at: string;
+    discount_percentage_snapshot: number | null; voucher_extension_months_snapshot?: number; voucher_terms_snapshot?: unknown; updated_at: string;
   } | null;
 };
 type DateEdit = {
@@ -550,6 +550,7 @@ export default function SuperAdminMemberEditor({ memberId }: { memberId: string 
                       ? <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                           <div>Recorded price: <strong>{currency(item.application.base_price_cents, item.application.currency)}</strong></div>
                           <div>Recorded voucher: <strong>{item.application.discount_code_snapshot || "None"}{item.application.discount_percentage_snapshot == null ? "" : ` · ${item.application.discount_percentage_snapshot}%`}</strong></div>
+                          {Boolean(item.application.voucher_extension_months_snapshot) && <div>Promotional extension: <strong>+{item.application.voucher_extension_months_snapshot} free months</strong></div>}
                           <div>Recorded discount: <strong>{currency(item.application.discount_amount_cents, item.application.currency)}</strong></div>
                           <div>Recorded final amount: <strong>{currency(item.application.final_amount_cents, item.application.currency)}</strong></div>
                           <div>Payment method: <strong>{item.application.payment_method || "Not recorded"}</strong></div>
