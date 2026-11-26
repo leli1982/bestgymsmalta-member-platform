@@ -61,10 +61,13 @@ export function voucherApprovalTermsFromRow(row: {
     maxUses: row.max_uses,
     reimbursementCents: row.reimbursement_value_cents,
     requiresVerification: row.requires_verification,
-    extensionMonths: row.extension_months || 0,
-    eligibleDurationKeys: row.eligible_duration_keys ?? null,
-    eligibleMembershipTypes: row.eligible_membership_types ?? null,
-    eligibleApplicationKinds: row.eligible_application_kinds ?? null,
-    eligibleGymIds: row.eligible_gym_ids ?? null,
+    ...((row.extension_months || row.eligible_duration_keys || row.eligible_membership_types ||
+      row.eligible_application_kinds || row.eligible_gym_ids) ? {
+      extensionMonths: row.extension_months || 0,
+      eligibleDurationKeys: row.eligible_duration_keys ?? null,
+      eligibleMembershipTypes: row.eligible_membership_types ?? null,
+      eligibleApplicationKinds: row.eligible_application_kinds ?? null,
+      eligibleGymIds: row.eligible_gym_ids ?? null,
+    } : {}),
   };
 }
