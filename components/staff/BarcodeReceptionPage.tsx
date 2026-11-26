@@ -231,6 +231,7 @@ export default function BarcodeReceptionPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           membershipNumber: scannedNumber,
+          inputSource: "reception_input",
           gymId: user?.gymId ? undefined : selectedGymId,
           deviceId: getOrCreateOfflineDeviceId(),
         }),
