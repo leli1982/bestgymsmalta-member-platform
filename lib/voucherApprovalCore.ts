@@ -9,6 +9,11 @@ export type VoucherApprovalTerms = {
   maxUses: number | null;
   reimbursementCents: number | null;
   requiresVerification: boolean;
+  extensionMonths?: number;
+  eligibleDurationKeys?: string[] | null;
+  eligibleMembershipTypes?: string[] | null;
+  eligibleApplicationKinds?: string[] | null;
+  eligibleGymIds?: string[] | null;
 };
 
 export function matchingVoucherApprovalTerms(
@@ -23,7 +28,12 @@ export function matchingVoucherApprovalTerms(
     stored.validUntil === current.validUntil &&
     stored.maxUses === current.maxUses &&
     stored.reimbursementCents === current.reimbursementCents &&
-    stored.requiresVerification === current.requiresVerification
+    stored.requiresVerification === current.requiresVerification &&
+    (stored.extensionMonths || 0) === (current.extensionMonths || 0) &&
+    JSON.stringify(stored.eligibleDurationKeys ?? null) === JSON.stringify(current.eligibleDurationKeys ?? null) &&
+    JSON.stringify(stored.eligibleMembershipTypes ?? null) === JSON.stringify(current.eligibleMembershipTypes ?? null) &&
+    JSON.stringify(stored.eligibleApplicationKinds ?? null) === JSON.stringify(current.eligibleApplicationKinds ?? null) &&
+    JSON.stringify(stored.eligibleGymIds ?? null) === JSON.stringify(current.eligibleGymIds ?? null)
   );
 }
 
@@ -36,6 +46,11 @@ export function voucherApprovalTermsFromRow(row: {
   max_uses: number | null;
   reimbursement_value_cents: number | null;
   requires_verification: boolean;
+  extension_months?: number;
+  eligible_duration_keys?: string[] | null;
+  eligible_membership_types?: string[] | null;
+  eligible_application_kinds?: string[] | null;
+  eligible_gym_ids?: string[] | null;
 }): VoucherApprovalTerms {
   return {
     code: row.code,
@@ -46,5 +61,10 @@ export function voucherApprovalTermsFromRow(row: {
     maxUses: row.max_uses,
     reimbursementCents: row.reimbursement_value_cents,
     requiresVerification: row.requires_verification,
+    extensionMonths: row.extension_months || 0,
+    eligibleDurationKeys: row.eligible_duration_keys ?? null,
+    eligibleMembershipTypes: row.eligible_membership_types ?? null,
+    eligibleApplicationKinds: row.eligible_application_kinds ?? null,
+    eligibleGymIds: row.eligible_gym_ids ?? null,
   };
 }
