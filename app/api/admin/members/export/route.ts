@@ -13,6 +13,8 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
 import { evaluateBarcodeAccess } from "@/lib/barcodeAccessCore";
 import { todayMaltaDate } from "@/lib/maltaDate";
+import { CURRENT_CSV_SCHEMA, CURRENT_CSV_COLUMNS, CURRENT_CSV_HEADERS, currentCsvDisplay, currentCsvCell, type CurrentCsvRow } from "@/lib/currentMemberCsvCore";
+import { createCurrentCsvSnapshot } from "@/lib/currentMemberCsvSignature";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -199,25 +201,7 @@ async function loadCurrentMembersCsv() {
   const count = await db.from("bgm_members").select("id", { count: "exact", head: true });
   if (count.error) throw count.error;
   if (count.count !== membersById.size) throw new Error("Membership count changed during export. Retry download.");
-  const columns = [
-    "ExportSchema","ExportedOn","BGMNumber","MemberId","LegacyPkCustomer","PhysicalCard","LegacyScan3","LegacyCardStatus",
-    "FullName","FirstName","LastName","CompanyName","Address1","Address2","Town","PostCode","Country","Gender","DateOfBirth","IDNumber","NextOfKin",
-    "Email","Mobile","Phone","TelephoneNo1","TelephoneNo2","Notes","EnrollmentGymId","EnrollmentGym","LegacyGym",
-    "Status","StoredStatus","MembershipType","MembershipDuration","MembershipStartDate","MembershipEndDate","MemberExpiryDate","EnrollmentDate","LegacyMembershipPeriod",
-    "CurrentMembershipId","MembershipRole","MembershipRecordStatus","CancellationEffectiveDate","CancellationReason","CancellationRecordedAt",
-    "AccessScope","AccessGymId","AccessGym","PendingAccessScope","PendingAccessGymId","PendingAccessEffectiveDate",
-    "VoucherExtensionMonths","VoucherBaseExpiryDate","VoucherTerms","PhotoPath","PhotoAssigned","AppEnrolled","AppEnrolledAt","Username","LastLoginAt",
-    "CreatedAt","UpdatedAt","ArchivedAt","ArchivedReason","ImportBatchId","ImportRowNumber",
-    "AllMembershipTermsJSON","AllPhysicalCardsJSON","AllLegacyCardClaimsJSON",
-  ];
-  // Spreadsheet-safe text; this version is a complete review snapshot.
-  // A separate validated update workflow is required before re-importing.
-  const cell = (value: unknown) => {
-    let v = text(value);
-    if (/^[\s]*[=+@-]/.test(v) || /^[\t\r\n]/.test(v)) v = "'" + v;
-    return '"' + v.replace(/"/g, '""') + '"';
-  };
-  const lines = [columns.map(cell).join(",")];
+  const lines = [CURRENT_CSV_HEADERS.map(currentCsvCell).join(",")];
   for (const m of Array.from(membersById.values())) {
     const history = (membershipsByMember.get(m.id) || []).slice().sort((a,b) =>
       String(b.created_at || "").localeCompare(String(a.created_at || "")) || String(a.id).localeCompare(String(b.id)));
@@ -229,8 +213,8 @@ async function loadCurrentMembersCsv() {
     const valid = !m.archived_at && evaluateBarcodeAccess({
       member: { status: m.status, membershipExpiry: m.membership_expiry, cancellationEffectiveDate: m.cancellation_effective_date }, today,
     }).granted;
-    lines.push([
-      "BGM-current-v1",today,m.member_number,m.id,m.legacy_pk_customer,(currentCards.get(m.id)||[]).join(" | "),currentLegacy.map(row=>row.scan3).join(" | "),currentLegacy.length ? "active" : legacy.length ? "removed" : "",
+    const values = [
+      CURRENT_CSV_SCHEMA,today,m.member_number,m.id,m.legacy_pk_customer,(currentCards.get(m.id)||[]).join(" | "),currentLegacy.map(row=>row.scan3).join(" | "),currentLegacy.length ? "active" : legacy.length ? "removed" : "",
       m.full_name,m.first_name,m.last_name,m.company_name,m.address_line_1,m.address_line_2,m.town,m.postcode,m.country,m.gender,m.date_of_birth,m.id_number,m.next_of_kin,
       m.email,m.mobile,m.phone,m.telephone_no_1,m.telephone_no_2,m.notes,m.enrollment_gym_id,gymNames.get(m.enrollment_gym_id),m.legacy_gym,
       m.archived_at ? "Archived" : valid ? "Active" : "Expired",m.status,matchingTerm?.membership_type,matchingTerm?.duration_key,matchingTerm?.start_date,matchingTerm?.expiry_date,m.membership_expiry,m.enrollment_date,m.membership_period,
@@ -240,7 +224,11 @@ async function loadCurrentMembersCsv() {
       m.official_photo_path,m.official_photo_path ? "Yes" : "No",m.app_enrolled ? "Yes" : "No",m.app_enrolled_at,m.username,m.last_login_at,
       m.created_at,m.updated_at,m.archived_at,m.archived_reason,m.real_import_batch_id,m.real_import_row_number,
       JSON.stringify(history),JSON.stringify(cardHistory.get(m.id)||[]),JSON.stringify(legacy),
-    ].map(cell).join(","));
+    ].map(currentCsvDisplay);
+    if (values.length !== CURRENT_CSV_COLUMNS.length) throw new Error("Unexpected current-members CSV column count.");
+    const row = Object.fromEntries(CURRENT_CSV_COLUMNS.map((column,i)=>[column,values[i]])) as CurrentCsvRow;
+    const snapshot = createCurrentCsvSnapshot(row,matchingTerm?.updated_at || null);
+    lines.push([...values,snapshot.original,snapshot.signature].map(currentCsvCell).join(","));
   }
   return "\uFEFF" + lines.join("\r\n") + "\r\n";
 }
@@ -255,7 +243,17 @@ export async function GET(request: NextRequest) {
     if (format === "current-csv") {
       if (!auth.context?.isSuperAdmin) return NextResponse.json({ error: "Super Admin access required." }, { status: 403 });
       const csv = await loadCurrentMembersCsv();
-      return new NextResponse(csv, { headers: {
+      // Stream the full export rather than depend on the hosting platform's
+      // buffered response size limit for tens of thousands of members.
+      const bytes = new TextEncoder().encode(csv);
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          for (let offset=0;offset<bytes.length;offset+=128*1024)
+            controller.enqueue(bytes.subarray(offset,offset+128*1024));
+          controller.close();
+        },
+      });
+      return new NextResponse(stream, { headers: {
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="bgm-current-members-${todayMaltaDate()}.csv"`,
         "Cache-Control": "no-store",
