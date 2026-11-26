@@ -371,6 +371,7 @@ export async function POST(request: NextRequest) {
       ) {
         renewalCardAction = "replace";
         reservedBarcode = existingBarcode.barcode_value;
+        if (!reservedBarcode) throw new Error("Reserved physical card barcode is missing.");
         verifiedBarcode = reservedBarcode;
         await releaseReservedCard(supabase, applicationMemberId, reservedBarcode);
       } else {
@@ -388,6 +389,7 @@ export async function POST(request: NextRequest) {
           auth.context.systemUserId
         );
         reservedBarcode = reservation.barcode_value;
+        if (!reservedBarcode) throw new Error("Reserved physical card barcode is missing.");
         verifiedBarcode = reservedBarcode;
       } catch (error) {
         if (error instanceof Error && error.message === "CARD_BARCODE_CONFLICT") {
