@@ -10,6 +10,7 @@ const TEST_ONLY_PREVIEW_BRANCHES = new Set([
   "feature/launch-member-reconciliation",
   "feature/protected-developer-account",
   "feature/reserved-member-number-on-first-print",
+  "feature/super-admin-card-release",
 ]);
 
 export function resolveSupabaseAdminConfig(env: SupabaseAdminEnvironment) {
