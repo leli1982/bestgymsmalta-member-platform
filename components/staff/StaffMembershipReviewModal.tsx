@@ -206,10 +206,13 @@ export default function StaffMembershipReviewModal({
     currency: string;
     requiresVerification?: boolean;
     approvalStatus?: VoucherApprovalStatus;
+    extensionMonths?: number;
+    extendedExpiryDate?: string | null;
+    voucherQuote?: unknown;
   } | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
-  const [activeConfirmation, setActiveConfirmation] = useState<{ activatedAt: string } | null>(null);
+  const [activeConfirmation, setActiveConfirmation] = useState<{ activatedAt: string; expiryDate?: string; extensionMonths?: number } | null>(null);
   const barcodeRef = useRef<HTMLInputElement>(null);
 
   const loadDetail = useCallback(async () => {
@@ -746,12 +749,13 @@ export default function StaffMembershipReviewModal({
           paymentOtherText: paymentMethod === "other" ? paymentOtherText.trim() : "",
           staffName: staffName.trim(),
           discountCode: discountCode.trim(),
+          voucherQuote: discountPreview?.voucherQuote,
         }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not activate membership.");
       const activatedAt = new Date().toISOString();
-      setActiveConfirmation({ activatedAt });
+      setActiveConfirmation({ activatedAt, expiryDate: data.activation?.expiryDate, extensionMonths: data.activation?.voucherExtensionMonths });
       setPaymentPrompt(false);
       await onChanged();
       // Keep the activation confirmation open until staff finish or print the updated form.
@@ -791,6 +795,12 @@ export default function StaffMembershipReviewModal({
             {formatMalta(activeConfirmation.activatedAt)}
           </p>
           
+          {Boolean(activeConfirmation.extensionMonths) && (
+            <div className="mt-4 rounded-xl bg-emerald-50 p-4 text-sm font-bold text-emerald-900">
+              +{activeConfirmation.extensionMonths} free months · New expiry: {formatEuropeanDate(activeConfirmation.expiryDate || "")}
+              <button type="button" onClick={() => window.open(`/staff/applications/${encodeURIComponent(applicationId)}/print`, "_blank", "noopener,noreferrer")} className="mt-3 block w-full rounded-lg border border-emerald-300 bg-white px-3 py-2">Print updated membership form</button>
+            </div>
+          )}
           <button type="button" onClick={onClose} className="mt-4 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 font-black text-zinc-800">FINISH</button>
         </div>
       </div>
@@ -1251,7 +1261,7 @@ export default function StaffMembershipReviewModal({
                   <Summary
                     label="Discount"
                     value={discountPreview
-                      ? `${discountPreview.percentage}% · -${formatMoney(discountPreview.discountAmountCents, discountPreview.currency)}`
+                      ? (discountPreview.percentage > 0 ? `${discountPreview.percentage}% · -${formatMoney(discountPreview.discountAmountCents, discountPreview.currency)}` : "No price discount")
                       : "No discount"}
                   />
                   <Summary
@@ -1277,6 +1287,7 @@ export default function StaffMembershipReviewModal({
                     Discount code
                     <div className="mt-1.5 flex gap-2">
                       <StaffVoucherSelect
+                        applicationId={applicationId}
                         value={discountCode}
                         onChange={(code) => {
                           setDiscountCode(code);
@@ -1296,6 +1307,9 @@ export default function StaffMembershipReviewModal({
                   </label>
                 </div>
 
+                {Boolean(discountPreview?.extensionMonths) && (
+                  <p className="mt-3 rounded-xl bg-white p-3 text-sm font-black text-emerald-800">+{discountPreview?.extensionMonths} free months · New expiry: {formatEuropeanDate(discountPreview?.extendedExpiryDate || "")}</p>
+                )}
                 {discountPreview?.requiresVerification ? (
                   <StaffVoucherApprovalStatus
                     applicationId={applicationId}
