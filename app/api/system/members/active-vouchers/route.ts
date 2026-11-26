@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasAdvancedVoucherTerms, isVoucherEligible, type VoucherPromotion } from "@/lib/voucherDurationCore";
+import { effectiveVoucherExtension, hasAdvancedVoucherTerms, isVoucherEligible, type VoucherPromotion } from "@/lib/voucherDurationCore";
 import { todayMaltaDate } from "@/lib/maltaDate";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     }
     const result = await supabase
       .from("bgm_discount_codes")
-      .select("code, percentage, requires_verification, active, valid_from, valid_until, max_uses, successful_uses, extension_months, eligible_duration_keys, eligible_membership_types, eligible_application_kinds, eligible_gym_ids")
+      .select("code, percentage, requires_verification, active, valid_from, valid_until, max_uses, successful_uses, extension_months, eligible_duration_keys, eligible_membership_types, eligible_application_kinds, eligible_gym_ids, bonus_months, bonus_valid_from, bonus_valid_until")
       .eq("active", true)
       .order("code", { ascending: true });
 
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     const vouchers = ((result.data || []) as VoucherRow[])
       .filter((voucher) => voucherAvailableToday(voucher, today))
       .filter((voucher) => application ? isVoucherEligible(voucher, application) : !hasAdvancedVoucherTerms(voucher))
-      .map(({ code, percentage, requires_verification, extension_months }) => ({ code, percentage, requiresVerification: requires_verification, extensionMonths: extension_months }));
+      .map((voucher) => ({ code: voucher.code, percentage: voucher.percentage, requiresVerification: voucher.requires_verification, extensionMonths: application?.duration_key === "1_session" ? 0 : effectiveVoucherExtension(voucher, today) }));
 
     return NextResponse.json(
       { vouchers },

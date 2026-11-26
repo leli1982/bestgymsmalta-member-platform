@@ -1,7 +1,33 @@
+import { isValidCalendarDate } from "@/lib/maltaDate";
+
 /** Voucher promotion terms are separate from purchased duration and price. */
 export const PROMOTION_FIELDS = "extension_months, eligible_duration_keys, eligible_membership_types, eligible_application_kinds, eligible_gym_ids";
 
-export type VoucherPromotion = {
+export type TimedVoucherBonus = {
+  bonus_months?: number;
+  bonus_valid_from?: string | null;
+  bonus_valid_until?: string | null;
+};
+
+export function effectiveVoucherExtension(voucher: TimedVoucherBonus & { extension_months?: number }, today: string): number {
+  const bonus = voucher.bonus_months && voucher.bonus_valid_from && voucher.bonus_valid_until &&
+    today >= voucher.bonus_valid_from && today <= voucher.bonus_valid_until
+    ? voucher.bonus_months : 0;
+  return (voucher.extension_months || 0) + bonus;
+}
+
+export function parseTimedVoucherBonus(body: Record<string, unknown>, percentage: number, permanentMonths: number) {
+  const months = Number(body.bonusMonths ?? 0);
+  if (!Number.isInteger(months) || months < 0 || months > 120) throw new Error("Bonus months must be a whole number from 0 to 120.");
+  if (!months) return { bonus_months: 0, bonus_valid_from: null, bonus_valid_until: null };
+  if (percentage <= 0 && permanentMonths <= 0) throw new Error("The original voucher must have a discount or permanent free months.");
+  if (permanentMonths + months > 120) throw new Error("Permanent and bonus free months together cannot exceed 120.");
+  const from = String(body.bonusValidFrom || ""), until = String(body.bonusValidUntil || "");
+  if (!isValidCalendarDate(from) || !isValidCalendarDate(until) || from > until) throw new Error("Choose valid bonus start and end dates (inclusive).");
+  return { bonus_months: months, bonus_valid_from: from, bonus_valid_until: until };
+}
+
+export type VoucherPromotion = TimedVoucherBonus & {
   extension_months: number;
   eligible_duration_keys: string[] | null;
   eligible_membership_types: string[] | null;
@@ -61,7 +87,8 @@ export function extendVoucherExpiry(baseExpiryDate: string, extensionMonths: num
   return date.toISOString().slice(0, 10);
 }
 
-export function buildVoucherQuote(voucher: VoucherTerms, application: VoucherApplication) {
+export function buildVoucherQuote(voucher: VoucherTerms, application: VoucherApplication, today: string) {
+  const effectiveMonths = effectiveVoucherExtension(voucher, today);
   return {
     voucherTerms: {
       code: voucher.code,
@@ -72,8 +99,8 @@ export function buildVoucherQuote(voucher: VoucherTerms, application: VoucherApp
       maxUses: voucher.max_uses,
       reimbursementCents: voucher.reimbursement_value_cents,
       requiresVerification: voucher.requires_verification,
-      ...(hasAdvancedVoucherTerms(voucher) ? {
-        extensionMonths: voucher.extension_months,
+      ...((hasAdvancedVoucherTerms(voucher) || effectiveMonths > 0) ? {
+        extensionMonths: effectiveMonths,
         eligibleDurationKeys: voucher.eligible_duration_keys,
         eligibleMembershipTypes: voucher.eligible_membership_types,
         eligibleApplicationKinds: voucher.eligible_application_kinds,

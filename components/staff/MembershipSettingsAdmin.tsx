@@ -46,6 +46,9 @@ type DiscountCode = {
   code: string;
   percentage: number;
   extensionMonths: number;
+  bonusMonths: number;
+  bonusValidFrom: string | null;
+  bonusValidUntil: string | null;
   eligibleDurationKeys: string[] | null;
   eligibleMembershipTypes: string[] | null;
   eligibleApplicationKinds: string[] | null;
@@ -169,6 +172,9 @@ export default function MembershipSettingsAdmin() {
     code: "",
     percentage: "",
     extensionMonths: "0",
+    bonusMonths: "0",
+    bonusValidFrom: "",
+    bonusValidUntil: "",
     eligibleDurationKeys: [] as string[],
     eligibleMembershipTypes: [] as string[],
     eligibleApplicationKinds: [] as string[],
@@ -342,6 +348,9 @@ export default function MembershipSettingsAdmin() {
       code: discountDraft.code,
       percentage,
       extensionMonths: Number(discountDraft.extensionMonths || 0),
+      bonusMonths: Number(discountDraft.bonusMonths || 0),
+      bonusValidFrom: discountDraft.bonusValidFrom || null,
+      bonusValidUntil: discountDraft.bonusValidUntil || null,
       eligibleDurationKeys: discountDraft.eligibleDurationKeys,
       eligibleMembershipTypes: discountDraft.eligibleMembershipTypes,
       eligibleApplicationKinds: discountDraft.eligibleApplicationKinds,
@@ -353,7 +362,7 @@ export default function MembershipSettingsAdmin() {
       maxUses,
     });
     if (result) {
-      setDiscountDraft({ id: "", code: "", percentage: "", extensionMonths: "0", eligibleDurationKeys: [], eligibleMembershipTypes: [], eligibleApplicationKinds: [], eligibleGymIds: [], validFrom: "", validUntil: "", maxUses: "", active: true, requiresVerification: false });
+      setDiscountDraft({ id: "", code: "", percentage: "", extensionMonths: "0", bonusMonths: "0", bonusValidFrom: "", bonusValidUntil: "", eligibleDurationKeys: [], eligibleMembershipTypes: [], eligibleApplicationKinds: [], eligibleGymIds: [], validFrom: "", validUntil: "", maxUses: "", active: true, requiresVerification: false });
       setMessage("Discount code saved.");
     }
   }
@@ -369,6 +378,9 @@ export default function MembershipSettingsAdmin() {
       code: discount.code,
       percentage: String(discount.percentage),
       extensionMonths: String(discount.extensionMonths || 0),
+      bonusMonths: String(discount.bonusMonths || 0),
+      bonusValidFrom: discount.bonusValidFrom || "",
+      bonusValidUntil: discount.bonusValidUntil || "",
       eligibleDurationKeys: discount.eligibleDurationKeys || [],
       eligibleMembershipTypes: discount.eligibleMembershipTypes || [],
       eligibleApplicationKinds: discount.eligibleApplicationKinds || [],
@@ -536,6 +548,15 @@ export default function MembershipSettingsAdmin() {
                   <input type="number" min="0" max="120" step="1" value={discountDraft.extensionMonths} onChange={(event) => setDiscountDraft((current) => ({ ...current, extensionMonths: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" />
                 </label>
                 <p className="text-xs text-zinc-500">Leave the discount at 0% for a duration-only voucher. Free months never create a reimbursement.</p>
+                <fieldset className="rounded-xl border border-zinc-200 p-3">
+                  <legend className="px-1 text-xs font-black text-zinc-700">Time-limited bonus (independent of voucher validity)</legend>
+                  <p className="mb-3 text-xs text-zinc-500">Bonus months are added to any permanent free months during these dates, including the final day. When the bonus ends, the original voucher continues normally. For a temporary-only extension on a percentage voucher, leave Additional free months at 0 and enter the bonus below. Set bonus months to zero to disable only the bonus. Single-session purchases are not extended.</p>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <label className="text-xs font-black text-zinc-600">Bonus free months<input type="number" min="0" max="120" step="1" value={discountDraft.bonusMonths} onChange={(event) => setDiscountDraft((current) => ({ ...current, bonusMonths: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" /></label>
+                    <label className="text-xs font-black text-zinc-600">Bonus starts<EuropeanDateInput value={discountDraft.bonusValidFrom} onValueChange={(value) => setDiscountDraft((current) => ({ ...current, bonusValidFrom: value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" /></label>
+                    <label className="text-xs font-black text-zinc-600">Bonus ends (inclusive)<EuropeanDateInput value={discountDraft.bonusValidUntil} onValueChange={(value) => setDiscountDraft((current) => ({ ...current, bonusValidUntil: value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" /></label>
+                  </div>
+                </fieldset>
                 {([
                   { key: "eligibleDurationKeys", label: "Eligible purchased durations", options: durations.filter((key) => !(Number(discountDraft.extensionMonths) > 0 && key === "1_session")).map((key) => ({ id: key, name: durationLabels[key] })) },
                   { key: "eligibleMembershipTypes", label: "Eligible membership categories", options: membershipTypes.map((key) => ({ id: key, name: typeLabels[key] })) },
@@ -563,7 +584,7 @@ export default function MembershipSettingsAdmin() {
                 <span className="text-xs font-semibold text-zinc-600">Super Admin approval is required before Staff can activate a membership with this voucher.</span>
               </label>
               <div className="mt-4 flex justify-end gap-2">
-                {discountDraft.id && <button type="button" onClick={() => setDiscountDraft({ id: "", code: "", percentage: "", extensionMonths: "0", eligibleDurationKeys: [], eligibleMembershipTypes: [], eligibleApplicationKinds: [], eligibleGymIds: [], validFrom: "", validUntil: "", maxUses: "", active: true, requiresVerification: false })} className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-black">Cancel edit</button>}
+                {discountDraft.id && <button type="button" onClick={() => setDiscountDraft({ id: "", code: "", percentage: "", extensionMonths: "0", bonusMonths: "0", bonusValidFrom: "", bonusValidUntil: "", eligibleDurationKeys: [], eligibleMembershipTypes: [], eligibleApplicationKinds: [], eligibleGymIds: [], validFrom: "", validUntil: "", maxUses: "", active: true, requiresVerification: false })} className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-black">Cancel edit</button>}
                 <button type="button" disabled={saving} onClick={() => void saveDiscountCode()} className="rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{discountDraft.id ? "Update Discount" : "Save Discount"}</button>
               </div>
 
@@ -575,6 +596,7 @@ export default function MembershipSettingsAdmin() {
                     <div>
                       <div className="flex flex-wrap items-center gap-2"><span className="font-black">{discount.code}</span><span className={`rounded-full px-2 py-1 text-[10px] font-black ${discount.active ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{discount.active ? "ACTIVE" : "INACTIVE"}</span>{discount.requiresVerification ? <span className="rounded-full bg-orange-100 px-2 py-1 text-[10px] font-black text-orange-800">VERIFICATION REQUIRED</span> : null}</div>
                       <p className="mt-1 text-xs font-semibold text-zinc-500">{[discount.percentage > 0 ? `${discount.percentage}% off` : "", discount.extensionMonths > 0 ? `+${discount.extensionMonths} free months` : ""].filter(Boolean).join(" · ")} · {discount.successfulUses}{discount.maxUses ? ` / ${discount.maxUses}` : ""} successful uses · {discount.validFrom || "No start"} → {discount.validUntil || "No expiry"}</p>
+                      {discount.bonusMonths > 0 && <p className="mt-1 text-xs font-bold text-emerald-700">Timed bonus: +{discount.bonusMonths} months · {discount.bonusValidFrom?.split("-").reverse().join("/")} – {discount.bonusValidUntil?.split("-").reverse().join("/")} inclusive</p>}
                     </div>
                     <div className="flex gap-2">
                       <button type="button" onClick={() => editDiscount(discount)} className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-black">Edit</button>

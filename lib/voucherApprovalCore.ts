@@ -1,3 +1,6 @@
+import { effectiveVoucherExtension, type TimedVoucherBonus } from "@/lib/voucherDurationCore";
+import { todayMaltaDate } from "@/lib/maltaDate";
+
 export type VoucherApprovalStatus = "not_required" | "not_requested" | "pending" | "approved" | "rejected" | "stale";
 
 export type VoucherApprovalTerms = {
@@ -37,7 +40,7 @@ export function matchingVoucherApprovalTerms(
   );
 }
 
-export function voucherApprovalTermsFromRow(row: {
+export function voucherApprovalTermsFromRow(row: TimedVoucherBonus & {
   code: string;
   percentage: number;
   active: boolean;
@@ -52,6 +55,7 @@ export function voucherApprovalTermsFromRow(row: {
   eligible_application_kinds?: string[] | null;
   eligible_gym_ids?: string[] | null;
 }): VoucherApprovalTerms {
+  const effectiveMonths = effectiveVoucherExtension(row, todayMaltaDate());
   return {
     code: row.code,
     percentage: row.percentage,
@@ -61,9 +65,9 @@ export function voucherApprovalTermsFromRow(row: {
     maxUses: row.max_uses,
     reimbursementCents: row.reimbursement_value_cents,
     requiresVerification: row.requires_verification,
-    ...((row.extension_months || row.eligible_duration_keys || row.eligible_membership_types ||
+    ...((effectiveMonths || row.eligible_duration_keys || row.eligible_membership_types ||
       row.eligible_application_kinds || row.eligible_gym_ids) ? {
-      extensionMonths: row.extension_months || 0,
+      extensionMonths: effectiveMonths,
       eligibleDurationKeys: row.eligible_duration_keys ?? null,
       eligibleMembershipTypes: row.eligible_membership_types ?? null,
       eligibleApplicationKinds: row.eligible_application_kinds ?? null,

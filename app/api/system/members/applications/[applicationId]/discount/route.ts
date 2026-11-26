@@ -3,7 +3,7 @@ import {
   discountAmountCents,
   normalizeDiscountCode,
 } from "@/lib/membershipSettingsCore";
-import { buildVoucherQuote, extendVoucherExpiry, isVoucherEligible, type VoucherApplication, type VoucherTerms } from "@/lib/voucherDurationCore";
+import { buildVoucherQuote, effectiveVoucherExtension, extendVoucherExpiry, isVoucherEligible, type VoucherApplication, type VoucherTerms } from "@/lib/voucherDurationCore";
 import { todayMaltaDate } from "@/lib/maltaDate";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
@@ -112,7 +112,7 @@ export async function POST(
     const discountResult = await supabase
       .from("bgm_discount_codes")
       .select(
-        "id, code, percentage, active, valid_from, valid_until, max_uses, successful_uses, requires_verification, reimbursement_value_cents, extension_months, eligible_duration_keys, eligible_membership_types, eligible_application_kinds, eligible_gym_ids"
+        "id, code, percentage, active, valid_from, valid_until, max_uses, successful_uses, requires_verification, reimbursement_value_cents, extension_months, eligible_duration_keys, eligible_membership_types, eligible_application_kinds, eligible_gym_ids, bonus_months, bonus_valid_from, bonus_valid_until"
       )
       .eq("code", code)
       .maybeSingle();
@@ -140,11 +140,12 @@ export async function POST(
     if (!isVoucherEligible(terms, context)) {
       return NextResponse.json({ error: "Discount code is not eligible for this membership." }, { status: 409 });
     }
-    if (terms.extension_months > 0 && !context.expiry_date) {
+    const extensionMonths = context.duration_key === "1_session" ? 0 : effectiveVoucherExtension(terms, today);
+    if (extensionMonths > 0 && !context.expiry_date) {
       return NextResponse.json({ error: "Confirm the membership expiry date before applying this voucher." }, { status: 409 });
     }
-    const voucherQuote = buildVoucherQuote(terms, context);
-    const extendedExpiryDate = context.expiry_date ? extendVoucherExpiry(context.expiry_date, terms.extension_months) : null;
+    const voucherQuote = buildVoucherQuote(terms, context, today);
+    const extendedExpiryDate = context.expiry_date ? extendVoucherExpiry(context.expiry_date, extensionMonths) : null;
     const amount = discount.percentage === 0 ? 0 : discountAmountCents(basePriceCents, discount.percentage);
     const finalAmount = Math.max(basePriceCents - amount, 0);
 
@@ -191,7 +192,7 @@ export async function POST(
       priceCatalogVersionId,
       requiresVerification: discount.requires_verification === true,
       approvalStatus,
-      extensionMonths: terms.extension_months,
+      extensionMonths,
       extendedExpiryDate,
       voucherQuote,
     });
