@@ -26,9 +26,9 @@ test("recovery is restricted to exactly the 32 frozen members", () => {
 test("normal scans remain unchanged outside the scoped source identifiers", () => {
   assert.match(scan, /scopedConflictCandidates\(originalPayload\)/);
   assert.match(scan, /scopedCandidates\.length/);
-  assert.match(scan, /if \(!ambiguousPhysicalCard\)/);
-  assert.match(scan, /const scopedOwner/);
-  assert.match(scan, /if \(scopedCandidates\.length && !scopedOwner\)/);
+  assert.match(scan, /if \(!member && !ambiguousPhysicalCard && !blockedLegacyCard\)/);
+  assert.match(scan, /!all\.some\(candidate => scopedCandidates\.includes\(candidate\.member_number\)\)/);
+  assert.match(scan, /if \(scopedCandidates\.length && !all\.some/);
 });
 
 test("staff can only confirm a recent scan in their own session and gym", () => {
