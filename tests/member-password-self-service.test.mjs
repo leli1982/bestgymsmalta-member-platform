@@ -27,7 +27,7 @@ test("member change password verifies the current hash and replaces it securely"
 });
 
 test("member tools expose a self-service change password screen", () => {
-  assert.match(login, /label: "Change Password"/);
+  assert.match(login, /label: "Profile & Password"/);
   assert.match(login, /href: "\/change-password"/);
   assert.match(ui, /Current password/);
   assert.match(ui, /New password/);
