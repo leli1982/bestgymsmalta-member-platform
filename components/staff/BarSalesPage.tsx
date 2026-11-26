@@ -99,6 +99,7 @@ export default function BarSalesPage() {
   const pendingEditRef = useRef(0);
   const lastAttemptRef = useRef(0);
   const savingRef = useRef(false);
+  const conflictRef = useRef(false);
   const transitionRef = useRef(false);
   const interactionRef = useRef(0);
 
@@ -106,7 +107,8 @@ export default function BarSalesPage() {
   const visibleProducts = useMemo(() => filterBarProducts(activeProducts, productFilter), [activeProducts, productFilter]);
   const othersItem = catalog.find((item) => item.active && item.isOther);
   const gymName = gyms.find((gym) => gym.id === gymId)?.name || gymId || "Gym";
-  const locked = Boolean(sheet?.locked) || refreshing;
+  const locked = Boolean(sheet?.locked);
+  const editingLocked = locked || refreshing;
 
   const selectedItems = useMemo(() => activeProducts
     .filter((item) => (quantities[item.id] || 0) > 0)
@@ -154,6 +156,7 @@ export default function BarSalesPage() {
     const next = await readOpenSheet(location);
     applySheet(next, currentCatalog);
     pendingEditRef.current = 0;
+    conflictRef.current = false;
     lastAttemptRef.current = 0;
     setDirtyToken(0);
     setSaveState("saved");
@@ -216,7 +219,7 @@ export default function BarSalesPage() {
   const saveNow = useCallback(async () => {
     const token = dirtyToken;
     if (!user || !gymId || !sheet || locked || !token
-      || pendingEditRef.current !== token || savingRef.current || transitionRef.current) return;
+      || pendingEditRef.current !== token || savingRef.current || transitionRef.current || conflictRef.current) return;
     const barEntries = buildEntries();
     if (!barEntries) {
       setSaveState("idle");
@@ -232,6 +235,7 @@ export default function BarSalesPage() {
       // another browser's edit. Keep the local edits for staff to review.
       const current = await readOpenSheet(gymId);
       if (!sameSheetRevision(sheet, current)) {
+        conflictRef.current = true;
         throw new Error("The Bar sheet changed on another screen (possibly End of Day). Your unsaved edits have been kept here. Note them, then refresh and re-enter only any new sales.");
       }
       if (pendingEditRef.current !== token) {
@@ -256,8 +260,15 @@ export default function BarSalesPage() {
         const next = data.sheet as DailySheet;
         // A close can occur after a save but before its read-back.
         // Reconcile a changed result if there are no more local edits.
-        if (pendingEditRef.current === token && next.totalCents !== totalCents) {
-          applySheet(next, catalog);
+        if (next.totalCents !== totalCents) {
+          if (pendingEditRef.current === token) {
+            applySheet(next, catalog);
+          } else {
+            conflictRef.current = true;
+            setError("The Bar sheet changed during the save. Your newer edits have been kept here. Note them, then refresh and re-enter only any new sales.");
+            setSaveState("idle");
+            return;
+          }
         } else {
           setSheet(next);
         }
@@ -364,7 +375,8 @@ export default function BarSalesPage() {
 
   async function manualRefresh() {
     if (!gymId || savingRef.current || transitionRef.current) return;
-    if (pendingEditRef.current && !window.confirm("There are unsaved Bar edits. Discard those edits and reload the saved sheet?")) return;
+    const hadPending = Boolean(pendingEditRef.current);
+    if (hadPending && !window.confirm("There are unsaved Bar edits. Discard those edits and reload the saved sheet?")) return;
     interactionRef.current += 1;
     transitionRef.current = true;
     setRefreshing(true);
@@ -378,7 +390,7 @@ export default function BarSalesPage() {
       setCatalog(currentCatalog);
       const oldPendingKey = pendingKeyRef.current;
       await loadSheet(gymId, currentCatalog);
-      if (oldPendingKey) window.localStorage.removeItem(oldPendingKey);
+      if (hadPending && oldPendingKey) window.localStorage.removeItem(oldPendingKey);
     } catch (refreshError) {
       setError(refreshError instanceof Error ? refreshError.message : "Could not refresh the Bar sheet.");
     } finally {
@@ -457,7 +469,7 @@ export default function BarSalesPage() {
                 <div key={item.id} className={quantity > 0 ? "flex flex-wrap items-center gap-3 rounded-2xl border border-orange-300 bg-orange-50 p-3" : "flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-3"}>
                   <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#ffb400]"><Package className="h-8 w-8" /></span>
                   <div className="min-w-40 flex-1"><p className="font-black">{item.name}</p><p className="text-sm font-bold text-zinc-600">{formatBarEuro(item.priceCents || 0)} per unit</p></div>
-                  <QuantityPicker name={item.name} quantity={quantity} locked={locked} onChange={(value) => markQuantity(item.id, value)} />
+                  <QuantityPicker name={item.name} quantity={quantity} locked={editingLocked} onChange={(value) => markQuantity(item.id, value)} />
                   <div className="min-w-24 text-right"><p className="text-xs font-bold text-zinc-500">Item total</p><p className="text-lg font-black tabular-nums">{formatBarEuro((item.priceCents || 0) * quantity)}</p></div>
                 </div>
               );
@@ -469,20 +481,20 @@ export default function BarSalesPage() {
           <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div><h2 className="text-xl font-black">Others</h2><p className="mt-1 text-sm text-zinc-500">Use only for a product missing from the official list.</p></div>
-              <button type="button" onClick={addExtra} disabled={locked} className="inline-flex items-center gap-2 rounded-xl bg-orange-50 px-4 py-3 text-sm font-black text-orange-700 disabled:opacity-40"><Plus className="h-5 w-5" /> Add other item</button>
+              <button type="button" onClick={addExtra} disabled={editingLocked} className="inline-flex items-center gap-2 rounded-xl bg-orange-50 px-4 py-3 text-sm font-black text-orange-700 disabled:opacity-40"><Plus className="h-5 w-5" /> Add other item</button>
             </div>
             <div className="mt-4 space-y-3">
               {extras.map((extra, index) => (
                 <div key={extra.id} className="grid gap-3 rounded-2xl border border-orange-200 bg-orange-50/50 p-3 sm:grid-cols-[minmax(0,2fr)_135px_auto_auto] sm:items-end">
                   <label className="text-sm font-bold">Other item {index + 1}
-                    <input aria-label={`Other item ${index + 1} name`} disabled={locked} value={extra.name} onChange={(event) => updateExtra(extra.id, { name: event.target.value })} maxLength={120} className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-base disabled:opacity-50" />
+                    <input aria-label={`Other item ${index + 1} name`} disabled={editingLocked} value={extra.name} onChange={(event) => updateExtra(extra.id, { name: event.target.value })} maxLength={120} className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-base disabled:opacity-50" />
                   </label>
                   <label className="text-sm font-bold">Unit price (€)
-                    <input aria-label={`Other item ${index + 1} unit price`} disabled={locked} value={extra.price} onChange={(event) => updateExtra(extra.id, { price: event.target.value })} inputMode="decimal" className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-base disabled:opacity-50" />
+                    <input aria-label={`Other item ${index + 1} unit price`} disabled={editingLocked} value={extra.price} onChange={(event) => updateExtra(extra.id, { price: event.target.value })} inputMode="decimal" className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-base disabled:opacity-50" />
                   </label>
-                  <QuantityPicker name={`Other item ${index + 1}`} quantity={extra.quantity} locked={locked} onChange={(value) => updateExtra(extra.id, { quantity: value })} />
+                  <QuantityPicker name={`Other item ${index + 1}`} quantity={extra.quantity} locked={editingLocked} onChange={(value) => updateExtra(extra.id, { quantity: value })} />
                   <div className="flex flex-col items-end gap-1"><p className="text-xs font-bold text-zinc-500">Item total</p><p className="text-lg font-black tabular-nums">{formatBarEuro((parseEuroCents(extra.price) || 0) * extra.quantity)}</p>
-                    <button type="button" disabled={locked} onClick={() => removeExtra(extra.id)} className="inline-flex items-center gap-1 text-xs font-bold text-red-700 disabled:opacity-40"><Trash2 className="h-4 w-4" /> Remove</button>
+                    <button type="button" disabled={editingLocked} onClick={() => removeExtra(extra.id)} className="inline-flex items-center gap-1 text-xs font-bold text-red-700 disabled:opacity-40"><Trash2 className="h-4 w-4" /> Remove</button>
                   </div>
                 </div>
               ))}
