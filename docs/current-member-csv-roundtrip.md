@@ -1,0 +1,32 @@
+# Full current-member CSV round trip — requirements and release gates
+
+Owner requirement (26/11/2026): download every current member (active, expired, inactive and archived), edit the file externally, upload it back, and update matching existing live records only. Never remove any member because their row is absent, and never recreate or replace the membership database.
+
+## Contract
+- Dedicated versioned BGM current-members CSV; keep existing legacy 15/16/22-column reconciliation unchanged.
+- Permanent MemberId + BGMNumber identify exactly one existing member. No name, email, Scan3 or pkCustomer matching in this workflow. Reject unknown IDs, mismatched numbers, duplicate rows and files from another environment. No automatic creation, deletion, archiving, unarchiving or merging.
+- All existing profile fields, contact and identity information, legacy identity/card, modern card, effective active/expired status, stored status, gym/access, enrollment/start/end dates, membership type and duration, voucher terms, current and historical membership references, app enrollment, photo reference, archive and cancellation metadata are exported. Missing historical information stays blank. Password hashes, reset/session credentials, authentication tokens, biometric data and payment credentials are never exported.
+- Include current row revision plus linked membership and credential revisions. Preserve separate IDs and codes, leading zeros and original date values. Keep UTF-8 and robust quoting. Provide instructions to import into Excel as text; detect ambiguous conversions and invalid dates rather than guess.
+- Full history is exported as reference data. Do not write historical JSON, payment records, vouchers, check-ins, audit logs, credentials or photo bytes back from a spreadsheet. They remain intact in the database; references to existing photos and app accounts are retained. Historical changes, cancellations, shared membership corrections, access changes and card release/reassignment must obey existing domain-specific rules. Explicitly flag unsupported or protected edits rather than silently ignore them.
+- Use an authenticated baseline per exported row (signed original editable values and revisions, environment-bound). Browser can compare file values against original values, then submit only changed rows in bounded batches to avoid request body size limits. The server verifies the baseline and recomputes the allowed diff. If the member or relevant linked term/card changed after the export, do not overwrite that row; flag it as stale. An unchanged exported row is a no-op even if the live record changed later.
+- Update only explicitly edited fields. Blanks are intentional clear requests only if field allows clearing; never clear fields just because a column is missing. Require complete exact schema, not missing headers. Current membership dates must be corrected consistently in member and canonical term, not paid application history. Membership type/duration corrections must be validated against existing participants, voucher snapshots and pricing/financial records; no fabricated enrollment or payment. Shared terms require joint validated edits. Expired status is derived from effective dates, cancellation and status; don't revive cancelled/archived memberships implicitly. Do not allow direct modification of permanent identifiers.
+- Preview: uploaded rows, unchanged, changed, omitted (retained), unknown/invalid/stale/protected, field-level before/after, per-row reason, downloadable issue report. No business mutations in preview. Apply only an explicitly confirmed, server-staged exact preview, with optimistic concurrency rechecked during transaction; all selected edits atomic or an explicit blocked batch, never partial unnoticed. Audit successful changes with actor, batch and prior values. Idempotent retries. No new payments/email, and no card ownership changes except verified safe corrections through the existing guarded card workflow.
+- Full database backup and restore plan independent of CSV; the CSV is not a relational database backup.
+
+## Implementation stages
+1. Full read-only current CSV export (already on scanner candidate branch) with exact identifiers, member fields, current terms and historical membership/card data.
+2. Dedicated editable schema, baseline and strict parser; validate all field groups and protected data. Wire preview and apply as a separate Super Admin workflow.
+3. Reuse bgm_super_admin_update_member_profile, bgm_super_admin_correct_member_dates, bgm_super_admin_change_member_enrollment_gym, bgm_replace_member_card (6-argument audited variant) and approved domain procedures. Where profile normalization would alter untouched legacy fields, use a dedicated field-level procedure with explicit validation. Never use delete/replace or legacy import apply. Any new terms/type correction requires separate domain validation.
+4. TEST-only end-to-end trials with fictional records before any release.
+
+## Acceptance tests
+- Export full TEST roster; compare exact count/IDs, active/expired/inactive/archived categories and fields to DB. CSV has correct escaped commas, quotes, Unicode and multiline notes.
+- Unchanged file: 0 changes, 0 audit writes; omitted rows stay byte-identical.
+- Edit subset of rows and re-upload: only those selected fields change. Include active, expired, and legacy-only member. No deletion; no new membership/application/payment; no duplicate identity.
+- Add a new member and renew another between export and upload: new member retained; stale edited renewal blocked, unchanged stale row ignored.
+- Wrong project, changed BGM/UUID, duplicate rows, invalid dates, unknown membership type, duplicate/retired card, tampered baseline, protected field edits, shared membership with omitted partner: reject clearly.
+- Valid single current membership date correction: member and canonical term agree. Verify application, payment, check-in, voucher history and photo remain unchanged.
+- Concurrent edit between preview and apply: transaction refuses stale changes. Retry exact apply: idempotent.
+- File larger than hosting request limit: browser stages bounded batches, confirms all accepted, no partial apply. Bad chunk or missing rows does not lead to deletion.
+- Re-export after apply: correct values; total member count never falls. Verify audit, scanner recognition and cross-gym access.
+- Release only after automated tests, test environment validation and explicit production approval.
