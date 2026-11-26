@@ -23,6 +23,7 @@ type Membership = {
     base_price_cents: number | null;
     discount_code_snapshot: string | null;
     discount_percentage_snapshot: number | null;
+    voucher_terms_snapshot?: unknown;
     discount_amount_cents: number | null;
     final_amount_cents: number | null;
     currency: string;
@@ -64,6 +65,7 @@ export default function SuperAdminMemberVoucherCorrection({
 }) {
   const eligible = useMemo(() => memberships.filter((item) =>
     item.status === "active" && item.participantCount === 1 && item.application
+      && !item.application.voucher_terms_snapshot
       && item.application.payment_received_at
       && item.application.base_price_cents !== null
       && item.application.final_amount_cents !== null
