@@ -28,6 +28,28 @@ type DailySheet = {
 type SaveState = "idle" | "saving" | "saved" | "offline";
 
 const MAX_QTY = 10000;
+const BAR_SYNC_INTERVAL_MS = 5000;
+
+// The server reuses the open order ID across shift closes. updatedAt is
+// therefore required: an order ID or calendar-date check alone misses EOD.
+function sameSheetRevision(left: DailySheet, right: DailySheet) {
+  return left.gymId === right.gymId && left.orderId === right.orderId
+    && left.updatedAt === right.updatedAt && left.locked === right.locked
+    && left.lockedAt === right.lockedAt;
+}
+
+async function readOpenSheet(location: string, signal?: AbortSignal): Promise<DailySheet> {
+  const response = await fetch(`/api/system/bar/today?gymId=${encodeURIComponent(location)}`, {
+    cache: "no-store",
+    signal,
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || "Could not load the open Bar sheet.");
+  if (payload.gymId !== location || !Array.isArray(payload.items)) {
+    throw new Error("The Bar sheet response did not match this gym.");
+  }
+  return payload as DailySheet;
+}
 
 function QuantityPicker({ name, quantity, locked, onChange }: {
   name: string;
@@ -73,12 +95,20 @@ export default function BarSalesPage() {
   const [dirtyToken, setDirtyToken] = useState(0);
   const nextExtraId = useRef(1);
   const pendingKeyRef = useRef("");
+  const editSequenceRef = useRef(0);
+  const pendingEditRef = useRef(0);
+  const lastAttemptRef = useRef(0);
+  const savingRef = useRef(false);
+  const conflictRef = useRef(false);
+  const transitionRef = useRef(false);
+  const interactionRef = useRef(0);
 
   const activeProducts = useMemo(() => sortBarCatalog(catalog.filter((item) => item.active && !item.isOther)), [catalog]);
   const visibleProducts = useMemo(() => filterBarProducts(activeProducts, productFilter), [activeProducts, productFilter]);
   const othersItem = catalog.find((item) => item.active && item.isOther);
   const gymName = gyms.find((gym) => gym.id === gymId)?.name || gymId || "Gym";
   const locked = Boolean(sheet?.locked);
+  const editingLocked = locked || refreshing;
 
   const selectedItems = useMemo(() => activeProducts
     .filter((item) => (quantities[item.id] || 0) > 0)
@@ -123,10 +153,12 @@ export default function BarSalesPage() {
   }, []);
 
   const loadSheet = useCallback(async (location: string, currentCatalog: BarCatalogItem[]) => {
-    const response = await fetch(`/api/system/bar/today?gymId=${encodeURIComponent(location)}`, { cache: "no-store" });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "Could not load the open Bar sheet.");
-    applySheet(payload as DailySheet, currentCatalog);
+    const next = await readOpenSheet(location);
+    applySheet(next, currentCatalog);
+    pendingEditRef.current = 0;
+    conflictRef.current = false;
+    lastAttemptRef.current = 0;
+    setDirtyToken(0);
     setSaveState("saved");
   }, [applySheet]);
 
@@ -185,16 +217,31 @@ export default function BarSalesPage() {
   }, [chosenExtras, invalidExtras, othersItem, selectedItems]);
 
   const saveNow = useCallback(async () => {
-    if (!user || !gymId || locked) return;
+    const token = dirtyToken;
+    if (!user || !gymId || !sheet || locked || !token
+      || pendingEditRef.current !== token || savingRef.current || transitionRef.current || conflictRef.current) return;
     const barEntries = buildEntries();
     if (!barEntries) {
       setSaveState("idle");
       return;
     }
     const payload = { gymId: user.isSuperAdmin ? gymId : undefined, barEntries };
+    savingRef.current = true;
+    lastAttemptRef.current = token;
     setSaveState("saving");
     setError("");
     try {
+      // Do not knowingly write a stale full-sheet snapshot after a close or
+      // another browser's edit. Keep the local edits for staff to review.
+      const current = await readOpenSheet(gymId);
+      if (!sameSheetRevision(sheet, current)) {
+        conflictRef.current = true;
+        throw new Error("The Bar sheet changed on another screen (possibly End of Day). Your unsaved edits have been kept here. Note them, then refresh and re-enter only any new sales.");
+      }
+      if (pendingEditRef.current !== token) {
+        setSaveState("idle");
+        return;
+      }
       const response = await fetch("/api/system/bar/today", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -209,7 +256,27 @@ export default function BarSalesPage() {
         throw new Error(data.error || "Could not save the open Bar sheet.");
       }
       if (pendingKeyRef.current) window.localStorage.removeItem(pendingKeyRef.current);
-      if (data.sheet) setSheet(data.sheet as DailySheet);
+      if (data.sheet) {
+        const next = data.sheet as DailySheet;
+        // A close can occur after a save but before its read-back.
+        // Reconcile a changed result if there are no more local edits.
+        if (next.totalCents !== totalCents) {
+          if (pendingEditRef.current === token) {
+            applySheet(next, catalog);
+          } else {
+            conflictRef.current = true;
+            setError("The Bar sheet changed during the save. Your newer edits have been kept here. Note them, then refresh and re-enter only any new sales.");
+            setSaveState("idle");
+            return;
+          }
+        } else {
+          setSheet(next);
+        }
+      }
+      if (pendingEditRef.current === token) {
+        pendingEditRef.current = 0;
+        setDirtyToken(0);
+      }
       setSaveState("saved");
     } catch (saveError) {
       const online = typeof navigator === "undefined" ? true : navigator.onLine;
@@ -220,14 +287,60 @@ export default function BarSalesPage() {
         setSaveState("idle");
         setError(saveError instanceof Error ? saveError.message : "Could not save the open Bar sheet.");
       }
+    } finally {
+      savingRef.current = false;
     }
-  }, [buildEntries, gymId, locked, user]);
+  }, [applySheet, buildEntries, catalog, dirtyToken, gymId, locked, sheet, totalCents, user]);
 
   useEffect(() => {
-    if (!dirtyToken || loading || locked) return;
+    if (!dirtyToken || loading || locked || refreshing || saveState === "saving"
+      || saveState === "offline" || lastAttemptRef.current === dirtyToken) return;
     const timer = window.setTimeout(() => void saveNow(), 350);
     return () => window.clearTimeout(timer);
-  }, [dirtyToken, loading, locked, saveNow]);
+  }, [dirtyToken, loading, locked, refreshing, saveNow, saveState]);
+
+  // The Bar sheet can stay open in any tab, browser or device. The
+  // authenticated GET is the source of truth, not localStorage or a
+  // browser-only message. Never apply a response over a pending edit.
+  useEffect(() => {
+    if (!user || !gymId || !sheet || loading || refreshing || dirtyToken
+      || saveState === "saving" || saveState === "offline") return;
+    const controller = new AbortController();
+    let reading = false;
+    const sync = async () => {
+      if (controller.signal.aborted || reading || pendingEditRef.current
+        || savingRef.current || transitionRef.current || !navigator.onLine) return;
+      const interaction = interactionRef.current;
+      reading = true;
+      try {
+        const next = await readOpenSheet(gymId, controller.signal);
+        if (controller.signal.aborted || pendingEditRef.current || savingRef.current
+          || transitionRef.current || interactionRef.current !== interaction) return;
+        if (!sameSheetRevision(sheet, next) || sheet.businessDate !== next.businessDate) {
+          applySheet(next, catalog);
+          setSaveState("saved");
+        }
+      } catch {
+        // Keep the displayed sheet on a temporary network/server error.
+        // The next interval, focus or reconnect retries the read.
+      } finally {
+        reading = false;
+      }
+    };
+    const refresh = () => { void sync(); };
+    const visible = () => { if (document.visibilityState === "visible") refresh(); };
+    const timer = window.setInterval(refresh, BAR_SYNC_INTERVAL_MS);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
+    document.addEventListener("visibilitychange", visible);
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
+      document.removeEventListener("visibilitychange", visible);
+    };
+  }, [applySheet, catalog, dirtyToken, gymId, loading, refreshing, saveState, sheet, user]);
 
   useEffect(() => {
     const retry = () => {
@@ -237,24 +350,35 @@ export default function BarSalesPage() {
     return () => window.removeEventListener("online", retry);
   }, [locked, saveNow, saveState]);
 
+  const markDirty = () => {
+    interactionRef.current += 1;
+    const token = ++editSequenceRef.current;
+    pendingEditRef.current = token;
+    setDirtyToken(token);
+  };
   const markQuantity = (itemId: string, value: number) => {
     setQuantities((current) => ({ ...current, [itemId]: value }));
-    setDirtyToken((value) => value + 1);
+    markDirty();
   };
   const addExtra = () => {
+    interactionRef.current += 1;
     setExtras((current) => [...current, { id: nextExtraId.current++, name: "", quantity: 0, price: "" }]);
   };
   const updateExtra = (id: number, patch: Partial<Extra>) => {
     setExtras((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item));
-    setDirtyToken((value) => value + 1);
+    markDirty();
   };
   const removeExtra = (id: number) => {
     setExtras((current) => current.filter((item) => item.id !== id));
-    setDirtyToken((value) => value + 1);
+    markDirty();
   };
 
   async function manualRefresh() {
-    if (!gymId) return;
+    if (!gymId || savingRef.current || transitionRef.current) return;
+    const hadPending = Boolean(pendingEditRef.current);
+    if (hadPending && !window.confirm("There are unsaved Bar edits. Discard those edits and reload the saved sheet?")) return;
+    interactionRef.current += 1;
+    transitionRef.current = true;
     setRefreshing(true);
     setError("");
     try {
@@ -264,28 +388,38 @@ export default function BarSalesPage() {
       if (!response.ok) throw new Error(data.error || "Could not refresh Bar prices.");
       const currentCatalog = sortBarCatalog((data.items || []) as BarCatalogItem[]);
       setCatalog(currentCatalog);
+      const oldPendingKey = pendingKeyRef.current;
       await loadSheet(gymId, currentCatalog);
+      if (hadPending && oldPendingKey) window.localStorage.removeItem(oldPendingKey);
     } catch (refreshError) {
       setError(refreshError instanceof Error ? refreshError.message : "Could not refresh the Bar sheet.");
     } finally {
+      transitionRef.current = false;
       setRefreshing(false);
     }
   }
 
   async function changeGym(nextGymId: string) {
-    if (!user?.isSuperAdmin) return;
-    setGymId(nextGymId);
-    setSheet(null);
-    setQuantities({});
-    setExtras([]);
+    if (!user?.isSuperAdmin || savingRef.current || transitionRef.current || pendingEditRef.current) return;
+    interactionRef.current += 1;
+    transitionRef.current = true;
+    setRefreshing(true);
     setError("");
-    await loadSheet(nextGymId, catalog).catch((loadError) => setError(loadError instanceof Error ? loadError.message : "Could not load this Bar sheet."));
+    try {
+      await loadSheet(nextGymId, catalog);
+      setGymId(nextGymId);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Could not load this Bar sheet.");
+    } finally {
+      transitionRef.current = false;
+      setRefreshing(false);
+    }
   }
 
   if (loading) return <main className="min-h-screen bg-zinc-50 p-8">Loading Bar sheet…</main>;
   if (!user) return <main className="min-h-screen bg-zinc-50 p-8">{error || "Staff login required."}</main>;
 
-  const saveLabel = saveState === "saving" ? "Saving…" : saveState === "offline" ? "Offline – waiting to sync" : "Saved";
+  const saveLabel = saveState === "saving" ? "Saving…" : saveState === "offline" ? "Offline – waiting to sync" : dirtyToken ? "Unsaved changes" : "Saved";
 
   return (
     <main className="min-h-screen bg-[#f6f6f6] px-4 py-6 text-zinc-950 sm:px-8">
@@ -308,7 +442,7 @@ export default function BarSalesPage() {
           </div>
           {user.isSuperAdmin && (
             <label className="mt-4 block text-sm font-bold">Bar location
-              <select aria-label="Bar location" value={gymId} onChange={(event) => void changeGym(event.target.value)}
+              <select aria-label="Bar location" value={gymId} disabled={refreshing || saveState === "saving" || Boolean(dirtyToken)} onChange={(event) => void changeGym(event.target.value)}
                 className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base">
                 {gyms.map((gym) => <option value={gym.id} key={gym.id}>{gym.name}</option>)}
               </select>
@@ -335,7 +469,7 @@ export default function BarSalesPage() {
                 <div key={item.id} className={quantity > 0 ? "flex flex-wrap items-center gap-3 rounded-2xl border border-orange-300 bg-orange-50 p-3" : "flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-3"}>
                   <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#ffb400]"><Package className="h-8 w-8" /></span>
                   <div className="min-w-40 flex-1"><p className="font-black">{item.name}</p><p className="text-sm font-bold text-zinc-600">{formatBarEuro(item.priceCents || 0)} per unit</p></div>
-                  <QuantityPicker name={item.name} quantity={quantity} locked={locked} onChange={(value) => markQuantity(item.id, value)} />
+                  <QuantityPicker name={item.name} quantity={quantity} locked={editingLocked} onChange={(value) => markQuantity(item.id, value)} />
                   <div className="min-w-24 text-right"><p className="text-xs font-bold text-zinc-500">Item total</p><p className="text-lg font-black tabular-nums">{formatBarEuro((item.priceCents || 0) * quantity)}</p></div>
                 </div>
               );
@@ -347,20 +481,20 @@ export default function BarSalesPage() {
           <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div><h2 className="text-xl font-black">Others</h2><p className="mt-1 text-sm text-zinc-500">Use only for a product missing from the official list.</p></div>
-              <button type="button" onClick={addExtra} disabled={locked} className="inline-flex items-center gap-2 rounded-xl bg-orange-50 px-4 py-3 text-sm font-black text-orange-700 disabled:opacity-40"><Plus className="h-5 w-5" /> Add other item</button>
+              <button type="button" onClick={addExtra} disabled={editingLocked} className="inline-flex items-center gap-2 rounded-xl bg-orange-50 px-4 py-3 text-sm font-black text-orange-700 disabled:opacity-40"><Plus className="h-5 w-5" /> Add other item</button>
             </div>
             <div className="mt-4 space-y-3">
               {extras.map((extra, index) => (
                 <div key={extra.id} className="grid gap-3 rounded-2xl border border-orange-200 bg-orange-50/50 p-3 sm:grid-cols-[minmax(0,2fr)_135px_auto_auto] sm:items-end">
                   <label className="text-sm font-bold">Other item {index + 1}
-                    <input aria-label={`Other item ${index + 1} name`} disabled={locked} value={extra.name} onChange={(event) => updateExtra(extra.id, { name: event.target.value })} maxLength={120} className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-base disabled:opacity-50" />
+                    <input aria-label={`Other item ${index + 1} name`} disabled={editingLocked} value={extra.name} onChange={(event) => updateExtra(extra.id, { name: event.target.value })} maxLength={120} className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-base disabled:opacity-50" />
                   </label>
                   <label className="text-sm font-bold">Unit price (€)
-                    <input aria-label={`Other item ${index + 1} unit price`} disabled={locked} value={extra.price} onChange={(event) => updateExtra(extra.id, { price: event.target.value })} inputMode="decimal" className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-base disabled:opacity-50" />
+                    <input aria-label={`Other item ${index + 1} unit price`} disabled={editingLocked} value={extra.price} onChange={(event) => updateExtra(extra.id, { price: event.target.value })} inputMode="decimal" className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-base disabled:opacity-50" />
                   </label>
-                  <QuantityPicker name={`Other item ${index + 1}`} quantity={extra.quantity} locked={locked} onChange={(value) => updateExtra(extra.id, { quantity: value })} />
+                  <QuantityPicker name={`Other item ${index + 1}`} quantity={extra.quantity} locked={editingLocked} onChange={(value) => updateExtra(extra.id, { quantity: value })} />
                   <div className="flex flex-col items-end gap-1"><p className="text-xs font-bold text-zinc-500">Item total</p><p className="text-lg font-black tabular-nums">{formatBarEuro((parseEuroCents(extra.price) || 0) * extra.quantity)}</p>
-                    <button type="button" disabled={locked} onClick={() => removeExtra(extra.id)} className="inline-flex items-center gap-1 text-xs font-bold text-red-700 disabled:opacity-40"><Trash2 className="h-4 w-4" /> Remove</button>
+                    <button type="button" disabled={editingLocked} onClick={() => removeExtra(extra.id)} className="inline-flex items-center gap-1 text-xs font-bold text-red-700 disabled:opacity-40"><Trash2 className="h-4 w-4" /> Remove</button>
                   </div>
                 </div>
               ))}
