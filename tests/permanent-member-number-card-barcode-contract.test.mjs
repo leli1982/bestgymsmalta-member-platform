@@ -21,8 +21,8 @@ test("barcode reception resolves Scan3, permanent BGM numbers and non-unique leg
   const route = read("app/api/system/barcode/scan/route.ts");
   const claimLookup = route.indexOf('from("bgm_legacy_card_claims")');
   const cardLookup = route.indexOf('from("bgm_member_card_credentials")');
-  const memberLookup = route.indexOf('.eq("member_number", membershipNumber)');
-  const legacyLookup = route.indexOf('.eq("legacy_pk_customer", membershipNumber)');
+  const memberLookup = route.indexOf('.ilike("member_number", membershipNumber.replace');
+  const legacyLookup = route.indexOf('.ilike("legacy_pk_customer", membershipNumber.replace');
   assert.ok(claimLookup >= 0, "source Scan3 claims must be checked");
   assert.ok(cardLookup >= 0, "physical credential lookup must exist");
   assert.ok(memberLookup > cardLookup, "permanent member-number fallback must exist after physical-card lookup");
