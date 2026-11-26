@@ -3,17 +3,36 @@
 import { useEffect, useState } from "react";
 import { Bell, CreditCard, MapPin } from "lucide-react";
 import { getSavedMember, type AppMember } from "@/lib/memberSession";
+import { getMemberDisplayName, memberDisplayNameKey, MEMBER_DISPLAY_NAME_CHANGED } from "@/lib/memberDisplayName";
 import { DEFAULT_MEMBER_HERO_POSITION, parseMemberHeroPosition } from "@/lib/memberHeroPosition";
 
 export default function VisualHomeHero() {
   const [member, setMember] = useState<AppMember | null>(null);
+  const [displayName, setDisplayName] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
   const [heroImageUrl, setHeroImageUrl] = useState("/visuals/home-hero-duo.jpg");
   const [heroPosition, setHeroPosition] = useState(DEFAULT_MEMBER_HERO_POSITION);
 
   useEffect(() => {
+    let mounted = true;
+    let version = 0;
     function loadMember() {
-      setMember(getSavedMember());
+      const cached = getSavedMember();
+      setMember(cached);
+      setDisplayName("");
+      const requestVersion = ++version;
+      // Resolve the nickname against the signed-in member, not an old local session cache.
+      void fetch("/api/member/auth/session", { credentials: "same-origin", cache: "no-store" })
+        .then(async (response) => response.ok ? response.json() : null)
+        .then((data) => {
+          if (!mounted || requestVersion !== version) return;
+          if (!data?.member?.id) return;
+          setMember(data.member);
+          setDisplayName(getMemberDisplayName(data.member.id));
+        }).catch(() => { /* Keep the established official-name fallback. */ });
+    }
+    function onStorage(event: StorageEvent) {
+      if (event.key === null || event.key === "bgmMemberSession" || event.key?.startsWith(memberDisplayNameKey(""))) loadMember();
     }
 
     async function loadNotifications() {
@@ -40,13 +59,19 @@ export default function VisualHomeHero() {
     loadMember();
     void loadNotifications();
     window.addEventListener("bgmMemberChanged", loadMember);
+    window.addEventListener(MEMBER_DISPLAY_NAME_CHANGED, loadMember);
+    window.addEventListener("storage", onStorage);
     window.addEventListener("bgmNotificationsChanged", refreshNotifications);
     window.addEventListener("focus", refreshNotifications);
     window.addEventListener("pageshow", refreshNotifications);
     document.addEventListener("visibilitychange", refreshNotifications);
 
     return () => {
+      mounted = false;
+      version += 1;
       window.removeEventListener("bgmMemberChanged", loadMember);
+      window.removeEventListener(MEMBER_DISPLAY_NAME_CHANGED, loadMember);
+      window.removeEventListener("storage", onStorage);
       window.removeEventListener("bgmNotificationsChanged", refreshNotifications);
       window.removeEventListener("focus", refreshNotifications);
       window.removeEventListener("pageshow", refreshNotifications);
@@ -82,7 +107,7 @@ export default function VisualHomeHero() {
     };
   }, []);
 
-  const welcomeName = member?.fullName?.split(" ")[0] || member?.username || "Member";
+  const welcomeName = displayName || member?.fullName?.split(" ")[0] || member?.username || "Member";
 
   return (
     <section
@@ -137,7 +162,7 @@ export default function VisualHomeHero() {
         <div className="mt-auto max-w-[62%] pb-[76px]">
           <h1 className="text-[31px] font-black leading-[0.98] tracking-[-0.035em] drop-shadow-xl sm:text-[34px]">
             Welcome back,
-            <span className="mt-1 block text-[42px] text-[#ffb400] sm:text-[46px]">{welcomeName}</span>
+            <span className="mt-1 block break-words text-[42px] text-[#ffb400] sm:text-[46px]">{welcomeName}</span>
           </h1>
           <p className="mt-3 whitespace-nowrap text-[16px] font-medium tracking-[-0.02em] text-white/88 sm:text-[17px]">
             be the best...beat the rest
