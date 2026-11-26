@@ -133,7 +133,7 @@ export async function GET(
     const applicationIds = membershipRows.map((row) => row.application_id).filter((id): id is string => Boolean(id));
     const applicationsResult = applicationIds.length
       ? await db.from("bgm_membership_applications")
-        .select("id,application_reference,base_price_cents,discount_code_snapshot,discount_percentage_snapshot,discount_amount_cents,final_amount_cents,currency,payment_method,payment_other_text,payment_staff_name,payment_received_at,activated_at,updated_at")
+        .select("id,application_reference,base_price_cents,discount_code_snapshot,discount_percentage_snapshot,voucher_extension_months_snapshot,voucher_terms_snapshot,discount_amount_cents,final_amount_cents,currency,payment_method,payment_other_text,payment_staff_name,payment_received_at,activated_at,updated_at")
         .in("id", applicationIds)
       : { data: [], error: null };
     if (applicationsResult.error) throw applicationsResult.error;
@@ -142,6 +142,9 @@ export async function GET(
     const [voucherResult, legacyCorrectionResult] = await Promise.all([
       db.from("bgm_discount_codes")
         .select("id,code,percentage,active,valid_from,valid_until,max_uses,successful_uses")
+        .eq("extension_months", 0)
+        .is("eligible_duration_keys", null).is("eligible_membership_types", null)
+        .is("eligible_application_kinds", null).is("eligible_gym_ids", null)
         .order("code", { ascending: true }),
       db.from("bgm_legacy_member_voucher_corrections")
         .select("id,voucher_code,voucher_percentage,confirmed_original_paid_cents,corrected_final_amount_cents,refund_due_cents,currency,membership_expiry_snapshot,applied_at")
