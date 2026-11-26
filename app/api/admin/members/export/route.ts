@@ -137,6 +137,57 @@ async function loadAllMembers(): Promise<ParsedMemberExchangeRow[]> {
   return rows;
 }
 
+// Read-only reconciliation report. Keep the legacy exchange contract intact.
+async function loadCurrentMembersCsv() {
+  const db = getSupabaseAdmin();
+  const activeCards = await loadActiveCardMap();
+  const legacyCards = new Map<string, { card: string; status: string }>();
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const page = await db.from("bgm_legacy_card_claims").select("member_id,scan3,assignment_status")
+      .order("member_id", { ascending: true }).range(from, from + PAGE_SIZE - 1);
+    if (page.error) throw page.error;
+    for (const row of page.data || []) legacyCards.set(row.member_id, { card: row.scan3, status: row.assignment_status });
+    if ((page.data || []).length < PAGE_SIZE) break;
+  }
+  const gyms = await db.from("bgm_gyms").select("id,name");
+  if (gyms.error) throw gyms.error;
+  const gymNames = new Map((gyms.data || []).map(row => [row.id, row.name]));
+  const today = todayMaltaDate();
+  const columns = ["BGMNumber","LegacyPkCustomer","PhysicalCard","LegacyScan3","LegacyCardStatus","FullName","Gym","Status","ExpiryDate","CancellationEffectiveDate","AccessScope","AccessGym","Email","Mobile","Phone","PhotoAssigned","AppEnrolled","CreatedAt","UpdatedAt","ArchivedAt"];
+  // Protect spreadsheet applications against formula interpretation. The
+  // report is not intended for re-import through the exchange template.
+  const cell = (value: unknown) => {
+    let v = text(value);
+    if (/^[\s]*[=+@-]/.test(v) || /^[\t\r\n]/.test(v)) v = "'" + v;
+    return '"' + v.replace(/"/g, '""') + '"';
+  };
+  const lines = [columns.map(cell).join(",")];
+  const seen = new Set<string>();
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const page = await db.from("bgm_members")
+      .select("id,member_number,legacy_pk_customer,full_name,legacy_gym,enrollment_gym_id,status,membership_expiry,cancellation_effective_date,access_scope,access_gym_id,email,mobile,phone,official_photo_path,app_enrolled,created_at,updated_at,archived_at")
+      .order("id", { ascending: true }).range(from, from + PAGE_SIZE - 1);
+    if (page.error) throw page.error;
+    for (const m of page.data || []) {
+      if (seen.has(m.id)) throw new Error("Member data changed during export. Retry download.");
+      seen.add(m.id);
+      const legacy = legacyCards.get(m.id);
+      const valid = !m.archived_at && evaluateBarcodeAccess({
+        member: { status: m.status, membershipExpiry: m.membership_expiry, cancellationEffectiveDate: m.cancellation_effective_date }, today,
+      }).granted;
+      lines.push([m.member_number,m.legacy_pk_customer,activeCards.get(m.id),legacy?.card,legacy?.status,m.full_name,
+        gymNames.get(m.enrollment_gym_id) || m.legacy_gym, m.archived_at ? "Archived" : valid ? "Active" : "Expired",m.membership_expiry,m.cancellation_effective_date,
+        m.access_scope,gymNames.get(m.access_gym_id) || m.access_gym_id,m.email,m.mobile,m.phone,
+        m.official_photo_path ? "Yes" : "No",m.app_enrolled ? "Yes" : "No",m.created_at,m.updated_at,m.archived_at].map(cell).join(","));
+    }
+    if ((page.data || []).length < PAGE_SIZE) break;
+  }
+  const count = await db.from("bgm_members").select("id", { count: "exact", head: true });
+  if (count.error) throw count.error;
+  if (count.count !== seen.size) throw new Error("Membership count changed during export. Retry download.");
+  return "\uFEFF" + lines.join("\r\n") + "\r\n";
+}
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireSystemPermission(request, "members.export");
@@ -144,6 +195,15 @@ export async function GET(request: NextRequest) {
 
     const requestedFormat = request.nextUrl.searchParams.get("format") || "xlsx";
     const format = requestedFormat.toLowerCase();
+    if (format === "current-csv") {
+      if (!auth.context?.isSuperAdmin) return NextResponse.json({ error: "Super Admin access required." }, { status: 403 });
+      const csv = await loadCurrentMembersCsv();
+      return new NextResponse(csv, { headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="bgm-current-members-${todayMaltaDate()}.csv"`,
+        "Cache-Control": "no-store",
+      } });
+    }
     if (format !== "xlsx" && format !== "csv") {
       return NextResponse.json(
         { error: "Export format must be xlsx or csv." },
