@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Download, FileSpreadsheet, RefreshCw, Upload } from "lucide-react";
+import CurrentMemberCsvImport from "@/components/admin/CurrentMemberCsvImport";
 
 type PreviewIssue = {
   rowNumber: number;
@@ -198,6 +199,8 @@ export default function MembershipDataAdmin({
           </a>
         </div>
       </div>
+
+      <CurrentMemberCsvImport onApplied={onApplied} />
 
       <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4">
         <div className="flex flex-wrap items-center gap-3">

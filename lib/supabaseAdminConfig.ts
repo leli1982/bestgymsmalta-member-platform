@@ -12,6 +12,7 @@ const TEST_ONLY_PREVIEW_BRANCHES = new Set([
   "feature/protected-developer-account",
   "feature/reserved-member-number-on-first-print",
   "fix/scanner-case-safe-identifiers",
+  "feature/current-member-csv-roundtrip",
   "test/production-baseline-20261126",
 ]);
 
