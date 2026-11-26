@@ -63,7 +63,7 @@ CREATE OR REPLACE FUNCTION public.bgm_voucher_approval_terms(p_voucher bgm_disco
  LANGUAGE sql
  STABLE
  SET search_path TO ''
-AS $function$
+AS $function$;
   select pg_catalog.jsonb_build_object(
     'code',p_voucher.code,
     'percentage',p_voucher.percentage,
@@ -80,7 +80,7 @@ AS $function$
     'eligibleApplicationKinds',p_voucher.eligible_application_kinds,
     'eligibleGymIds',p_voucher.eligible_gym_ids
   ) else '{}'::jsonb end;
-$function$
+$function$;
 
 create function public.bgm_membership_voucher_quote(p_voucher public.bgm_discount_codes,p_application public.bgm_membership_applications)
 returns jsonb language sql stable strict set search_path='' as $$
@@ -98,7 +98,7 @@ CREATE OR REPLACE FUNCTION public.bgm_activate_membership_application(p_applicat
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$
+AS $function$;
 declare
   v_application public.bgm_membership_applications%rowtype;
   v_participant public.bgm_membership_application_members%rowtype;
@@ -252,13 +252,13 @@ begin
   insert into public.bgm_audit_log(system_user_id,context_gym_id,staff_name,action_key,entity_type,entity_id,member_id,before_data,after_data) values(p_system_user_id,v_application.enrollment_gym_id,btrim(p_activation_staff_name),'membership.activate','membership_application',v_application.id::text,v_primary_member_id,jsonb_build_object('status',v_application.status,'applicationKind',v_application.application_kind,'basePriceCents',v_application.base_price_cents),jsonb_build_object('status','activated','applicationKind',v_application.application_kind,'membershipId',v_membership_id,'basePriceCents',v_application.base_price_cents,'discountAmountCents',v_discount_amount,'finalAmountCents',v_final_amount,'paymentMethod',v_application.payment_method,'members',v_affected_members,'voucherExtensionMonths',v_application.voucher_extension_months_snapshot,'voucherBaseExpiryDate',v_application.voucher_base_expiry_date_snapshot,'expiryDate',v_application.expiry_date,'voucherTerms',v_application.voucher_terms_snapshot));
   return jsonb_build_object('applicationId',v_application.id,'membershipId',v_membership_id,'applicationKind',v_application.application_kind,'members',v_affected_members,'idempotent',false,'expiryDate',v_application.expiry_date,'voucherExtensionMonths',v_application.voucher_extension_months_snapshot);
 end;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.bgm_request_voucher_approval(p_application_id uuid, p_voucher_code text, p_system_user_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO ''
-AS $function$
+AS $function$;
 declare
   v_application public.bgm_membership_applications%rowtype;
   v_voucher public.bgm_discount_codes%rowtype;
@@ -329,14 +329,14 @@ begin
 
   return pg_catalog.jsonb_build_object('id',v_new.id,'status','pending','created',true);
 end;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.bgm_super_admin_apply_member_voucher(p_system_user_id uuid, p_member_id uuid, p_membership_id uuid, p_expected_application_updated_at timestamp with time zone, p_voucher_code text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$
+AS $function$;
 declare
   v_member public.bgm_members%rowtype;
   v_membership public.bgm_memberships%rowtype;
@@ -510,14 +510,14 @@ begin
     'applicationUpdatedAt', v_application.updated_at
   );
 end;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.bgm_super_admin_apply_legacy_member_voucher(p_system_user_id uuid, p_member_id uuid, p_expected_member_updated_at timestamp with time zone, p_voucher_code text, p_original_paid_cents integer)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$
+AS $function$;
 declare
   v_member public.bgm_members%rowtype;
   v_discount public.bgm_discount_codes%rowtype;
@@ -661,7 +661,7 @@ begin
     'finalAmountCents', v_corrected
   );
 end;
-$function$
+$function$;
 
 -- New client confirms the exact preview while the app and voucher are locked.
 -- Old clients still use the unchanged six-argument RPC; advanced terms require
