@@ -8,6 +8,7 @@ import {
   type MembershipType,
   type PriceEntry,
 } from "@/lib/membershipSettingsCore";
+import { parseVoucherPromotion, hasAdvancedVoucherTerms, type VoucherPromotion } from "@/lib/voucherDurationCore";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSuperAdmin, type SystemContext } from "@/lib/systemAuth";
 
@@ -114,7 +115,7 @@ export async function GET(request: NextRequest) {
         supabase
           .from("bgm_discount_codes")
           .select(
-            "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, created_by_system_user_id, created_at, updated_at"
+            "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, extension_months, eligible_duration_keys, eligible_membership_types, eligible_application_kinds, eligible_gym_ids, reimbursement_value_cents, created_by_system_user_id, created_at, updated_at"
           )
           .order("created_at", { ascending: false }),
         supabase
@@ -168,6 +169,11 @@ export async function GET(request: NextRequest) {
         id: discount.id,
         code: discount.code,
         percentage: discount.percentage,
+        extensionMonths: discount.extension_months,
+        eligibleDurationKeys: discount.eligible_duration_keys,
+        eligibleMembershipTypes: discount.eligible_membership_types,
+        eligibleApplicationKinds: discount.eligible_application_kinds,
+        eligibleGymIds: discount.eligible_gym_ids,
         active: discount.active,
         requiresVerification: discount.requires_verification === true,
         validFrom: discount.valid_from,
@@ -430,6 +436,7 @@ export async function POST(request: NextRequest) {
       let id: string | null;
       let code: string;
       let percentage: number;
+      let promotion: VoucherPromotion;
       let active: boolean;
       let requiresVerification: boolean;
       let validFrom: string | null;
@@ -440,8 +447,10 @@ export async function POST(request: NextRequest) {
         id = typeof body.id === "string" && body.id.trim() ? body.id.trim() : null;
         code = normalizeDiscountCode(requiredString(body.code, "Discount code"));
         percentage = Number(body.percentage);
-        if (!Number.isInteger(percentage) || percentage < 1 || percentage > 100) {
-          throw new Error("Discount percentage must be an integer from 1 to 100.");
+        promotion = parseVoucherPromotion(body);
+        if (!Number.isInteger(percentage) || percentage < 0 || percentage > 100 ||
+            (percentage === 0 && promotion.extension_months === 0)) {
+          throw new Error("Enter a percentage discount (0–100) or additional free months.");
         }
         active = body.active === undefined ? true : body.active === true;
         if (body.active !== undefined && typeof body.active !== "boolean") {
@@ -468,6 +477,11 @@ export async function POST(request: NextRequest) {
         return badRequest(error instanceof Error ? error.message : "Invalid discount code.");
       }
 
+      if (promotion.eligible_gym_ids) {
+        const gymResult = await supabase.from("bgm_gyms").select("id").in("id", promotion.eligible_gym_ids);
+        if (gymResult.error) throw gymResult.error;
+        if ((gymResult.data || []).length !== promotion.eligible_gym_ids.length) return badRequest("Select valid gyms.");
+      }
       let beforeData: unknown = null;
       let discountResult;
       const now = new Date().toISOString();
@@ -476,7 +490,7 @@ export async function POST(request: NextRequest) {
         const existingResult = await supabase
           .from("bgm_discount_codes")
           .select(
-            "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, created_by_system_user_id, created_at, updated_at"
+            "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, extension_months, eligible_duration_keys, eligible_membership_types, eligible_application_kinds, eligible_gym_ids, reimbursement_value_cents, created_by_system_user_id, created_at, updated_at"
           )
           .eq("id", id)
           .maybeSingle();
@@ -485,6 +499,12 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: "Discount code not found." }, { status: 404 });
         }
         beforeData = existingResult.data;
+        if (hasAdvancedVoucherTerms(existingResult.data as VoucherPromotion) && body.extensionMonths === undefined) {
+          return NextResponse.json({ error: "Refresh the voucher editor before changing promotional terms." }, { status: 409 });
+        }
+        if (promotion.extension_months > 0 && Number(existingResult.data.reimbursement_value_cents || 0) > 0) {
+          return badRequest("A duration voucher cannot have a reimbursement. Create a separate promotional voucher.");
+        }
         if (body.requiresVerification === undefined) requiresVerification = existingResult.data.requires_verification === true;
 
         discountResult = await supabase
@@ -492,6 +512,7 @@ export async function POST(request: NextRequest) {
           .update({
             code,
             percentage,
+            ...promotion,
             active,
             requires_verification: requiresVerification,
             valid_from: validFrom,
@@ -501,7 +522,7 @@ export async function POST(request: NextRequest) {
           })
           .eq("id", id)
           .select(
-            "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, created_at, updated_at"
+            "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, extension_months, eligible_duration_keys, eligible_membership_types, eligible_application_kinds, eligible_gym_ids, reimbursement_value_cents, created_at, updated_at"
           )
           .single();
       } else {
@@ -510,6 +531,7 @@ export async function POST(request: NextRequest) {
           .insert({
             code,
             percentage,
+            ...promotion,
             active,
             requires_verification: requiresVerification,
             valid_from: validFrom,
@@ -519,7 +541,7 @@ export async function POST(request: NextRequest) {
             updated_at: now,
           })
           .select(
-            "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, created_at, updated_at"
+            "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, extension_months, eligible_duration_keys, eligible_membership_types, eligible_application_kinds, eligible_gym_ids, reimbursement_value_cents, created_at, updated_at"
           )
           .single();
       }
@@ -554,7 +576,7 @@ export async function POST(request: NextRequest) {
       const existingResult = await supabase
         .from("bgm_discount_codes")
         .select(
-          "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, created_at, updated_at"
+          "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, extension_months, eligible_duration_keys, eligible_membership_types, eligible_application_kinds, eligible_gym_ids, reimbursement_value_cents, created_at, updated_at"
         )
         .eq("id", id)
         .maybeSingle();
@@ -568,7 +590,7 @@ export async function POST(request: NextRequest) {
         .update({ active, updated_at: new Date().toISOString() })
         .eq("id", id)
         .select(
-          "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, created_at, updated_at"
+          "id, code, percentage, active, requires_verification, valid_from, valid_until, max_uses, successful_uses, extension_months, eligible_duration_keys, eligible_membership_types, eligible_application_kinds, eligible_gym_ids, reimbursement_value_cents, created_at, updated_at"
         )
         .single();
       if (updateResult.error) throw updateResult.error;
