@@ -10,16 +10,18 @@ export type TimedVoucherBonus = {
 };
 
 export function effectiveVoucherExtension(voucher: TimedVoucherBonus & { extension_months?: number }, today: string): number {
-  return voucher.bonus_months && voucher.bonus_valid_from && voucher.bonus_valid_until &&
+  const bonus = voucher.bonus_months && voucher.bonus_valid_from && voucher.bonus_valid_until &&
     today >= voucher.bonus_valid_from && today <= voucher.bonus_valid_until
-    ? voucher.bonus_months : voucher.extension_months || 0;
+    ? voucher.bonus_months : 0;
+  return (voucher.extension_months || 0) + bonus;
 }
 
 export function parseTimedVoucherBonus(body: Record<string, unknown>, percentage: number, permanentMonths: number) {
   const months = Number(body.bonusMonths ?? 0);
   if (!Number.isInteger(months) || months < 0 || months > 120) throw new Error("Bonus months must be a whole number from 0 to 120.");
   if (!months) return { bonus_months: 0, bonus_valid_from: null, bonus_valid_until: null };
-  if (percentage <= 0 || permanentMonths > 0) throw new Error("A timed bonus must be attached to a percentage voucher without permanent free months.");
+  if (percentage <= 0 && permanentMonths <= 0) throw new Error("The original voucher must have a discount or permanent free months.");
+  if (permanentMonths + months > 120) throw new Error("Permanent and bonus free months together cannot exceed 120.");
   const from = String(body.bonusValidFrom || ""), until = String(body.bonusValidUntil || "");
   if (!isValidCalendarDate(from) || !isValidCalendarDate(until) || from > until) throw new Error("Choose valid bonus start and end dates (inclusive).");
   return { bonus_months: months, bonus_valid_from: from, bonus_valid_until: until };
