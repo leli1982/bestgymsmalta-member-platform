@@ -2,22 +2,23 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-type Voucher = { code: string; percentage: number; requiresVerification?: boolean };
+type Voucher = { code: string; percentage: number; extensionMonths?: number; requiresVerification?: boolean };
 
 type Props = {
   value: string;
+  applicationId?: string;
   onChange: (code: string) => void;
   className?: string;
 };
 
-export default function StaffVoucherSelect({ value, onChange, className }: Props) {
+export default function StaffVoucherSelect({ value, onChange, className, applicationId }: Props) {
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   const loadVouchers = useCallback(async () => {
     try {
-      const response = await fetch("/api/system/members/active-vouchers", {
+      const response = await fetch(`/api/system/members/active-vouchers${applicationId ? `?applicationId=${encodeURIComponent(applicationId)}` : ""}`, {
         credentials: "same-origin",
         cache: "no-store",
       });
@@ -32,7 +33,7 @@ export default function StaffVoucherSelect({ value, onChange, className }: Props
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [applicationId]);
 
   useEffect(() => {
     void loadVouchers();
@@ -52,7 +53,7 @@ export default function StaffVoucherSelect({ value, onChange, className }: Props
         <option value="">No voucher</option>
         {vouchers.map((voucher) => (
           <option key={voucher.code} value={voucher.code}>
-            {voucher.code} — {voucher.percentage}%{voucher.requiresVerification ? " (approval required)" : ""}
+            {voucher.code} — {[voucher.percentage > 0 ? `${voucher.percentage}% off` : "", voucher.extensionMonths ? `+${voucher.extensionMonths} free months` : ""].filter(Boolean).join(" · ")}{voucher.requiresVerification ? " (approval required)" : ""}
           </option>
         ))}
         {value && !listed && (
