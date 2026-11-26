@@ -142,6 +142,7 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           membershipNumber: scanned,
+          inputSource: "home_input",
           deviceId: getOrCreateOfflineDeviceId(),
         }),
       });
