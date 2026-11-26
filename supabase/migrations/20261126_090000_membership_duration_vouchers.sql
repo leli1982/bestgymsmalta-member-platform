@@ -63,7 +63,7 @@ CREATE OR REPLACE FUNCTION public.bgm_voucher_approval_terms(p_voucher bgm_disco
  LANGUAGE sql
  STABLE
  SET search_path TO ''
-AS $function$;
+AS $function$
   select pg_catalog.jsonb_build_object(
     'code',p_voucher.code,
     'percentage',p_voucher.percentage,
@@ -98,7 +98,7 @@ CREATE OR REPLACE FUNCTION public.bgm_activate_membership_application(p_applicat
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$;
+AS $function$
 declare
   v_application public.bgm_membership_applications%rowtype;
   v_participant public.bgm_membership_application_members%rowtype;
@@ -258,7 +258,7 @@ CREATE OR REPLACE FUNCTION public.bgm_request_voucher_approval(p_application_id 
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO ''
-AS $function$;
+AS $function$
 declare
   v_application public.bgm_membership_applications%rowtype;
   v_voucher public.bgm_discount_codes%rowtype;
@@ -336,7 +336,7 @@ CREATE OR REPLACE FUNCTION public.bgm_super_admin_apply_member_voucher(p_system_
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$;
+AS $function$
 declare
   v_member public.bgm_members%rowtype;
   v_membership public.bgm_memberships%rowtype;
@@ -517,7 +517,7 @@ CREATE OR REPLACE FUNCTION public.bgm_super_admin_apply_legacy_member_voucher(p_
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$;
+AS $function$
 declare
   v_member public.bgm_members%rowtype;
   v_discount public.bgm_discount_codes%rowtype;
