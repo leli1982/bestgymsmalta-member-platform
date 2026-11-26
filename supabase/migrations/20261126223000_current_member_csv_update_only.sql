@@ -81,7 +81,7 @@ begin
 
   v_dates:=p?|array['MembershipStartDate','MembershipEndDate','MemberExpiryDate','EnrollmentDate'];
   v_kind:=p?|array['MembershipType','MembershipDuration'];
-  v_terms:=v_dates or v_kind or p?'Status';
+  v_terms:=v_dates or v_kind or p?'Status' or p?'LegacyMembershipPeriod';
   v_status:=m.status;
   v_end:=m.membership_expiry;
   v_enrollment:=m.enrollment_date;
@@ -105,6 +105,8 @@ begin
       select count(*) into v_participants from public.bgm_membership_members where membership_id=t.id;
       if v_participants<>1 then raise exception 'Shared membership requires a joint correction; no partner is changed by CSV.'; end if;
       v_start:=t.start_date; v_type:=t.membership_type; v_duration:=t.duration_key; v_term_status:=t.status;
+      if p?'LegacyMembershipPeriod' and not(p?'MembershipDuration') and nullif(p->>'LegacyMembershipPeriod','') is distinct from t.duration_key
+      then raise exception 'Edit MembershipDuration for a linked membership, not the legacy period.'; end if;
     else
       if nullif(p_edit->>'expectedTermId','') is not null then raise exception 'Membership link changed. Download a fresh CSV.'; end if;
       if v_kind then raise exception 'No structured membership type or duration exists for this legacy record. Review individually; no paid membership will be invented.'; end if;
@@ -135,6 +137,8 @@ begin
       if v_type not in ('single','student') or v_duration not in ('1_session','1_week','2_weeks','1_month','3_months','6_months','1_year')
         or (v_type='student' and v_duration='2_weeks')
       then raise exception 'Invalid type/duration or shared membership. Review individually.'; end if;
+      if p?'LegacyMembershipPeriod' and nullif(p->>'LegacyMembershipPeriod','') is distinct from v_duration
+      then raise exception 'MembershipDuration and LegacyMembershipPeriod must agree.'; end if;
       if coalesce(t.voucher_extension_months_snapshot,0)>0 or exists(select 1 from public.bgm_membership_applications a where a.id=t.application_id and nullif(a.discount_code_snapshot,'') is not null)
       then raise exception 'Voucher-linked membership type/duration requires individual correction; original terms are protected.'; end if;
     end if;
@@ -195,7 +199,7 @@ begin
     telephone_no_2=case when p?'TelephoneNo2' then nullif(p->>'TelephoneNo2','') else telephone_no_2 end,
     notes=case when p?'Notes' then nullif(p->>'Notes','') else notes end,
     enrollment_date=case when v_dates then v_enrollment else enrollment_date end,
-    membership_period=case when p?'LegacyMembershipPeriod' then nullif(p->>'LegacyMembershipPeriod','') else membership_period end,
+    membership_period=case when v_kind and v_links>0 and p?'MembershipDuration' then v_duration when p?'LegacyMembershipPeriod' then nullif(p->>'LegacyMembershipPeriod','') else membership_period end,
     status=v_status,updated_at=clock_timestamp()
     where id=m.id;
   insert into public.bgm_audit_log(system_user_id,context_gym_id,action_key,entity_type,entity_id,member_id,before_data,after_data)
