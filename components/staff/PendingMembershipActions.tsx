@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatEuropeanDate } from "@/lib/europeanDate";
 import OfficialMemberPhotoCapture from "@/components/staff/OfficialMemberPhotoCapture";
 import StaffVoucherSelect from "@/components/staff/StaffVoucherSelect";
 import StaffVoucherApprovalStatus from "@/components/staff/StaffVoucherApprovalStatus";
@@ -47,6 +48,9 @@ export default function PendingMembershipActions() {
     currency: string;
     requiresVerification?: boolean;
     approvalStatus?: VoucherApprovalStatus;
+    extensionMonths?: number;
+    extendedExpiryDate?: string | null;
+    voucherQuote?: unknown;
   }>>({});
   const [paymentMethods, setPaymentMethods] = useState<Record<string, "cash" | "card" | "other" | "">>({});
   const [paymentOtherTexts, setPaymentOtherTexts] = useState<Record<string, string>>({});
@@ -196,6 +200,7 @@ export default function PendingMembershipActions() {
           paymentOtherText: paymentMethod === "other" ? paymentOtherText : "",
           staffName: activationStaffName,
           discountCode,
+          voucherQuote: discountPreview?.voucherQuote,
         }),
       });
       const data = await response.json();
@@ -333,6 +338,7 @@ export default function PendingMembershipActions() {
                     Discount code
                     <div className="mt-2 flex gap-2">
                       <StaffVoucherSelect
+                        applicationId={application.id}
                         value={discountCodes[application.id] || ""}
                         onChange={(code) => {
                           setDiscountCodes((current) => ({ ...current, [application.id]: code }));
@@ -348,6 +354,9 @@ export default function PendingMembershipActions() {
                     </div>
                   </label>
 
+                  {Boolean(discountPreviews[application.id]?.extensionMonths) && (
+                    <p className="mt-3 rounded-xl bg-white p-3 text-sm font-black text-emerald-800">+{discountPreviews[application.id].extensionMonths} free months · New expiry: {formatEuropeanDate(discountPreviews[application.id].extendedExpiryDate || "")}</p>
+                  )}
                   {discountPreviews[application.id]?.requiresVerification ? (
                     <StaffVoucherApprovalStatus
                       applicationId={application.id}
