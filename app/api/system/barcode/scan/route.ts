@@ -184,18 +184,22 @@ export async function POST(request: NextRequest) {
         const memberNumberResult = await supabase
           .from("bgm_members")
           .select(MEMBER_SELECT)
-          .eq("member_number", membershipNumber)
+          .ilike("member_number", membershipNumber.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_"))
           .limit(2);
         if (memberNumberResult.error) throw memberNumberResult.error;
 
-        if ((memberNumberResult.data || []).length === 1) {
+        if ((memberNumberResult.data || []).length > 1) {
+          cardMatches = memberNumberResult.data || [];
+          ambiguousPhysicalCard = true;
+          credentialKind = "member_number";
+        } else if ((memberNumberResult.data || []).length === 1) {
           member = memberNumberResult.data?.[0] || null;
           credentialKind = member ? "member_number" : null;
         } else {
           const legacyResult = await supabase
             .from("bgm_members")
             .select(MEMBER_SELECT)
-            .eq("legacy_pk_customer", membershipNumber)
+            .ilike("legacy_pk_customer", membershipNumber.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_"))
             .neq("status", "archived")
             .order("full_name", { ascending: true })
             .limit(50);
