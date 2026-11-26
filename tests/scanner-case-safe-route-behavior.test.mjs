@@ -26,12 +26,22 @@ function harness() {
     member("i","BGM990009"),
     member("j","BGM26850"),
     member("k","BGM26851"),
-    member("l","BGM990012",{ legacy_pk_customer:"Q990012", cancellation_effective_date:"2026-01-01" })
+    member("l","BGM990012",{ legacy_pk_customer:"Q990012", cancellation_effective_date:"2026-01-01" }),
+    member("m","BGM990013"), member("n","BGM990014"), member("o","BGM990015"), member("p","BGM990016")
   ];
   const tables = {
     bgm_members: members,
-    bgm_member_card_credentials: [card("ca","X990001","a"),card("cb","x990002","b"),card("cc","X990003","c"),card("cd","X990004","d"),card("ce","x990004","e"),card("ch","X990009","h","retired"),card("ci","x990009","i")],
-    bgm_legacy_card_claims: [{ member_id:"f",scan3:"Z990006",assignment_status:"active" }],
+    bgm_member_card_credentials: [card("ca","X990001","a"),card("cb","x990002","b"),card("cc","X990003","c"),card("cd","X990004","d"),card("ce","x990004","e"),card("ch","X990009","h","retired"),card("ci","x990009","i"),card("cm","X990013","m","retired"),card("cn","X990014","n","reserved")],
+    bgm_legacy_card_claims: [
+      {member_id:"f",scan3:"Z990006",assignment_status:"active"},
+      {member_id:"a",scan3:"P990001",assignment_status:"active"},
+      {member_id:"g",scan3:"X990001",assignment_status:"active"},
+      {member_id:"o",scan3:"X990002",assignment_status:"active"},
+      {member_id:"m",scan3:"X990013",assignment_status:"active"},
+      {member_id:"n",scan3:"X990014",assignment_status:"active"},
+      {member_id:"l",scan3:"Q990012",assignment_status:"removed"},
+      {member_id:"p",scan3:"Q990004",assignment_status:"active"}
+    ],
     bgm_pending_legacy_card_verifications: [],
     bgm_gyms: [{id:"bgm-marsascala",name:"Marsascala",status:"active"},{id:"bgm-neptunes",name:"Neptunes",status:"active"}],
     bgm_access_scans: []
@@ -106,7 +116,7 @@ test("actual scan handler resolves both cases across physical, permanent and leg
   const {scan}=harness();
   for(const code of ["X990001","x990001"]) await scan(code,"granted","a","physical_card");
   for(const code of ["BGM990001","bgm990001","BgM990001"]) await scan(code,"granted","a","member_number");
-  for(const code of ["P990001","p990001"]) await scan(code,"granted","a","legacy_pk_customer");
+  for(const code of ["P990001","p990001"]) await scan(code,"disabled_card",null,"physical_card");
   for(const code of ["Z990006","z990006"]) await scan(code,"granted","f","physical_card");
   await scan("x990009","granted","i","physical_card");
 });
@@ -115,15 +125,16 @@ test("case-safe scan still denies expired, restricted, cancelled and archived ac
   const {scan}=harness();
   await scan("X990002","expired","b","physical_card");
   await scan("x990003","restricted_gym","c","physical_card");
-  await scan("q990012","inactive","l","legacy_pk_customer");
+  await scan("q990012","disabled_card",null,"physical_card");
+  await scan("BGM990012","inactive","l","member_number");
   await scan("bgm990008","inactive","h","member_number");
   await scan("z990008","unknown_card",null,null);
 });
 
 test("case conflicts and scoped exception candidates never create a check-in", async()=>{
   const {scan}=harness();
-  for(const code of ["X990004","x990004","Q990004","q990004"]){
-    const kind=code.toUpperCase().startsWith("X")?"physical_card":"legacy_pk_customer";
+  for(const code of ["X990004","x990004"]){
+    const kind="physical_card";
     const response=await scan(code,"ambiguous_card",null,kind);
     assert.equal(response.cardMatches.length,2);
   }
@@ -138,4 +149,16 @@ test("literal wildcard escape, unknown input, and input source are preserved",as
   await scan("M99%","unknown_card",null,null,"keyboard_prefix");
   await scan("X000000000","unknown_card",null,null);
   await scan("","invalid_barcode",null,null);
+});
+
+test("physical priority prevents legacy owner overrides and old-card re-entry", async()=>{
+  const {scan}=harness();
+  await scan("x990001","granted","a","physical_card");
+  await scan("x990002","expired","b","physical_card");
+  await scan("X990013","disabled_card",null,"physical_card");
+  await scan("x990014","disabled_card",null,"physical_card");
+  await scan("Q990004","granted","p","physical_card");
+  const legacy = await scan("BGM990006","granted","f","member_number");
+  assert.equal(legacy.currentPhysicalCard,"Z990006");
+  assert.equal(legacy.currentPhysicalCardSource,"legacy_scan3");
 });
