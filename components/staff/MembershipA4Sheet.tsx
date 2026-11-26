@@ -66,6 +66,7 @@ export type PrintableApplication = {
   currency: string;
   discountCode: string | null;
   discountPercentage: number | null;
+  voucherExtensionMonths?: number;
   discountAmountCents: number | null;
   finalAmountCents: number | null;
   paymentMethod: string | null;
@@ -205,9 +206,11 @@ export default function MembershipA4Sheet({
     application.paymentMethod === "other"
       ? `Other — ${application.paymentOtherText || "—"}`
       : application.paymentMethod;
-  const discount = application.discountPercentage
-    ? `${application.discountPercentage}% (${money(application.discountAmountCents, application.currency)})${application.discountCode ? ` · ${application.discountCode}` : ""}`
-    : "No discount";
+  const discount = [
+    application.discountPercentage ? `${application.discountPercentage}% (${money(application.discountAmountCents, application.currency)})` : "No price discount",
+    application.voucherExtensionMonths ? `+${application.voucherExtensionMonths} free months` : "",
+    application.discountCode || "",
+  ].filter(Boolean).join(" · ");
   const address = [
     participant.addressLine1,
     participant.addressLine2,
