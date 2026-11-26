@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import MemberDisplayNameSettings from "./MemberDisplayNameSettings";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -84,17 +85,20 @@ export default function ChangePasswordPage() {
         <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ffb400]/25 blur-3xl" />
         <div className="relative">
           <span className="inline-flex rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[.22em] text-[#ffb400]">
-            Account Security
+            Account Settings
           </span>
           <ShieldCheck className="mt-6 text-[#ffb400]" size={34} strokeWidth={3} />
-          <h1 className="mt-4 text-3xl font-black">Change password</h1>
+          <h1 className="mt-4 text-3xl font-black">Account settings</h1>
           <p className="mt-3 max-w-sm text-sm font-bold leading-6 text-white/65">
-            Confirm your current password, then choose a new password for your BGM member account.
+            Personalise your home greeting or securely update your BGM account password.
           </p>
         </div>
       </section>
 
+      <MemberDisplayNameSettings />
+
       <section className="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-4 text-xl font-black text-zinc-950">Change password</h2>
         {success ? (
           <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
             <div className="flex items-center gap-3">

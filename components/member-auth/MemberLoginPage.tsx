@@ -73,8 +73,8 @@ const quickLinks = [
     icon: Camera,
   },
   {
-    label: "Change Password",
-    description: "Update your login password",
+    label: "Profile & Password",
+    description: "Change your display name or login password",
     href: "/change-password",
     icon: KeyRound,
   },
