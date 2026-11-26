@@ -99,82 +99,79 @@ export async function POST(request: NextRequest) {
     let existingOwnerIds: string[] = [];
     let activeLegacyClaimCount = 0;
     let pendingLegacyIds: string[] = [];
-    let pendingModernEligible = false;
+    let blockedLegacyCard = false;
+    let legacyResolutionSafe = true;
 
     if (membershipNumber) {
-      const claimsResult = await supabase.from("bgm_legacy_card_claims")
-        .select("member_id").eq("scan3", membershipNumber.toUpperCase()).eq("assignment_status", "active");
-      if (claimsResult.error) throw claimsResult.error;
-      activeLegacyClaimCount = (claimsResult.data || []).length;
-      const cardResult = await supabase
-        .from("bgm_member_card_credentials")
+      const exact = membershipNumber.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+      // A current credential wins over every imported claim, even when its
+      // member is expired. Reserved/retired credentials also block fallback.
+      const cardResult = await supabase.from("bgm_member_card_credentials")
         .select("id, barcode_value, member_id, status, application_member_id")
-        .ilike("barcode_value", membershipNumber.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_"));
+        .ilike("barcode_value", exact);
       if (cardResult.error) throw cardResult.error;
       const matchingCards = cardResult.data || [];
       const activeCards = matchingCards.filter(row => row.status === "active");
-      const selectedCard = activeCards[0] || matchingCards[0] || null;
-      const pending = await supabase.from("bgm_pending_legacy_card_verifications").select("member_id,status,source_row_number").eq("scan3", membershipNumber.toUpperCase());
-      if (pending.error) throw pending.error;
-      const pendingRows = (pending.data || []).filter(row => row.status === "pending");
-      pendingLegacyIds = pendingRows.map(row => row.member_id);
-      if ((pending.data || []).some(row => row.status !== "pending")) scopedCandidates = [];
-      pendingModernEligible = Boolean(selectedCard?.status === "active" && selectedCard.member_id && !selectedCard.application_member_id &&
-        pendingRows.length && pendingRows.every(row => row.source_row_number === null));
-      card = selectedCard;
-      if (card) credentialKind = "physical_card";
+      card = activeCards[0] || matchingCards[0] || null;
 
-      const claimIds = (claimsResult.data || []).map((claim) => claim.member_id);
-      for (const match of activeCards) { if (match.member_id) claimIds.push(match.member_id); }
-      existingOwnerIds = Array.from(new Set(claimIds));
-      if (claimIds.length) {
-        const claimedResult = await supabase.from("bgm_members").select(MEMBER_SELECT)
-          .in("id", Array.from(new Set(claimIds)));
-        if (claimedResult.error) throw claimedResult.error;
-        let allClaims = claimedResult.data || [];
-        // Only the 32 frozen November exceptions get an extra candidate lookup.
-        // Once a scoped member owns this exact card, future scans are normal.
-        const scopedOwner = allClaims.some((candidate) =>
-          scopedCandidates.includes(candidate.member_number)
-        );
-        if (scopedCandidates.length && !scopedOwner) {
-          const scopedResult = await supabase.from("bgm_members")
-            .select(MEMBER_SELECT).in("member_number", scopedCandidates)
-            .is("archived_at", null);
-          if (scopedResult.error) throw scopedResult.error;
-          const known = new Set(allClaims.map((candidate) => candidate.id));
-          allClaims = [...allClaims, ...(scopedResult.data || []).filter(
-            (candidate) => !known.has(candidate.id)
-          )];
-        }
-        const activeClaims = allClaims.filter((candidate) => accessFor(candidate, gymId).granted);
+      if (card) {
         credentialKind = "physical_card";
-
-        if (allClaims.length > 1) {
-          cardMatches = allClaims;
-          ambiguousPhysicalCard = true;
-        } else if (activeClaims.length === 1) {
-          member = activeClaims[0];
-        } else if (allClaims.length === 1) {
-          member = allClaims[0];
+        scopedCandidates = [];
+        existingOwnerIds = Array.from(new Set(activeCards.map(row => row.member_id).filter(Boolean))) as string[];
+        if (existingOwnerIds.length) {
+          const owners = await supabase.from("bgm_members").select(MEMBER_SELECT).in("id", existingOwnerIds);
+          if (owners.error) throw owners.error;
+          if ((owners.data || []).length > 1 || existingOwnerIds.length > 1) {
+            cardMatches = owners.data || [];
+            ambiguousPhysicalCard = true;
+          } else {
+            member = owners.data?.[0] || null;
+          }
         }
-      }
-
-      if (!claimIds.length && card?.member_id) {
-        const memberResult = await supabase
-          .from("bgm_members")
-          .select(MEMBER_SELECT)
-          .eq("id", card.member_id)
-          .maybeSingle();
-        if (memberResult.error) throw memberResult.error;
-        member = memberResult.data;
-      } else if (!claimIds.length && !card) {
-        // Unassigned source Scan3: show only the pre-approved 32 exceptions.
-        // This does not change any unrelated member's scan flow.
-        if (scopedCandidates.length) {
-          const scopedResult = await supabase.from("bgm_members")
-            .select(MEMBER_SELECT).in("member_number", scopedCandidates)
-            .is("archived_at", null);
+      } else {
+        const [claims, pending] = await Promise.all([
+          supabase.from("bgm_legacy_card_claims").select("member_id,scan3,assignment_status").ilike("scan3", exact),
+          supabase.from("bgm_pending_legacy_card_verifications").select("member_id,status,source_row_number").eq("scan3", membershipNumber.toUpperCase()),
+        ]);
+        if (claims.error) throw claims.error;
+        if (pending.error) throw pending.error;
+        const claimRows = claims.data || [];
+        const activeClaims = claimRows.filter(row => row.assignment_status === "active");
+        const pendingRows = (pending.data || []).filter(row => row.status === "pending");
+        if ((pending.data || []).some(row => row.status !== "pending")) scopedCandidates = [];
+        const candidateIds = Array.from(new Set([...activeClaims.map(row => row.member_id), ...pendingRows.map(row => row.member_id)]));
+        // A member's old card is not usable once a modern card is assigned.
+        const currentOwners = candidateIds.length ? await supabase.from("bgm_member_card_credentials")
+          .select("member_id").in("member_id", candidateIds).eq("status", "active") : { data: [], error: null };
+        if (currentOwners.error) throw currentOwners.error;
+        const modernOwnerIds = new Set((currentOwners.data || []).map(row => row.member_id));
+        existingOwnerIds = activeClaims.map(row => row.member_id).filter(id => !modernOwnerIds.has(id));
+        pendingLegacyIds = pendingRows.map(row => row.member_id).filter(id => !modernOwnerIds.has(id));
+        activeLegacyClaimCount = existingOwnerIds.length;
+        // The existing RPC compares the complete set of uppercase claims.
+        // Do not offer a write for partial or case-variant candidate sets.
+        legacyResolutionSafe = candidateIds.every(id => !modernOwnerIds.has(id)) &&
+          activeClaims.every(row => row.scan3 === membershipNumber.toUpperCase());
+        const eligibleIds = Array.from(new Set([...existingOwnerIds, ...pendingLegacyIds]));
+        if (eligibleIds.length) {
+          const owners = await supabase.from("bgm_members").select(MEMBER_SELECT).in("id", eligibleIds)
+            .neq("status", "archived");
+          if (owners.error) throw owners.error;
+          const all = owners.data || [];
+          legacyResolutionSafe = legacyResolutionSafe && all.length === eligibleIds.length;
+          credentialKind = "physical_card";
+          if (all.length > 1 || pendingLegacyIds.length > 0) {
+            cardMatches = all;
+            ambiguousPhysicalCard = true;
+          } else if (all.length === 1) member = all[0];
+          else blockedLegacyCard = true;
+        } else if (claimRows.length || pendingRows.length) {
+          // Explicit old/released claims must not re-enter via pkCustomer.
+          blockedLegacyCard = true;
+          credentialKind = "physical_card";
+        } else if (scopedCandidates.length) {
+          const scopedResult = await supabase.from("bgm_members").select(MEMBER_SELECT)
+            .in("member_number", scopedCandidates).is("archived_at", null);
           if (scopedResult.error) throw scopedResult.error;
           if ((scopedResult.data || []).length) {
             cardMatches = scopedResult.data || [];
@@ -182,7 +179,7 @@ export async function POST(request: NextRequest) {
             credentialKind = "physical_card";
           }
         }
-        if (!ambiguousPhysicalCard) {
+        if (!member && !ambiguousPhysicalCard && !blockedLegacyCard) {
         const memberNumberResult = await supabase
           .from("bgm_members")
           .select(MEMBER_SELECT)
@@ -228,18 +225,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (pendingLegacyIds.length && membershipNumber) {
-      const candidates = await supabase.from("bgm_members").select(MEMBER_SELECT)
-        .in("id", Array.from(new Set([...pendingLegacyIds, ...existingOwnerIds])))
-        .is("archived_at", null).neq("status", "archived");
-      if (candidates.error) throw candidates.error;
-      if ((candidates.data || []).length) {
-        cardMatches = candidates.data || [];
-        member = null;
-        ambiguousPhysicalCard = true;
-        credentialKind = "physical_card";
-      }
-    }
     let decision: {
       result:
         | "granted"
@@ -261,7 +246,7 @@ export async function POST(request: NextRequest) {
       decision = { result: "invalid_barcode", granted: false };
     } else if (ambiguousPhysicalCard) {
       decision = { result: "ambiguous_card", granted: false };
-    } else if (card && card.status !== "active" && activeLegacyClaimCount === 0) {
+    } else if (blockedLegacyCard || (card && card.status !== "active")) {
       decision = { result: "disabled_card", granted: false };
     } else if (!member) {
       decision = { result: "unknown_card", granted: false };
@@ -396,7 +381,7 @@ export async function POST(request: NextRequest) {
                 : null,
               isExistingCardOwner: existingOwnerIds.includes(candidate.id),
               isScopedCandidate: scopedCandidates.includes(candidate.member_number),
-              canResolveSharedLegacy: (activeLegacyClaimCount > 1 || pendingLegacyIds.length > 0) && (!card || pendingModernEligible) &&
+              canResolveSharedLegacy: legacyResolutionSafe && (activeLegacyClaimCount > 1 || pendingLegacyIds.length > 0) && !card &&
                 cardMatches.every(match => existingOwnerIds.includes(match.id) || pendingLegacyIds.includes(match.id)),
             };
           }))
