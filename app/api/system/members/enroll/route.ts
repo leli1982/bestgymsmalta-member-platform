@@ -266,17 +266,20 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const activationResult = await supabase.rpc(
-        "bgm_activate_membership_application",
-        {
+      const voucherQuote = body.voucherQuote;
+      const activationParams = {
           p_application_id: applicationId,
           p_payment_method: paymentMethod,
           p_payment_other_text: paymentMethod === "other" ? paymentOtherText : null,
           p_payment_staff_name: staffName,
           p_discount_code: discountCode || null,
           p_system_user_id: auth.context.systemUserId,
-        }
-      );
+      };
+      // The quoted RPC locks and rechecks both the application and voucher.
+      // Legacy clients remain supported for unrestricted percentage vouchers.
+      const activationResult = discountCode && voucherQuote && typeof voucherQuote === "object" && !Array.isArray(voucherQuote)
+        ? await supabase.rpc("bgm_activate_membership_with_voucher_quote", { ...activationParams, p_voucher_quote: voucherQuote })
+        : await supabase.rpc("bgm_activate_membership_application", activationParams);
 
       if (activationResult.error) {
         console.error(activationResult.error);
