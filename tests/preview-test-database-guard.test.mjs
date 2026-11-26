@@ -36,3 +36,21 @@ test("launch reconciliation Preview is also TEST-only", () => {
     if (originalRef === undefined) delete process.env.VERCEL_GIT_COMMIT_REF; else process.env.VERCEL_GIT_COMMIT_REF = originalRef;
   }
 });
+
+test("scanner preview rejects LIVE and production rejects TEST or conflicting public URL", () => {
+  const previous = {env:process.env.VERCEL_ENV,ref:process.env.VERCEL_GIT_COMMIT_REF};
+  try {
+    process.env.VERCEL_ENV = "preview";
+    process.env.VERCEL_GIT_COMMIT_REF = "fix/scanner-case-safe-identifiers";
+    assert.equal(resolveSupabaseAdminConfig({SUPABASE_URL:testUrl,NEXT_PUBLIC_SUPABASE_URL:testUrl,SUPABASE_SERVICE_ROLE_KEY:key})?.supabaseUrl,testUrl);
+    assert.throws(()=>resolveSupabaseAdminConfig({SUPABASE_URL:liveUrl,SUPABASE_SERVICE_ROLE_KEY:key}),/TEST-only Preview/);
+    process.env.VERCEL_ENV = "production";
+    process.env.VERCEL_GIT_COMMIT_REF = "main";
+    assert.equal(resolveSupabaseAdminConfig({SUPABASE_URL:liveUrl,SUPABASE_SERVICE_ROLE_KEY:key})?.supabaseUrl,liveUrl);
+    assert.throws(()=>resolveSupabaseAdminConfig({SUPABASE_URL:testUrl,SUPABASE_SERVICE_ROLE_KEY:key}),/BGM LIVE/);
+    assert.throws(()=>resolveSupabaseAdminConfig({SUPABASE_URL:liveUrl,NEXT_PUBLIC_SUPABASE_URL:testUrl,SUPABASE_SERVICE_ROLE_KEY:key}),/BGM LIVE/);
+  } finally {
+    if(previous.env===undefined) delete process.env.VERCEL_ENV; else process.env.VERCEL_ENV=previous.env;
+    if(previous.ref===undefined) delete process.env.VERCEL_GIT_COMMIT_REF; else process.env.VERCEL_GIT_COMMIT_REF=previous.ref;
+  }
+});
