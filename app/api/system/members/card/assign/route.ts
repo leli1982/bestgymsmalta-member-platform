@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   decideRenewalCardAction,
+  isConcatenatedPhysicalBarcode,
   normalizeBarcodePayload,
 } from "@/lib/memberCardCredentialCore";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
@@ -220,6 +221,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const applicationMemberId = clean(body.applicationMemberId);
     const barcode = normalizeBarcodePayload(clean(body.barcode));
+    if (isConcatenatedPhysicalBarcode(barcode)) {
+      return NextResponse.json({ error: "Multiple card barcodes detected. Clear the field and scan one physical card only." }, { status: 400 });
+    }
     if (!applicationMemberId || !barcode) {
       return NextResponse.json(
         { error: "Application participant and card barcode are required." },
@@ -397,6 +401,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Existing members may predate the card-credential table. Keeping their
       // compatibility barcode is recorded now and bootstrapped atomically at activation.
+      verifiedBarcode = currentBarcode || barcode;
       await releaseReservedCard(supabase, applicationMemberId);
     }
 
