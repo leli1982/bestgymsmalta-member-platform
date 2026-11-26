@@ -19,7 +19,7 @@ export type CurrentCsvColumn = typeof CURRENT_CSV_COLUMNS[number];
 export const CURRENT_CSV_EDITABLE = [
   "FullName","FirstName","LastName","CompanyName","Address1","Address2","Town","PostCode","Country","Gender",
   "DateOfBirth","IDNumber","NextOfKin","Email","Mobile","Phone","TelephoneNo1","TelephoneNo2","Notes",
-  "EnrollmentGymId","MembershipStartDate","MembershipEndDate","MemberExpiryDate","EnrollmentDate",
+  "EnrollmentGymId","MembershipType","MembershipDuration","MembershipStartDate","MembershipEndDate","MemberExpiryDate","EnrollmentDate","Status","LegacyMembershipPeriod",
 ] as const;
 export type CurrentCsvEditable = typeof CURRENT_CSV_EDITABLE[number];
 export const CURRENT_CSV_HEADERS = [...CURRENT_CSV_COLUMNS,"OriginalSnapshot","SnapshotSignature"] as const;
