@@ -171,7 +171,7 @@ export default function StaffGlobalScanner() {
   const resultResetTimer = useRef<number | null>(null);
   const focusBeforeScan = useRef<HTMLElement | null>(null);
   const busy = useRef(false);
-  const queuedCodes = useRef<string[]>([]);
+  const queuedCodes = useRef<Array<{ code: string; inputSource: "manual_dialog" | "keyboard_prefix" | "keyboard_burst" }>>([]);
   const processNextRef = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -206,7 +206,7 @@ export default function StaffGlobalScanner() {
       (user.isSuperAdmin || user.permissions.includes("barcode.scan"))
   );
 
-  const verify = useCallback(async (code: string) => {
+  const verify = useCallback(async (code: string, inputSource: "manual_dialog" | "keyboard_prefix" | "keyboard_burst") => {
     if (!canScan || !code.trim()) return;
     setChecking(true);
     setNetworkError("");
@@ -269,6 +269,7 @@ export default function StaffGlobalScanner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           membershipNumber: code,
+          inputSource,
           deviceId: getOrCreateOfflineDeviceId(),
         }),
       });
@@ -296,10 +297,10 @@ export default function StaffGlobalScanner() {
 
   const processNext = useCallback(() => {
     if (busy.current || result || networkError || checking) return;
-    const code = queuedCodes.current.shift();
-    if (!code) return;
+    const entry = queuedCodes.current.shift();
+    if (!entry) return;
     busy.current = true;
-    void verify(code);
+    void verify(entry.code, entry.inputSource);
   }, [checking, networkError, result, verify]);
 
   processNextRef.current = processNext;
@@ -314,7 +315,7 @@ export default function StaffGlobalScanner() {
     if (!code) return;
     setManualScanOpen(false);
     setManualCode("");
-    queuedCodes.current.push(code);
+    queuedCodes.current.push({ code, inputSource: "manual_dialog" });
     processNextRef.current();
   };
 
@@ -381,10 +382,10 @@ export default function StaffGlobalScanner() {
       burstLast.current = 0;
       clearTimer();
     };
-    const submit = (value: string) => {
+    const submit = (value: string, inputSource: "keyboard_prefix" | "keyboard_burst") => {
       const code = value.trim();
       if (!code) return;
-      queuedCodes.current.push(code);
+      queuedCodes.current.push({ code, inputSource });
       processNextRef.current();
     };
     const stopKey = (event: KeyboardEvent) => {
@@ -414,7 +415,7 @@ export default function StaffGlobalScanner() {
         if (event.key === "Enter") {
           const code = scannerBuffer.current;
           resetBuffer(false);
-          submit(code);
+          submit(code, "keyboard_prefix");
         } else if (event.key === "Escape") {
           resetBuffer(false);
         } else if (
@@ -451,7 +452,7 @@ export default function StaffGlobalScanner() {
           focusBeforeScan.current = (burst?.field ?? document.activeElement) as HTMLElement | null;
           stopKey(event);
           resetBuffer(false);
-          submit(code);
+          submit(code, "keyboard_burst");
         } else {
           resetBuffer();
         }
