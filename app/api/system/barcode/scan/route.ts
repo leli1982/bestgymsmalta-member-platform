@@ -59,6 +59,8 @@ export async function POST(request: NextRequest) {
     // Upper-case only approved exception identifiers; do not touch ordinary scans.
     const membershipNumber = scopedCandidates.length
       ? originalPayload.toUpperCase() : originalPayload;
+    const inputSource = ["manual_dialog", "keyboard_prefix", "keyboard_burst", "home_input", "reception_input"].includes(body.inputSource)
+      ? String(body.inputSource) : null;
     const deviceId = clean(body.deviceId);
     const requestedGymId = clean(body.gymId);
     const gymId = auth.context.gymId || requestedGymId;
@@ -288,6 +290,10 @@ export async function POST(request: NextRequest) {
         card_uid: null,
         credential_type: "barcode",
         credential_value: membershipNumber || credentialValue,
+        original_credential_value: rawMembershipNumber || null,
+        normalized_credential_value: originalPayload.toUpperCase() || null,
+        scan_input_source: inputSource,
+        lookup_kind: credentialKind,
         member_id: member?.id || null,
         gym_id: gymId,
         system_user_id: auth.context.systemUserId,
