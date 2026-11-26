@@ -18,6 +18,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const PAGE_SIZE = 1000;
+const EXPORT_HEADERS = [...MEMBER_EXCHANGE_HEADERS, "CardBarcode"] as const;
 const MEMBER_EXPORT_SELECT =
   "id, member_number, legacy_gym, legacy_pk_customer, full_name, company_name, address_line_1, address_line_2, town, postcode, gender, telephone_no_1, telephone_no_2, mobile, email, membership_expiry, status, cancellation_effective_date";
 
@@ -60,7 +61,7 @@ function toExchangeRow(
   values.MembershipNumber = member.member_number;
   values.CardBarcode = cardBarcode;
   values.Gym = text(member.legacy_gym);
-  values.pkCustomer = cardBarcode || text(member.legacy_pk_customer);
+  values.pkCustomer = text(member.legacy_pk_customer);
   values.CustomerName = text(member.full_name);
   values.CompanyName = text(member.company_name);
   values.Address1 = text(member.address_line_1);
@@ -163,7 +164,7 @@ export async function GET(request: NextRequest) {
     const date = new Date().toISOString().slice(0, 10);
 
     if (format === "csv") {
-      const csv = serializeMemberExchangeCsv(rows);
+      const csv = serializeMemberExchangeCsv(rows, EXPORT_HEADERS);
       return new NextResponse(csv, {
         headers: {
           "Content-Type": "text/csv; charset=utf-8",
@@ -173,7 +174,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const workbook = await buildMemberExchangeXlsx(rows);
+    const workbook = await buildMemberExchangeXlsx(rows, EXPORT_HEADERS);
     return new NextResponse(new Uint8Array(workbook), {
       headers: {
         "Content-Type":
