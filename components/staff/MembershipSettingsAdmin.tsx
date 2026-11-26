@@ -549,8 +549,8 @@ export default function MembershipSettingsAdmin() {
                 </label>
                 <p className="text-xs text-zinc-500">Leave the discount at 0% for a duration-only voucher. Free months never create a reimbursement.</p>
                 <fieldset className="rounded-xl border border-zinc-200 p-3">
-                  <legend className="px-1 text-xs font-black text-zinc-700">Time-limited bonus on this existing percentage voucher</legend>
-                  <p className="mb-3 text-xs text-zinc-500">Extra months automatically apply to eligible membership redemptions during these dates, including the final day. The original discount, validity and reimbursement remain unchanged. Set to zero to disable. Single-session purchases are not extended.</p>
+                  <legend className="px-1 text-xs font-black text-zinc-700">Time-limited bonus (independent of voucher validity)</legend>
+                  <p className="mb-3 text-xs text-zinc-500">Bonus months are added to any permanent free months during these dates, including the final day. When the bonus ends, the original voucher continues normally. For a temporary-only extension on a percentage voucher, leave Additional free months at 0 and enter the bonus below. Set bonus months to zero to disable only the bonus. Single-session purchases are not extended.</p>
                   <div className="grid gap-3 sm:grid-cols-3">
                     <label className="text-xs font-black text-zinc-600">Bonus free months<input type="number" min="0" max="120" step="1" value={discountDraft.bonusMonths} onChange={(event) => setDiscountDraft((current) => ({ ...current, bonusMonths: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" /></label>
                     <label className="text-xs font-black text-zinc-600">Bonus starts<EuropeanDateInput value={discountDraft.bonusValidFrom} onValueChange={(value) => setDiscountDraft((current) => ({ ...current, bonusValidFrom: value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-950" /></label>
