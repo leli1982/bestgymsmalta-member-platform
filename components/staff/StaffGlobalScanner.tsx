@@ -3,7 +3,7 @@
 import { formatEuropeanDate } from "@/lib/europeanDate";
 import { evaluateOfflineRosterMember } from "@/lib/offlineAccessCore";
 import { todayMaltaDate } from "@/lib/maltaDate";
-import { getGrantedRenewalDaysRemaining } from "@/lib/staffScanRenewalCore";
+import { getGrantedRenewalDaysRemaining, getExpiredScanRenewalHref } from "@/lib/staffScanRenewalCore";
 import StaffScanRenewalBanner from "@/components/staff/StaffScanRenewalBanner";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -681,6 +681,14 @@ export default function StaffGlobalScanner() {
             )}
           </>
         ) : null}
+        {!checking && getExpiredScanRenewalHref(result, user) && (
+          <a
+            href={getExpiredScanRenewalHref(result, user) || undefined} target="_blank" rel="noopener noreferrer"
+            className="mt-4 flex w-full items-center justify-center rounded-2xl bg-[#ffb400] px-5 py-3 text-lg font-black text-zinc-950"
+          >
+            Renew Membership
+          </a>
+        )}
         {!checking && (
           <button
             type="button"
