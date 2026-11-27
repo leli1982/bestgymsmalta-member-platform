@@ -496,6 +496,17 @@ export default function BarcodeReceptionPage() {
             </div>
           )}
 
+          {!result.granted && (result.result === "expired" || result.result === "inactive") &&
+            !result.cardMatches?.length && result.member?.memberNumber &&
+            (user.isSuperAdmin || (user.permissions.includes("members.renew") && user.permissions.includes("members.view"))) && (
+              <a
+                href={`/staff/members/enroll?kind=renewal&memberNumber=${encodeURIComponent(result.member.memberNumber)}`}
+                className="mt-5 flex w-full items-center justify-center rounded-2xl bg-[#ffb400] px-5 py-3 text-lg font-black text-zinc-950"
+              >
+                RENEW MEMBERSHIP
+              </a>
+            )}
+
           <button
             onClick={resetScanner}
             className="mt-5 w-full rounded-2xl bg-zinc-900 px-5 py-3 text-lg font-black text-white"
