@@ -402,11 +402,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Required personal details apply to NEW memberships only. Legacy
-    // renewals may retain blank contact and ID fields while staff add what
-    // is available; the selected member UUID is protected by the DB trigger.
-    if (kind === "new") {
-      const requiredNew: Array<[keyof (typeof participants)[number], string]> = [
+    // Require complete mandatory personal details for both new and renewal
+    // submissions. Opening a renewal for an incomplete legacy member remains allowed.
+    if (kind === "new" || kind === "renewal") {
+      const requiredDetails: Array<[keyof (typeof participants)[number], string]> = [
         ["id_number", "ID / passport number"],
         ["date_of_birth", "Date of birth"],
         ["address_line_1", "Address"],
@@ -417,9 +416,9 @@ export async function POST(request: NextRequest) {
       ];
       for (let index = 0; index < participants.length; index += 1) {
         const participant = participants[index];
-        for (const [key, label] of requiredNew) {
+        for (const [key, label] of requiredDetails) {
           if (!participant[key]) {
-            return NextResponse.json({ error: `Applicant ${index + 1}: ${label} is required for a new membership.` }, { status: 400 });
+            return NextResponse.json({ error: `Applicant ${index + 1}: ${label} is required before submitting the membership application.` }, { status: 400 });
           }
         }
         if (!normalizeIdentityDocument(participant.id_number || "")) {

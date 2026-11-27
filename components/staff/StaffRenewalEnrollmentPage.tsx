@@ -108,8 +108,8 @@ const DURATIONS = [
   { value: "1_year", label: "1 year" },
 ];
 
-// Legacy records often lack contact information. Show it to reception without
-// turning an optional personal detail into a renewal blocker.
+// Legacy records can be opened for renewal even with missing details.
+// Require the same mandatory personal details before submission.
 const LEGACY_RENEWAL_DETAILS = [
   ["idNumber", "ID / passport number"],
   ["addressLine1", "Address"],
@@ -677,9 +677,14 @@ export default function MembershipEnrollmentPage() {
 
     for (let index = 0; index < participants.length; index += 1) {
       const participant = participants[index];
+      const missingDetails = LEGACY_RENEWAL_DETAILS.filter(([key]) => !participant[key]?.trim()).map(([, label]) => label);
+      if (missingDetails.length) {
+        setError(`Applicant ${index + 1}: Complete the missing mandatory details: ${missingDetails.join(", ")}.`);
+        return;
+      }
       if (!participant.dateOfBirth) {
         setError(kind === "renewal"
-          ? `Applicant ${index + 1}: No date of birth was recorded on this legacy member. Enter a verified date of birth to determine whether guardian consent is needed. Other missing personal details can remain blank.`
+          ? `Applicant ${index + 1}: No date of birth was recorded on this legacy member. Enter a verified date of birth to determine whether guardian consent is needed.`
           : `Applicant ${index + 1}: A valid date of birth is required for a new membership.`);
         return;
       }
@@ -1261,7 +1266,7 @@ function ParticipantEditor({
         <div role="status" className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
           <p className="font-black">Missing information in this legacy membership record</p>
           <p className="mt-1 font-semibold">{missingLegacyDetails.join(" · ")}</p>
-          <p className="mt-2">Fill in what the member can confirm, or continue with these personal details blank. Missing contact and ID-number fields do not stop a renewal. Existing-member selection and card verification remain in place.</p>
+          <p className="mt-2">Complete all missing mandatory details before submitting the renewal. The existing BGM member number and membership history are retained.</p>
         </div>
       )}
       {kind === "renewal" && !participant.dateOfBirth && (
@@ -1304,7 +1309,7 @@ function ParticipantEditor({
         <Field label="Address Line 1">
           <input
             value={participant.addressLine1}
-            required={kind === "new"}
+            required
             onChange={(event) => onChange(index, "addressLine1", event.target.value)}
             className={inputClass}
           />
@@ -1319,7 +1324,7 @@ function ParticipantEditor({
         <Field label="Town / Locality">
           <input
             value={participant.town}
-            required={kind === "new"}
+            required
             onChange={(event) => onChange(index, "town", event.target.value)}
             className={inputClass}
           />
@@ -1334,7 +1339,7 @@ function ParticipantEditor({
         <Field label="ID Number">
           <input
             value={participant.idNumber}
-            required={kind === "new"}
+            required
             onChange={(event) => onChange(index, "idNumber", event.target.value)}
             className={inputClass}
           />
@@ -1350,7 +1355,7 @@ function ParticipantEditor({
         <Field label="Telephone / Mobile">
           <input
             value={participant.phone}
-            required={kind === "new"}
+            required
             onChange={(event) => onChange(index, "phone", event.target.value)}
             className={inputClass}
           />
@@ -1359,7 +1364,7 @@ function ParticipantEditor({
           <input
             type="email"
             value={participant.email}
-            required={kind === "new"}
+            required
             onChange={(event) => onChange(index, "email", event.target.value)}
             className={inputClass}
           />
@@ -1367,7 +1372,7 @@ function ParticipantEditor({
         <Field label="Next of Kin">
           <input
             value={participant.nextOfKin}
-            required={kind === "new"}
+            required
             onChange={(event) => onChange(index, "nextOfKin", event.target.value)}
             className={inputClass}
           />
