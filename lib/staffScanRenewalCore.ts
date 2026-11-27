@@ -20,3 +20,13 @@ export function getGrantedRenewalDaysRemaining(
   const days = dayNumber(expiryDate) - dayNumber(today);
   return days >= 0 && days <= 7 ? days : null;
 }
+
+/** Only a verified, online, genuinely expired scan can open the existing renewal flow. */
+export function getExpiredScanRenewalHref(
+  scan: { result: string; granted: boolean; offline?: boolean; cardMatches?: readonly unknown[]; member?: { memberNumber: string } | null } | null | undefined,
+  user: { gymId: string | null; isSuperAdmin: boolean; permissions: string[] } | null | undefined,
+): string | null {
+  if (!user?.gymId || (!user.isSuperAdmin && !(user.permissions.includes("members.renew") && user.permissions.includes("members.view")))) return null;
+  if (!scan || scan.granted || scan.offline || scan.result !== "expired" || scan.cardMatches?.length || !scan.member?.memberNumber) return null;
+  return `/staff/members/enroll?kind=renewal&memberNumber=${encodeURIComponent(scan.member.memberNumber)}`;
+}
