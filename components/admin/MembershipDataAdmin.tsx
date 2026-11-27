@@ -190,6 +190,12 @@ export default function MembershipDataAdmin({
           >
             <Download size={17} /> Download CSV
           </a>
+          <a
+            href="/api/admin/members/export?format=current-csv"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-white hover:bg-white/15"
+          >
+            <Download size={17} /> Download full current members CSV
+          </a>
         </div>
       </div>
 

@@ -22,7 +22,7 @@ test("voucher options are authorized, read-only and reflect current validity", (
   assert.match(optionsRoute, /voucher\.valid_from <= today/);
   assert.match(optionsRoute, /voucher\.valid_until >= today/);
   assert.match(optionsRoute, /voucher\.successful_uses < voucher\.max_uses/);
-  assert.match(optionsRoute, /requiresVerification: requires_verification/);
+  assert.match(optionsRoute, /requiresVerification: voucher\.requires_verification/);
   assert.match(dropdown, /voucher\.requiresVerification/);
   assert.doesNotMatch(optionsRoute, /\.(?:insert|update|upsert|delete|rpc)\(/);
 });

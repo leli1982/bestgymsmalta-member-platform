@@ -59,6 +59,8 @@ export async function POST(request: NextRequest) {
     // Upper-case only approved exception identifiers; do not touch ordinary scans.
     const membershipNumber = scopedCandidates.length
       ? originalPayload.toUpperCase() : originalPayload;
+    const inputSource = ["manual_dialog", "keyboard_prefix", "keyboard_burst", "home_input", "reception_input"].includes(body.inputSource)
+      ? String(body.inputSource) : null;
     const deviceId = clean(body.deviceId);
     const requestedGymId = clean(body.gymId);
     const gymId = auth.context.gymId || requestedGymId;
@@ -97,82 +99,91 @@ export async function POST(request: NextRequest) {
     let existingOwnerIds: string[] = [];
     let activeLegacyClaimCount = 0;
     let pendingLegacyIds: string[] = [];
-    let pendingModernEligible = false;
+    let blockedLegacyCard = false;
+    let legacyResolutionSafe = true;
+    let currentConflictResolvable = false;
 
     if (membershipNumber) {
-      const claimsResult = await supabase.from("bgm_legacy_card_claims")
-        .select("member_id").eq("scan3", membershipNumber.toUpperCase()).eq("assignment_status", "active");
-      if (claimsResult.error) throw claimsResult.error;
-      activeLegacyClaimCount = (claimsResult.data || []).length;
-      const cardResult = await supabase
-        .from("bgm_member_card_credentials")
+      const exact = membershipNumber.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+      // A current credential wins over every imported claim, even when its
+      // member is expired. Reserved/retired credentials also block fallback.
+      const cardResult = await supabase.from("bgm_member_card_credentials")
         .select("id, barcode_value, member_id, status, application_member_id")
-        .ilike("barcode_value", membershipNumber.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_"));
+        .ilike("barcode_value", exact);
       if (cardResult.error) throw cardResult.error;
       const matchingCards = cardResult.data || [];
       const activeCards = matchingCards.filter(row => row.status === "active");
-      const selectedCard = activeCards[0] || matchingCards[0] || null;
-      const pending = await supabase.from("bgm_pending_legacy_card_verifications").select("member_id,status,source_row_number").eq("scan3", membershipNumber.toUpperCase());
-      if (pending.error) throw pending.error;
-      const pendingRows = (pending.data || []).filter(row => row.status === "pending");
-      pendingLegacyIds = pendingRows.map(row => row.member_id);
-      if ((pending.data || []).some(row => row.status !== "pending")) scopedCandidates = [];
-      pendingModernEligible = Boolean(selectedCard?.status === "active" && selectedCard.member_id && !selectedCard.application_member_id &&
-        pendingRows.length && pendingRows.every(row => row.source_row_number === null));
-      card = selectedCard;
-      if (card) credentialKind = "physical_card";
+      card = activeCards[0] || matchingCards[0] || null;
 
-      const claimIds = (claimsResult.data || []).map((claim) => claim.member_id);
-      for (const match of activeCards) { if (match.member_id) claimIds.push(match.member_id); }
-      existingOwnerIds = Array.from(new Set(claimIds));
-      if (claimIds.length) {
-        const claimedResult = await supabase.from("bgm_members").select(MEMBER_SELECT)
-          .in("id", Array.from(new Set(claimIds)));
-        if (claimedResult.error) throw claimedResult.error;
-        let allClaims = claimedResult.data || [];
-        // Only the 32 frozen November exceptions get an extra candidate lookup.
-        // Once a scoped member owns this exact card, future scans are normal.
-        const scopedOwner = allClaims.some((candidate) =>
-          scopedCandidates.includes(candidate.member_number)
-        );
-        if (scopedCandidates.length && !scopedOwner) {
-          const scopedResult = await supabase.from("bgm_members")
-            .select(MEMBER_SELECT).in("member_number", scopedCandidates)
-            .is("archived_at", null);
-          if (scopedResult.error) throw scopedResult.error;
-          const known = new Set(allClaims.map((candidate) => candidate.id));
-          allClaims = [...allClaims, ...(scopedResult.data || []).filter(
-            (candidate) => !known.has(candidate.id)
-          )];
-        }
-        const activeClaims = allClaims.filter((candidate) => accessFor(candidate, gymId).granted);
+      if (card) {
         credentialKind = "physical_card";
-
-        if (allClaims.length > 1) {
-          cardMatches = allClaims;
-          ambiguousPhysicalCard = true;
-        } else if (activeClaims.length === 1) {
-          member = activeClaims[0];
-        } else if (allClaims.length === 1) {
-          member = allClaims[0];
+        scopedCandidates = [];
+        existingOwnerIds = Array.from(new Set(activeCards.map(row => row.member_id).filter(Boolean))) as string[];
+        if (existingOwnerIds.length) {
+          const owners = await supabase.from("bgm_members").select(MEMBER_SELECT).in("id", existingOwnerIds);
+          if (owners.error) throw owners.error;
+          if ((owners.data || []).length > 1 || existingOwnerIds.length > 1) {
+            cardMatches = owners.data || [];
+            ambiguousPhysicalCard = true;
+            currentConflictResolvable = cardMatches.length === existingOwnerIds.length &&
+              existingOwnerIds.length > 1 && !matchingCards.some(row => row.status === "reserved");
+          } else {
+            member = owners.data?.[0] || null;
+          }
         }
-      }
-
-      if (!claimIds.length && card?.member_id) {
-        const memberResult = await supabase
-          .from("bgm_members")
-          .select(MEMBER_SELECT)
-          .eq("id", card.member_id)
-          .maybeSingle();
-        if (memberResult.error) throw memberResult.error;
-        member = memberResult.data;
-      } else if (!claimIds.length && !card) {
-        // Unassigned source Scan3: show only the pre-approved 32 exceptions.
-        // This does not change any unrelated member's scan flow.
-        if (scopedCandidates.length) {
-          const scopedResult = await supabase.from("bgm_members")
-            .select(MEMBER_SELECT).in("member_number", scopedCandidates)
-            .is("archived_at", null);
+      } else {
+        const [claims, pending] = await Promise.all([
+          supabase.from("bgm_legacy_card_claims").select("member_id,scan3,assignment_status").ilike("scan3", exact),
+          supabase.from("bgm_pending_legacy_card_verifications").select("member_id,status,source_row_number").eq("scan3", membershipNumber.toUpperCase()),
+        ]);
+        if (claims.error) throw claims.error;
+        if (pending.error) throw pending.error;
+        const claimRows = claims.data || [];
+        const activeClaims = claimRows.filter(row => row.assignment_status === "active");
+        const pendingRows = (pending.data || []).filter(row => row.status === "pending");
+        if ((pending.data || []).some(row => row.status !== "pending")) scopedCandidates = [];
+        const candidateIds = Array.from(new Set([...activeClaims.map(row => row.member_id), ...pendingRows.map(row => row.member_id)]));
+        // A member's old card is not usable once a modern card is assigned.
+        const currentOwners = candidateIds.length ? await supabase.from("bgm_member_card_credentials")
+          .select("member_id").in("member_id", candidateIds).eq("status", "active") : { data: [], error: null };
+        if (currentOwners.error) throw currentOwners.error;
+        const modernOwnerIds = new Set((currentOwners.data || []).map(row => row.member_id));
+        existingOwnerIds = activeClaims.map(row => row.member_id).filter(id => !modernOwnerIds.has(id));
+        pendingLegacyIds = pendingRows.map(row => row.member_id).filter(id => !modernOwnerIds.has(id));
+        activeLegacyClaimCount = existingOwnerIds.length;
+        // Released card history requires admin review. The transactional
+        // resolver rechecks the eligible candidate set and exact ownership.
+        legacyResolutionSafe = !claimRows.some(row => row.assignment_status === "removed");
+        const eligibleIds = Array.from(new Set([...existingOwnerIds, ...pendingLegacyIds]));
+        if (eligibleIds.length) {
+          const owners = await supabase.from("bgm_members").select(MEMBER_SELECT).in("id", eligibleIds)
+            .neq("status", "archived");
+          if (owners.error) throw owners.error;
+          let all = owners.data || [];
+          legacyResolutionSafe = legacyResolutionSafe && all.length === eligibleIds.length;
+          // Preserve the frozen 32-exception review when there is no current
+          // physical credential. Extra scoped candidates are not auto-promoted.
+          if (scopedCandidates.length && !all.some(candidate => scopedCandidates.includes(candidate.member_number))) {
+            const extra = await supabase.from("bgm_members").select(MEMBER_SELECT)
+              .in("member_number", scopedCandidates).is("archived_at", null);
+            if (extra.error) throw extra.error;
+            const known = new Set(all.map(candidate => candidate.id));
+            all = [...all, ...(extra.data || []).filter(candidate => !known.has(candidate.id))];
+            legacyResolutionSafe = false;
+          }
+          credentialKind = "physical_card";
+          if (all.length > 1 || pendingLegacyIds.length > 0) {
+            cardMatches = all;
+            ambiguousPhysicalCard = true;
+          } else if (all.length === 1) member = all[0];
+          else blockedLegacyCard = true;
+        } else if (claimRows.length || pendingRows.length) {
+          // Explicit old/released claims must not re-enter via pkCustomer.
+          blockedLegacyCard = true;
+          credentialKind = "physical_card";
+        } else if (scopedCandidates.length) {
+          const scopedResult = await supabase.from("bgm_members").select(MEMBER_SELECT)
+            .in("member_number", scopedCandidates).is("archived_at", null);
           if (scopedResult.error) throw scopedResult.error;
           if ((scopedResult.data || []).length) {
             cardMatches = scopedResult.data || [];
@@ -180,22 +191,26 @@ export async function POST(request: NextRequest) {
             credentialKind = "physical_card";
           }
         }
-        if (!ambiguousPhysicalCard) {
+        if (!member && !ambiguousPhysicalCard && !blockedLegacyCard) {
         const memberNumberResult = await supabase
           .from("bgm_members")
           .select(MEMBER_SELECT)
-          .eq("member_number", membershipNumber)
+          .ilike("member_number", membershipNumber.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_"))
           .limit(2);
         if (memberNumberResult.error) throw memberNumberResult.error;
 
-        if ((memberNumberResult.data || []).length === 1) {
+        if ((memberNumberResult.data || []).length > 1) {
+          cardMatches = memberNumberResult.data || [];
+          ambiguousPhysicalCard = true;
+          credentialKind = "member_number";
+        } else if ((memberNumberResult.data || []).length === 1) {
           member = memberNumberResult.data?.[0] || null;
           credentialKind = member ? "member_number" : null;
         } else {
           const legacyResult = await supabase
             .from("bgm_members")
             .select(MEMBER_SELECT)
-            .eq("legacy_pk_customer", membershipNumber)
+            .ilike("legacy_pk_customer", membershipNumber.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_"))
             .neq("status", "archived")
             .order("full_name", { ascending: true })
             .limit(50);
@@ -222,18 +237,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (pendingLegacyIds.length && membershipNumber) {
-      const candidates = await supabase.from("bgm_members").select(MEMBER_SELECT)
-        .in("id", Array.from(new Set([...pendingLegacyIds, ...existingOwnerIds])))
-        .is("archived_at", null).neq("status", "archived");
-      if (candidates.error) throw candidates.error;
-      if ((candidates.data || []).length) {
-        cardMatches = candidates.data || [];
-        member = null;
-        ambiguousPhysicalCard = true;
-        credentialKind = "physical_card";
-      }
-    }
     let decision: {
       result:
         | "granted"
@@ -255,7 +258,7 @@ export async function POST(request: NextRequest) {
       decision = { result: "invalid_barcode", granted: false };
     } else if (ambiguousPhysicalCard) {
       decision = { result: "ambiguous_card", granted: false };
-    } else if (card && card.status !== "active" && activeLegacyClaimCount === 0) {
+    } else if (blockedLegacyCard || (card && card.status !== "active")) {
       decision = { result: "disabled_card", granted: false };
     } else if (!member) {
       decision = { result: "unknown_card", granted: false };
@@ -284,6 +287,10 @@ export async function POST(request: NextRequest) {
         card_uid: null,
         credential_type: "barcode",
         credential_value: membershipNumber || credentialValue,
+        original_credential_value: rawMembershipNumber || null,
+        normalized_credential_value: originalPayload.toUpperCase() || null,
+        scan_input_source: inputSource,
+        lookup_kind: credentialKind,
         member_id: member?.id || null,
         gym_id: gymId,
         system_user_id: auth.context.systemUserId,
@@ -301,28 +308,22 @@ export async function POST(request: NextRequest) {
     let currentPhysicalCard: string | null = null;
     let currentPhysicalCardSource: "credential" | "legacy_scan3" | null = null;
     if (member) {
-      const [activeCardResult, legacyClaimResult] = await Promise.all([
-        supabase.from("bgm_member_card_credentials")
-          .select("barcode_value,updated_at")
-          .eq("member_id", member.id)
-          .eq("status", "active")
-          .order("updated_at", { ascending: false })
-          .limit(1),
-        supabase.from("bgm_legacy_card_claims")
-          .select("scan3,updated_at")
-          .eq("member_id", member.id)
-          .eq("assignment_status", "active")
-          .order("updated_at", { ascending: false })
-          .limit(1),
-      ]);
+      const activeCardResult = await supabase.from("bgm_member_card_credentials")
+        .select("barcode_value,updated_at").eq("member_id", member.id)
+        .eq("status", "active").order("updated_at", { ascending: false }).limit(1);
       if (activeCardResult.error) throw activeCardResult.error;
-      if (legacyClaimResult.error) throw legacyClaimResult.error;
       if (activeCardResult.data?.[0]?.barcode_value) {
         currentPhysicalCard = activeCardResult.data[0].barcode_value;
         currentPhysicalCardSource = "credential";
-      } else if (legacyClaimResult.data?.[0]?.scan3) {
-        currentPhysicalCard = legacyClaimResult.data[0].scan3;
-        currentPhysicalCardSource = "legacy_scan3";
+      } else {
+        const legacyClaimResult = await supabase.from("bgm_legacy_card_claims")
+          .select("scan3,updated_at").eq("member_id", member.id)
+          .eq("assignment_status", "active").order("updated_at", { ascending: false }).limit(1);
+        if (legacyClaimResult.error) throw legacyClaimResult.error;
+        if (legacyClaimResult.data?.[0]?.scan3) {
+          currentPhysicalCard = legacyClaimResult.data[0].scan3;
+          currentPhysicalCardSource = "legacy_scan3";
+        }
       }
     }
 
@@ -386,7 +387,8 @@ export async function POST(request: NextRequest) {
                 : null,
               isExistingCardOwner: existingOwnerIds.includes(candidate.id),
               isScopedCandidate: scopedCandidates.includes(candidate.member_number),
-              canResolveSharedLegacy: (activeLegacyClaimCount > 1 || pendingLegacyIds.length > 0) && (!card || pendingModernEligible) &&
+              canResolveCurrentConflict: currentConflictResolvable,
+              canResolveSharedLegacy: legacyResolutionSafe && (activeLegacyClaimCount > 1 || pendingLegacyIds.length > 0) && !card &&
                 cardMatches.every(match => existingOwnerIds.includes(match.id) || pendingLegacyIds.includes(match.id)),
             };
           }))

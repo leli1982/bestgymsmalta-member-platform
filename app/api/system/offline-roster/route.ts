@@ -26,8 +26,9 @@ type OfflineMemberRow = {
   pending_access_effective_date: string | null;
 };
 type ModernCardRow = {
-  member_id: string;
+  member_id: string | null;
   barcode_value: string | null;
+  status: string;
 };
 type LegacyCardRow = {
   member_id: string;
@@ -62,9 +63,8 @@ async function fetchAllModernCards(supabase: SupabaseAdmin) {
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from("bgm_member_card_credentials")
-      .select("member_id, barcode_value")
-      .eq("status", "active")
-      .order("member_id", { ascending: true })
+      .select("member_id, barcode_value,status")
+      .order("id", { ascending: true })
       .range(from, from + PAGE_SIZE - 1);
 
     if (error) throw error;
@@ -122,8 +122,39 @@ export async function GET(request: NextRequest) {
       cardsByMember.set(id, current);
     };
 
-    for (const card of modernCardRows) addCard(card.member_id, card.barcode_value);
-    for (const claim of legacyCardRows) addCard(claim.member_id, claim.scan3);
+    // Do not export a stale legacy alias where the code has ANY modern
+    // history, or where the member has an active modern assignment.
+    // Include owners outside this gym/active roster in the conflict counts.
+    const normalizeCard = (value: unknown) => String(value || "").trim().toUpperCase();
+    const modernCodes = new Set(modernCardRows.map(row => normalizeCard(row.barcode_value)));
+    const modernMembers = new Set(modernCardRows.filter(row => row.status === "active" && row.member_id).map(row => row.member_id));
+    const modernOwners = new Map<string, Set<string>>();
+    const legacyOwners = new Map<string, Set<string>>();
+    const collect = (map: Map<string, Set<string>>, code: string, id: string) => {
+      if (!code || !id) return;
+      const owners = map.get(code) || new Set<string>();
+      owners.add(id);
+      map.set(code, owners);
+    };
+    for (const card of modernCardRows) {
+      if (card.status === "active" && card.member_id) collect(modernOwners, normalizeCard(card.barcode_value), card.member_id);
+    }
+    for (const claim of legacyCardRows) {
+      if (!modernMembers.has(claim.member_id) && !modernCodes.has(normalizeCard(claim.scan3))) {
+        collect(legacyOwners, normalizeCard(claim.scan3), claim.member_id);
+      }
+    }
+    for (const card of modernCardRows) {
+      if (card.status === "active" && card.member_id && modernOwners.get(normalizeCard(card.barcode_value))?.size === 1) {
+        addCard(card.member_id, card.barcode_value);
+      }
+    }
+    for (const claim of legacyCardRows) {
+      const code = normalizeCard(claim.scan3);
+      if (!modernMembers.has(claim.member_id) && !modernCodes.has(code) && legacyOwners.get(code)?.size === 1) {
+        addCard(claim.member_id, claim.scan3);
+      }
+    }
 
     const currentGymId = auth.context.gymId;
     const members = memberRows

@@ -68,8 +68,10 @@ try {
   let scans = 0;
   await context.route("**/api/system/barcode/scan", (route) => {
     assert.equal(route.request().method(), "POST");
-    const code = route.request().postDataJSON().membershipNumber;
-    assert.ok(["BGM0000123", "BGM0000999", "BGM0000777", "BGM0000240", "X06956", "59060154"].includes(code));
+    const { membershipNumber: code, inputSource } = route.request().postDataJSON();
+    assert.ok(["keyboard_prefix", "keyboard_burst"].includes(inputSource), "Scanner path must be recorded");
+    if (code === "x06956") assert.equal(inputSource, "keyboard_burst");
+    assert.ok(["BGM0000123", "BGM0000999", "BGM0000777", "BGM0000240", "X06956", "x06956", "59060154"].includes(code));
     scans++;
     const granted = code !== "BGM0000999";
     return route.fulfill({
@@ -208,7 +210,7 @@ try {
     "Scanner must restore focus to the Bar field that Staff were using");
 
   // Real-world TEST card formats must be recognised without touching Staff UI.
-  for (const barcode of ["X06956", "59060154"]) {
+  for (const barcode of ["X06956", "x06956", "59060154"]) {
     await productSearch.fill("Water");
     await productSearch.focus();
     await page.keyboard.type(barcode, { delay: 4 });
@@ -301,7 +303,7 @@ try {
   assert.equal(await barTotal.textContent(), totalBeforeNumericScans,
     "Bar quantity must remain editable after scanning");
 
-  assert.equal(scans, 10, "Every submitted scan must be verified exactly once");
+  assert.equal(scans, 11, "Every submitted scan must be verified exactly once");
   assert.deepEqual(pageErrors, [], "Global scanner must not trigger browser errors");
   console.log("PASS global scanner preserves Sundries and live Bar controls while verifying cards");
 } finally {

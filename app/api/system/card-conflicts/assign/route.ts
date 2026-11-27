@@ -13,10 +13,12 @@ function clean(value: unknown) {
 }
 
 /**
- * Staff verification for scoped exceptions and current shared legacy claims.
- * Modern and NFC credentials are never transferred by this route.
+ * Staff verification for scoped exceptions and scanner card conflicts.
+ * A verified duplicate current card is retained for its selected existing
+ * owner; the other duplicate records are retired transactionally. NFC is protected.
  */
 export async function POST(request: NextRequest) {
+  let ownershipSaved = false;
   try {
     const auth = await requireSystemPermission(request, "barcode.scan");
     if (auth.error || !auth.context) return auth.error;
@@ -30,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     const db = getSupabaseAdmin();
     const scanResult = await db.from("bgm_access_scans")
-      .select("id,credential_value,credential_type,gym_id,system_user_id,result,scanned_at")
+      .select("id,credential_value,credential_type,gym_id,system_user_id,result,scanned_at,lookup_kind")
       .eq("id", scanId).maybeSingle();
     if (scanResult.error) throw scanResult.error;
     const scan = scanResult.data;
@@ -49,6 +51,8 @@ export async function POST(request: NextRequest) {
 
     const code = clean(scan.credential_value).toUpperCase();
     const candidateNumbers = scopedConflictCandidates(code);
+    const resolveVerified = body.resolveSharedLegacy === true || body.resolveCurrentConflict === true;
+    const exactCode = code.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
     const memberResult = await db.from("bgm_members")
       .select("id,member_number,full_name,status,membership_expiry,cancellation_effective_date,archived_at,access_scope,access_gym_id,pending_access_scope,pending_access_gym_id,pending_access_effective_date,enrollment_gym_id,official_photo_path")
       .eq("id", memberId).maybeSingle();
@@ -60,10 +64,10 @@ export async function POST(request: NextRequest) {
 
     const [legacy, modern, nfc, gym] = await Promise.all([
       db.from("bgm_legacy_card_claims").select("member_id,scan3,assignment_status")
-        .ilike("scan3", code),
+        .ilike("scan3", exactCode),
       db.from("bgm_member_card_credentials").select("member_id,barcode_value,status,application_member_id")
-        .ilike("barcode_value", code),
-      db.from("bgm_nfc_cards").select("member_id,card_uid,status").ilike("card_uid", code),
+        .ilike("barcode_value", exactCode),
+      db.from("bgm_nfc_cards").select("member_id,card_uid,status").ilike("card_uid", exactCode),
       db.from("bgm_gyms").select("id,name,status").eq("id", scan.gym_id).maybeSingle(),
     ]);
     if (legacy.error) throw legacy.error;
@@ -85,16 +89,19 @@ export async function POST(request: NextRequest) {
     const pendingIds = (pending.data || []).map(x => x.member_id);
     const currentLegacyIds = (legacy.data || []).filter(x => x.assignment_status === "active").map(x => x.member_id);
     const modernRows = modern.data || [];
-    const eligibleFlaggedModern = modernRows.length === 1 && modernRows[0].status === "active" &&
-      Boolean(modernRows[0].member_id) && !modernRows[0].application_member_id &&
-      pendingIds.length > 0 && (pending.data || []).every(row => row.source_row_number === null);
     const sharedLegacy = (currentLegacyIds.length > 1 || pendingIds.length > 0) &&
-      (!modernRows.length || eligibleFlaggedModern) && !(nfc.data || []).length;
-    if (!candidateNumbers.length && !sharedLegacy) {
-      return NextResponse.json({ error: "This card is not an eligible shared legacy conflict. Please rescan or ask Super Admin." }, { status: 403 });
-    }
-    if (!isExistingOwner && !isScopedCandidate && !pendingIds.includes(member.id)) {
-      return NextResponse.json({ error: "The selected member is not a verified match for this scanned card." }, { status: 403 });
+      !modernRows.length && !(nfc.data || []).length;
+    if (!resolveVerified) {
+      // The old scoped path cannot resolve a newly assigned current card.
+      if (modernRows.length || scan.lookup_kind !== "physical_card") {
+        return NextResponse.json({ error: "Card ownership changed. Rescan before confirming." }, { status: 409 });
+      }
+      if (!candidateNumbers.length && !sharedLegacy) {
+        return NextResponse.json({ error: "This card is not an eligible shared legacy conflict. Please rescan or ask Super Admin." }, { status: 403 });
+      }
+      if (!isExistingOwner && !isScopedCandidate && !pendingIds.includes(member.id)) {
+        return NextResponse.json({ error: "The selected member is not a verified match for this scanned card." }, { status: 403 });
+      }
     }
 
     const access = evaluateBarcodeAccess({
@@ -108,7 +115,7 @@ export async function POST(request: NextRequest) {
       },
       today: todayMaltaDate(), gymId: scan.gym_id,
     });
-    if (!access.granted && body.resolveSharedLegacy !== true) {
+    if (!access.granted && !resolveVerified) {
       return NextResponse.json({ error:
         access.result === "expired" ? "Membership expired — no access granted." :
         access.result === "restricted_gym" ? "This membership does not allow entry at this gym." :
@@ -118,19 +125,22 @@ export async function POST(request: NextRequest) {
     let permanentlyAssigned = false;
     let finalAccess = access;
     let sharedScanCompleted = false;
-    if (body.resolveSharedLegacy === true) {
-      if (!sharedLegacy || !(currentLegacyIds.includes(member.id) || pendingIds.includes(member.id) || (eligibleFlaggedModern && isExistingOwner)) || !Array.isArray(body.expectedMemberIds) ||
+    let confirmedCard = code;
+    if (resolveVerified) {
+      if (scan.lookup_kind !== "physical_card" || !Array.isArray(body.expectedMemberIds) ||
           !body.expectedMemberIds.every((id: unknown) => typeof id === "string")) {
-        return NextResponse.json({ error: "Shared card claims changed. Rescan before confirming." }, { status: 409 });
+        return NextResponse.json({ error: "Card claims changed. Rescan before confirming." }, { status: 409 });
       }
-      const resolved = await db.rpc("bgm_staff_resolve_shared_legacy_card", {
+      const resolved = await db.rpc("bgm_staff_resolve_scanner_card_conflict", {
         p_scan_id: scan.id, p_staff_id: auth.context.systemUserId, p_member_id: member.id,
         p_expected_ids: body.expectedMemberIds,
       });
       if (resolved.error || !resolved.data?.resolved) {
-        return NextResponse.json({ error: "Shared card could not be resolved safely. Rescan or flag to Super Admin." }, { status: 409 });
+        return NextResponse.json({ error: "Card could not be resolved safely. Rescan or flag to Super Admin." }, { status: 409 });
       }
       permanentlyAssigned = true;
+      ownershipSaved = true;
+      confirmedCard = resolved.data.currentPhysicalCard || code;
       const result = resolved.data.result;
       if (!["granted", "expired", "inactive", "restricted_gym"].includes(result)) throw new Error("Invalid shared scan result");
       finalAccess = { result, granted: result === "granted" };
@@ -202,6 +212,7 @@ export async function POST(request: NextRequest) {
     }
 
     }
+    if (permanentlyAssigned) ownershipSaved = true;
     let duplicate = false;
     if (finalAccess.granted) {
     const checkin = await recordCanonicalCheckin({
@@ -215,7 +226,7 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({
       result: finalAccess.result, granted: finalAccess.granted, duplicate,
-      permanentlyAssigned, currentPhysicalCard: code, cardStatus: "active",
+      permanentlyAssigned, currentPhysicalCard: confirmedCard, cardStatus: "active",
       credentialKind: "physical_card", scannedBarcode: code,
       cardMatches: [], scanId: scan.id,
       member: {
@@ -234,6 +245,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Scoped card conflict assignment failed", error);
-    return NextResponse.json({ error: "Could not verify this card safely. No existing member card was transferred." }, { status: 500 });
+    return NextResponse.json({ error: ownershipSaved
+      ? "Card ownership was saved, but visit processing did not finish. Please scan the card again."
+      : "Could not verify this card safely. Rescan or flag to Super Admin." }, { status: 500 });
   }
 }

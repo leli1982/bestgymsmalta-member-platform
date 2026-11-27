@@ -22,16 +22,18 @@ test("NEW memberships retain active-identity block and required data", () => {
   assert.match(migration, /v_application_kind = 'new'/);
   assert.match(migration, /bgm_classify_membership_identity\(new\.id_number\)/);
   assert.match(migration, /An active membership already exists/);
-  assert.match(route, /if \(kind === "new"\)/);
+  assert.match(route, /if \(kind === "new" \|\| kind === "renewal"\)/);
   for (const field of ["id_number", "address_line_1", "town", "phone", "email", "next_of_kin"]) {
     assert.ok(route.includes('["' + field + '",'), "New member must require " + field);
   }
 });
 
-test("staff renewal warns about optional legacy details and can populate them", () => {
+test("staff renewal requires missing mandatory legacy details before submission", () => {
   assert.match(ui, /LEGACY_RENEWAL_DETAILS/);
   assert.match(ui, /Missing information in this legacy membership record/);
-  assert.match(ui, /Missing contact and ID-number fields do not stop a renewal/);
+  assert.match(ui, /Complete all missing mandatory details before submitting the renewal/);
+  assert.match(ui, /if \(missingDetails\.length\)/);
+  assert.doesNotMatch(ui, /required=\{kind === "new"\}/);
   assert.match(ui, /originallyRecordedDob/);
   assert.match(ui, /readOnly=\{kind === "renewal" && Boolean\(originallyRecordedDob\)\}/);
   assert.match(route, /actualBirth \|\| participant\.date_of_birth/);

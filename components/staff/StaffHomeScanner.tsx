@@ -1,7 +1,7 @@
 "use client";
 
 import { formatEuropeanDate } from "@/lib/europeanDate";
-import { getGrantedRenewalDaysRemaining } from "@/lib/staffScanRenewalCore";
+import { getGrantedRenewalDaysRemaining, getExpiredScanRenewalHref } from "@/lib/staffScanRenewalCore";
 import StaffScanRenewalBanner from "@/components/staff/StaffScanRenewalBanner";
 
 import { useEffect, useRef, useState } from "react";
@@ -142,6 +142,7 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           membershipNumber: scanned,
+          inputSource: "home_input",
           deviceId: getOrCreateOfflineDeviceId(),
         }),
       });
@@ -392,6 +393,14 @@ export default function StaffHomeScanner({ user }: { user: SystemUser }) {
               </p>
             ) : null}
 
+            {getExpiredScanRenewalHref(result, user) && (
+              <a
+                href={getExpiredScanRenewalHref(result, user) || undefined}
+                className="mt-4 flex w-full items-center justify-center rounded-2xl bg-[#ffb400] px-5 py-3 text-lg font-black text-zinc-950"
+              >
+                Renew Membership
+              </a>
+            )}
             <button
               type="button"
               onClick={reset}

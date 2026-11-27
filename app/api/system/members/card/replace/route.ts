@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { normalizeBarcodePayload } from "@/lib/memberCardCredentialCore";
+import { isConcatenatedPhysicalBarcode, normalizeBarcodePayload } from "@/lib/memberCardCredentialCore";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireSystemPermission } from "@/lib/systemAuth";
 import { bestEffortSyncGoogleWalletMembers } from "@/lib/googleWalletSync";
@@ -19,6 +19,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const memberId = clean(body.memberId);
     const barcode = normalizeBarcodePayload(clean(body.barcode));
+    if (isConcatenatedPhysicalBarcode(barcode)) {
+      return NextResponse.json({ error: "Multiple card barcodes detected. Clear the field and scan one physical card only." }, { status: 400 });
+    }
     const reason = clean(body.reason).toLowerCase();
     const requestedGymId = clean(body.gymId);
     const gymId = auth.context.gymId || requestedGymId;

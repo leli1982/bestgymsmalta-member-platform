@@ -1,7 +1,7 @@
 "use client";
 
 import { formatEuropeanDate } from "@/lib/europeanDate";
-import { getGrantedRenewalDaysRemaining } from "@/lib/staffScanRenewalCore";
+import { getGrantedRenewalDaysRemaining, getExpiredScanRenewalHref } from "@/lib/staffScanRenewalCore";
 import StaffScanRenewalBanner from "@/components/staff/StaffScanRenewalBanner";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -231,6 +231,7 @@ export default function BarcodeReceptionPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           membershipNumber: scannedNumber,
+          inputSource: "reception_input",
           gymId: user?.gymId ? undefined : selectedGymId,
           deviceId: getOrCreateOfflineDeviceId(),
         }),
@@ -496,6 +497,14 @@ export default function BarcodeReceptionPage() {
             </div>
           )}
 
+          {getExpiredScanRenewalHref(result, user) && (
+            <a
+              href={getExpiredScanRenewalHref(result, user) || undefined}
+              className="mt-4 flex w-full items-center justify-center rounded-2xl bg-[#ffb400] px-5 py-3 text-lg font-black text-zinc-950"
+            >
+              Renew Membership
+            </a>
+          )}
           <button
             onClick={resetScanner}
             className="mt-5 w-full rounded-2xl bg-zinc-900 px-5 py-3 text-lg font-black text-white"

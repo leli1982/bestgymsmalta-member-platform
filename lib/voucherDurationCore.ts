@@ -126,7 +126,7 @@ function filterList(value: unknown, label: string, allowed?: readonly string[]):
   if (!Array.isArray(value) || value.some((item) => typeof item !== "string" || !item.trim() || (allowed && !allowed.includes(item)))) {
     throw new Error("Invalid eligible " + label + ".");
   }
-  return value.length ? [...new Set(value as string[])].sort() : null;
+  return value.length ? Array.from(new Set(value as string[])).sort() : null;
 }
 
 export function parseVoucherPromotion(body: Record<string, unknown>): VoucherPromotion {
