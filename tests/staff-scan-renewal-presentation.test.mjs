@@ -46,7 +46,10 @@ test("Existing access core still denies expired, inactive and wrong-gym scans", 
   for (const result of ["inactive", "restricted_gym", "disabled_card", "unknown_member", "ambiguous_card", "granted"]) assert.equal(getExpiredScanRenewalHref({...scan, result}, user), null);
   for (const invalid of [{...scan, granted:true}, {...scan, offline:true}, {...scan, cardMatches:[{}]}, {...scan, member:null}]) assert.equal(getExpiredScanRenewalHref(invalid,user), null);
   assert.equal(getExpiredScanRenewalHref(scan, {...user, permissions:["members.view"]}), null);
-  assert.equal(getExpiredScanRenewalHref(scan, {...user, gymId:null}), null);
+  assert.equal(getExpiredScanRenewalHref(scan, {...user, gymId:null}), "/staff/members/enroll?kind=renewal&memberNumber=BGM26522");
+  assert.equal(getExpiredScanRenewalHref(scan, {...user, gymId:null, isSuperAdmin:true, permissions:[]}), "/staff/members/enroll?kind=renewal&memberNumber=BGM26522");
+  assert.equal(getExpiredScanRenewalHref(scan, {...user, gymId:null, permissions:["members.view"]}), null);
+  assert.equal(getExpiredScanRenewalHref(scan, null), null);
   assert.equal(getExpiredScanRenewalHref(scan, {...user, isSuperAdmin:true, permissions:[]}), "/staff/members/enroll?kind=renewal&memberNumber=BGM26522");
   for (const path of ["components/staff/StaffHomeScanner.tsx","components/staff/BarcodeReceptionPage.tsx","components/staff/StaffGlobalScanner.tsx"]) {
     const source=read(path);
